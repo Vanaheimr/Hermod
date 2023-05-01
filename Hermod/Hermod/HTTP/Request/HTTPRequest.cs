@@ -1151,12 +1151,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    Host header field, the host is determined by the Host header field value.
             // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
             //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
-            if (!_HeaderFields.ContainsKey(HTTPHeaderField.Host.Name))
+            if (!headerFields.ContainsKey(HTTPHeaderField.Host.Name))
                 throw new Exception("The HTTP request must have have a valid HOST header!");
 
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
-            var    HostHeader  = _HeaderFields[HTTPHeaderField.Host.Name].ToString().
+            var    HostHeader  = headerFields[HTTPHeaderField.Host.Name].ToString().
                                      Replace(":*", "").
                                      Split(_ColonSeparator, StringSplitOptions.RemoveEmptyEntries).
                                      Select(v => v.Trim()).
@@ -1165,7 +1165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UInt16 HostPort    = 80;
 
             if (HostHeader.Length == 1)
-                _HeaderFields[HTTPHeaderField.Host.Name] = _HeaderFields[HTTPHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
+                headerFields[HTTPHeaderField.Host.Name] = headerFields[HTTPHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
 
             else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort)) || HostHeader.Length > 2)
                 throw new Exception("Bad request");

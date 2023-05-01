@@ -28,6 +28,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Linq.Expressions;
 
 #endregion
 
@@ -49,10 +50,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private Socket?           TCPSocket;
-        private MyNetworkStream?  TCPStream;
-        private SslStream?        TLSStream;
-        private Stream?           HTTPStream;
+        private Socket?           tcpSocket;
+        private MyNetworkStream?  tcpStream;
+        private SslStream?        tlsStream;
+        private Stream?           httpStream;
 
 
         /// <summary>
@@ -179,20 +180,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public Int32 Available
-                    => TCPSocket.Available;
+                    => tcpSocket.Available;
 
         public Boolean Connected
-            => TCPSocket.Connected;
+            => tcpSocket.Connected;
 
         public LingerOption? LingerState
         {
             get
             {
-                return TCPSocket.LingerState;
+                return tcpSocket.LingerState;
             }
             set
             {
-                TCPSocket.LingerState = value;
+                tcpSocket.LingerState = value;
             }
         }
 
@@ -200,11 +201,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return TCPSocket.NoDelay;
+                return tcpSocket.NoDelay;
             }
             set
             {
-                TCPSocket.NoDelay = value;
+                tcpSocket.NoDelay = value;
             }
         }
 
@@ -212,11 +213,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-                return (Byte) TCPSocket.Ttl;
+                return (Byte) tcpSocket.Ttl;
             }
             set
             {
-                TCPSocket.Ttl = value;
+                tcpSocket.Ttl = value;
             }
         }
 
@@ -376,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           ClientRequestLogHandler?        RequestLogDelegate    = null,
                                           ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
-                                          CancellationToken?              CancellationToken     = null,
+                                          CancellationToken               CancellationToken     = default,
                                           EventTracking_Id?               EventTrackingId       = null,
                                           TimeSpan?                       RequestTimeout        = null,
                                           Byte                            NumberOfRetry         = 0)
@@ -420,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 ClientRequestLogHandler?   RequestLogDelegate    = null,
                                                 ClientResponseLogHandler?  ResponseLogDelegate   = null,
 
-                                                CancellationToken?         CancellationToken     = null,
+                                                CancellationToken          CancellationToken     = default,
                                                 EventTracking_Id?          EventTrackingId       = null,
                                                 TimeSpan?                  RequestTimeout        = null,
                                                 Byte                       NumberOfRetry         = 0)
@@ -439,6 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var HTTPHeaderBytes  = Array.Empty<Byte>();
                 var HTTPBodyBytes    = Array.Empty<Byte>();
                 var sw               = new Stopwatch();
+                var clientClose      = false;
 
                 if (!RequestTimeout.HasValue)
                     RequestTimeout = Request.Timeout ?? this.RequestTimeout;
@@ -454,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     restart = false;
 
-                    if (TCPSocket is null)
+                    if (tcpSocket is null)
                     {
 
                         System.Net.IPEndPoint? _FinalIPEndPoint = null;
@@ -532,27 +534,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                         if (RemoteIPAddress.IsIPv4)
-                            TCPSocket = new Socket(AddressFamily.InterNetwork,
+                            tcpSocket = new Socket(AddressFamily.InterNetwork,
                                                    SocketType.Stream,
                                                    ProtocolType.Tcp);
 
                         if (RemoteIPAddress.IsIPv6)
-                            TCPSocket = new Socket(AddressFamily.InterNetworkV6,
+                            tcpSocket = new Socket(AddressFamily.InterNetworkV6,
                                                    SocketType.Stream,
                                                    ProtocolType.Tcp);
 
-                        if (TCPSocket is not null)
+                        if (tcpSocket is not null)
                         {
-                            TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                            TCPSocket.Connect(_FinalIPEndPoint);
-                            TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                            tcpSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                            tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                            tcpSocket.Connect(_FinalIPEndPoint);
+                            tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
                         }
 
                     }
 
-                    TCPStream = TCPSocket is not null
-                                    ? new MyNetworkStream(TCPSocket, true) {
+                    tcpStream = tcpSocket is not null
+                                    ? new MyNetworkStream(tcpSocket, true) {
                                           ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
                                       }
                                     : null;
@@ -563,13 +565,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (RemoteURL.Protocol == URLProtocols.https &&
                         RemoteCertificateValidator is not null   &&
-                        TCPStream                  is not null)
+                        tcpStream                  is not null)
                     {
 
-                        if (TLSStream is null)
+                        if (tlsStream is null)
                         {
 
-                            TLSStream = new SslStream(TCPStream,
+                            tlsStream = new SslStream(tcpStream,
                                                       false,
                                                       RemoteCertificateValidator,
                                                       ClientCertificateSelector,
@@ -580,12 +582,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             };
 
-                            HTTPStream = TLSStream;
+                            httpStream = tlsStream;
 
                             try
                             {
 
-                                await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
+                                await tlsStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
                                                                           null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
                                                                           this.TLSProtocol,
                                                                           false);// true);
@@ -593,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
                             catch (Exception)
                             {
-                                TCPSocket = null;
+                                tcpSocket = null;
                                 restart   = true;
                             }
 
@@ -603,20 +605,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     else
                     {
-                        TLSStream  = null;
-                        HTTPStream = TCPStream;
+                        tlsStream  = null;
+                        httpStream = tcpStream;
                     }
 
-                    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                    httpStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 }
                 while (restart);
 
                 #endregion
 
-                Request.LocalSocket   = IPSocket.FromIPEndPoint(TCPStream.Socket.LocalEndPoint);
-                Request.HTTPSource    = new HTTPSource(IPSocket.FromIPEndPoint(TCPStream.Socket.LocalEndPoint));
-                Request.RemoteSocket  = IPSocket.FromIPEndPoint(TCPStream.Socket.RemoteEndPoint);
+                Request.LocalSocket   = IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint)                ?? IPSocket.Zero;
+                Request.HTTPSource    = new HTTPSource(IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint) ?? IPSocket.Zero);
+                Request.RemoteSocket  = IPSocket.FromIPEndPoint(tcpStream.Socket.RemoteEndPoint)               ?? IPSocket.Zero;
 
                 #region Call the optional HTTP request log delegate
 
@@ -642,10 +644,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Send Request
 
                 // To avoid confusions, better send the entire header incl. separator lines as one block
-                HTTPStream.Write(String.Concat(Request.EntireRequestHeader, "\r\n\r\n").
-                                        ToUTF8Bytes());
+             //   await httpStream.WriteAsync($"{Request.EntireRequestHeader}\r\n\r\n".ToUTF8Bytes(), CancellationToken);
 
-                var RequestBodyLength = Request.HTTPBody is null
+                //await Task.Delay(200);
+
+                var requestBodyLength = Request.HTTPBody is null
                                             ? Request.ContentLength.HasValue
                                                   ? (Int32) Request.ContentLength.Value
                                                   : 0
@@ -654,29 +657,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              Request.HTTPBody.Length)
                                                   : Request.HTTPBody.Length;
 
+                var array1        = $"{Request.EntireRequestHeader}\r\n\r\n".ToUTF8Bytes();
+                var combinedArray = new Byte[array1.Length + requestBodyLength];
+                Buffer.BlockCopy(array1,           0, combinedArray,             0, array1.Length);
+
+                if (requestBodyLength > 0)
+                    Buffer.BlockCopy(Request.HTTPBody, 0, combinedArray, array1.Length, requestBodyLength);
+
+                await httpStream.WriteAsync(combinedArray, CancellationToken);
+
                 //DebugX.LogT("RequestBodyLength: " + RequestBodyLength + " bytes, socket: " + TCPStream.Socket.LocalEndPoint?.ToString() + " => " + TCPStream.Socket.RemoteEndPoint?.ToString());
 
-                if (RequestBodyLength > 0)
-                    HTTPStream.Write(Request.HTTPBody, 0, RequestBodyLength);
+                //if (Request.HTTPBody is not null && requestBodyLength > 0)
+                //    await httpStream.WriteAsync(Request.HTTPBody, 0, requestBodyLength, CancellationToken);
+
+                await httpStream.FlushAsync(CancellationToken);
 
                 //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URL + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
 
-                var _InternalHTTPStream  = new MemoryStream();
+                var internalHTTPStream  = new MemoryStream();
 
                 #endregion
 
                 #region Wait timeout for the server to react!
 
 
-                while (!TCPStream.DataAvailable)
-                {
+                //while (!TCPStream.DataAvailable)
+                //{
 
-                    if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                        throw new HTTPTimeoutException(sw.Elapsed);
+                //    if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
+                //        throw new HTTPTimeoutException(sw.Elapsed);
 
-                    Thread.Sleep(1);
+                //    Thread.Sleep(1);
 
-                }
+                //}
 
                 //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URL + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
 
@@ -686,55 +700,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Read the HTTP header
 
                 var currentDataLength    = 0;
-                var CurrentHeaderLength  = 0;
-                var HeaderEndsAt         = 0;
+                var currentHeaderLength  = 0;
+                var httpHeaderEndsAt     = 0;
 
-                var _Buffer = new Byte[65536];
+                var receiveBuffer = new Byte[65536];
 
                 do
                 {
 
-                    currentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+                    currentDataLength = await httpStream.ReadAsync(receiveBuffer, CancellationToken);
 
                     if (currentDataLength > 0)
                     {
 
-                        if (currentDataLength > 3 || CurrentHeaderLength > 3)
+                        if (currentDataLength > 3 || currentHeaderLength > 3)
                         {
 
-                            for (var pos = 3; pos < _Buffer.Length; pos++)
+                            for (var pos = 3; pos < receiveBuffer.Length; pos++)
                             {
-                                if (_Buffer[pos    ] == 0x0a &&
-                                    _Buffer[pos - 1] == 0x0d &&
-                                    _Buffer[pos - 2] == 0x0a &&
-                                    _Buffer[pos - 3] == 0x0d)
+                                if (receiveBuffer[pos    ] == 0x0a &&
+                                    receiveBuffer[pos - 1] == 0x0d &&
+                                    receiveBuffer[pos - 2] == 0x0a &&
+                                    receiveBuffer[pos - 3] == 0x0d)
                                 {
-                                    HeaderEndsAt = pos - 3;
+                                    httpHeaderEndsAt = pos - 3;
                                     break;
                                 }
                             }
 
-                            if (HeaderEndsAt > 0)
+                            if (httpHeaderEndsAt > 0)
                             {
 
-                                Array.Resize(ref HTTPHeaderBytes, CurrentHeaderLength + HeaderEndsAt);
-                                Array.Copy(_Buffer, 0, HTTPHeaderBytes, CurrentHeaderLength, HeaderEndsAt);
-                                CurrentHeaderLength += HeaderEndsAt;
+                                Array.Resize(ref HTTPHeaderBytes, currentHeaderLength + httpHeaderEndsAt);
+                                Array.Copy(receiveBuffer, 0, HTTPHeaderBytes, currentHeaderLength, httpHeaderEndsAt);
+                                currentHeaderLength += httpHeaderEndsAt;
 
                                 // We already read a bit of the HTTP body!
-                                if (HeaderEndsAt + 4 < currentDataLength)
+                                if (httpHeaderEndsAt + 4 < currentDataLength)
                                 {
-                                    Array.Resize(ref HTTPBodyBytes, currentDataLength - 4 - HeaderEndsAt);
-                                    Array.Copy(_Buffer, HeaderEndsAt + 4, HTTPBodyBytes, 0, HTTPBodyBytes.Length);
+                                    Array.Resize(ref HTTPBodyBytes, currentDataLength - 4 - httpHeaderEndsAt);
+                                    Array.Copy(receiveBuffer, httpHeaderEndsAt + 4, HTTPBodyBytes, 0, HTTPBodyBytes.Length);
                                 }
 
                             }
 
                             else
                             {
-                                Array.Resize(ref HTTPHeaderBytes, CurrentHeaderLength + _Buffer.Length);
-                                Array.Copy(_Buffer, 0, HTTPHeaderBytes, CurrentHeaderLength, _Buffer.Length);
-                                CurrentHeaderLength += _Buffer.Length;
+                                Array.Resize(ref HTTPHeaderBytes, currentHeaderLength + receiveBuffer.Length);
+                                Array.Copy(receiveBuffer, 0, HTTPHeaderBytes, currentHeaderLength, receiveBuffer.Length);
+                                currentHeaderLength += receiveBuffer.Length;
                                 Thread.Sleep(1);
                             }
 
@@ -742,8 +756,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                } while (HeaderEndsAt == 0 &&
-                         sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
+                } while (httpHeaderEndsAt == 0 &&
+                         sw.ElapsedMilliseconds < httpStream.ReadTimeout);
 
                 if (HTTPHeaderBytes.Length == 0)
                     throw new ApplicationException("[" + Timestamp.Now.ToString() + "] Could not find the end of the HTTP protocol header!");
@@ -756,7 +770,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                _Buffer = new Byte[50 * 1024 * 1024];
+                receiveBuffer = new Byte[50 * 1024 * 1024];
 
                 #region A single fixed-lenght HTTP request -> read '$Content-Length' bytes...
 
@@ -768,38 +782,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // Test via:
                     // var aaa = new HTTPClient("www.networksorcery.com").GET("/enp/rfc/rfc1000.txt").ExecuteReturnResult().Result;
 
-                    var _StillToRead = (Int32) Response.ContentLength.Value - Response.HTTPBody.Length;
+                    var stillToRead  = (Int32) Response.ContentLength.Value - Response.HTTPBody.Length;
+                    var isError      = false;
 
                     do
                     {
 
                         while (//TCPStream.DataAvailable &&  <= Does not work as expected!
-                               _StillToRead > 0)
+                               stillToRead > 0)
                         {
 
-                            currentDataLength = HTTPStream.Read(_Buffer, 0, Math.Min(_Buffer.Length, _StillToRead));
-
-                            if (currentDataLength > 0)
+                            try
                             {
-                                var OldSize = Response.HTTPBody.Length;
-                                Response.ResizeBody(OldSize + currentDataLength);
-                                Array.Copy(_Buffer, 0, Response.HTTPBody, OldSize, currentDataLength);
-                                _StillToRead -= currentDataLength;
+
+                                currentDataLength = await httpStream.ReadAsync(receiveBuffer, 0, Math.Min(receiveBuffer.Length, stillToRead), CancellationToken);
+
+                                if (currentDataLength > 0)
+                                {
+                                    var oldSize = Response.HTTPBody.Length;
+                                    Response.ResizeBody(oldSize + currentDataLength);
+                                    Array.Copy(receiveBuffer, 0, Response.HTTPBody, oldSize, currentDataLength);
+                                    stillToRead -= currentDataLength;
+                                }
+
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.Log($"StillToRead: {receiveBuffer.Length}, {stillToRead}: {e.Message}!");
+                                isError = true;
+                                break;
                             }
 
                         }
 
                         OnDataRead?.Invoke(sw.Elapsed,
-                                           Response.ContentLength.Value - (UInt64) _StillToRead,
+                                           Response.ContentLength.Value - (UInt64) stillToRead,
                                            Response.ContentLength.Value);
 
-                        if (_StillToRead <= 0)
+                        if (stillToRead <= 0)
                             break;
 
                         Thread.Sleep(1);
 
                     }
-                    while (sw.ElapsedMilliseconds < HTTPStream.ReadTimeout);
+                    while (sw.ElapsedMilliseconds < httpStream.ReadTimeout && !isError);
+
+                    // Do a friendly close of the TCP connection to avoid TCP RST packets!
+                    clientClose = true;
 
                 }
 
@@ -834,27 +863,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             #region Read more data from network
 
-                            if (TCPStream.DataAvailable)
+                            if (tcpStream.DataAvailable)
                             {
 
                                 do
                                 {
 
-                                    currentDataLength = HTTPStream.Read(_Buffer, 0, _Buffer.Length);
+                                    currentDataLength = httpStream.Read(receiveBuffer, 0, receiveBuffer.Length);
 
                                     //DebugX.Log("ReadTEBlock read from network: " + currentDataLength);
 
                                     if (currentDataLength > 0)
-                                        chunkedStream.Write(_Buffer, 0, currentDataLength);
+                                        chunkedStream.Write(receiveBuffer, 0, currentDataLength);
 
                                     OnChunkDataRead?.Invoke(sw.Elapsed,
                                                             (UInt32) currentDataLength,
                                                             (UInt64) chunkedStream.Length);
 
-                                    if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
+                                    if (sw.ElapsedMilliseconds > httpStream.ReadTimeout)
                                         chunkedDecodingFinished = 3;
 
-                                } while (TCPStream.DataAvailable && chunkedDecodingFinished == 0);
+                                } while (tcpStream.DataAvailable && chunkedDecodingFinished == 0);
 
                                 chunkedArray = chunkedStream.ToArray();
 
@@ -1007,7 +1036,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             #endregion
 
-                            if (sw.ElapsedMilliseconds > HTTPStream.ReadTimeout)
+                            if (sw.ElapsedMilliseconds > httpStream.ReadTimeout)
                                 chunkedDecodingFinished = 3;
 
                         } while (chunkedDecodingFinished < 2);
@@ -1078,23 +1107,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Close connection if requested!
 
                 if (Response.Connection is null ||
-                    Response.Connection == "close")
+                    Response.Connection == "close" ||
+                    clientClose)
                 {
 
-                    if (TLSStream is not null)
+                    if (tlsStream is not null)
                     {
-                        TLSStream.Close();
-                        TLSStream = null;
+                        tlsStream.Close();
+                        tlsStream = null;
                     }
 
-                    if (TCPSocket is not null)
+                    if (tcpSocket is not null)
                     {
-                        TCPSocket.Close();
+                        tcpSocket.Close();
                         //TCPClient.Dispose();
-                        TCPSocket = null;
+                        tcpSocket = null;
                     }
 
-                    HTTPStream = null;
+                    httpStream = null;
 
                 }
 
@@ -1120,17 +1150,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (TLSStream is not null)
+                if (tlsStream is not null)
                 {
-                    TLSStream.Close();
-                    TLSStream = null;
+                    tlsStream.Close();
+                    tlsStream = null;
                 }
 
-                if (TCPSocket is not null)
+                if (tcpSocket is not null)
                 {
-                    TCPSocket.Close();
+                    tcpSocket.Close();
                     //TCPClient.Dispose();
-                    TCPSocket = null;
+                    tcpSocket = null;
                 }
 
             }
@@ -1155,17 +1185,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                if (TLSStream is not null)
+                if (tlsStream is not null)
                 {
-                    TLSStream.Close();
-                    TLSStream = null;
+                    tlsStream.Close();
+                    tlsStream = null;
                 }
 
-                if (TCPSocket is not null)
+                if (tcpSocket is not null)
                 {
-                    TCPSocket.Close();
+                    tcpSocket.Close();
                     //TCPClient.Dispose();
-                    TCPSocket = null;
+                    tcpSocket = null;
                 }
 
             }
@@ -1252,10 +1282,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (HTTPStream != null)
+                if (httpStream != null)
                 {
-                    HTTPStream.Close();
-                    HTTPStream.Dispose();
+                    httpStream.Close();
+                    httpStream.Dispose();
                 }
             }
             catch (Exception)
@@ -1263,10 +1293,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (TLSStream != null)
+                if (tlsStream != null)
                 {
-                    TLSStream.Close();
-                    TLSStream.Dispose();
+                    tlsStream.Close();
+                    tlsStream.Dispose();
                 }
             }
             catch (Exception)
@@ -1274,10 +1304,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (TCPStream != null)
+                if (tcpStream != null)
                 {
-                    TCPStream.Close();
-                    TCPStream.Dispose();
+                    tcpStream.Close();
+                    tcpStream.Dispose();
                 }
             }
             catch (Exception)
@@ -1285,9 +1315,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (TCPSocket != null)
+                if (tcpSocket != null)
                 {
-                    TCPSocket.Close();
+                    tcpSocket.Close();
                     //TCPClient.Dispose();
                 }
             }

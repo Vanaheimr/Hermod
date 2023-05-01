@@ -650,7 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             }
                             while (restart);
 
-                            this.LocalPort = IPSocket.FromIPEndPoint(TCPStream!.Socket.LocalEndPoint!).Port;
+                            this.LocalPort = (IPSocket.FromIPEndPoint(TCPStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
 
                             #endregion
 

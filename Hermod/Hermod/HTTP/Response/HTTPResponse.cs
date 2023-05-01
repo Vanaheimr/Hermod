@@ -585,9 +585,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        public const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        public const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-        public const String EndMarker       = "======================================================================================";
+        public const String RequestMarker = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        public const String ResponseMarker = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+        public const String EndMarker = "======================================================================================";
 
         #endregion
 
@@ -596,12 +596,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional HTTP request for this HTTP response.
         /// </summary>
-        public HTTPRequest?    HTTPRequest       { get; }
+        public HTTPRequest? HTTPRequest { get; }
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public HTTPStatusCode  HTTPStatusCode    { get; }
+        public HTTPStatusCode HTTPStatusCode { get; }
 
         #endregion
 
@@ -621,11 +621,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Allow
 
-        public List<HTTPMethod> Allow
+        List<HTTPMethod>? allow;
+
+        /// <summary>
+        /// Allow
+        /// </summary>
+        public List<HTTPMethod>? Allow
         {
             get
             {
-                return GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Allow);
+
+                if (allow is not null)
+                    return allow;
+
+                allow = GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Allow);
+
+                return allow;
+
             }
         }
 
@@ -703,71 +715,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RetryAfter
+        #region Retry-After
 
-        public String RetryAfter
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.RetryAfter);
-            }
-        }
+        /// <summary>
+        /// Retry-After
+        /// </summary>
+        public String? RetryAfter
+            => GetHeaderField(HTTPHeaderField.RetryAfter);
 
         #endregion
 
         #region Server
 
-        public String Server
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Server);
-            }
-        }
+        /// <summary>
+        /// Server
+        /// </summary>
+        public String? Server
+            => GetHeaderField(HTTPHeaderField.Server);
 
         #endregion
 
         #region Vary
 
-        public String Vary
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Vary);
-            }
-        }
+        /// <summary>
+        /// Vary
+        /// </summary>
+        public String? Vary
+
+            => GetHeaderField(HTTPHeaderField.Vary);
 
         #endregion
 
-        #region WWWAuthenticate
+        #region WWW-Authenticate
 
-        public String WWWAuthenticate
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.WWWAuthenticate);
-            }
-        }
+        /// <summary>
+        /// WWW-Authenticate
+        /// </summary>
+        public String? WWWAuthenticate
+            => GetHeaderField(HTTPHeaderField.WWWAuthenticate);
 
         #endregion
 
-        #region TransferEncoding
+        #region Transfer-Encoding
 
-        public String TransferEncoding
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.TransferEncoding);
-            }
-        }
+        /// <summary>
+        /// Transfer-Encoding
+        /// </summary>
+        public String? TransferEncoding
+            => GetHeaderField(HTTPHeaderField.TransferEncoding);
 
         #endregion
 
-        #region SecWebSocketAccept
 
+        // WebSockets
+
+        #region Sec-WebSocket-Accept
+
+        /// <summary>
+        /// Sec-WebSocket-Accept
+        /// </summary>
         public String? SecWebSocketAccept
-
             => GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
+
+        #endregion
+
+
+        // CORS
+
+        #region Access-Control-Allow-Origin
+
+        /// <summary>
+        /// Access-Control-Allow-Origin
+        /// </summary>
+        public String? AccessControlAllowOrigin
+            => GetHeaderField(HTTPHeaderField.AccessControlAllowOrigin);
+
+        #endregion
+
+        #region Access-Control-Allow-Methods
+
+        /// <summary>
+        /// Access-Control-Allow-Methods
+        /// </summary>
+        public IEnumerable<String>? AccessControlAllowMethods
+
+            => GetHeaderField<IEnumerable<String>?>(HTTPHeaderField.AccessControlAllowMethods);
+
+        #endregion
+
+        #region Access-Control-Allow-Headers
+
+        /// <summary>
+        /// Access-Control-Allow-Headers
+        /// </summary>
+        public String? AccessControlAllowHeaders
+            => GetHeaderField(HTTPHeaderField.AccessControlAllowHeaders);
+
+        #endregion
+
+        #region Access-Control-Max-Age
+
+        /// <summary>
+        /// Access-Control-Max-Age
+        /// </summary>
+        public UInt64? AccessControlMaxAge
+            => GetHeaderField_UInt64(HTTPHeaderField.AccessControlMaxAge);
 
         #endregion
 
@@ -896,7 +948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
 
-                                         CancellationToken?  CancellationToken     = null,
+                                         CancellationToken   CancellationToken     = default,
                                          EventTracking_Id?   EventTrackingId       = null,
                                          TimeSpan?           Runtime               = null,
                                          Byte                NumberOfRetries       = 0)
@@ -933,7 +985,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
 
-                                         CancellationToken?  CancellationToken     = null,
+                                         CancellationToken   CancellationToken     = default,
                                          EventTracking_Id?   EventTrackingId       = null,
                                          TimeSpan?           Runtime               = null,
                                          Byte                NumberOfRetries       = 0)
@@ -970,7 +1022,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
 
-                                         CancellationToken?  CancellationToken     = null,
+                                         CancellationToken   CancellationToken     = default,
                                          EventTracking_Id?   EventTrackingId       = null,
                                          TimeSpan?           Runtime               = null,
                                          Byte                NumberOfRetries       = 0)
@@ -1421,9 +1473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
-        {
-            return EntirePDU;
-        }
+            => EntirePDU;
 
         #endregion
 
@@ -1478,6 +1528,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Age
 
+            /// <summary>
+            /// Age
+            /// </summary>
             public UInt64? Age
             {
 
@@ -1497,12 +1550,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Allow
 
-            public List<HTTPMethod> Allow
+            /// <summary>
+            /// Allow
+            /// </summary>
+            public List<HTTPMethod>? Allow
             {
 
                 get
                 {
-                    return GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Age);
+                    return GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Allow);
                 }
 
                 set
@@ -1516,7 +1572,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region AcceptPatch
 
-            public List<HTTPContentType> AcceptPatch
+            /// <summary>
+            /// Accept-Patch
+            /// </summary>
+            public List<HTTPContentType>? AcceptPatch
             {
 
                 get
@@ -1535,7 +1594,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region DAV
 
-            public String DAV
+            /// <summary>
+            /// DAV
+            /// </summary>
+            public String? DAV
             {
 
                 get
@@ -1554,7 +1616,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region ETag
 
-            public String ETag
+            /// <summary>
+            /// ETag
+            /// </summary>
+            public String? ETag
             {
 
                 get
@@ -1573,7 +1638,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Expires
 
-            public String Expires
+            /// <summary>
+            /// Expires
+            /// </summary>
+            public String? Expires
             {
 
                 get
@@ -1590,9 +1658,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region KeepAlive
+            #region Keep-Alive
 
-            public KeepAliveType KeepAlive
+            /// <summary>
+            /// Keep-Alive
+            /// </summary>
+            public KeepAliveType? KeepAlive
             {
 
                 get
@@ -1609,9 +1680,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region LastModified
+            #region Last-Modified
 
-            public String LastModified
+            /// <summary>
+            /// Last-Modified
+            /// </summary>
+            public String? LastModified
             {
 
                 get
@@ -1630,7 +1704,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Location
 
-            public HTTPPath Location
+            /// <summary>
+            /// Location
+            /// </summary>
+            public HTTPPath? Location
             {
 
                 get
@@ -1647,9 +1724,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region XLocationAfterAuth
+            #region X-LocationAfterAuth
 
-            public HTTPPath XLocationAfterAuth
+            /// <summary>
+            /// X-LocationAfterAuth
+            /// </summary>
+            public HTTPPath? XLocationAfterAuth
             {
 
                 get
@@ -1666,9 +1746,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region ProxyAuthenticate
+            #region Proxy-Authenticate
 
-            public String ProxyAuthenticate
+            /// <summary>
+            /// Proxy-Authenticate
+            /// </summary>
+            public String? ProxyAuthenticate
             {
 
                 get
@@ -1685,9 +1768,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region RetryAfter
+            #region Retry-After
 
-            public String RetryAfter
+            /// <summary>
+            /// Retry-After
+            /// </summary>
+            public String? RetryAfter
             {
 
                 get
@@ -1706,6 +1792,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Server
 
+            /// <summary>
+            /// Server
+            /// </summary>
             public String? Server
             {
 
@@ -1725,6 +1814,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SetCookie
 
+            /// <summary>
+            /// Set-Cookie
+            /// </summary>
             public String? SetCookie
             {
 
@@ -1742,9 +1834,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region SetCookies
+            #region Set-Cookies
 
-            public String[] SetCookies
+            /// <summary>
+            /// Set-Cookies
+            /// </summary>
+            public String[]? SetCookies
             {
 
                 get
@@ -1763,6 +1858,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Vary
 
+            /// <summary>
+            /// Vary
+            /// </summary>
             public String? Vary
             {
 
@@ -1782,6 +1880,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region WWWAuthenticate
 
+            /// <summary>
+            /// WWW-Authenticate
+            /// </summary>
             public String? WWWAuthenticate
             {
 
@@ -1801,6 +1902,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SecWebSocketAccept
 
+            /// <summary>
+            /// Sec-WebSocket-Accept
+            /// </summary>
             public String? SecWebSocketAccept
             {
 

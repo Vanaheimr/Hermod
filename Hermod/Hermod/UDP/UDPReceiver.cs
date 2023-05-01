@@ -496,7 +496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                                     var Timestamp_Local                = timestamp;
                                     var UDPPayload_Local               = UDPPayload;
                                     var OnNotificationLocal            = OnNotification;
-                                    var RemoteSocket_Local             = IPSocket.FromIPEndPoint(RemoteEndPoint);
+                                    var RemoteSocket_Local             = IPSocket.FromIPEndPoint(RemoteEndPoint) ?? IPSocket.Zero;
                                     var NumberOfReceivedBytes_Local    = NumberOfReceivedBytes;
                                     var MapperLocal                    = Mapper;
                                     var MapReduceLocal                 = MapReduce;

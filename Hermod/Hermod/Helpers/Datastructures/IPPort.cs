@@ -49,37 +49,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region /etc/services
 
         /// <summary>
-        /// SSH.
+        /// Zero
+        /// </summary>
+        public static readonly IPPort Zero     = new (0);
+
+
+        /// <summary>
+        /// SSH
         /// </summary>
         public static readonly IPPort SSH      = new (22);
 
         /// <summary>
-        /// TELNET.
+        /// TELNET
         /// </summary>
         public static readonly IPPort TELNET   = new (23);
 
         /// <summary>
-        /// SMTP.
+        /// SMTP
         /// </summary>
         public static readonly IPPort SMTP     = new (25);
 
         /// <summary>
-        /// DNS.
+        /// DNS
         /// </summary>
         public static readonly IPPort DNS      = new (53);
 
         /// <summary>
-        /// HTTP.
+        /// HTTP
         /// </summary>
         public static readonly IPPort HTTP     = new (80);
 
         /// <summary>
-        /// HTTPS.
+        /// HTTPS
         /// </summary>
         public static readonly IPPort HTTPS    = new (443);
 
         /// <summary>
-        /// MQTT.
+        /// MQTT
         /// </summary>
         public static readonly IPPort MQTT     = new (1883);
 

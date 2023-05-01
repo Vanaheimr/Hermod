@@ -1186,7 +1186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPServer AttachTCPPorts(params IPPort[] Ports)
         {
 
-            AttachTCPPorts(_TCPServer => _TCPServer.SendTo(this), Ports);
+            AttachTCPPorts(tcpServer => tcpServer.SendTo(this), Ports);
 
             return this;
 
@@ -1212,7 +1212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPServer AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            AttachTCPSockets(_TCPServer => _TCPServer.SendTo(this), Sockets);
+            AttachTCPSockets(tcpServer => tcpServer.SendTo(this), Sockets);
 
             return this;
 
@@ -1239,10 +1239,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
         {
 
-            DetachTCPPorts(_TCPServer => {
-                               _TCPServer.OnNotification      -= this.ProcessArrow;
-                               _TCPServer.OnExceptionOccured  -= this.ProcessExceptionOccured;
-                               _TCPServer.OnCompleted         -= this.ProcessCompleted;
+            DetachTCPPorts(tcpServer => {
+                               tcpServer.OnNotification      -= this.ProcessArrow;
+                               tcpServer.OnExceptionOccured  -= this.ProcessExceptionOccured;
+                               tcpServer.OnCompleted         -= this.ProcessCompleted;
                            },
                            Ports);
 
@@ -1420,7 +1420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                     #region Try to parse the HTTP header
 
-                                    HTTPRequest HttpRequest = null;
+                                    HTTPRequest? HttpRequest = null;
                                     var CTS = new CancellationTokenSource();
 
                                     try
@@ -1436,7 +1436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                       HTTPHeader:         HTTPHeaderString.Trim(),
                                                                       HTTPBody:           null,
-                                                                      HTTPBodyStream:     TCPConnection.SSLStream != null
+                                                                      HTTPBodyStream:     TCPConnection.SSLStream is not null
                                                                                               ? (Stream) TCPConnection.SSLStream
                                                                                               : (Stream) TCPConnection.NetworkStream,
 
@@ -1547,7 +1547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         catch (Exception e)
                                         {
 
-                                            if (TCPConnection == null)
+                                            if (TCPConnection is null)
                                                 DebugX.Log(nameof(HTTPServer) + " TCPConnection is null!");
 
                                             if (httpResponse.RawHTTPHeader.IsNullOrEmpty())
@@ -1571,7 +1571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             }
                                         }
 
-                                        else if (httpResponse.HTTPBodyStream != null)
+                                        else if (httpResponse.HTTPBodyStream is not null)
                                         {
                                             try
                                             {
@@ -1588,8 +1588,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         try
                                         {
-                                            if (httpResponse.Connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
-                                                ServerClose = true;
+
+                                            ServerClose = httpResponse.Connection is not null &&
+                                                          String.Equals(httpResponse.Connection, "close", StringComparison.OrdinalIgnoreCase);
+
                                         }
                                         catch (Exception e)
                                         {
@@ -1619,8 +1621,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                         #region if HTTP Status Code == 4xx | 5xx => Call ErrorLog delegate
 
-                                        if ( HttpRequest  != null &&
-                                            httpResponse != null &&
+                                        if (HttpRequest  is not null &&
+                                            httpResponse is not null &&
                                             httpResponse.HTTPStatusCode.Code >  400 &&
                                             httpResponse.HTTPStatusCode.Code <= 599)
                                         {

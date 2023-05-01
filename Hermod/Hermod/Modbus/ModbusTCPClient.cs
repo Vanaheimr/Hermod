@@ -1181,8 +1181,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                     ReadTimeout = (Int32) RequestTimeout.TotalMilliseconds
                 };
 
-                Request.LocalSocket   = IPSocket.FromIPEndPoint(TCPSocket.LocalEndPoint!);
-                Request.RemoteSocket  = IPSocket.FromIPEndPoint(TCPSocket.RemoteEndPoint!);
+                Request.LocalSocket   = IPSocket.FromIPEndPoint(TCPSocket.LocalEndPoint)  ?? IPSocket.Zero;
+                Request.RemoteSocket  = IPSocket.FromIPEndPoint(TCPSocket.RemoteEndPoint) ?? IPSocket.Zero;
 
             }
 

@@ -20,6 +20,7 @@
 using System;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using Org.BouncyCastle.Asn1.X509;
 
 #endregion
 
@@ -70,20 +71,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="String">The string to be parsed.</param>
         /// <param name="Object">The parsed UInt64? value.</param>
-        /// <returns>True if the value could be parsed; False otherwise.</returns>
-        public static Boolean NullableUInt64(String String, out Object Object)
+        public static Boolean NullableUInt64(String String, out Object? Object)
         {
 
-            UInt64 Value;
-
-            if (UInt64.TryParse(String, out Value))
+            if (UInt64.TryParse(String, out var value))
             {
-                Object = Value;
+                Object = value;
                 return true;
             }
 
             Object = null;
             return false;
+
+        }
+
+        #endregion
+
+        #region NullableListOfStrings(String, out Object)
+
+        /// <summary>
+        /// A delegate to parse a UInt64? value from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Object">The parsed list of strings.</param>
+        public static Boolean NullableListOfStrings(String String, out Object? Object)
+        {
+
+            var splitted = String.Split(",");
+
+            if (splitted.Length == 0)
+            {
+                Object = null;
+                return false;
+            }
+
+            Object = splitted.Select(element => element.Trim()).ToList();
+            return true;
+
+        }
+
+        #endregion
+
+        #region NullableListOfHTTPMethods(String, out Object)
+
+        /// <summary>
+        /// A delegate to parse a list of HTTP methods from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Object">The parsed list of strings.</param>
+        public static Boolean NullableListOfHTTPMethods(String String, out Object? Object)
+        {
+
+            var splitted = String.Split(",");
+
+            if (splitted.Length == 0)
+            {
+                Object = null;
+                return false;
+            }
+
+            var list = new List<HTTPMethod>();
+
+            foreach (var element in splitted)
+            {
+
+                var method = element is not null
+                                 ? HTTPMethod.TryParse(element.Trim())
+                                 : null;
+
+                if (method.HasValue)
+                    list.Add(method.Value);
+
+            }
+
+            Object = list;
+            return true;
 
         }
 
@@ -106,72 +168,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class HTTPHeaderField : IEquatable<HTTPHeaderField>, IComparable<HTTPHeaderField>, IComparable
     {
 
-        #region Properties
-
-        #region Name
-
-        /// <summary>
-        /// The name of this HTTP request field
-        /// </summary>
-        public String Name { get; }
-
-        #endregion
-
-        #region Type
-
-        /// <summary>
-        /// The C# type of this HTTP header field.
-        /// </summary>
-        public Type Type { get; }
-
-        #endregion
-
-        #region HeaderFieldType
-
-        /// <summary>
-        /// The type of a HTTP header field.
-        /// </summary>
-        public HeaderFieldType HeaderFieldType { get; }
-
-        #endregion
-
-        #region RequestPathSemantic
-
-        /// <summary>
-        /// Whether a header field has and end-to-end or
-        /// an hop-to-hop semantic.
-        /// </summary>
-        public RequestPathSemantic RequestPathSemantic { get; }
-
-        #endregion
-
-        #region StringParser
+        #region Delegates
 
         /// <summary>
         /// A delegate definition to parse the value of the header field from a string.
         /// </summary>
-        public delegate Boolean StringParserDelegate(String arg1, out Object arg2);
-
-        /// <summary>
-        /// A delegate to parse the value of the header field from a string.
-        /// </summary>
-        public StringParserDelegate StringParser { get; }
-
-        #endregion
-
-        #region ValueSerializer
+        public delegate Boolean StringParserDelegate(String arg1, out Object? arg2);
 
         /// <summary>
         /// A delegate definition to serialize the value of the header field to a string.
         /// </summary>
         public delegate String ValueSerializerDelegate(Object arg1);
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The name of this HTTP request field
+        /// </summary>
+        public String                   Name                   { get; }
+
+        /// <summary>
+        /// The C# type of this HTTP header field.
+        /// </summary>
+        public Type                     Type                   { get; }
+
+        /// <summary>
+        /// The type of a HTTP header field.
+        /// </summary>
+        public HeaderFieldType          HeaderFieldType        { get; }
+
+        /// <summary>
+        /// Whether a header field has and end-to-end or
+        /// an hop-to-hop semantic.
+        /// </summary>
+        public RequestPathSemantic      RequestPathSemantic    { get; }
+
+        /// <summary>
+        /// A delegate to parse the value of the header field from a string.
+        /// </summary>
+        public StringParserDelegate     StringParser           { get; }
+
         /// <summary>
         /// A delegate to serialize the value of the header field to a string.
         /// </summary>
-        public ValueSerializerDelegate ValueSerializer { get; }
-
-        #endregion
+        public ValueSerializerDelegate  ValueSerializer        { get; }
 
         #endregion
 
@@ -186,22 +228,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
         /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
         /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
-        public HTTPHeaderField(String                   Name,
-                               Type                     Type,
-                               HeaderFieldType          HeaderFieldType,
-                               RequestPathSemantic      RequestPathSemantic,
-                               StringParserDelegate     StringParser    = null,
-                               ValueSerializerDelegate  ValueSerializer = null)
+        public HTTPHeaderField(String                    Name,
+                               Type                      Type,
+                               HeaderFieldType           HeaderFieldType,
+                               RequestPathSemantic       RequestPathSemantic,
+                               StringParserDelegate?     StringParser      = null,
+                               ValueSerializerDelegate?  ValueSerializer   = null)
 
         {
 
             #region Initial checks
 
             if (Name.IsNullOrEmpty())
-                throw new ArgumentNullException("Name",  "The given name of the header field must not be null or its length zero!");
-
-            if (Type == null)
-                throw new ArgumentNullException("Type",  "The given type of the header field value must not be null or its length zero!");
+                throw new ArgumentNullException(nameof(Name),  "The given name of the header field must not be null or its length zero!");
 
             #endregion
 
@@ -219,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region General header fields
 
-        #region CacheControl
+        #region Cache-Control
 
         /// <summary>
         /// The Cache-Control general-header field is used to specify
@@ -257,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ContentEncoding
+        #region Content-Encoding
 
         /// <summary>
         /// The Content-Encoding entity-header field is used as a modifier
@@ -272,14 +311,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Encoding: gzip</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ContentEncoding = new HTTPHeaderField("Content-Encoding",
-                                                                                     typeof(String),
-                                                                                     HeaderFieldType.General,
-                                                                                     RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentEncoding = new ("Content-Encoding",
+                                                                      typeof(String),
+                                                                      HeaderFieldType.General,
+                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region ContentLanguage
+        #region Content-Language
 
         /// <summary>
         /// The Content-Language entity-header field describes the natural
@@ -287,14 +326,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Language: en, de</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ContentLanguage = new HTTPHeaderField("Content-Language",
-                                                                                     typeof(String),
-                                                                                     HeaderFieldType.General,
-                                                                                     RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentLanguage = new ("Content-Language",
+                                                                      typeof(String),
+                                                                      HeaderFieldType.General,
+                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region ContentLength
+        #region Content-Length
 
         /// <summary>
         /// The Content-Length entity-header field indicates the size of
@@ -305,15 +344,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Length: 3495</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ContentLength = new HTTPHeaderField("Content-Length",
-                                                                                   typeof(UInt64?),
-                                                                                   HeaderFieldType.General,
-                                                                                   RequestPathSemantic.EndToEnd,
-                                                                                   StringParsers.NullableUInt64);
+        public static readonly HTTPHeaderField ContentLength = new ("Content-Length",
+                                                                    typeof(UInt64?),
+                                                                    HeaderFieldType.General,
+                                                                    RequestPathSemantic.EndToEnd,
+                                                                    StringParsers.NullableUInt64);
 
         #endregion
 
-        #region ContentLocation
+        #region Content-Location
 
         /// <summary>
         /// The Content-Location entity-header field MAY be used to supply
@@ -325,14 +364,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Location: ../test.html</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ContentLocation = new HTTPHeaderField("Content-Location",
-                                                                                     typeof(String),
-                                                                                     HeaderFieldType.General,
-                                                                                     RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentLocation = new ("Content-Location",
+                                                                      typeof(String),
+                                                                      HeaderFieldType.General,
+                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region ContentMD5
+        #region Content-MD5
 
         /// <summary>
         /// The Content-MD5 entity-header field, is an MD5 digest of the
@@ -345,14 +384,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>Content-MD5: Q2hlY2sgSW50ZWdyaXR5IQ==</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         /// <seealso cref="http://tools.ietf.org/html/rfc1864"/>
-        public static readonly HTTPHeaderField ContentMD5 = new HTTPHeaderField("Content-MD5",
-                                                                                typeof(String),
-                                                                                HeaderFieldType.General,
-                                                                                RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentMD5 = new ("Content-MD5",
+                                                                 typeof(String),
+                                                                 HeaderFieldType.General,
+                                                                 RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region ContentRange
+        #region Content-Range
 
         /// <summary>
         /// The Content-Range entity-header is sent with a partial
@@ -378,14 +417,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Range: bytes 21010-47021/47022</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ContentRange = new HTTPHeaderField("Content-Range",
-                                                                                  typeof(String),
-                                                                                  HeaderFieldType.General,
-                                                                                  RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentRange = new ("Content-Range",
+                                                                   typeof(String),
+                                                                   HeaderFieldType.General,
+                                                                   RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region ContentType
+        #region Content-Type
 
         /// <summary>
         /// The Content-Type entity-header field indicates the media
@@ -395,14 +434,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Type: text/html; charset=ISO-8859-4</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ContentType = new HTTPHeaderField("Content-Type",
-                                                                                 typeof(HTTPContentType),
-                                                                                 HeaderFieldType.General,
-                                                                                 RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentType = new ("Content-Type",
+                                                                  typeof(HTTPContentType),
+                                                                  HeaderFieldType.General,
+                                                                  RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region ContentDisposition
+        #region Content-Disposition
 
         /// <summary>
         /// The Content-Disposition response header field is used to convey
@@ -412,10 +451,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Content-Disposition: attachment; filename="filename.jpg"</example>
         /// <seealso cref="https://tools.ietf.org/html/rfc6266"/>
-        public static readonly HTTPHeaderField ContentDisposition = new HTTPHeaderField("Content-Disposition",
-                                                                                        typeof(String),
-                                                                                        HeaderFieldType.General,
-                                                                                        RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ContentDisposition = new ("Content-Disposition",
+                                                                         typeof(String),
+                                                                         HeaderFieldType.General,
+                                                                         RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -477,10 +516,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Date: Tue, 15 Nov 1994 08:12:31 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Date = new HTTPHeaderField("Date",
-                                                                          typeof(DateTime),
-                                                                          HeaderFieldType.General,
-                                                                          RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Date = new ("Date",
+                                                           typeof(DateTime),
+                                                           HeaderFieldType.General,
+                                                           RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -515,10 +554,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Pragma: no-cache</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Pragma = new HTTPHeaderField("Pragma",
-                                                                            typeof(String),
-                                                                            HeaderFieldType.General,
-                                                                            RequestPathSemantic.both);
+        public static readonly HTTPHeaderField Pragma = new ("Pragma",
+                                                             typeof(String),
+                                                             HeaderFieldType.General,
+                                                             RequestPathSemantic.both);
 
         #endregion
 
@@ -546,10 +585,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Trailer : Max-Forwards</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Trailer = new HTTPHeaderField("Trailer",
-                                                                             typeof(String),
-                                                                             HeaderFieldType.General,
-                                                                             RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Trailer = new ("Trailer",
+                                                              typeof(String),
+                                                              HeaderFieldType.General,
+                                                              RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -564,10 +603,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Via: 1.0 fred, 1.1 nowhere.com (Apache/1.1)</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Via = new HTTPHeaderField("Via",
-                                                                         typeof(String),
-                                                                         HeaderFieldType.General,
-                                                                         RequestPathSemantic.HopToHop);
+        public static readonly HTTPHeaderField Via = new ("Via",
+                                                          typeof(String),
+                                                          HeaderFieldType.General,
+                                                          RequestPathSemantic.HopToHop);
 
         #endregion
 
@@ -588,10 +627,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Transfer-Encoding: chunked</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField TransferEncoding = new HTTPHeaderField("Transfer-Encoding",
-                                                                                      typeof(String),
-                                                                                      HeaderFieldType.General,
-                                                                                      RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField TransferEncoding = new ("Transfer-Encoding",
+                                                                       typeof(String),
+                                                                       HeaderFieldType.General,
+                                                                       RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -655,51 +694,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SecWebSocketKey
+
+        // WebSocket
+
+        #region Sec-WebSocket-Key
 
         /// <summary>
         /// Sec-Web-SocketKey.
         /// </summary>
-        public static readonly HTTPHeaderField SecWebSocketKey = new HTTPHeaderField("Sec-WebSocket-Key",
-                                                                                     typeof(String),
-                                                                                     HeaderFieldType.General,
-                                                                                     RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField SecWebSocketKey = new ("Sec-WebSocket-Key",
+                                                                      typeof(String),
+                                                                      HeaderFieldType.General,
+                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region SecWebSocketProtocol
+        #region Sec-WebSocket-Protocol
 
         /// <summary>
         /// Sec-Web-SocketProtocol.
         /// </summary>
-        public static readonly HTTPHeaderField SecWebSocketProtocol = new HTTPHeaderField("Sec-WebSocket-Protocol",
-                                                                                          typeof(String),
-                                                                                          HeaderFieldType.General,
-                                                                                          RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField SecWebSocketProtocol = new ("Sec-WebSocket-Protocol",
+                                                                           typeof(String),
+                                                                           HeaderFieldType.General,
+                                                                           RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region SecWebSocketVersion
+        #region Sec-WebSocket-Version
 
         /// <summary>
         /// Sec-WebSocket-Version.
         /// </summary>
-        public static readonly HTTPHeaderField SecWebSocketVersion = new HTTPHeaderField("Sec-WebSocket-Version",
-                                                                                         typeof(String),
-                                                                                         HeaderFieldType.General,
-                                                                                         RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField SecWebSocketVersion = new ("Sec-WebSocket-Version",
+                                                                          typeof(String),
+                                                                          HeaderFieldType.General,
+                                                                          RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region SecWebSocketAccept
+        #region Sec-WebSocket-Accept
 
         /// <summary>
         /// Sec-WebSocket-Accept.
         /// </summary>
-        public static readonly HTTPHeaderField SecWebSocketAccept = new HTTPHeaderField("Sec-WebSocket-Accept",
-                                                                                        typeof(String),
-                                                                                        HeaderFieldType.General,
-                                                                                        RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField SecWebSocketAccept = new ("Sec-WebSocket-Accept",
+                                                                         typeof(String),
+                                                                         HeaderFieldType.General,
+                                                                         RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -1825,11 +1867,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Max-Forwards: 10</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField MaxForwards = new HTTPHeaderField("Max-Forwards",
-                                                                                 typeof(UInt64?),
-                                                                                 HeaderFieldType.Request,
-                                                                                 RequestPathSemantic.EndToEnd,
-                                                                                 StringParsers.NullableUInt64);
+        public static readonly HTTPHeaderField MaxForwards = new ("Max-Forwards",
+                                                                  typeof(UInt64?),
+                                                                  HeaderFieldType.Request,
+                                                                  RequestPathSemantic.EndToEnd,
+                                                                  StringParsers.NullableUInt64);
 
         #endregion
 
@@ -2343,11 +2385,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Age: 1234</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Age = new HTTPHeaderField("Age",
-                                                                         typeof(UInt64?),
-                                                                         HeaderFieldType.Response,
-                                                                         RequestPathSemantic.EndToEnd,
-                                                                         StringParsers.NullableUInt64);
+        public static readonly HTTPHeaderField Age = new ("Age",
+                                                          typeof(UInt64?),
+                                                          HeaderFieldType.Response,
+                                                          RequestPathSemantic.EndToEnd,
+                                                          StringParsers.NullableUInt64);
 
         #endregion
 
@@ -2380,19 +2422,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Allow: GET, HEAD, PUT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Allow = new HTTPHeaderField("Allow",
-                                                                           typeof(String),
-                                                                           HeaderFieldType.Response,
-                                                                           RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Allow = new ("Allow",
+                                                            typeof(List<HTTPMethod>),
+                                                            HeaderFieldType.Response,
+                                                            RequestPathSemantic.EndToEnd,
+                                                            StringParsers.NullableListOfHTTPMethods);
 
         #endregion
 
         #region  Accept-Patch
 
-        public static readonly HTTPHeaderField AcceptPatch = new HTTPHeaderField("Accept-Patch",
-                                                                                 typeof(String),
-                                                                                 HeaderFieldType.Response,
-                                                                                 RequestPathSemantic.EndToEnd);
+        /// <summary>
+        /// Accept-Patch
+        /// </summary>
+        public static readonly HTTPHeaderField AcceptPatch = new ("Accept-Patch",
+                                                                  typeof(String),
+                                                                  HeaderFieldType.Response,
+                                                                  RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2433,10 +2479,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>DAV : 1</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField DAV = new HTTPHeaderField("DAV",
-                                                                         typeof(String),
-                                                                         HeaderFieldType.Response,
-                                                                         RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField DAV = new ("DAV",
+                                                          typeof(String),
+                                                          HeaderFieldType.Response,
+                                                          RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2451,10 +2497,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>ETag: "737060cd8c284d8af7ad3082f209582d"</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ETag = new HTTPHeaderField("ETag",
-                                                                          typeof(String),
-                                                                          HeaderFieldType.Response,
-                                                                          RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField ETag = new ("ETag",
+                                                           typeof(String),
+                                                           HeaderFieldType.Response,
+                                                           RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2502,14 +2548,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Expires: Thu, 01 Dec 1994 16:00:00 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Expires = new HTTPHeaderField("Expires",
-                                                                             typeof(String),
-                                                                             HeaderFieldType.Response,
-                                                                             RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Expires = new ("Expires",
+                                                              typeof(String),
+                                                              HeaderFieldType.Response,
+                                                              RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region Last-Modified
+        #region Keep-Alive
 
         /// <summary>
         /// The Keep-Alive general-header field may be used to include diagnostic information and
@@ -2543,10 +2589,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Keep-Alive: timeout=10, max=5</example>
         /// <seealso cref="http://www.w3.org/Protocols/HTTP/1.1/draft-ietf-http-v11-spec-01.html"/>
-        public static readonly HTTPHeaderField KeepAlive = new HTTPHeaderField("Keep-Alive",
-                                                                               typeof(KeepAliveType),
-                                                                               HeaderFieldType.Response,
-                                                                               RequestPathSemantic.HopToHop);
+        public static readonly HTTPHeaderField KeepAlive = new ("Keep-Alive",
+                                                                typeof(KeepAliveType),
+                                                                HeaderFieldType.Response,
+                                                                RequestPathSemantic.HopToHop);
 
         #endregion
 
@@ -2584,10 +2630,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField LastModified = new HTTPHeaderField("Last-Modified",
-                                                                                  typeof(String),
-                                                                                  HeaderFieldType.Response,
-                                                                                  RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField LastModified = new ("Last-Modified",
+                                                                   typeof(String),
+                                                                   HeaderFieldType.Response,
+                                                                   RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2612,10 +2658,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Location: http://www.w3.org/pub/WWW/People.html </example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Location = new HTTPHeaderField("Location",
-                                                                              typeof(String),
-                                                                              HeaderFieldType.Response,
-                                                                              RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Location = new ("Location",
+                                                               typeof(String),
+                                                               HeaderFieldType.Response,
+                                                               RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2639,10 +2685,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Proxy-Authenticate: Basic</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField ProxyAuthenticate = new HTTPHeaderField("Proxy-Authenticate",
-                                                                                       typeof(String),
-                                                                                       HeaderFieldType.Response,
-                                                                                       RequestPathSemantic.HopToHop);
+        public static readonly HTTPHeaderField ProxyAuthenticate = new ("Proxy-Authenticate",
+                                                                        typeof(String),
+                                                                        HeaderFieldType.Response,
+                                                                        RequestPathSemantic.HopToHop);
 
         #endregion
 
@@ -2661,10 +2707,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>Retry-After: Fri, 31 Dec 1999 23:59:59 GMT</example>
         /// <example>Retry-After: 120</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField RetryAfter = new HTTPHeaderField("Retry-After",
-                                                                                typeof(String),
-                                                                                HeaderFieldType.Response,
-                                                                                RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField RetryAfter = new ("Retry-After",
+                                                                 typeof(String),
+                                                                 HeaderFieldType.Response,
+                                                                 RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2690,10 +2736,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Server: CERN/3.0 libwww/2.17</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Server = new HTTPHeaderField("Server",
-                                                                            typeof(String),
-                                                                            HeaderFieldType.Response,
-                                                                            RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Server = new ("Server",
+                                                             typeof(String),
+                                                             HeaderFieldType.Response,
+                                                             RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2744,10 +2790,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Vary: *</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField Vary = new HTTPHeaderField("Vary",
-                                                                          typeof(String),
-                                                                          HeaderFieldType.Response,
-                                                                          RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Vary = new ("Vary",
+                                                           typeof(String),
+                                                           HeaderFieldType.Response,
+                                                           RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2770,10 +2816,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>WWW-Authenticate: Basic</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField WWWAuthenticate = new HTTPHeaderField("WWW-Authenticate",
-                                                                                     typeof(String),
-                                                                                     HeaderFieldType.Response,
-                                                                                     RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField WWWAuthenticate = new ("WWW-Authenticate",
+                                                                      typeof(String),
+                                                                      HeaderFieldType.Response,
+                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2786,10 +2832,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Refresh: 5; url=http://www.w3.org/pub/WWW/People.html </example>
         /// <seealso cref="http://en.wikipedia.org/wiki/List_of_HTTP_header_fields"/>
-        public static readonly HTTPHeaderField Refresh = new HTTPHeaderField("Refresh",
-                                                                             typeof(String),
-                                                                             HeaderFieldType.Response,
-                                                                             RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField Refresh = new ("Refresh",
+                                                              typeof(String),
+                                                              HeaderFieldType.Response,
+                                                              RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2800,14 +2846,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Set-Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
-        public static readonly HTTPHeaderField SetCookie = new HTTPHeaderField("Set-Cookie",
-                                                                               typeof(String),
-                                                                               HeaderFieldType.Response,
-                                                                               RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField SetCookie = new ("Set-Cookie",
+                                                                typeof(String),
+                                                                HeaderFieldType.Response,
+                                                                RequestPathSemantic.EndToEnd);
 
         #endregion
 
-        #region CORS
+
+        // CORS
 
         #region Access-Control-Allow-Origin
 
@@ -2816,10 +2863,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Access-Control-Allow-Origin: *</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
-        public static readonly HTTPHeaderField AccessControlAllowOrigin = new HTTPHeaderField("Access-Control-Allow-Origin",
-                                                                                              typeof(String),
-                                                                                              HeaderFieldType.Response,
-                                                                                              RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField AccessControlAllowOrigin = new ("Access-Control-Allow-Origin",
+                                                                               typeof(String),
+                                                                               HeaderFieldType.Response,
+                                                                               RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2830,10 +2877,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Access-Control-Allow-Methods: GET, PUT, POST, DELETE</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
-        public static readonly HTTPHeaderField AccessControlAllowMethods = new HTTPHeaderField("Access-Control-Allow-Methods",
-                                                                                               typeof(String),
-                                                                                               HeaderFieldType.Response,
-                                                                                               RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField AccessControlAllowMethods = new ("Access-Control-Allow-Methods",
+                                                                                typeof(List<String>),
+                                                                                HeaderFieldType.Response,
+                                                                                RequestPathSemantic.EndToEnd,
+                                                                                StringParsers.NullableListOfStrings);
 
         #endregion
 
@@ -2844,10 +2892,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Access-Control-Allow-Headers: Content-Type</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
-        public static readonly HTTPHeaderField AccessControlAllowHeaders = new HTTPHeaderField("Access-Control-Allow-Headers",
-                                                                                               typeof(String),
-                                                                                               HeaderFieldType.Response,
-                                                                                               RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField AccessControlAllowHeaders = new ("Access-Control-Allow-Headers",
+                                                                                typeof(String),
+                                                                                HeaderFieldType.Response,
+                                                                                RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2861,12 +2909,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Access-Control-Max-Age: delta-seconds</example>
         /// <seealso cref="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age"/>
-        public static readonly HTTPHeaderField AccessControlMaxAge = new HTTPHeaderField("Access-Control-Max-Age",
-                                                                                         typeof(Int64),
-                                                                                         HeaderFieldType.Response,
-                                                                                         RequestPathSemantic.EndToEnd);
-
-        #endregion
+        public static readonly HTTPHeaderField AccessControlMaxAge = new ("Access-Control-Max-Age",
+                                                                          typeof(Int64),
+                                                                          HeaderFieldType.Response,
+                                                                          RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2879,10 +2925,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Stores the original HTTP path and redirects to it after authentication.
         /// </summary>
-        public static readonly HTTPHeaderField XLocationAfterAuth = new HTTPHeaderField("X-LocationAfterAuth",
-                                                                                        typeof(String),
-                                                                                        HeaderFieldType.Response,
-                                                                                        RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField XLocationAfterAuth = new ("X-LocationAfterAuth",
+                                                                         typeof(String),
+                                                                         HeaderFieldType.Response,
+                                                                         RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -2977,89 +3023,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region IComparable<AHTTPHeaderField> Members
+        #region IComparable<HTTPHeaderField> Members
 
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP header fields.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        /// <param name="Object">A HTTP header field to compare with.</param>
+        public Int32 CompareTo(Object? Object)
+
+            => Object is HTTPHeaderField httpHeaderField
+                   ? CompareTo(httpHeaderField)
+                   : throw new ArgumentException("The given object is not a http header field!",
+                                                 nameof(Object));
+
+        #endregion
+
+        #region CompareTo(HTTPHeaderField)
+
+        /// <summary>
+        /// Compares two HTTP header fields.
+        /// </summary>
+        /// <param name="HTTPHeaderField">A HTTP header field to compare with.</param>
+        public Int32 CompareTo(HTTPHeaderField? HTTPHeaderField)
         {
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
+            if (HTTPHeaderField is null)
+                throw new ArgumentNullException(nameof(HTTPHeaderField),
+                                                "The given HTTP header field must not be null!");
 
-            // Check if the given object is an AHTTPHeaderField.
-            var HTTPRequestField = Object as HTTPHeaderField;
-            if ((Object) HTTPRequestField == null)
-                throw new ArgumentException("The given object is not a AHTTPHeaderField!");
-
-            return CompareTo(HTTPRequestField);
+            return String.Compare(Name,
+                                  HTTPHeaderField.Name,
+                                  StringComparison.OrdinalIgnoreCase);
 
         }
 
         #endregion
 
-        #region CompareTo(AHTTPHeaderField)
-
-        public Int32 CompareTo(HTTPHeaderField AHTTPHeaderField)
-        {
-
-            if ((Object) AHTTPHeaderField == null)
-                throw new ArgumentNullException("The given AHTTPHeaderField must not be null!");
-
-            return Name.CompareTo(AHTTPHeaderField.Name);
-
-        }
-
         #endregion
 
-        #endregion
-
-        #region IEquatable<AHTTPHeaderField> Members
+        #region IEquatable<HTTPHeaderField> Members
 
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP header fields for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A HTTP header field to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            // Check if the given object is an AHTTPHeaderField.
-            var HTTPRequestField = Object as HTTPHeaderField;
-            if ((Object) HTTPRequestField == null)
-                return false;
-
-            return this.Equals(HTTPRequestField);
-
-        }
+            => Object is HTTPHeaderField httpHeaderField &&
+                   Equals(httpHeaderField);
 
         #endregion
 
-        #region Equals(AHTTPHeaderField)
+        #region Equals(HTTPHeaderField)
 
         /// <summary>
-        /// Compares two AHTTPHeaderFields for equality.
+        /// Compares two HTTP header fields for equality.
         /// </summary>
-        /// <param name="AHTTPHeaderField">An AHTTPHeaderField to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPHeaderField AHTTPHeaderField)
-        {
+        /// <param name="HTTPHeaderField">A HTTP header field to compare with.</param>
+        public Boolean Equals(HTTPHeaderField? HTTPHeaderField)
 
-            if ((Object) AHTTPHeaderField == null)
-                return false;
+            => HTTPHeaderField is not null &&
 
-            return Name == AHTTPHeaderField.Name;
-
-        }
+               String.Equals(Name,
+                             HTTPHeaderField.Name,
+                             StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -3072,9 +3103,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            return Name.GetHashCode();
-        }
+
+            => Name.GetHashCode();
 
         #endregion
 
@@ -3084,9 +3114,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return Name;
-        }
+
+            => Name;
 
         #endregion
 

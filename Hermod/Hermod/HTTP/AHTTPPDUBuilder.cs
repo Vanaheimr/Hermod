@@ -18,8 +18,10 @@
 #region Usings
 
 using System.Text;
+using System.Collections;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
@@ -42,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The collection of all HTTP headers.
         /// </summary>
-        protected readonly IDictionary<String, Object?> HeaderFields;
+        protected readonly IDictionary<String, Object?> headerFields;
 
         #endregion
 
@@ -53,27 +55,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A unique identification for tracking related events.
         /// </summary>
-        public EventTracking_Id?    EventTrackingId     { get; set; }
+        public EventTracking_Id?  EventTrackingId    { get; set; }
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public HTTPStatusCode?      HTTPStatusCode      { get; set; }
+        public HTTPStatusCode?    HTTPStatusCode     { get; set; }
 
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String?              ProtocolName        { get; set; }
+        public String?            ProtocolName       { get; set; }
 
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion?         ProtocolVersion     { get; set; }
+        public HTTPVersion?       ProtocolVersion    { get; set; }
 
         /// <summary>
         /// The HTTP body/content as a stream.
         /// </summary>
-        public Stream?              ContentStream       { get; set; }
+        public Stream?            ContentStream      { get; set; }
 
 
         private Byte[]? content;
@@ -110,35 +112,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                var HTTPHeader = new List<String>();
+                var sb = new StringBuilder();
 
-                foreach (var kvp in HeaderFields)
+                foreach (var headerField in headerFields)
                 {
 
-                    if (kvp.Key == "Accept" && !(kvp.Value as AcceptTypes).Any())
+                    if (headerField.Key == "Accept" && !(headerField.Value as AcceptTypes).Any())
                         continue;
 
-                    if (kvp.Value != null)
+                    if (headerField.Value is not null)
                     {
 
-                        switch (kvp.Value)
+                        switch (headerField.Value)
                         {
 
                             case String text:
-                                HTTPHeader.Add(kvp.Key + ": " + text);
+                                sb.Append($"{headerField.Key}: {text}\r\n");
                                 break;
 
-                            case String[] texts:
+                            case Int32 number:
+                                sb.Append($"{headerField.Key}: {number}\r\n");
+                                break;
+
+                            //case String[] texts:
+                            //    foreach (var text in texts)
+                            //        HTTPHeader.Add(kvp.Key + ": " + text);
+                            //    break;
+
+                            case IEnumerable<String> texts:
                                 foreach (var text in texts)
-                                    HTTPHeader.Add(kvp.Key + ": " + text);
+                                    sb.Append($"{headerField.Key}: {text}\r\n");
                                 break;
 
                             case IHTTPAuthentication httpAuthentication:
-                                HTTPHeader.Add(kvp.Key + ": " + httpAuthentication.HTTPText);
+                                sb.Append($"{headerField.Key}: {httpAuthentication.HTTPText}\r\n");
+                                break;
+
+                            case IEnumerable things:
+
+                                var list = new List<String>();
+
+                                foreach (var thing in things)
+                                {
+
+                                    var thingText = thing?.ToString();
+
+                                    if (thingText is not null && thingText.IsNotNullOrEmpty())
+                                        list.Add(thingText);
+
+                                }
+
+                                sb.Append($"{headerField.Key}: {list.AggregateWith(", ")}\r\n");
                                 break;
 
                             default:
-                                HTTPHeader.Add(kvp.Key + ": " + kvp.Value);
+                                sb.Append($"{headerField.Key}: {headerField.Value}\r\n");
                                 break;
 
                         }
@@ -146,12 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                 }
 
-                //return (from   _KeyValuePair in HeaderFields
-                //        where  _KeyValuePair.Key   != null
-                //        where  _KeyValuePair.Value != null
-                //        where  !String.IsNullOrEmpty(_KeyValuePair.Value.ToString())
-                //        select _KeyValuePair.Key + ": " + _KeyValuePair.Value).
-                return HTTPHeader.AggregateOrDefault((a, b) => a + Environment.NewLine + b, String.Empty);
+                return sb.ToString();
 
             }
         }
@@ -536,10 +559,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CORS
+
+        // CORS
 
         #region Access-Control-Allow-Origin
 
+        /// <summary>
+        /// Access-Control-Allow-Origin
+        /// </summary>
         public String? AccessControlAllowOrigin
         {
 
@@ -559,12 +586,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Access-Control-Allow-Methods
 
-        public String? AccessControlAllowMethods
+        /// <summary>
+        /// Access-Control-Allow-Methods
+        /// </summary>
+        public IEnumerable<String>? AccessControlAllowMethods
         {
 
             get
             {
-                return GetHeaderField(HTTPHeaderField.AccessControlAllowMethods);
+                return GetHeaderField<IEnumerable<String>?>(HTTPHeaderField.AccessControlAllowMethods);
             }
 
             set
@@ -578,6 +608,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Access-Control-Allow-Headers
 
+        /// <summary>
+        /// Access-Control-Allow-Headers
+        /// </summary>
         public String? AccessControlAllowHeaders
         {
 
@@ -597,6 +630,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Access-Control-Max-Age
 
+        /// <summary>
+        /// Access-Control-Max-Age
+        /// </summary>
         public UInt64? AccessControlMaxAge
         {
 
@@ -614,7 +650,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
 
         #region X_ExpectedTotalNumberOfItems
 
@@ -694,7 +729,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AHTTPPDUBuilder()
         {
-            this.HeaderFields  = new Dictionary<String, Object>(StringComparer.OrdinalIgnoreCase);
+            this.headerFields  = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
             this.Date          = Timestamp.Now;
         }
 
@@ -740,10 +775,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        protected Boolean TryGetHeaderField(String FieldName, out Object Value)
-        {
-            return HeaderFields.TryGetValue(FieldName, out Value);
-        }
+        protected Boolean TryGetHeaderField(String FieldName, out Object? Value)
+
+            => headerFields.TryGetValue(FieldName, out Value);
 
         #endregion
 
@@ -757,7 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>True if the requested header exists; false otherwise.</returns>
         protected Boolean TryGetHeaderField(HTTPHeaderField HeaderField, out Object? Value)
 
-            => HeaderFields.TryGetValue(HeaderField.Name, out Value);
+            => headerFields.TryGetValue(HeaderField.Name, out Value);
 
         #endregion
 
@@ -770,83 +804,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Key">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        public Boolean TryGet<T>(String Key, out T Value)
+        public Boolean TryGet<T>(String Key, out T? Value)
         {
 
-            Object _Object;
-
-            if (HeaderFields.TryGetValue(Key, out _Object))
+            if (headerFields.TryGetValue(Key, out var value))
             {
 
-                if (_Object is T)
+                if (value is T valueT)
                 {
-                    Value = (T) _Object;
+                    Value = valueT;
                     return true;
                 }
 
-                else if (typeof(T).Equals(typeof(Int32)))
-                {
-                    Int32 _Int32;
-                    if (Int32.TryParse(_Object.ToString(), out _Int32))
-                    {
-                        Value = (T) (Object) _Int32;
-                        SetHeaderField(Key, Value);
-                        return true;
-                    }
+                else if (typeof(T).Equals(typeof(Int32))  &&  Int32.TryParse(value?.ToString(), out var int32)) {
+                    Value = (T) (Object) int32;
+                    SetHeaderField(Key, Value);
+                    return true;
                 }
 
-                else if (typeof(T).Equals(typeof(UInt32)))
-                {
-                    UInt32 _UInt32;
-                    if (UInt32.TryParse(_Object.ToString(), out _UInt32))
-                    {
-                        Value = (T) (Object) _UInt32;
-                        SetHeaderField(Key, Value);
-                        return true;
-                    }
+                else if (typeof(T).Equals(typeof(UInt32)) && UInt32.TryParse(value?.ToString(), out var uInt32)) {
+                    Value = (T) (Object) uInt32;
+                    SetHeaderField(Key, Value);
+                    return true;
                 }
 
-                else if (typeof(T).Equals(typeof(Int64)))
-                {
-                    Int64 _Int64;
-                    if (Int64.TryParse(_Object.ToString(), out _Int64))
-                    {
-                        Value = (T) (Object) _Int64;
-                        SetHeaderField(Key, Value);
-                        return true;
-                    }
+                else if (typeof(T).Equals(typeof(Int64))  &&  Int64.TryParse(value?.ToString(), out var int64)) {
+                    Value = (T) (Object) int64;
+                    SetHeaderField(Key, Value);
+                    return true;
                 }
 
-                else if (typeof(T).Equals(typeof(UInt64)))
-                {
-                    UInt64 _UInt64;
-                    if (UInt64.TryParse(_Object.ToString(), out _UInt64))
-                    {
-                        Value = (T) (Object) _UInt64;
-                        SetHeaderField(Key, Value);
-                        return true;
-                    }
+                else if (typeof(T).Equals(typeof(UInt64)) && UInt64.TryParse(value?.ToString(), out var uInt64)) {
+                    Value = (T) (Object) uInt64;
+                    SetHeaderField(Key, Value);
+                    return true;
                 }
 
                 else
                 {
                     try
                     {
-                        Value = (T) (Object) _Object;
+                        Value = (T) (Object) value;
                         SetHeaderField(Key, Value);
                         return true;
                     }
-                    catch (Exception)
+                    catch
                     {
-                        Value = default(T);
+                        Value = default;
                         return false;
-                    }                    
+                    }
                 }
 
             }
 
-
-            Value = default(T);
+            Value = default;
             return false;
 
         }
@@ -863,7 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String? GetHeaderField(String FieldName)
         {
 
-            if (HeaderFields.TryGetValue(FieldName, out var value))
+            if (headerFields.TryGetValue(FieldName, out var value))
                 return value?.ToString();
 
             return null;
@@ -882,7 +893,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected T? GetHeaderField<T>(String FieldName)
         {
 
-            if (HeaderFields.TryGetValue(FieldName, out var value))
+            if (headerFields.TryGetValue(FieldName, out var value))
                 if (value is T valueT)
                     return valueT;
 
@@ -902,7 +913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String? GetHeaderField(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
+            if (headerFields.TryGetValue(HeaderField.Name, out var value))
                 return value?.ToString();
 
             return null;
@@ -920,7 +931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected String[] GetHeaderFields(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out var valueOrValues))
+            if (headerFields.TryGetValue(HeaderField.Name, out var valueOrValues))
             {
 
                 if (valueOrValues is null)
@@ -956,7 +967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected T? GetHeaderField<T>(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
+            if (headerFields.TryGetValue(HeaderField.Name, out var value))
             {
 
                 if (value is null)
@@ -993,7 +1004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected Int64? GetHeaderField_Int64(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
+            if (headerFields.TryGetValue(HeaderField.Name, out var value))
             {
 
                 if (value is Int64?)
@@ -1019,7 +1030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected UInt64? GetHeaderField_UInt64(HTTPHeaderField HeaderField)
         {
 
-            if (HeaderFields.TryGetValue(HeaderField.Name, out var value))
+            if (headerFields.TryGetValue(HeaderField.Name, out var value))
             {
 
                 if (value is UInt64?)
@@ -1052,19 +1063,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (FieldName.IsNotNullOrEmpty())
             {
-                lock (HeaderFields)
+                lock (headerFields)
                 {
 
                     if (Value is not null)
                     {
-                        if (HeaderFields.ContainsKey(FieldName))
-                            HeaderFields[FieldName] = Value;
+                        if (headerFields.ContainsKey(FieldName))
+                            headerFields[FieldName] = Value;
                         else
-                            HeaderFields.Add(FieldName, Value);
+                            headerFields.Add(FieldName, Value);
                     }
                     else
-                        if (HeaderFields.ContainsKey(FieldName))
-                        HeaderFields.Remove(FieldName);
+                        if (headerFields.ContainsKey(FieldName))
+                        headerFields.Remove(FieldName);
 
                 }
             }
@@ -1084,20 +1095,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void SetHeaderField(HTTPHeaderField HeaderField, Object? Value)
         {
 
-            lock (HeaderFields)
+            lock (headerFields)
             {
 
                 if (Value is not null)
                 {
-                    if (HeaderFields.ContainsKey(HeaderField.Name))
-                        HeaderFields[HeaderField.Name] = Value;
+                    if (headerFields.ContainsKey(HeaderField.Name))
+                        headerFields[HeaderField.Name] = Value;
                     else
-                        HeaderFields.Add(HeaderField.Name, Value);
+                        headerFields.Add(HeaderField.Name, Value);
                 }
 
                 else
-                    if (HeaderFields.ContainsKey(HeaderField.Name))
-                        HeaderFields.Remove(HeaderField.Name);
+                    if (headerFields.ContainsKey(HeaderField.Name))
+                        headerFields.Remove(HeaderField.Name);
 
             }
 
@@ -1118,10 +1129,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (FieldName.IsNotNullOrEmpty())
             {
-                lock (HeaderFields)
+                lock (headerFields)
                 {
-                    if (HeaderFields.ContainsKey(FieldName))
-                        HeaderFields.Remove(FieldName);
+                    if (headerFields.ContainsKey(FieldName))
+                        headerFields.Remove(FieldName);
                 }
             }
 
@@ -1138,10 +1149,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void RemoveHeaderField(HTTPHeaderField HeaderField)
         {
 
-            lock (HeaderFields)
+            lock (headerFields)
             {
-                if (HeaderFields.ContainsKey(HeaderField.Name))
-                    HeaderFields.Remove(HeaderField.Name);
+                if (headerFields.ContainsKey(HeaderField.Name))
+                    headerFields.Remove(HeaderField.Name);
             }
 
         }
@@ -1154,18 +1165,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return an enumeration of all header lines.
         /// </summary>
-        public IEnumerator<KeyValuePair<String, Object>> GetEnumerator()
-        {
-            return HeaderFields.GetEnumerator();
-        }
+        public IEnumerator<KeyValuePair<String, Object?>> GetEnumerator()
+            => headerFields.GetEnumerator();
 
         /// <summary>
         /// Return an enumeration of all header lines.
         /// </summary>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return HeaderFields.GetEnumerator();
-        }
+            => headerFields.GetEnumerator();
 
         #endregion
 

@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 this.readTimeoutMS              = (Int32) value.TotalMilliseconds;
                 this.NetworkStream.ReadTimeout  = readTimeoutMS;
 
-                if (SSLStream != null)
+                if (SSLStream is not null)
                     SSLStream.ReadTimeout       = readTimeoutMS;
 
             }
@@ -213,15 +213,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region IsClosed
 
-        private volatile Boolean _IsClosed;
+        private volatile Boolean isClosed;
 
         public Boolean IsClosed
-        {
-            get
-            {
-                return _IsClosed;
-            }
-        }
+            => isClosed;
 
         #endregion
 
@@ -263,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                       this.ServerTimestamp,
                                                                       base.LocalSocket,
                                                                       base.RemoteSocket);
-            this._IsClosed            = false;
+            this.isClosed            = false;
             this.NetworkStream        = TCPClient.GetStream();
 
             if (ReadTimeout.HasValue)
@@ -561,15 +556,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="SleepingTime">When no data is currently available wait at least this amount of time [5ms].</param>
         /// <param name="MaxInitialWaitingTime">When no data is currently available wait at most this amount of time [500ms].</param>
         /// <param name="__ReadTimeout">The read timeout [20sec].</param>
-        public String ReadLine(Int32      MaxLength               = 65535,
-                               Encoding   Encoding                = null,
-                               TimeSpan?  SleepingTime            = null,
-                               TimeSpan?  MaxInitialWaitingTime   = null,
-                               TimeSpan?  __ReadTimeout             = null)
+        public String? ReadLine(Int32      MaxLength               = 65535,
+                                Encoding?  Encoding                = null,
+                                TimeSpan?  SleepingTime            = null,
+                                TimeSpan?  MaxInitialWaitingTime   = null,
+                                TimeSpan?  __ReadTimeout           = null)
         {
 
             if (!NetworkStream.CanRead)
-                return String.Empty;
+                return null;
 
             if (!SleepingTime.HasValue)
                 SleepingTime = TimeSpan.FromMilliseconds(5);
@@ -611,7 +606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     do
                     {
 
-                        ByteValue = SSLStream != null
+                        ByteValue = SSLStream is not null
                                         ? SSLStream.ReadByte()
                                         : NetworkStream.ReadByte();
 
@@ -656,8 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 if (Position > 0)
                 {
 
-                    if (Encoding == null)
-                        Encoding = Encoding.UTF8;
+                    Encoding ??= Encoding.UTF8;
 
                     Array.Resize(ref ByteArray, Position);
 
@@ -714,7 +708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (IsConnected)
             {
 
-                if (SSLStream != null)
+                if (SSLStream is not null)
                     SSLStream.    WriteByte(Byte);
 
                 else
@@ -734,13 +728,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void WriteToResponseStream(Byte[] ByteArray)
         {
 
-            if (ByteArray != null && IsConnected)
+            if (ByteArray is not null && IsConnected)
             {
 
-                if (SSLStream != null)
+                if (SSLStream is not null)
                     SSLStream.    Write(ByteArray, 0, ByteArray.Length);
 
-                else if (NetworkStream != null)
+                else if (NetworkStream is not null)
                     NetworkStream.Write(ByteArray, 0, ByteArray.Length);
 
                 else
@@ -772,8 +766,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (IsConnected)
             {
 
-                var _Buffer     = new Byte[BufferSize];
-                var _BytesRead  = 0;
+                var buffer     = new Byte[BufferSize];
+                var bytesRead  = 0;
 
                 if (InputStream.CanTimeout && ReadTimeout != 1000)
                     InputStream.ReadTimeout = ReadTimeout;
@@ -783,15 +777,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     do
                     {
 
-                        _BytesRead = InputStream.Read(_Buffer, 0, _Buffer.Length);
+                        bytesRead = InputStream.Read(buffer, 0, buffer.Length);
 
-                        if (SSLStream != null)
-                            SSLStream.Write(_Buffer, 0, _BytesRead);
+                        if (SSLStream is not null)
+                            SSLStream.    Write(buffer, 0, bytesRead);
 
                         else
-                            NetworkStream.Write(_Buffer, 0, _BytesRead);
+                            NetworkStream.Write(buffer, 0, bytesRead);
 
-                    } while (_BytesRead != 0);
+                    } while (bytesRead != 0);
                 }
 
             }
@@ -822,19 +816,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
         public void Close(ConnectionClosedBy ClosedBy = ConnectionClosedBy.Server)
         {
+            if (!isClosed)
+            {
 
-            TCPClient?.Close();
+                DebugX.Log($" [TCPServer:{LocalPort}] TCP closing connection with {RemoteSocket}!");
 
-            if (!_IsClosed)
+                var stream = TCPClient?.GetStream();
+                if (stream is not null)
+                {
+
+                    if (stream.DataAvailable)
+                    {
+                        var buffer = new Byte[1024];
+                        do
+                        {
+
+                            try
+                            {
+
+                                var read = stream.Read(buffer, 0, buffer.Length);
+
+                                DebugX.Log($"Read {read} unexpected byte(s) before closing the TCP stream!");
+
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.Log($"Exception occured while reading unexpected byte(s) before closing the TCP stream: {e.Message}!");
+                            }
+
+                        } while (stream.DataAvailable);
+                    }
+
+                    stream.Close();
+
+                }
+
+                TCPClient?.Close();
+
                 TCPServer.SendConnectionClosed(Timestamp.Now,
                                                RemoteSocket,
                                                ConnectionId,
                                                ClosedBy);
 
-            _IsClosed = true;
+                isClosed = true;
 
-            //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TCP connection with ", RemoteSocket.ToString(), " closed!");
+                DebugX.Log($" [TCPServer:{LocalPort}] TCP connection with {RemoteSocket} closed!");
 
+            }
         }
 
         #endregion
@@ -846,7 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public void Dispose()
         {
-            Close(ConnectionClosedBy.Server);
+            //Close(ConnectionClosedBy.Server);
         }
 
         #endregion

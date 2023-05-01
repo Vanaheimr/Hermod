@@ -175,8 +175,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.WebSocketServer             = WebSocketServer;
             this.tcpClient                   = TcpClient;
             this.tcpStream                   = TcpClient.GetStream();
-            this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint!);
-            this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint!);
+            this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint)  ?? IPSocket.Zero;
+            this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
             this.Request                     = Request;
             this.customData                  = CustomData is not null
                                                    ? CustomData. ToDictionary(kvp => kvp.Key,

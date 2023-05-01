@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    ClientRequestLogHandler?        RequestLogDelegate    = null,
                                    ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
-                                   CancellationToken?              CancellationToken     = null,
+                                   CancellationToken               CancellationToken     = default,
                                    EventTracking_Id?               EventTrackingId       = null,
                                    TimeSpan?                       RequestTimeout        = null,
                                    Byte                            NumberOfRetry         = 0);
@@ -141,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    ClientRequestLogHandler?        RequestLogDelegate    = null,
                                    ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
-                                   CancellationToken?              CancellationToken     = null,
+                                   CancellationToken               CancellationToken     = default,
                                    EventTracking_Id?               EventTrackingId       = null,
                                    TimeSpan?                       RequestTimeout        = null,
                                    Byte                            NumberOfRetry         = 0);

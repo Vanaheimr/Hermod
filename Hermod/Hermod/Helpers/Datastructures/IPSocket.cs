@@ -187,6 +187,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region Zero
+
+        /// <summary>
+        /// A socket on IPv6 ::0 and port 0.
+        /// </summary>
+        public static IPSocket Zero
+
+            => new (IPv6Address.Any,
+                    IPPort.Zero);
+
+        #endregion
+
         #region IPv4Address.AnyV4 / 0.0.0.0
 
         /// <summary>
@@ -195,8 +207,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket AnyV4(IPPort Port)
 
-            => new IPSocket(IPv4Address.Any,
-                            Port);
+            => new (IPv4Address.Any,
+                    Port);
 
         #endregion
 
@@ -208,8 +220,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket AnyV6(IPPort Port)
 
-            => new IPSocket(IPv6Address.Any,
-                            Port);
+            => new (IPv6Address.Any,
+                    Port);
 
         #endregion
 
@@ -256,14 +268,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Convert the given .NET EndPoint into an IP Socket.
         /// </summary>
         /// <param name="EndPoint">A .NET EndPoint.</param>
-        public static IPSocket FromIPEndPoint(EndPoint EndPoint)
+        public static IPSocket? FromIPEndPoint(EndPoint? EndPoint)
 
             => EndPoint is IPEndPoint ipEndPoint
-
-                   ? new (IPAddressHelper.Build(ipEndPoint.Address.GetAddressBytes()),
-                          IPPort.Parse(ipEndPoint.Port))
-
-                   : throw new ArgumentException("The given EndPoint is not an IPEndPoint!", nameof(EndPoint));
+                   ? FromIPEndPoint(ipEndPoint)
+                   : null;
 
         #endregion
 
