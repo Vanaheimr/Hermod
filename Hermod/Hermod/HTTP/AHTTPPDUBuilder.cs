@@ -123,6 +123,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (headerField.Value is not null)
                     {
 
+                        if (headerField.Key == "Access-Control-Allow-Methods")
+                        {
+
+                        }
+
                         switch (headerField.Value)
                         {
 
@@ -140,8 +145,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             //    break;
 
                             case IEnumerable<String> texts:
-                                foreach (var text in texts)
-                                    sb.Append($"{headerField.Key}: {text}\r\n");
+                                //foreach (var text in texts)
+                                //    sb.Append($"{headerField.Key}: {text}\r\n");
+                                sb.Append($"{headerField.Key}: {texts.AggregateWith(", ")}\r\n");
                                 break;
 
                             case IHTTPAuthentication httpAuthentication:

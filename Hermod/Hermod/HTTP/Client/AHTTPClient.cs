@@ -834,6 +834,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
+                //ToDo: HTTP/1.1 100 Continue
+
                 #region ...or chunked transport...
 
                 else if (Response.TransferEncoding == "chunked")

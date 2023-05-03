@@ -64,7 +64,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class StringParsers
     {
 
-        #region NullableUInt64(String, out Object)
+        #region NullableInt64               (String, out Object)
+
+        /// <summary>
+        /// A delegate to parse a Int64? value from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Object">The parsed Int64? value.</param>
+        public static Boolean NullableInt64(String String, out Object? Object)
+        {
+
+            if (Int64.TryParse(String, out var value))
+            {
+                Object = value;
+                return true;
+            }
+
+            Object = null;
+            return false;
+
+        }
+
+        #endregion
+
+        #region NullableUInt64              (String, out Object)
 
         /// <summary>
         /// A delegate to parse a UInt64? value from a string.
@@ -87,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region NullableListOfStrings(String, out Object)
+        #region NullableListOfStrings       (String, out Object)
 
         /// <summary>
         /// A delegate to parse a UInt64? value from a string.
@@ -112,7 +135,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region NullableListOfHTTPMethods(String, out Object)
+        #region NullableHashSetOfStrings    (String, out Object)
+
+        /// <summary>
+        /// A delegate to parse a hash set of strings from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Object">The parsed hash set of strings.</param>
+        public static Boolean NullableHashSetOfStrings(String String, out Object? Object)
+        {
+
+            var splitted = String.Split(",");
+
+            if (splitted.Length == 0)
+            {
+                Object = null;
+                return false;
+            }
+
+            Object = splitted.Select(element => element.Trim()).ToHashSet();
+            return true;
+
+        }
+
+        #endregion
+
+        #region NullableListOfHTTPMethods   (String, out Object)
 
         /// <summary>
         /// A delegate to parse a list of HTTP methods from a string.
@@ -145,6 +193,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             Object = list;
+            return true;
+
+        }
+
+        #endregion
+
+        #region NullableHashSetOfHTTPMethods(String, out Object)
+
+        /// <summary>
+        /// A delegate to parse a hash set of HTTP methods from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Object">The parsed hash set of strings.</param>
+        public static Boolean NullableHashSetOfHTTPMethods(String String, out Object? Object)
+        {
+
+            var splitted = String.Split(",");
+
+            if (splitted.Length == 0)
+            {
+                Object = null;
+                return false;
+            }
+
+            var hashSet = new HashSet<HTTPMethod>();
+
+            foreach (var element in splitted)
+            {
+
+                var method = element is not null
+                                 ? HTTPMethod.TryParse(element.Trim())
+                                 : null;
+
+                if (method.HasValue)
+                    hashSet.Add(method.Value);
+
+            }
+
+            Object = hashSet;
             return true;
 
         }
@@ -2881,7 +2968,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                 typeof(List<String>),
                                                                                 HeaderFieldType.Response,
                                                                                 RequestPathSemantic.EndToEnd,
-                                                                                StringParsers.NullableListOfStrings);
+                                                                                StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
