@@ -27,10 +27,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP basic authentication.
     /// </summary>
-    public class HTTPBasicAuthentication : IHTTPAuthentication,
-                                           IEquatable<HTTPBasicAuthentication>,
-                                           IComparable<HTTPBasicAuthentication>,
-                                           IComparable
+    public sealed class HTTPBasicAuthentication : IHTTPAuthentication,
+                                                  IEquatable<HTTPBasicAuthentication>,
+                                                  IComparable<HTTPBasicAuthentication>,
+                                                  IComparable
     {
 
         #region Properties
@@ -38,49 +38,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The username.
         /// </summary>
-        public String                   Username              { get; }
+        public String  Username    { get; }
 
         /// <summary>
         /// The password.
         /// </summary>
-        public String                   Password              { get; }
+        public String  Password    { get; }
 
         /// <summary>
-        /// The type of the HTTP authentication.
+        /// The HTTP request header representation.
         /// </summary>
-        public HTTPAuthenticationTypes  HTTPCredentialType    { get; }
-
-
-        public String HTTPText
-
-            => $"Basic " + $"{Username}:{Password}".ToBase64();
+        public String  HTTPText
+            => $"Basic {$"{Username}:{Password}".ToBase64()}";
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
+        /// Create a new HTTP Token Authentication based on the given username and password.
         /// </summary>
-        /// <param name="Username">The username.</param>
-        /// <param name="Password">The password.</param>
+        /// <param name="Username">An username.</param>
+        /// <param name="Password">A password.</param>
         public HTTPBasicAuthentication(String  Username,
                                        String  Password)
         {
 
-            #region Initial checks
+            this.Username  = Username.Trim();
+            this.Password  = Password.Trim();
 
-            if (Username.IsNullOrEmpty())
+            if (this.Username.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Username),  "The given username must not be null or empty!");
 
-            if (Password.IsNullOrEmpty())
+            if (this.Password.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Password),  "The given password must not be null or empty!");
-
-            #endregion
-
-            this.HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
-            this.Username            = Username;
-            this.Password            = Password;
 
         }
 
@@ -326,9 +317,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) GetHashCode()
 
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
+        /// <returns>The hash code of this object.</returns>
         public override Int32 GetHashCode()
         {
             unchecked
@@ -348,8 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-
-            => String.Concat($"Basic {Username}:{Password} (", $"{Username}:{Password}".ToBase64(), ")");
+            => $"Basic {Username}:{Password}";
 
         #endregion
 

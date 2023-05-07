@@ -414,8 +414,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, HTTPClientRequestLogger>   _HTTPClientRequestLoggers;
-        private readonly ConcurrentDictionary<String, HTTPClientResponseLogger>  _HTTPClientResponseLoggers;
+        private readonly ConcurrentDictionary<String, HTTPClientRequestLogger>   httpClientRequestLoggers;
+        private readonly ConcurrentDictionary<String, HTTPClientResponseLogger>  httpClientResponseLoggers;
 
         #endregion
 
@@ -501,10 +501,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPClient                  = HTTPClient ?? throw new ArgumentNullException(nameof(HTTPClient), "The given HTTP client must not be null!");
+            this.HTTPClient                 = HTTPClient ?? throw new ArgumentNullException(nameof(HTTPClient), "The given HTTP client must not be null!");
 
-            this._HTTPClientRequestLoggers   = new ConcurrentDictionary<String, HTTPClientRequestLogger>();
-            this._HTTPClientResponseLoggers  = new ConcurrentDictionary<String, HTTPClientResponseLogger>();
+            this.httpClientRequestLoggers   = new ConcurrentDictionary<String, HTTPClientRequestLogger>();
+            this.httpClientResponseLoggers  = new ConcurrentDictionary<String, HTTPClientResponseLogger>();
 
 
             //ToDo: Evaluate Logging targets!
@@ -549,30 +549,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
+            LogEventName = LogEventName.Trim();
+
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate is null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate is null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
             #endregion
 
-            if (!_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger? httpClientRequestLogger) &&
-                !_HTTPClientResponseLoggers.ContainsKey(LogEventName))
+            if (!httpClientRequestLoggers. TryGetValue(LogEventName, out var httpClientRequestLogger) &&
+                !httpClientResponseLoggers.ContainsKey(LogEventName))
             {
 
                 httpClientRequestLogger = new HTTPClientRequestLogger(LoggingPath, Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPClientRequestLoggers.TryAdd(LogEventName, httpClientRequestLogger);
+                httpClientRequestLoggers.TryAdd(LogEventName, httpClientRequestLogger);
 
                 #region Register group tag mapping
 
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (groupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out var logEventNames))
                         logEventNames.Add(LogEventName);
 
                     else
@@ -609,30 +605,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
+            LogEventName = LogEventName.Trim();
+
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate is null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate is null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
             #endregion
 
-            if (!_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger? httpClientResponseLogger) &&
-                !_HTTPClientRequestLoggers. ContainsKey(LogEventName))
+            if (!httpClientResponseLoggers.TryGetValue(LogEventName, out var httpClientResponseLogger) &&
+                !httpClientRequestLoggers. ContainsKey(LogEventName))
             {
 
                 httpClientResponseLogger = new HTTPClientResponseLogger(LoggingPath, Context, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPClientResponseLoggers.TryAdd(LogEventName, httpClientResponseLogger);
+                httpClientResponseLoggers.TryAdd(LogEventName, httpClientResponseLogger);
 
                 #region Register group tag mapping
 
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (groupTags.TryGetValue(GroupTag, out HashSet<String>? logEventNames))
+                    if (groupTags.TryGetValue(GroupTag, out var logEventNames))
                         logEventNames.Add(LogEventName);
 
                     else
@@ -661,11 +653,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var found = false;
 
-            // HTTP Client
-            if (_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger?  httpClientRequestLogger))
+            if (httpClientRequestLoggers. TryGetValue(LogEventName, out var httpClientRequestLogger))
                 found |= httpClientRequestLogger. Subscribe(LogTarget);
 
-            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger? httpClientResponseLogger))
+            if (httpClientResponseLoggers.TryGetValue(LogEventName, out var httpClientResponseLogger))
                 found |= httpClientResponseLogger.Subscribe(LogTarget);
 
             return found;
@@ -682,10 +673,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var found = false;
 
-            if (_HTTPClientRequestLoggers. TryGetValue(LogEventName, out HTTPClientRequestLogger?  httpClientRequestLogger))
+            if (httpClientRequestLoggers. TryGetValue(LogEventName, out var httpClientRequestLogger))
                 found |= httpClientRequestLogger. Unsubscribe(LogTarget);
 
-            if (_HTTPClientResponseLoggers.TryGetValue(LogEventName, out HTTPClientResponseLogger? httpClientResponseLogger))
+            if (httpClientResponseLoggers.TryGetValue(LogEventName, out var httpClientResponseLogger))
                 found |= httpClientResponseLogger.Unsubscribe(LogTarget);
 
             return found;

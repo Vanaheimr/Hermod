@@ -17,9 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Diagnostics;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -28,47 +25,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP Bearer authentication.
+    /// A HTTP Bearer Authentication used in token-based authentication systems such as OAuth 2.0.
     /// </summary>
-    [DebuggerDisplay("{DebugView}")]
-    public class HTTPBearerAuthentication : IHTTPAuthentication
+    public sealed class HTTPBearerAuthentication : IHTTPAuthentication,
+                                                   IEquatable<HTTPBearerAuthentication>,
+                                                   IComparable<HTTPBearerAuthentication>,
+                                                   IComparable
     {
+
+        #region Data
+
+        private readonly static Char[] splitter = new Char[] { ' ' };
+
+        #endregion
 
         #region Properties
 
         /// <summary>
         /// The authentication token.
         /// </summary>
-        public String                   Token                 { get; }
+        public String  Token    { get; }
 
         /// <summary>
-        /// The type of the HTTP authentication.
+        /// The HTTP request header representation.
         /// </summary>
-        public HTTPAuthenticationTypes  HTTPCredentialType    { get; }
-
-
-        public String HTTPText
-            => "Bearer " + Token;
-
-
-        /// <summary>
-        /// Return a debug representation of this object.
-        /// </summary>
-        private String DebugView
-            => String.Concat("Bearer '", Token, "'");
+        public String  HTTPText
+            => $"Bearer {Token}";
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create the credentials based on a string.
+        /// Create a new HTTP Bearer Authentication based on the given text.
         /// </summary>
-        /// <param name="Token">The authentication token.</param>
-        public HTTPBearerAuthentication(String  Token)
+        /// <param name="Token">An authentication token.</param>
+        public HTTPBearerAuthentication(String Token)
         {
-            this.HTTPCredentialType  = HTTPAuthenticationTypes.Bearer;
-            this.Token               = Token?.Trim() ?? throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
+
+            this.Token  = Token.Trim();
+
+            if (this.Token.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
+
         }
 
         #endregion
@@ -79,10 +78,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Try to parse the given text.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Bearer authentication header.</param>
-        /// <param name="BearerAuthentication">The parsed HTTP Bearer authentication header.</param>
-        /// <returns>true, when the parsing was successful, else false.</returns>
-        public static Boolean TryParse(String Text, out HTTPBearerAuthentication BearerAuthentication)
+        /// <param name="Text">A text representation of a HTTP Bearer Authentication header.</param>
+        /// <param name="BearerAuthentication">The parsed HTTP Bearer Authentication header.</param>
+        public static Boolean TryParse(String Text, out HTTPBearerAuthentication? BearerAuthentication)
         {
 
             BearerAuthentication = null;
@@ -90,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text.IsNullOrEmpty())
                 return false;
 
-            var splitted = Text.Split(new Char[] { ' ' });
+            var splitted = Text.Split(splitter);
 
             if (splitted.IsNullOrEmpty())
                 return false;
@@ -114,13 +112,201 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Operator overloading
+
+        #region Operator == (HTTPBearerAuthentication1, HTTPBearerAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPBearerAuthentication HTTPBearerAuthentication1,
+                                           HTTPBearerAuthentication HTTPBearerAuthentication2)
+        {
+
+            if (Object.ReferenceEquals(HTTPBearerAuthentication1, HTTPBearerAuthentication2))
+                return true;
+
+            if (HTTPBearerAuthentication1 is null || HTTPBearerAuthentication2 is null)
+                return false;
+
+            return HTTPBearerAuthentication1.Equals(HTTPBearerAuthentication2);
+
+        }
+
+        #endregion
+
+        #region Operator != (HTTPBearerAuthentication1, HTTPBearerAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPBearerAuthentication HTTPBearerAuthentication1,
+                                           HTTPBearerAuthentication HTTPBearerAuthentication2)
+
+            => !(HTTPBearerAuthentication1 == HTTPBearerAuthentication2);
+
+        #endregion
+
+        #region Operator <  (HTTPBearerAuthentication1, HTTPBearerAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPBearerAuthentication HTTPBearerAuthentication1,
+                                          HTTPBearerAuthentication HTTPBearerAuthentication2)
+
+            => HTTPBearerAuthentication1 is null
+                   ? throw new ArgumentNullException(nameof(HTTPBearerAuthentication1), "The given HTTP Bearer Authentication must not be null!")
+                   : HTTPBearerAuthentication1.CompareTo(HTTPBearerAuthentication2) < 0;
+
+        #endregion
+
+        #region Operator <= (HTTPBearerAuthentication1, HTTPBearerAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPBearerAuthentication HTTPBearerAuthentication1,
+                                           HTTPBearerAuthentication HTTPBearerAuthentication2)
+
+            => !(HTTPBearerAuthentication1 > HTTPBearerAuthentication2);
+
+        #endregion
+
+        #region Operator >  (HTTPBearerAuthentication1, HTTPBearerAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPBearerAuthentication HTTPBearerAuthentication1,
+                                          HTTPBearerAuthentication HTTPBearerAuthentication2)
+
+            => HTTPBearerAuthentication1 is null
+                   ? throw new ArgumentNullException(nameof(HTTPBearerAuthentication1), "The given HTTP Bearer Authentication must not be null!")
+                   : HTTPBearerAuthentication1.CompareTo(HTTPBearerAuthentication2) > 0;
+
+        #endregion
+
+        #region Operator >= (HTTPBearerAuthentication1, HTTPBearerAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPBearerAuthentication HTTPBearerAuthentication1,
+                                           HTTPBearerAuthentication HTTPBearerAuthentication2)
+
+            => !(HTTPBearerAuthentication1 < HTTPBearerAuthentication2);
+
+        #endregion
+
+        #endregion
+
+        #region IComparable<HTTPBearerAuthentication> Members
+
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two HTTP Bearer Authentications.
+        /// </summary>
+        /// <param name="Object">A HTTP Bearer Authentication to compare with.</param>
+        public Int32 CompareTo(Object? Object)
+
+            => Object is HTTPBearerAuthentication httpBearerAuthentication
+                   ? CompareTo(httpBearerAuthentication)
+                   : throw new ArgumentException("The given object is not a HTTP Bearer Authentication!",
+                                                 nameof(Object));
+
+        #endregion
+
+        #region CompareTo(HTTPBearerAuthentication)
+
+        /// <summary>
+        /// Compares two HTTP Bearer Authentications.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication">A HTTP Bearer Authentication to compare with.</param>
+        public Int32 CompareTo(HTTPBearerAuthentication? HTTPBearerAuthentication)
+        {
+
+            if (HTTPBearerAuthentication is null)
+                throw new ArgumentNullException(nameof(Object),
+                                                "The given object HTTP Bearer Authentication must not be null!");
+
+            return String.Compare(Token,
+                                  HTTPBearerAuthentication.Token,
+                                  StringComparison.Ordinal);
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<HTTPBearerAuthentication> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two HTTP Bearer Authentications for equality.
+        /// </summary>
+        /// <param name="Object">A HTTP Bearer Authentication to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is HTTPBearerAuthentication httpBearerAuthentication &&
+                   Equals(httpBearerAuthentication);
+
+        #endregion
+
+        #region Equals(HTTPBearerAuthentication)
+
+        /// <summary>
+        /// Compares two HTTP Bearer Authentications for equality.
+        /// </summary>
+        /// <param name="HTTPBearerAuthentication">A HTTP Bearer Authentication to compare with.</param>
+        public Boolean Equals(HTTPBearerAuthentication? HTTPBearerAuthentication)
+
+            => HTTPBearerAuthentication is not null &&
+               Token.Equals(HTTPBearerAuthentication.Token);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the hash code of this object.
+        /// </summary>
+        /// <returns>The hash code of this object.</returns>
+        public override Int32 GetHashCode()
+            => Token.GetHashCode();
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => "Bearer " + Token;
+            => $"Bearer '{Token}'";
 
         #endregion
 

@@ -776,10 +776,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger>   _HTTPRequestLoggers;
-        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger2>   _HTTPRequestLoggers2;
-        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger>  _HTTPResponseLoggers;
-        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger2>  _HTTPResponseLoggers2;
+        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger>    httpRequestLoggers;
+        private readonly ConcurrentDictionary<String, HTTPServerRequestLogger2>   httpRequestLoggers2;
+        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger>   httpResponseLoggers;
+        private readonly ConcurrentDictionary<String, HTTPServerResponseLogger2>  httpResponseLoggers2;
 
         #endregion
 
@@ -860,12 +860,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPServer             = HTTPServer ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP API must not be null!");
+            this.HTTPServer            = HTTPServer ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP API must not be null!");
 
-            this._HTTPRequestLoggers    = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
-            this._HTTPRequestLoggers2   = new ConcurrentDictionary<String, HTTPServerRequestLogger2>();
-            this._HTTPResponseLoggers2  = new ConcurrentDictionary<String, HTTPServerResponseLogger2>();
-            this._HTTPResponseLoggers   = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
+            this.httpRequestLoggers    = new ConcurrentDictionary<String, HTTPServerRequestLogger>();
+            this.httpRequestLoggers2   = new ConcurrentDictionary<String, HTTPServerRequestLogger2>();
+            this.httpResponseLoggers2  = new ConcurrentDictionary<String, HTTPServerResponseLogger2>();
+            this.httpResponseLoggers   = new ConcurrentDictionary<String, HTTPServerResponseLogger>();
 
         }
 
@@ -889,33 +889,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
+            LogEventName = LogEventName.Trim();
+
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
             #endregion
 
-            if (!_HTTPRequestLoggers. TryGetValue(LogEventName, out HTTPServerRequestLogger _HTTPRequestLogger) &&
-                !_HTTPResponseLoggers.ContainsKey(LogEventName))
+            if (!httpRequestLoggers. TryGetValue(LogEventName, out var httpRequestLogger) &&
+                !httpResponseLoggers.ContainsKey(LogEventName))
             {
 
-                _HTTPRequestLogger = new HTTPServerRequestLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPRequestLoggers.TryAdd(LogEventName, _HTTPRequestLogger);
+                httpRequestLogger = new HTTPServerRequestLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                httpRequestLoggers.TryAdd(LogEventName, httpRequestLogger);
 
                 #region Register group tag mapping
-
-                HashSet<String> _LogEventNames = null;
 
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
+                    if (groupTags.TryGetValue(GroupTag, out var logEventNames))
+                        logEventNames.Add(LogEventName);
 
                     else
                         groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
@@ -924,7 +918,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                return _HTTPRequestLogger;
+                return httpRequestLogger;
 
             }
 
@@ -951,33 +945,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
+            LogEventName = LogEventName.Trim();
+
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
             #endregion
 
-            if (!_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2 _HTTPRequestLogger) &&
-                !_HTTPResponseLoggers2.ContainsKey(LogEventName))
+            if (!httpRequestLoggers2. TryGetValue(LogEventName, out var httpRequestLogger) &&
+                !httpResponseLoggers2.ContainsKey(LogEventName))
             {
 
-                _HTTPRequestLogger = new HTTPServerRequestLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPRequestLoggers2.TryAdd(LogEventName, _HTTPRequestLogger);
+                httpRequestLogger = new HTTPServerRequestLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                httpRequestLoggers2.TryAdd(LogEventName, httpRequestLogger);
 
                 #region Register group tag mapping
-
-                HashSet<String> _LogEventNames = null;
 
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
+                    if (groupTags.TryGetValue(GroupTag, out var logEventNames))
+                        logEventNames.Add(LogEventName);
 
                     else
                         groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
@@ -986,7 +974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                return _HTTPRequestLogger;
+                return httpRequestLogger;
 
             }
 
@@ -1014,32 +1002,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
             #endregion
 
-            if (!_HTTPResponseLoggers.TryGetValue(LogEventName, out HTTPServerResponseLogger _HTTPResponseLogger) &&
-                !_HTTPRequestLoggers. ContainsKey(LogEventName))
+            if (!httpResponseLoggers.TryGetValue(LogEventName, out var httpResponseLogger) &&
+                !httpRequestLoggers. ContainsKey(LogEventName))
             {
 
-                _HTTPResponseLogger = new HTTPServerResponseLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPResponseLoggers.TryAdd(LogEventName, _HTTPResponseLogger);
+                httpResponseLogger = new HTTPServerResponseLogger(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                httpResponseLoggers.TryAdd(LogEventName, httpResponseLogger);
 
                 #region Register group tag mapping
-
-                HashSet<String> _LogEventNames = null;
 
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
+                    if (groupTags.TryGetValue(GroupTag, out var logEventNames))
+                        logEventNames.Add(LogEventName);
 
                     else
                         groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
@@ -1048,7 +1028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                return _HTTPResponseLogger;
+                return httpResponseLogger;
 
             }
 
@@ -1076,32 +1056,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Initial checks
 
             if (LogEventName.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
-
-            if (SubscribeToEventDelegate == null)
-                throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
-
-            if (UnsubscribeFromEventDelegate == null)
-                throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                throw new ArgumentNullException(nameof(LogEventName), "The given log event name must not be null or empty!");
 
             #endregion
 
-            if (!_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2 _HTTPResponseLogger) &&
-                !_HTTPRequestLoggers2. ContainsKey(LogEventName))
+            if (!httpResponseLoggers2.TryGetValue(LogEventName, out var httpResponseLogger) &&
+                !httpRequestLoggers2. ContainsKey(LogEventName))
             {
 
-                _HTTPResponseLogger = new HTTPServerResponseLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
-                _HTTPResponseLoggers2.TryAdd(LogEventName, _HTTPResponseLogger);
+                httpResponseLogger = new HTTPServerResponseLogger2(Context, LoggingPath, LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate);
+                httpResponseLoggers2.TryAdd(LogEventName, httpResponseLogger);
 
                 #region Register group tag mapping
-
-                HashSet<String> _LogEventNames = null;
 
                 foreach (var GroupTag in GroupTags.Distinct())
                 {
 
-                    if (groupTags.TryGetValue(GroupTag, out _LogEventNames))
-                        _LogEventNames.Add(LogEventName);
+                    if (groupTags.TryGetValue(GroupTag, out var logEventNames))
+                        logEventNames.Add(LogEventName);
 
                     else
                         groupTags.TryAdd(GroupTag, new HashSet<String>(new String[] { LogEventName }));
@@ -1110,7 +1082,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #endregion
 
-                return _HTTPResponseLogger;
+                return httpResponseLogger;
 
             }
 
@@ -1127,21 +1099,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  LogTargets  LogTarget)
         {
 
-            var _Found = false;
+            var found = false;
 
-            if (_HTTPRequestLoggers.  TryGetValue(LogEventName, out HTTPServerRequestLogger    _HTTPServerRequestLogger))
-                _Found |= _HTTPServerRequestLogger. Subscribe(LogTarget);
+            if (httpRequestLoggers.  TryGetValue(LogEventName, out var httpServerRequestLogger))
+                found |= httpServerRequestLogger. Subscribe(LogTarget);
 
-            if (_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2   _HTTPServerRequestLogger2))
-                _Found |= _HTTPServerRequestLogger2.Subscribe(LogTarget);
+            if (httpRequestLoggers2. TryGetValue(LogEventName, out var httpServerRequestLogger2))
+                found |= httpServerRequestLogger2.Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers. TryGetValue(LogEventName, out HTTPServerResponseLogger   _HTTPServerResponseLogger))
-                _Found |= _HTTPServerResponseLogger.Subscribe(LogTarget);
+            if (httpResponseLoggers. TryGetValue(LogEventName, out var httpServerResponseLogger))
+                found |= httpServerResponseLogger.Subscribe(LogTarget);
 
-            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2  _HTTPServerResponseLogger2))
-                _Found |= _HTTPServerResponseLogger2.Subscribe(LogTarget);
+            if (httpResponseLoggers2.TryGetValue(LogEventName, out var httpServerResponseLogger2))
+                found |= httpServerResponseLogger2.Subscribe(LogTarget);
 
-            return _Found;
+            return found;
 
         }
 
@@ -1153,21 +1125,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    LogTargets  LogTarget)
         {
 
-            var _Found = false;
+            var found = false;
 
-            if (_HTTPRequestLoggers.  TryGetValue(LogEventName, out HTTPServerRequestLogger    _HTTPServerRequestLogger))
-                _Found |= _HTTPServerRequestLogger. Unsubscribe(LogTarget);
+            if (httpRequestLoggers.  TryGetValue(LogEventName, out var httpServerRequestLogger))
+                found |= httpServerRequestLogger. Unsubscribe(LogTarget);
 
-            if (_HTTPRequestLoggers2. TryGetValue(LogEventName, out HTTPServerRequestLogger2   _HTTPServerRequestLogger2))
-                _Found |= _HTTPServerRequestLogger2.Unsubscribe(LogTarget);
+            if (httpRequestLoggers2. TryGetValue(LogEventName, out var httpServerRequestLogger2))
+                found |= httpServerRequestLogger2.Unsubscribe(LogTarget);
 
-            if (_HTTPResponseLoggers. TryGetValue(LogEventName, out HTTPServerResponseLogger   _HTTPServerResponseLogger))
-                _Found |= _HTTPServerResponseLogger.Unsubscribe(LogTarget);
+            if (httpResponseLoggers. TryGetValue(LogEventName, out var httpServerResponseLogger))
+                found |= httpServerResponseLogger.Unsubscribe(LogTarget);
 
-            if (_HTTPResponseLoggers2.TryGetValue(LogEventName, out HTTPServerResponseLogger2  _HTTPServerResponseLogger2))
-                _Found |= _HTTPServerResponseLogger2.Unsubscribe(LogTarget);
+            if (httpResponseLoggers2.TryGetValue(LogEventName, out var httpServerResponseLogger2))
+                found |= httpServerResponseLogger2.Unsubscribe(LogTarget);
 
-            return _Found;
+            return found;
 
         }
 

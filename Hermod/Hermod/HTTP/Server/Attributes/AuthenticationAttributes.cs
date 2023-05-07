@@ -1,217 +1,217 @@
-﻿/*
- * Copyright (c) 2010-2023 GraphDefined GmbH
- * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+﻿///*
+// * Copyright (c) 2010-2023 GraphDefined GmbH
+// * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
+// *
+// * Licensed under the Apache License, Version 2.0 (the "License");
+// * you may not use this file except in compliance with the License.
+// * You may obtain a copy of the License at
+// *
+// *     http://www.apache.org/licenses/LICENSE-2.0
+// *
+// * Unless required by applicable law or agreed to in writing, software
+// * distributed under the License is distributed on an "AS IS" BASIS,
+// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// * See the License for the specific language governing permissions and
+// * limitations under the License.
+// */
 
-#region Usings
+//#region Usings
 
-using System;
+//using System;
 
-#endregion
+//#endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
-{
+//namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
+//{
 
-    #region AuthenticationAttribute
+//    #region AuthenticationAttribute
 
-    /// <summary>
-    /// The generic HTTP authentication attribute.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class AuthenticationAttribute : Attribute
-    {
+//    /// <summary>
+//    /// The generic HTTP authentication attribute.
+//    /// </summary>
+//    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+//    public class AuthenticationAttribute : Attribute
+//    {
 
-        #region Properties
+//        #region Properties
 
-        /// <summary>
-        /// The authentication type(s).
-        /// </summary>
-        public HTTPAuthenticationTypes AuthenticationType { get; private set; }
+//        /// <summary>
+//        /// The authentication type(s).
+//        /// </summary>
+//        public HTTPAuthenticationTypes AuthenticationType { get; private set; }
 
-        /// <summary>
-        /// The HTTP realm.
-        /// </summary>
-        public String                  Realm              { get; private set; }
+//        /// <summary>
+//        /// The HTTP realm.
+//        /// </summary>
+//        public String                  Realm              { get; private set; }
 
-        #endregion
+//        #endregion
 
-        #region (internal) AuthenticationAttribute()
+//        #region (internal) AuthenticationAttribute()
 
-        /// <summary>
-        /// The generic HTTP authentication attribute.
-        /// </summary>
-        internal AuthenticationAttribute()
-        {
-            this.AuthenticationType = HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual;
-            this.Realm              = String.Empty;
-        }
+//        /// <summary>
+//        /// The generic HTTP authentication attribute.
+//        /// </summary>
+//        internal AuthenticationAttribute()
+//        {
+//            this.AuthenticationType = HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual;
+//            this.Realm              = String.Empty;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region (internal) AuthenticationAttribute(AuthenticationType)
+//        #region (internal) AuthenticationAttribute(AuthenticationType)
 
-        /// <summary>
-        /// The generic HTTP authentication attribute.
-        /// </summary>
-        /// <param name="AuthenticationType">The authentication type(s).</param>
-        internal AuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
-        {
-            this.AuthenticationType = AuthenticationType;
-            this.Realm              = String.Empty;
-        }
+//        /// <summary>
+//        /// The generic HTTP authentication attribute.
+//        /// </summary>
+//        /// <param name="AuthenticationType">The authentication type(s).</param>
+//        internal AuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
+//        {
+//            this.AuthenticationType = AuthenticationType;
+//            this.Realm              = String.Empty;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region (internal) AuthenticationAttribute(AuthenticationType, Realm)
+//        #region (internal) AuthenticationAttribute(AuthenticationType, Realm)
 
-        /// <summary>
-        /// The generic HTTP authentication attribute including a realm.
-        /// </summary>
-        /// <param name="AuthenticationType">The authentication type(s).</param>
-        /// <param name="Realm">The HTTP realm.</param>
-        internal AuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
-        {
-            this.AuthenticationType = AuthenticationType;
-            this.Realm = Realm;
-        }
+//        /// <summary>
+//        /// The generic HTTP authentication attribute including a realm.
+//        /// </summary>
+//        /// <param name="AuthenticationType">The authentication type(s).</param>
+//        /// <param name="Realm">The HTTP realm.</param>
+//        internal AuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
+//        {
+//            this.AuthenticationType = AuthenticationType;
+//            this.Realm = Realm;
+//        }
 
-        #endregion
+//        #endregion
 
-    }
+//    }
 
-    #endregion
+//    #endregion
 
-    #region NoAuthenticationAttribute
+//    #region NoAuthenticationAttribute
 
-    /// <summary>
-    /// No HTTP authentication required.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class NoAuthenticationAttribute : AuthenticationAttribute
-    {
+//    /// <summary>
+//    /// No HTTP authentication required.
+//    /// </summary>
+//    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+//    public class NoAuthenticationAttribute : AuthenticationAttribute
+//    {
 
-        /// <summary>
-        /// No HTTP authentication required.
-        /// </summary>
-        public NoAuthenticationAttribute()
-            : base(HTTPAuthenticationTypes.None)
-        { }
+//        /// <summary>
+//        /// No HTTP authentication required.
+//        /// </summary>
+//        public NoAuthenticationAttribute()
+//            : base(HTTPAuthenticationTypes.None)
+//        { }
 
-    }
+//    }
 
-    #endregion
+//    #endregion
 
-    #region OptionalAuthenticationAttribute
+//    #region OptionalAuthenticationAttribute
 
-    /// <summary>
-    /// Optional authentication possible.
-    /// </summary>
-    /// <seealso cref="http://tools.ietf.org/html/draft-oiwa-httpbis-auth-extension-00#section-3"/>
-    /// <remarks>Servers MAY send HTTP successful responses (response code 200, 206 and others) containing the Optional-WWW-Authenticate header as a replacement of a 401 response when it is an authentication-initializing response.  The Optional-WWW-Authenticate header MUST NOT be contained in 401 responses.</remarks>
-    /// <example>HTTP/1.1 200 OK\r\nOptional-WWW-Authenticate: Basic realm="xxxx"</example>
-    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class OptionalAuthenticationAttribute : AuthenticationAttribute
-    {
+//    /// <summary>
+//    /// Optional authentication possible.
+//    /// </summary>
+//    /// <seealso cref="http://tools.ietf.org/html/draft-oiwa-httpbis-auth-extension-00#section-3"/>
+//    /// <remarks>Servers MAY send HTTP successful responses (response code 200, 206 and others) containing the Optional-WWW-Authenticate header as a replacement of a 401 response when it is an authentication-initializing response.  The Optional-WWW-Authenticate header MUST NOT be contained in 401 responses.</remarks>
+//    /// <example>HTTP/1.1 200 OK\r\nOptional-WWW-Authenticate: Basic realm="xxxx"</example>
+//    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+//    public class OptionalAuthenticationAttribute : AuthenticationAttribute
+//    {
 
-        #region OptionalAuthenticationAttribute()
+//        #region OptionalAuthenticationAttribute()
 
-        /// <summary>
-        /// Optional authentication possible.
-        /// </summary>
-        public OptionalAuthenticationAttribute()
-            : base()
-        { }
+//        /// <summary>
+//        /// Optional authentication possible.
+//        /// </summary>
+//        public OptionalAuthenticationAttribute()
+//            : base()
+//        { }
 
-        #endregion
+//        #endregion
 
-        #region OptionalAuthenticationAttribute(AuthenticationType)
+//        #region OptionalAuthenticationAttribute(AuthenticationType)
 
-        /// <summary>
-        /// Optional authentication possible.
-        /// </summary>
-        /// <param name="AuthenticationType">The authentication type(s).</param>
-        public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
-            : base(AuthenticationType)
-        { }
+//        /// <summary>
+//        /// Optional authentication possible.
+//        /// </summary>
+//        /// <param name="AuthenticationType">The authentication type(s).</param>
+//        public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType)
+//            : base(AuthenticationType)
+//        { }
 
-        #endregion
+//        #endregion
 
-        #region OptionalAuthenticationAttribute(AuthenticationType, Realm)
+//        #region OptionalAuthenticationAttribute(AuthenticationType, Realm)
 
-        /// <summary>
-        /// Optional authentication possible.
-        /// </summary>
-        /// <param name="AuthenticationType">The authentication type(s).</param>
-        /// <param name="Realm">The HTTP realm.</param>
-        public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
-            : base(AuthenticationType, Realm)
-        { }
+//        /// <summary>
+//        /// Optional authentication possible.
+//        /// </summary>
+//        /// <param name="AuthenticationType">The authentication type(s).</param>
+//        /// <param name="Realm">The HTTP realm.</param>
+//        public OptionalAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
+//            : base(AuthenticationType, Realm)
+//        { }
 
-        #endregion
+//        #endregion
 
-    }
+//    }
 
-    #endregion
+//    #endregion
 
-    #region ForceAuthenticationAttribute
+//    #region ForceAuthenticationAttribute
 
-    /// <summary>
-    /// HTTP authentication required.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class ForceAuthenticationAttribute : AuthenticationAttribute
-    {
+//    /// <summary>
+//    /// HTTP authentication required.
+//    /// </summary>
+//    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+//    public class ForceAuthenticationAttribute : AuthenticationAttribute
+//    {
 
-        #region ForceAuthenticationAttribute()
+//        #region ForceAuthenticationAttribute()
 
-        /// <summary>
-        /// HTTP authentication required.
-        /// </summary>
-        public ForceAuthenticationAttribute()
-            : base()
-        { }
+//        /// <summary>
+//        /// HTTP authentication required.
+//        /// </summary>
+//        public ForceAuthenticationAttribute()
+//            : base()
+//        { }
 
-        #endregion
+//        #endregion
 
-        #region ForceAuthenticationAttribute(Realm)
+//        #region ForceAuthenticationAttribute(Realm)
 
-        /// <summary>
-        /// HTTP authentication required.
-        /// </summary>
-        /// <param name="Realm">The HTTP realm.</param>
-        public ForceAuthenticationAttribute(String Realm)
-            : base(HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual, Realm)
-        { }
+//        /// <summary>
+//        /// HTTP authentication required.
+//        /// </summary>
+//        /// <param name="Realm">The HTTP realm.</param>
+//        public ForceAuthenticationAttribute(String Realm)
+//            : base(HTTPAuthenticationTypes.Basic | HTTPAuthenticationTypes.Digest | HTTPAuthenticationTypes.Mutual, Realm)
+//        { }
 
-        #endregion
+//        #endregion
 
-        #region ForceAuthenticationAttribute(AuthenticationType, Realm)
+//        #region ForceAuthenticationAttribute(AuthenticationType, Realm)
 
-        /// <summary>
-        /// HTTP authentication required.
-        /// </summary>
-        /// <param name="AuthenticationType">The authentication type(s).</param>
-        /// <param name="Realm">The HTTP realm.</param>
-        public ForceAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
-            : base(AuthenticationType, Realm)
-        { }
+//        /// <summary>
+//        /// HTTP authentication required.
+//        /// </summary>
+//        /// <param name="AuthenticationType">The authentication type(s).</param>
+//        /// <param name="Realm">The HTTP realm.</param>
+//        public ForceAuthenticationAttribute(HTTPAuthenticationTypes AuthenticationType, String Realm)
+//            : base(AuthenticationType, Realm)
+//        { }
 
-        #endregion
+//        #endregion
 
-    }
+//    }
 
-    #endregion
+//    #endregion
 
-}
+//}

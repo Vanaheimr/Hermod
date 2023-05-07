@@ -25,14 +25,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         /// <summary>
-        /// One of the different HTTP authentication types.
+        /// The HTTP request header representation.
         /// </summary>
-        HTTPAuthenticationTypes  HTTPCredentialType    { get; }
-
-        /// <summary>
-        /// The HTTP header representation.
-        /// </summary>
-        String                   HTTPText              { get; }
+        String  HTTPText    { get; }
 
     }
 

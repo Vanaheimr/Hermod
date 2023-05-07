@@ -32,7 +32,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public delegate Task HTTPRequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, HTTPRequest Request);
     public delegate Task HTTPResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
 
-
     /// <summary>
     /// A HTTP API logger.
     /// </summary>
@@ -183,24 +182,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Set default delegates
 
-            LogHTTPRequest_toConsole   ??= Default_LogHTTPRequest_toConsole;
-            LogHTTPRequest_toDisc      ??= Default_LogHTTPRequest_toDisc;
-            LogHTTPResponse_toConsole  ??= Default_LogHTTPResponse_toConsole;
-            LogHTTPResponse_toDisc     ??= Default_LogHTTPResponse_toDisc;
+            //LogHTTPRequest_toConsole   ??= Default_LogHTTPRequest_toConsole;
+            //LogHTTPRequest_toDisc      ??= Default_LogHTTPRequest_toDisc;
+            //LogHTTPResponse_toConsole  ??= Default_LogHTTPResponse_toConsole;
+            //LogHTTPResponse_toDisc     ??= Default_LogHTTPResponse_toDisc;
 
-            if (LogHTTPRequest_toDisc  is not null ||
-                LogHTTPResponse_toDisc is not null ||
-                LogHTTPError_toDisc    is not null)
-            {
-                if (this.LoggingPath.IsNotNullOrEmpty())
-                    Directory.CreateDirectory(this.LoggingPath);
-            }
+            //if (LogHTTPRequest_toDisc  is not null ||
+            //    LogHTTPResponse_toDisc is not null ||
+            //    LogHTTPError_toDisc    is not null)
+            //{
+            //    if (this.LoggingPath.IsNotNullOrEmpty())
+            //        Directory.CreateDirectory(this.LoggingPath);
+            //}
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
                                                                                                            context is not null ? context + "_" : "",
                                                                                                            logfileName, "_",
-                                                                                                           DateTime.UtcNow.Year, "-",
-                                                                                                           DateTime.UtcNow.Month.ToString("D2"),
+                                                                                                           Timestamp.Now.Year, "-",
+                                                                                                           Timestamp.Now.Month.ToString("D2"),
                                                                                                            ".log"));
 
             #endregion
@@ -571,12 +570,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (groupTags.TryGetValue(LogEventOrGroupName,
-                                       out HashSet<String> _LogEventNames))
+                                      out var logEventNames))
+            {
 
-                return _LogEventNames.
+                return logEventNames.
                            Select(logname => InternalDebug(logname, LogTarget)).
                            All   (result  => result == true);
 
+            }
 
             return InternalDebug(LogEventOrGroupName, LogTarget);
 
@@ -604,12 +605,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (groupTags.TryGetValue(LogEventOrGroupName,
-                                       out HashSet<String> _LogEventNames))
+                                      out var logEventNames))
+            {
 
-                return _LogEventNames.
+                return logEventNames.
                            Select(logname => InternalUndebug(logname, LogTarget)).
                            All   (result  => result == true);
 
+            }
 
             return InternalUndebug(LogEventOrGroupName, LogTarget);
 

@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Diagnostics;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -27,10 +25,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP token authentication.
+    /// A HTTP Token Authentication.
     /// </summary>
-    [DebuggerDisplay("{DebugView}")]
-    public class HTTPTokenAuthentication : IHTTPAuthentication
+    public sealed class HTTPTokenAuthentication : IHTTPAuthentication,
+                                                  IEquatable<HTTPTokenAuthentication>,
+                                                  IComparable<HTTPTokenAuthentication>,
+                                                  IComparable
     {
 
         #region Properties
@@ -38,40 +38,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The username.
         /// </summary>
-        public String                   Token              { get; }
+        public String  Token    { get; }
 
         /// <summary>
-        /// The type of the HTTP authentication.
+        /// The HTTP request header representation.
         /// </summary>
-        public HTTPAuthenticationTypes  HTTPCredentialType    { get; }
-
-
-        public String HTTPText
-            => "Token " + Token;
-
-
-        /// <summary>
-        /// Return a debug representation of this object.
-        /// </summary>
-        private String DebugView
-            => String.Concat("Token '", Token, "'");
+        public String  HTTPText
+            => $"Token {Token}";
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create the credentials based on a base64 encoded string which comes from a HTTP header Authentication:
+        /// Create a new HTTP Token Authentication based on the given text.
         /// </summary>
-        /// <param name="Token">The token.</param>
+        /// <param name="Token">An authentication token.</param>
         public HTTPTokenAuthentication(String Token)
         {
 
-            if (Token.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
+            this.Token  = Token.Trim();
 
-            this.HTTPCredentialType  = HTTPAuthenticationTypes.Basic;
-            this.Token               = Token;
+            if (this.Token.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
 
         }
 
@@ -86,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
         /// <param name="TokenAuthentication">The parsed HTTP basic authentication header.</param>
         /// <returns>true, when the parsing was successful, else false.</returns>
-        public static Boolean TryParse(String Text, out HTTPTokenAuthentication TokenAuthentication)
+        public static Boolean TryParse(String Text, out HTTPTokenAuthentication? TokenAuthentication)
         {
 
             TokenAuthentication = null;
@@ -118,13 +107,201 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Operator overloading
+
+        #region Operator == (HTTPTokenAuthentication1, HTTPTokenAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (HTTPTokenAuthentication HTTPTokenAuthentication1,
+                                           HTTPTokenAuthentication HTTPTokenAuthentication2)
+        {
+
+            if (Object.ReferenceEquals(HTTPTokenAuthentication1, HTTPTokenAuthentication2))
+                return true;
+
+            if (HTTPTokenAuthentication1 is null || HTTPTokenAuthentication2 is null)
+                return false;
+
+            return HTTPTokenAuthentication1.Equals(HTTPTokenAuthentication2);
+
+        }
+
+        #endregion
+
+        #region Operator != (HTTPTokenAuthentication1, HTTPTokenAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (HTTPTokenAuthentication HTTPTokenAuthentication1,
+                                           HTTPTokenAuthentication HTTPTokenAuthentication2)
+
+            => !(HTTPTokenAuthentication1 == HTTPTokenAuthentication2);
+
+        #endregion
+
+        #region Operator <  (HTTPTokenAuthentication1, HTTPTokenAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPTokenAuthentication HTTPTokenAuthentication1,
+                                          HTTPTokenAuthentication HTTPTokenAuthentication2)
+
+            => HTTPTokenAuthentication1 is null
+                   ? throw new ArgumentNullException(nameof(HTTPTokenAuthentication1), "The given HTTP Token Authentication must not be null!")
+                   : HTTPTokenAuthentication1.CompareTo(HTTPTokenAuthentication2) < 0;
+
+        #endregion
+
+        #region Operator <= (HTTPTokenAuthentication1, HTTPTokenAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPTokenAuthentication HTTPTokenAuthentication1,
+                                           HTTPTokenAuthentication HTTPTokenAuthentication2)
+
+            => !(HTTPTokenAuthentication1 > HTTPTokenAuthentication2);
+
+        #endregion
+
+        #region Operator >  (HTTPTokenAuthentication1, HTTPTokenAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPTokenAuthentication HTTPTokenAuthentication1,
+                                          HTTPTokenAuthentication HTTPTokenAuthentication2)
+
+            => HTTPTokenAuthentication1 is null
+                   ? throw new ArgumentNullException(nameof(HTTPTokenAuthentication1), "The given HTTP Token Authentication must not be null!")
+                   : HTTPTokenAuthentication1.CompareTo(HTTPTokenAuthentication2) > 0;
+
+        #endregion
+
+        #region Operator >= (HTTPTokenAuthentication1, HTTPTokenAuthentication2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPTokenAuthentication HTTPTokenAuthentication1,
+                                           HTTPTokenAuthentication HTTPTokenAuthentication2)
+
+            => !(HTTPTokenAuthentication1 < HTTPTokenAuthentication2);
+
+        #endregion
+
+        #endregion
+
+        #region IComparable<HTTPTokenAuthentication> Members
+
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two HTTP Token Authentications.
+        /// </summary>
+        /// <param name="Object">A HTTP Token Authentication to compare with.</param>
+        public Int32 CompareTo(Object? Object)
+
+            => Object is HTTPTokenAuthentication httpTokenAuthentication
+                   ? CompareTo(httpTokenAuthentication)
+                   : throw new ArgumentException("The given object is not a HTTP Token Authentication!",
+                                                 nameof(Object));
+
+        #endregion
+
+        #region CompareTo(HTTPTokenAuthentication)
+
+        /// <summary>
+        /// Compares two HTTP Token Authentications.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication">A HTTP Token Authentication to compare with.</param>
+        public Int32 CompareTo(HTTPTokenAuthentication? HTTPTokenAuthentication)
+        {
+
+            if (HTTPTokenAuthentication is null)
+                throw new ArgumentNullException(nameof(Object),
+                                                "The given object HTTP Token Authentication must not be null!");
+
+            return String.Compare(Token,
+                                  HTTPTokenAuthentication.Token,
+                                  StringComparison.Ordinal);
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<HTTPTokenAuthentication> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two HTTP Token Authentications for equality.
+        /// </summary>
+        /// <param name="Object">A HTTP Token Authentication to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is HTTPTokenAuthentication httpTokenAuthentication &&
+                   Equals(httpTokenAuthentication);
+
+        #endregion
+
+        #region Equals(HTTPTokenAuthentication)
+
+        /// <summary>
+        /// Compares two HTTP Token Authentications for equality.
+        /// </summary>
+        /// <param name="HTTPTokenAuthentication">A HTTP Token Authentication to compare with.</param>
+        public Boolean Equals(HTTPTokenAuthentication? HTTPTokenAuthentication)
+
+            => HTTPTokenAuthentication is not null &&
+               Token.Equals(HTTPTokenAuthentication.Token);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the hash code of this object.
+        /// </summary>
+        /// <returns>The hash code of this object.</returns>
+        public override Int32 GetHashCode()
+            => Token.GetHashCode();
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => "Token " + Token;
+            => $"Token '{Token}'";
 
         #endregion
 

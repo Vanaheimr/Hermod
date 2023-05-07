@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -73,12 +69,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Socket">The IP socket of the HTTP source.</param>
         /// <param name="ForwardedFor">An additional enumeration of IP addresses, when the message had been forwarded between HTTP servers.</param>
-        public HTTPSource(IPSocket                 Socket,
-                          IEnumerable<IIPAddress>  ForwardedFor = null)
+        public HTTPSource(IPSocket                  Socket,
+                          IEnumerable<IIPAddress>?  ForwardedFor = null)
         {
 
             this.Socket            = Socket;
-            this.ForwardedForList  = ForwardedFor != null ? ForwardedFor.ToArray() : new IIPAddress[0];
+            this.ForwardedForList  = ForwardedFor?.ToArray() ?? Array.Empty<IIPAddress>();
+
+            unchecked
+            {
+                hashCode = Socket.          GetHashCode() * 3 ^
+                           ForwardedForList.CalcHashCode();
+            }
 
         }
 
@@ -119,20 +121,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPSource1">A HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPSource HTTPSource1, HTTPSource HTTPSource2)
-        {
+        public static Boolean operator == (HTTPSource HTTPSource1,
+                                           HTTPSource HTTPSource2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPSource1, HTTPSource2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPSource1 == null) || ((Object) HTTPSource2 == null))
-                return false;
-
-            return HTTPSource1.Equals(HTTPSource2);
-
-        }
+            => HTTPSource1.Equals(HTTPSource2);
 
         #endregion
 
@@ -144,8 +136,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPSource1">A HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPSource HTTPSource1, HTTPSource HTTPSource2)
-            => !(HTTPSource1 == HTTPSource2);
+        public static Boolean operator != (HTTPSource HTTPSource1,
+                                           HTTPSource HTTPSource2)
+
+            => !HTTPSource1.Equals(HTTPSource2);
+
+        #endregion
+
+        #region Operator <  (HTTPSource1, HTTPSource2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource2">Another HTTP source.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator < (HTTPSource HTTPSource1,
+                                          HTTPSource HTTPSource2)
+
+            => HTTPSource1.CompareTo(HTTPSource2) < 0;
+
+        #endregion
+
+        #region Operator <= (HTTPSource1, HTTPSource2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource2">Another HTTP source.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator <= (HTTPSource HTTPSource1,
+                                           HTTPSource HTTPSource2)
+
+            => HTTPSource1.CompareTo(HTTPSource2) <= 0;
+
+        #endregion
+
+        #region Operator >  (HTTPSource1, HTTPSource2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource2">Another HTTP source.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator > (HTTPSource HTTPSource1,
+                                          HTTPSource HTTPSource2)
+
+            => HTTPSource1.CompareTo(HTTPSource2) > 0;
+
+        #endregion
+
+        #region Operator >= (HTTPSource1, HTTPSource2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource2">Another HTTP source.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator >= (HTTPSource HTTPSource1,
+                                           HTTPSource HTTPSource2)
+
+            => HTTPSource1.CompareTo(HTTPSource2) >= 0;
 
         #endregion
 
@@ -156,37 +210,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP sources.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">A HTTP source to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (Object is HTTPSource)
-                return CompareTo((HTTPSource) Object);
-
-            throw new ArgumentException("The given object is neither a HTTP source, nor its text representation!");
-
-        }
+            => Object is HTTPSource httpSource
+                   ? CompareTo(httpSource)
+                   : throw new ArgumentException("The given object is not a HTTP source!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(HTTPSource)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP sources.
         /// </summary>
-        /// <param name="HTTPSource">An object to compare with.</param>
+        /// <param name="HTTPSource">A HTTP source to compare with.</param>
         public Int32 CompareTo(HTTPSource HTTPSource)
         {
 
-            if ((Object) HTTPSource == null)
-                throw new ArgumentNullException("The given HTTP source must not be null!");
+            var c = Socket.CompareTo(HTTPSource.Socket);
 
-            return Socket.CompareTo(HTTPSource.Socket);
+            if (c == 0)
+                c = ForwardedForList.Length.CompareTo(HTTPSource.ForwardedForList.Length);
+
+            foreach (var forwardedForElement in ForwardedForList)
+            {
+
+                c = forwardedForElement.CompareTo(HTTPSource.ForwardedForList.FirstOrDefault());
+
+                if (c != 0)
+                    return c;
+
+            }
+
+            return c;
 
         }
 
@@ -199,41 +259,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP sources for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A HTTP source to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            if (Object is HTTPSource)
-                return Equals((HTTPSource) Object);
-
-            return false;
-
-        }
+            => Object is HTTPSource httpSource &&
+                   Equals(httpSource);
 
         #endregion
 
         #region Equals(HTTPSource)
 
         /// <summary>
-        /// Compares two HTTPSources for equality.
+        /// Compares two HTTP sources for equality.
         /// </summary>
-        /// <param name="HTTPSource">A HTTPSource to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
+        /// <param name="HTTPSource">A HTTP source to compare with.</param>
         public Boolean Equals(HTTPSource HTTPSource)
-        {
 
-            if ((Object) HTTPSource == null)
-                return false;
+            => Socket.Equals(HTTPSource.Socket) &&
 
-            return Socket.Equals(HTTPSource.Socket);
-
-        }
+               ForwardedForList.Length.Equals(HTTPSource.ForwardedForList.Length) &&
+               ForwardedForList.All(forwardedForElement => HTTPSource.ForwardedForList.Contains(forwardedForElement));
 
         #endregion
 
@@ -241,18 +288,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-                return Socket.       GetHashCode() * 3 ^
-                       ForwardedForList.GetHashCode();
-            }
-        }
+            => hashCode;
 
         #endregion
 
@@ -263,8 +305,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => ForwardedForList.Length > 0
-                   ? String.Concat(Socket, " (", ForwardedForList.AggregateWith(" <- "), ")")
+            => ForwardedForList.Any()
+                   ? $"{Socket} ({ForwardedForList.AggregateWith(" <- ")})"
                    : Socket.ToString();
 
         #endregion
