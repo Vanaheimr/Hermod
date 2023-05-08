@@ -25,6 +25,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     {
 
         /// <summary>
+        /// Debug logs
+        /// </summary>
+        Debug,
+
+        /// <summary>
         /// Log to console
         /// </summary>
         Console,

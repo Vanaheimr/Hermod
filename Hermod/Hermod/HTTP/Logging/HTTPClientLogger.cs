@@ -686,6 +686,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region RegisterLogTarget(LogTarget, RequestLogHandler)
+
+        public void RegisterLogTarget(LogTargets                 LogTarget,
+                                      HTTPRequestLoggerDelegate  RequestLogHandler)
+        {
+
+            foreach (var httpClientRequestLogger in httpClientRequestLoggers.Values)
+            {
+                httpClientRequestLogger.RegisterLogTarget(LogTarget, RequestLogHandler);
+            }
+
+        }
+
+        #endregion
+
+        #region RegisterLogTarget(LogTarget, ResponseLogHandler)
+
+        public void RegisterLogTarget(LogTargets                  LogTarget,
+                                      HTTPResponseLoggerDelegate  ResponseLogHandler)
+        {
+
+            foreach (var httpClientResponseLogger in httpClientResponseLoggers.Values)
+            {
+                httpClientResponseLogger.RegisterLogTarget(LogTarget, ResponseLogHandler);
+            }
+
+        }
+
+        #endregion
+
+
     }
 
 }

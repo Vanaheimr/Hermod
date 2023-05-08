@@ -1093,7 +1093,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) InternalDebug(LogEventName, LogTarget)
+        #region (protected) InternalDebug  (LogEventName, LogTarget)
 
         protected override Boolean InternalDebug(String      LogEventName,
                                                  LogTargets  LogTarget)
@@ -1140,6 +1140,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 found |= httpServerResponseLogger2.Unsubscribe(LogTarget);
 
             return found;
+
+        }
+
+        #endregion
+
+
+        #region RegisterLogTarget(LogTarget, RequestLogHandler)
+
+        public void RegisterLogTarget(LogTargets                 LogTarget,
+                                      HTTPRequestLoggerDelegate  RequestLogHandler)
+        {
+
+            foreach (var httpServerRequestLogger in httpRequestLoggers.Values)
+            {
+                httpServerRequestLogger.RegisterLogTarget(LogTarget, RequestLogHandler);
+            }
+
+        }
+
+        #endregion
+
+        #region RegisterLogTarget(LogTarget, ResponseLogHandler)
+
+        public void RegisterLogTarget(LogTargets                  LogTarget,
+                                      HTTPResponseLoggerDelegate  ResponseLogHandler)
+        {
+
+            foreach (var httpServerResponseLogger in httpResponseLoggers.Values)
+            {
+                httpServerResponseLogger.RegisterLogTarget(LogTarget, ResponseLogHandler);
+            }
 
         }
 
