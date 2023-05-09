@@ -129,6 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                               Boolean                               UseHTTPPipelining            = false,
+                              Boolean?                              DisableLogging               = false,
                               HTTPClientLogger?                     HTTPLogger                   = null,
                               DNSClient?                            DNSClient                    = null)
 
@@ -145,6 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    TransmissionRetryDelay,
                    MaxNumberOfRetries ?? DefaultMaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 

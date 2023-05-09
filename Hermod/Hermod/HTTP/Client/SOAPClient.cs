@@ -113,6 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                           UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                           Boolean                               UseHTTPPipelining            = false,
+                          Boolean?                              DisableLogging               = false,
                           HTTPClientLogger?                     HTTPLogger                   = null,
                           DNSClient?                            DNSClient                    = null)
 
@@ -132,6 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 
@@ -163,14 +165,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                      Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
                      Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                     Action<HTTPRequest.Builder>                                      HTTPRequestBuilder    = null,
-                     ClientRequestLogHandler                                          RequestLogDelegate    = null,
-                     ClientResponseLogHandler                                         ResponseLogDelegate   = null,
-                     HTTPContentType                                                  ContentType           = null,
-                     XNamespace                                                       Namespace             = null,
+                     Action<HTTPRequest.Builder>?                                     HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler?                                         RequestLogDelegate    = null,
+                     ClientResponseLogHandler?                                        ResponseLogDelegate   = null,
+                     HTTPContentType?                                                 ContentType           = null,
+                     XNamespace?                                                      Namespace             = null,
 
                      CancellationToken?                                               CancellationToken     = null,
-                     EventTracking_Id                                                 EventTrackingId       = null,
+                     EventTracking_Id?                                                EventTrackingId       = null,
                      TimeSpan?                                                        RequestTimeout        = null,
                      Byte                                                             NumberOfRetry         = 0)
 
@@ -391,6 +393,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                           UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                           Boolean                               UseHTTPPipelining            = false,
+                          Boolean?                              DisableLogging               = false,
                           HTTPClientLogger?                     HTTPLogger                   = null,
                           DNSClient?                            DNSClient                    = null)
 
@@ -410,6 +413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 

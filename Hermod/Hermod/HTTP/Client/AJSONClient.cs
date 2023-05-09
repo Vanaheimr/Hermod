@@ -102,6 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               TimeSpan?                             RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              Boolean?                              DisableLogging               = false,
                               DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
@@ -117,6 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    TransmissionRetryDelay,
                    MaxNumberOfRetries ?? DefaultMaxNumberOfRetries,
                    false,
+                   DisableLogging,
                    null,
                    DNSClient)
 

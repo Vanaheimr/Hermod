@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -77,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                            UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            Boolean                               UseHTTPPipelining            = false,
+                           Boolean?                              DisableLogging               = false,
                            HTTPClientLogger?                     HTTPLogger                   = null,
                            DNSClient?                            DNSClient                    = null)
 
@@ -93,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 
@@ -133,6 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                            UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            Boolean                               UseHTTPPipelining            = false,
+                           Boolean?                              DisableLogging               = false,
                            HTTPClientLogger?                     HTTPLogger                   = null,
                            DNSClient?                            DNSClient                    = null)
 
@@ -149,6 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 
@@ -187,6 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                            UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            Boolean                               UseHTTPPipelining            = false,
+                           Boolean?                              DisableLogging               = false,
                            HTTPClientLogger?                     HTTPLogger                   = null,
                            DNSClient?                            DNSClient                    = null)
 
@@ -203,6 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 
@@ -243,6 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                            UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                            Boolean                               UseHTTPPipelining            = false,
+                           Boolean?                              DisableLogging               = false,
                            HTTPClientLogger?                     HTTPLogger                   = null,
                            DNSClient?                            DNSClient                    = null)
 
@@ -259,6 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
                    UseHTTPPipelining,
+                   DisableLogging,
                    HTTPLogger,
                    DNSClient)
 

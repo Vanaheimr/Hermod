@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private static readonly Char[]                                Splitter        = new Char[1] { ';' };
 
-        private static readonly Dictionary<String, HTTPContentType>   _Lookup         = new();
-        private static readonly Dictionary<String, HTTPContentType[]> _ReverseLookup  = new();
+        private static readonly Dictionary<String, HTTPContentType>   _Lookup         = new ();
+        private static readonly Dictionary<String, HTTPContentType[]> _ReverseLookup  = new ();
 
         #region Properties
 

@@ -151,6 +151,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean                               UseHTTPPipelining             { get; }
 
         /// <summary>
+        /// Disable any logging.
+        /// </summary>
+        public Boolean                               DisableLogging                { get; }
+
+        /// <summary>
         /// The HTTP client logger.
         /// </summary>
         public HTTPClientLogger?                     HTTPLogger                    { get; set; }
@@ -298,6 +303,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
                               Boolean?                              UseHTTPPipelining            = null,
+
+                              Boolean?                              DisableLogging               = false,
                               HTTPClientLogger?                     HTTPLogger                   = null,
                               DNSClient?                            DNSClient                    = null)
         {
@@ -315,6 +322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.UseHTTPPipelining           = UseHTTPPipelining      ?? false;
+            this.DisableLogging              = DisableLogging         ?? false;
             this.HTTPLogger                  = HTTPLogger;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 

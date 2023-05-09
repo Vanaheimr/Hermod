@@ -1084,15 +1084,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected static readonly  SemaphoreSlim           MaintenanceSemaphore            = new (1, 1);
 
 
-        /// <summary>
-        /// The performance counter to measure the total RAM usage.
-        /// </summary>
-        protected readonly         PerformanceCounter      totalRAM_PerformanceCounter;
+        ///// <summary>
+        ///// The performance counter to measure the total RAM usage.
+        ///// </summary>
+        //protected readonly         PerformanceCounter      totalRAM_PerformanceCounter;
 
-        /// <summary>
-        /// The performance counter to measure the total CPU usage.
-        /// </summary>
-        protected readonly         PerformanceCounter      totalCPU_PerformanceCounter;
+        ///// <summary>
+        ///// The performance counter to measure the total CPU usage.
+        ///// </summary>
+        //protected readonly         PerformanceCounter      totalCPU_PerformanceCounter;
 
         #endregion
 
@@ -1184,16 +1184,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HashSet<String>          DevelopmentServers          { get; }
 
 
-        /// <summary>
-        /// Disable any logging.
-        /// </summary>
-        public Boolean                  DisableLogging              { get; }
-
-        /// <summary>
-        /// The path for all logfiles.
-        /// </summary>
-        public String                   LoggingPath                 { get; }
-
         public String                   HTTPRequestsPath            { get; }
 
         public String                   HTTPResponsesPath           { get; }
@@ -1202,7 +1192,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public String                   MetricsPath                 { get; }
 
+        /// <summary>
+        /// Disable any logging.
+        /// </summary>
+        public Boolean                  DisableLogging              { get; }
+
         //public String                   LoggingContext              { get; }
+
+        /// <summary>
+        /// The path for all logfiles.
+        /// </summary>
+        public String                   LoggingPath                 { get; }
 
         public String                   LogfileName                 { get; }
 
@@ -1210,7 +1210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// The CPO client (HTTP client) logger.
+        /// The HTTP logger.
         /// </summary>
         public HTTPServerLogger?        HTTPLogger                  { get; set; }
 
@@ -1232,17 +1232,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new();
+        public HTTPRequestLogEvent   RequestLog    = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new();
+        public HTTPResponseLogEvent  ResponseLog   = new ();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new();
+        public HTTPErrorLogEvent     ErrorLog      = new ();
 
         #endregion
 
@@ -1480,6 +1480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (this.DevelopmentServers.Contains(Environment.MachineName))
                 this.IsDevelopment = true;
 
+            this.DisableLogging           = DisableLogging ?? false;
             this.LogfileName              = LogfileName    ?? DefaultHTTPAPI_LogfileName;
             this.LogfileCreator           = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
                                                                                                                     context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : "",
@@ -1488,7 +1489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                                     DateTime.Now.Month.ToString("D2"),
                                                                                                                     ".log"));
 
-            if (DisableLogging == false)
+            if (this.DisableLogging == false)
             {
                 Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.LoggingPath));
                 Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, this.HTTPRequestsPath));
@@ -1522,64 +1523,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Thread.CurrentThread.CurrentCulture   = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            {
+            //if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            //{
 
-                // If those lines fail, try to run "lodctr /R" as administrator in an cmd.exe environment
-                totalRAM_PerformanceCounter = new PerformanceCounter("Process", "Working Set",      Process.GetCurrentProcess().ProcessName);
-                totalCPU_PerformanceCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
-                totalRAM_PerformanceCounter.NextValue();
-                totalCPU_PerformanceCounter.NextValue();
+            //    //// If those lines fail, try to run "lodctr /R" as administrator in an cmd.exe environment
+            //    //totalRAM_PerformanceCounter = new PerformanceCounter("Process", "Working Set",      Process.GetCurrentProcess().ProcessName);
+            //    //totalCPU_PerformanceCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
+            //    //totalRAM_PerformanceCounter.NextValue();
+            //    //totalCPU_PerformanceCounter.NextValue();
 
-                Warden.EveryMinutes(1,
-                                    Process.GetCurrentProcess(),
-                                    async (timestamp, process, ct) => {
-                                        using (var writer = File.AppendText(String.Concat(this.MetricsPath,
-                                                                                          Path.DirectorySeparatorChar,
-                                                                                          "process-stats_",
-                                                                                          DateTime.Now.Year, "-",
-                                                                                          DateTime.Now.Month.ToString("D2"),
-                                                                                          ".log")))
-                                        {
+            //    Warden.EveryMinutes(1,
+            //                        Process.GetCurrentProcess(),
+            //                        async (timestamp, process, ct) => {
+            //                            using (var writer = File.AppendText(String.Concat(this.MetricsPath,
+            //                                                                              Path.DirectorySeparatorChar,
+            //                                                                              "process-stats_",
+            //                                                                              DateTime.Now.Year, "-",
+            //                                                                              DateTime.Now.Month.ToString("D2"),
+            //                                                                              ".log")))
+            //                            {
 
-                                            await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
-                                                                                      process.VirtualMemorySize64, ";",
-                                                                                      process.WorkingSet64, ";",
-                                                                                      process.TotalProcessorTime, ";",
-                                                                                      totalRAM_PerformanceCounter.NextValue() / 1024 / 1024, ";",
-                                                                                      totalCPU_PerformanceCounter.NextValue())).
-                                                         ConfigureAwait(false);
+            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+            //                                                                          process.VirtualMemorySize64, ";",
+            //                                                                          process.WorkingSet64, ";",
+            //                                                                          process.TotalProcessorTime, ";",
+            //                                                                          totalRAM_PerformanceCounter.NextValue() / 1024 / 1024, ";",
+            //                                                                          totalCPU_PerformanceCounter.NextValue())).
+            //                                             ConfigureAwait(false);
 
-                                        }
+            //                            }
 
-                                    });
+            //                        });
 
-                Warden.EveryMinutes(15,
-                                    Environment.OSVersion.Platform == PlatformID.Unix
-                                        ? new DriveInfo("/")
-                                        : new DriveInfo(Directory.GetCurrentDirectory()),
-                                    async (timestamp, driveInfo, ct) => {
-                                        using (var writer = File.AppendText(String.Concat(this.MetricsPath,
-                                                                                          Path.DirectorySeparatorChar,
-                                                                                          "disc-stats_",
-                                                                                          DateTime.Now.Year, "-",
-                                                                                          DateTime.Now.Month.ToString("D2"),
-                                                                                          ".log")))
-                                        {
+            //    Warden.EveryMinutes(15,
+            //                        Environment.OSVersion.Platform == PlatformID.Unix
+            //                            ? new DriveInfo("/")
+            //                            : new DriveInfo(Directory.GetCurrentDirectory()),
+            //                        async (timestamp, driveInfo, ct) => {
+            //                            using (var writer = File.AppendText(String.Concat(this.MetricsPath,
+            //                                                                              Path.DirectorySeparatorChar,
+            //                                                                              "disc-stats_",
+            //                                                                              DateTime.Now.Year, "-",
+            //                                                                              DateTime.Now.Month.ToString("D2"),
+            //                                                                              ".log")))
+            //                            {
 
-                                            var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
-                                            var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
+            //                                var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
+            //                                var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
 
-                                            await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
-                                                                                      MBytesFree, ";",
-                                                                                      HDPercentageFree)).
-                                                         ConfigureAwait(false);
+            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+            //                                                                          MBytesFree, ";",
+            //                                                                          HDPercentageFree)).
+            //                                             ConfigureAwait(false);
 
-                                        }
+            //                            }
 
-                                    });
+            //                        });
 
-            }
+            //}
 
             #endregion
 
