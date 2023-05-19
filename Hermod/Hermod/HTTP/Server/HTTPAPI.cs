@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Reflection;
-using System.Diagnostics;
 using System.Net.Security;
 using System.Globalization;
 using System.Security.Authentication;
@@ -29,7 +28,6 @@ using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Crypto.Parameters;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Warden;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
@@ -907,9 +905,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     #endregion
 
 
-
+    /// <summary>
+    /// Extension methods for the HTTP API.
+    /// </summary>
     public static class HTTPAPIExtensions
     {
+
+        #region AddJSONEventSource(this HTTPAPI, EventIdentification, ...)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -944,7 +946,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       LogfileName,
                                       LogfileReloadSearchPattern);
 
+        #endregion
 
+        #region AddJSONEventSource(this HTTPAPI, EventIdentification, URLTemplate, ...)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source and a method call back for the given URL template.
@@ -1014,7 +1018,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       DefaultErrorHandler);
 
+        #endregion
+
     }
+
 
     /// <summary>
     /// A HTTP API.
@@ -2346,6 +2353,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Start()
 
+        /// <summary>
+        /// Start this HTTP API.
+        /// </summary>
         public virtual Boolean Start()
         {
 
@@ -2367,6 +2377,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Shutdown(Message = null, Wait = true)
 
+        /// <summary>
+        /// Shutdown this HTTP API.
+        /// </summary>
+        /// <param name="Message">An optional shutdown message.</param>
+        /// <param name="Wait">Whether to wait for the shutdown to complete.</param>
         public virtual Boolean Shutdown(String?  Message   = null,
                                         Boolean  Wait      = true)
         {
@@ -2396,6 +2411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
     }
 
