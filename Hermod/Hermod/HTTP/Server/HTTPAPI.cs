@@ -2351,12 +2351,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Start()
+        #region Start   (EventTrackingId = null)
 
         /// <summary>
         /// Start this HTTP API.
         /// </summary>
-        public virtual Boolean Start()
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public virtual Boolean Start(EventTracking_Id? EventTrackingId = null)
         {
 
             lock (HTTPServer)
@@ -2375,15 +2376,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Shutdown(Message = null, Wait = true, EventTrackingId = null)
 
         /// <summary>
         /// Shutdown this HTTP API.
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Whether to wait for the shutdown to complete.</param>
-        public virtual Boolean Shutdown(String?  Message   = null,
-                                        Boolean  Wait      = true)
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public virtual Boolean Shutdown(String?            Message           = null,
+                                        Boolean            Wait              = true,
+                                        EventTracking_Id?  EventTrackingId   = null)
         {
             lock (HTTPServer)
             {
