@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -30,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// A structure to hold a result and an error of an operation.
     /// </summary>
     /// <typeparam name="TData">The type of the result.</typeparam>
-    public struct HTTPResult<TData>
+    public readonly struct HTTPResult<TData>
     {
 
         #region Properties
@@ -38,30 +36,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTPResponse when an error occured.
         /// </summary>
-        public HTTPResponse.Builder  Error          { get; }
+        public HTTPResponse.Builder?  Error          { get; }
 
         /// <summary>
         /// The result of an operation.
         /// </summary>
-        public TData                 Data           { get; }
+        public TData?                 Data           { get; }
 
         /// <summary>
         /// The result of an operation.
         /// </summary>
-        public Boolean               ValidData      { get; }
+        public Boolean                ValidData      { get; }
 
         /// <summary>
         /// The current ETag as state or revision of the resource.
         /// </summary>
-        public String                ETag           { get; }
+        public String?                ETag           { get; }
 
 
         /// <summary>
         /// The HTTP result contains errors.
         /// </summary>
-        public Boolean               HasErrors
+        public Boolean                HasErrors
 
-            => Error != null || Data == null;
+            => Error is not null ||
+               Data  is null;
 
         #endregion
 
@@ -81,8 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPResult(Result, ETag = null)
 
-        public HTTPResult(TData   Result,
-                          String  ETag   = null)
+        public HTTPResult(TData    Result,
+                          String?  ETag   = null)
         {
 
             this.Error      = null;
@@ -100,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTPResult when an error occurred.
         /// </summary>
         public HTTPResult(HTTPResponse.Builder  HTTPResponse,
-                          String                ETag   = null)
+                          String?               ETag   = null)
         {
 
             this.Error      = HTTPResponse;
@@ -119,8 +118,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPResult(HTTPRequest     HTTPRequest,
                           HTTPStatusCode  HTTPStatusCode,
-                          String          Reason   = null,
-                          String          ETag     = null)
+                          String?         Reason   = null,
+                          String?         ETag     = null)
         {
 
             this.Error      = null;
@@ -137,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPResult(HTTPResponse.Builder  HTTPResponse,
                           TData                 Data,
-                          String                ETag   = null)
+                          String?               ETag   = null)
         {
 
             this.Error      = HTTPResponse;
@@ -154,20 +153,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPResponse.Builder HTTPErrorResponse(HTTPRequest     HTTPRequest,
                                                       HTTPStatusCode  StatusCode,
-                                                      String          Reason   = null,
-                                                      String          ETag     = null)
+                                                      String?         Reason   = null,
+                                                      String?         ETag     = null)
         {
 
             #region Initial checks
 
-            if (StatusCode == null)
-                return HTTPErrorResponse(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
-
-            var Content     = String.Empty;
-            var ContentType = HTTPRequest.Accept.BestMatchingContentType(HTTPContentType.JSON_UTF8,
-                                                                         HTTPContentType.HTML_UTF8,
-                                                                         HTTPContentType.TEXT_UTF8,
-                                                                         HTTPContentType.XML_UTF8);
+            var Content      = String.Empty;
+            var ContentType  = HTTPRequest.Accept.BestMatchingContentType(HTTPContentType.JSON_UTF8,
+                                                                          HTTPContentType.HTML_UTF8,
+                                                                          HTTPContentType.TEXT_UTF8,
+                                                                          HTTPContentType.XML_UTF8);
 
             #endregion
 
@@ -238,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Content         = Content.ToUTF8Bytes()
             };
 
-            if (ETag != null)
+            if (ETag is not null)
                 response.ETag = ETag;
 
             return response;

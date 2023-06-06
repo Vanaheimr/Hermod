@@ -48,11 +48,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
                                                                     HTTPContentType   ExpectedContentType,
-                                                                    Boolean           AllowEmptyHTTPBody = false)
+                                                                    Boolean           AllowEmptyHTTPBody   = false)
         {
 
-            if (Request.ContentType != ExpectedContentType)
+            if (Request.ContentType is null ||
+                Request.ContentType != ExpectedContentType)
+            {
                 return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
+            }
 
             if (!AllowEmptyHTTPBody)
             {
@@ -63,16 +66,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!Request.TryReadHTTPBodyStream())
                     return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
-                if (Request.HTTPBody == null || Request.HTTPBody.Length == 0)
+                if (Request.HTTPBody is null || Request.HTTPBody.Length == 0)
                     return new HTTPResult<String>(Request, HTTPStatusCode.BadRequest);
 
             }
 
-            var requestBodyString = Request.HTTPBody.ToUTF8String().Trim();
+            var requestBodyString = Request.HTTPBody?.ToUTF8String().Trim() ?? String.Empty;
 
             return requestBodyString.IsNullOrEmpty()
                        ? AllowEmptyHTTPBody
-                             ? new HTTPResult<String>(Result: "")
+                             ? new HTTPResult<String>(Result:  String.Empty)
                              : new HTTPResult<String>(Request, HTTPStatusCode.BadRequest)
                        : new HTTPResult<String>(Result: requestBodyString);
 
@@ -143,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
         public static Boolean TryParseJObjectRequestBody(this HTTPRequest           Request,
-                                                         out JObject                JSON,
+                                                         out JObject?               JSON,
                                                          out HTTPResponse.Builder?  HTTPResponseBuilder,
                                                          Boolean                    AllowEmptyHTTPBody   = false,
                                                          String?                    JSONLDContext        = null)
@@ -180,7 +183,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                JSON = JObject.Parse(requestBodyString.Data);
+                JSON = requestBodyString.Data is not null
+                           ? JObject.Parse(requestBodyString.Data)
+                           : null;
 
             }
             catch (Exception e)
@@ -194,7 +199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ? new JProperty("context",  JSONLDContext?.ToString())
                                               : null,
                                           new JProperty("description",  "Invalid JSON object in request body!"),
-                                          new JProperty("exception",    e.Message)
+                                          new JProperty("exception",    e.Message),
+                                          new JProperty("source",       requestBodyString.Data)
                                       ).ToUTF8Bytes()
                 };
 

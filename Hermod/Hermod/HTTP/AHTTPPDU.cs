@@ -206,9 +206,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 TryReadHTTPBodyStream();
 
-                if (HTTPBody?.Length > 0)
+                if (httpBody?.Length > 0)
                     return RawHTTPHeader.Trim() + "\r\n\r\n" +
-                           Encoding.UTF8.GetString(HTTPBody);
+                           Encoding.UTF8.GetString(httpBody);
 
                 //Note: Because of \n vs \r\n the content-length might be invalid when a PDU is loaded from disc!
                 //0,
@@ -401,8 +401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                if (httpBody is null)
-                    TryReadHTTPBodyStream();
+                TryReadHTTPBodyStream();
 
                 return httpBody;
 
@@ -429,8 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    if (httpBody is null)
-                        TryReadHTTPBodyStream();
+                    TryReadHTTPBodyStream();
 
                     return httpBody?.ToUTF8String();
 
@@ -1158,78 +1156,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpBody is not null)
                 return true;
 
-            if (!ContentLength.HasValue ||
-                 ContentLength.Value == 0)
+            if (httpBodyStream is null ||
+               !ContentLength.HasValue ||
+                ContentLength.Value == 0)
             {
-                httpBody = Array.Empty<Byte>();
+                httpBody ??= Array.Empty<Byte>();
                 return true;
             }
 
-            httpBody       = new Byte[(Int32) ContentLength.Value];
-            var Buffer     = new Byte[64*1024]; //ToDo: Make the HTTP Body read buffer more flexible!
-            var Read       = 0;
-            var Position   = 0;
-
-            do
+            lock (httpBodyStream)
             {
 
-                try
+                if (httpBody is not null)
+                    return true;
+
+                httpBody      ??= new Byte[(Int32) ContentLength.Value];
+                var read        = 0;
+                var position    = 0;
+                var retry       = 0;
+                var maxRetries  = 20;
+
+                do
                 {
 
-                    Read = httpBodyStream.Read(Buffer, 0, Buffer.Length);
-
-                    if (Read > 0)
+                    try
                     {
 
-                        if (Position + Read <= httpBody.Length)
-                        {
-                            Array.Copy(Buffer, 0, httpBody, Position, Read);
-                            Position += Read;
+                        read = httpBodyStream.Read(httpBody,
+                                                   position,
+                                                   httpBody.Length - position);
+
+                        if (read == 0) {
+                            Thread.Sleep(5);
+                            retry++;
                         }
 
-                        else
-                        {
-                            Array.Copy(Buffer, 0, httpBody, Position, httpBody.Length - Position);
-                            Position += Read;
-                        }
+                        if (read > 0)
+                            position += read;
+
+                        if (position >= httpBody.Length)
+                            return true;
 
                     }
-
-                    if (Position >= httpBody.Length)
+                    catch (IOException ex)
                     {
-                        this.httpBody = HTTPBody;
-                        return true;
+
+                        // If the ReceiveTimeout is reached an IOException will be raised...
+                        // with an InnerException of type SocketException and ErrorCode 10060
+                        var socketExept = ex.InnerException as SocketException;
+
+                        // If it's not the "expected" exception, let's not hide the error
+                        if (socketExept is null || socketExept.ErrorCode != 10060)
+                            throw;
+
+                        // If it is the receive timeout, then reading ended
+                        break;
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT(nameof(AHTTPPDU) + " could not read HTTP body (" + ContentLength.Value + " bytes): " + e.Message);
+                        return false;
                     }
 
-                    Thread.Sleep(10);
-
                 }
-                catch (IOException ex)
-                {
+                while (read > 0 || retry < maxRetries);
 
-                    // If the ReceiveTimeout is reached an IOException will be raised...
-                    // with an InnerException of type SocketException and ErrorCode 10060
-                    var socketExept = ex.InnerException as SocketException;
-
-                    // If it's not the "expected" exception, let's not hide the error
-                    if (socketExept == null || socketExept.ErrorCode != 10060)
-                        throw;
-
-                    // If it is the receive timeout, then reading ended
-                    break;
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.LogT(nameof(AHTTPPDU) + " could not read HTTP body (" + ContentLength.Value + " bytes): " + e.Message);
-                    return false;
-                }
+                Array.Resize(ref httpBody, position);
+                return false;
 
             }
-            while (Read > 0);
-
-            Array.Resize(ref httpBody, Position);
-            return false;
 
         }
 
