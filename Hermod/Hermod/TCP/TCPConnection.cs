@@ -819,7 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (!isClosed)
             {
 
-                DebugX.Log($" [TCPServer:{LocalPort}] TCP closing connection with {RemoteSocket}!");
+                //DebugX.Log($" [TCPServer:{LocalPort}] TCP closing connection with {RemoteSocket}!");
 
                 var stream = TCPClient?.GetStream();
                 if (stream is not null)
@@ -836,7 +836,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                 var read = stream.Read(buffer, 0, buffer.Length);
 
-                                DebugX.Log($"Read {read} unexpected byte(s) before closing the TCP stream!");
+                                //DebugX.Log($"Read {read} unexpected byte(s) before closing the TCP stream!");
 
                             }
                             catch (Exception e)
@@ -860,7 +860,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 isClosed = true;
 
-                DebugX.Log($" [TCPServer:{LocalPort}] TCP connection with {RemoteSocket} closed!");
+                //DebugX.Log($" [TCPServer:{LocalPort}] TCP connection with {RemoteSocket} closed!");
 
             }
         }
