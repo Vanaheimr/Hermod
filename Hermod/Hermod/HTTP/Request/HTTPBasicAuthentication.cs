@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Text;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -32,6 +34,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   IComparable<HTTPBasicAuthentication>,
                                                   IComparable
     {
+
+        #region Data
+
+        private static readonly Char[] splitter1 = new[] { ' ' };
+        private static readonly Char[] splitter2 = new[] { ':' };
+
+        #endregion
 
         #region Properties
 
@@ -65,18 +74,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Username  = Username.Trim();
-            this.Password  = Password.Trim();
+            this.Password  = Password;
 
-            if (this.Username.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Username),  "The given username must not be null or empty!");
-
-            if (this.Password.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Password),  "The given password must not be null or empty!");
+            if (Username.IsNullOrEmpty())
+                throw new ArgumentNullException(nameof(Username), "The given username must not be null or empty!");
 
         }
 
         #endregion
 
+
+        #region (static) Parse   (Text)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
+        public static HTTPBasicAuthentication Parse(String Text)
+        {
+
+            if (TryParse(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication!;
+
+            throw new ArgumentException("The given text representation of a HTTP Basic authentication header is invalid!", nameof(Text));
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
+        public static HTTPBasicAuthentication? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication;
+
+            return null;
+
+        }
+
+        #endregion
 
         #region (static) TryParse(Text, out BasicAuthentication)
 
@@ -91,32 +133,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             BasicAuthentication = null;
 
-            if (Text.IsNullOrEmpty())
-                return false;
-
             Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
                 return false;
 
-            var splitted = Text.Split(new Char[] { ' ' });
-
-            if (splitted.IsNullOrEmpty())
-                return false;
+            var splitted = Text.Split(splitter1, StringSplitOptions.RemoveEmptyEntries);
 
             if (splitted.Length == 2 &&
                 String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
             {
 
-                var usernamePassword = splitted[1].FromBase64_UTF8().Split(new Char[] { ':' });
+                var credentials  = Encoding.UTF8.GetString(Convert.FromBase64String(splitted[1])).
+                                                 Split    (splitter2, 2);
 
-                if (usernamePassword.IsNullOrEmpty())
-                    return false;
-
-                BasicAuthentication = new HTTPBasicAuthentication(
-                                          usernamePassword[0],
-                                          usernamePassword[1]
-                                      );
+                if (credentials.Length == 2)
+                    BasicAuthentication = new HTTPBasicAuthentication(
+                                              credentials[0],
+                                              credentials[1]
+                                          );
 
                 return true;
 

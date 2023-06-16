@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Text.RegularExpressions;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -32,6 +34,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   IComparable<HTTPTokenAuthentication>,
                                                   IComparable
     {
+
+        #region Data
+
+        // token68 = 1*( ALPHA / DIGIT / "-" / "." / "_" / "~" / "+" / "/" ) *"="
+        private static readonly Regex   tokenRegExpr   = new (@"^[A-Za-z0-9\-._~+/]+=*[^=]$");
+
+        private static readonly Char[]  splitter       = new[] { ' ' };
+
+        #endregion
 
         #region Properties
 
@@ -54,50 +65,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP Token Authentication based on the given text.
         /// </summary>
         /// <param name="Token">An authentication token.</param>
-        public HTTPTokenAuthentication(String Token)
+        private HTTPTokenAuthentication(String Token)
         {
-
-            this.Token  = Token.Trim();
-
-            if (this.Token.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
-
+            this.Token = Token;
         }
 
         #endregion
 
 
-        #region (static) TryParse(Text, out BasicAuthentication)
+        #region (static) Parse   (Text)
 
         /// <summary>
         /// Try to parse the given text.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
-        /// <param name="TokenAuthentication">The parsed HTTP basic authentication header.</param>
-        /// <returns>true, when the parsing was successful, else false.</returns>
+        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        public static HTTPTokenAuthentication Parse(String Text)
+        {
+
+            if (TryParse(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication!;
+
+            throw new ArgumentException("The given text representation of a HTTP Token authentication header is invalid!", nameof(Text));
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        public static HTTPTokenAuthentication? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Text, out TokenAuthentication)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        /// <param name="TokenAuthentication">The parsed HTTP Token Authentication header.</param>
         public static Boolean TryParse(String Text, out HTTPTokenAuthentication? TokenAuthentication)
         {
 
             TokenAuthentication = null;
 
+            Text = Text.Trim();
+
             if (Text.IsNullOrEmpty())
                 return false;
 
-            var splitted = Text.Split(new Char[] { ' ' });
-
-            if (splitted.IsNullOrEmpty())
-                return false;
+            var splitted = Text.Split(splitter, StringSplitOptions.RemoveEmptyEntries);
 
             if (splitted.Length == 2 &&
                 String.Equals(splitted[0], "token", StringComparison.OrdinalIgnoreCase))
             {
-
-                if (splitted[1].IsNullOrEmpty())
-                    return false;
-
-                TokenAuthentication = new HTTPTokenAuthentication(splitted[1]);
-                return true;
-
+                if (tokenRegExpr.IsMatch(splitted[1]))
+                {
+                    TokenAuthentication = new HTTPTokenAuthentication(splitted[1]);
+                    return true;
+                }
             }
 
             return false;

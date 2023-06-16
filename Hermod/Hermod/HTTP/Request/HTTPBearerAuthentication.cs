@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly static Char[] splitter = new Char[] { ' ' };
+        private readonly static Char[] splitter = new[] { ' ' };
 
         #endregion
 
@@ -60,18 +60,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP Bearer Authentication based on the given text.
         /// </summary>
         /// <param name="Token">An authentication token.</param>
-        public HTTPBearerAuthentication(String Token)
+        private HTTPBearerAuthentication(String Token)
+        {
+            this.Token = Token;
+        }
+
+        #endregion
+
+
+        #region (static) Parse   (Text)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Bearer authentication header.</param>
+        public static HTTPBearerAuthentication Parse(String Text)
         {
 
-            this.Token  = Token.Trim();
+            if (TryParse(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication!;
 
-            if (this.Token.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Token), "The given token must not be null or empty!");
+            throw new ArgumentException("The given text representation of a HTTP basic authentication header is invalid!", nameof(Text));
 
         }
 
         #endregion
 
+        #region (static) TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Bearer authentication header.</param>
+        public static HTTPBearerAuthentication? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication;
+
+            return null;
+
+        }
+
+        #endregion
 
         #region (static) TryParse(Text, out BearerAuthentication)
 
