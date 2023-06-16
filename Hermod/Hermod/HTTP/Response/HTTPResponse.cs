@@ -1707,12 +1707,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Location
             /// </summary>
-            public HTTPPath? Location
+            public URL? Location
             {
 
                 get
                 {
-                    return HTTPPath.Parse(GetHeaderField(HTTPHeaderField.Location));
+                    return URL.Parse(GetHeaderField(HTTPHeaderField.Location));
                 }
 
                 set

@@ -624,10 +624,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (authorizationString is not null)
                 {
 
-                    if (HTTPBasicAuthentication. TryParse(authorizationString, out var basicAuthentication))
+                    if (HTTPBasicAuthentication. TryParseHeader(authorizationString, out var basicAuthentication))
                         return basicAuthentication;
 
-                    if (HTTPTokenAuthentication. TryParse(authorizationString, out var tokenAuthentication))
+                    if (HTTPTokenAuthentication. TryParseHTTPHeader(authorizationString, out var tokenAuthentication))
                         return tokenAuthentication;
 
                     if (HTTPBearerAuthentication.TryParse(authorizationString, out var bearerAuthentication))
@@ -2013,7 +2013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (authorization is not null)
                     {
 
-                        if (HTTPBasicAuthentication. TryParse(authorization, out var basicAuthentication))
+                        if (HTTPBasicAuthentication. TryParseHeader(authorization, out var basicAuthentication))
                             return basicAuthentication;
 
                         if (HTTPBearerAuthentication.TryParse(authorization, out var bearerAuthentication))

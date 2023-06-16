@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP basic authentication.
+    /// A HTTP Basic Authentication.
     /// </summary>
     public sealed class HTTPBasicAuthentication : IHTTPAuthentication,
                                                   IEquatable<HTTPBasicAuthentication>,
@@ -67,52 +67,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP Token Authentication based on the given username and password.
         /// </summary>
-        /// <param name="Username">An username.</param>
+        /// <param name="Username">A username.</param>
         /// <param name="Password">A password.</param>
-        public HTTPBasicAuthentication(String  Username,
-                                       String  Password)
+        private HTTPBasicAuthentication(String  Username,
+                                        String  Password)
         {
 
-            this.Username  = Username.Trim();
+            this.Username  = Username;
             this.Password  = Password;
 
-            if (Username.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Username), "The given username must not be null or empty!");
-
         }
 
         #endregion
 
 
-        #region (static) Parse   (Text)
+        #region (static) Create   (Text)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Create a HTTP Basic Authentication based on the given username and password.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
-        public static HTTPBasicAuthentication Parse(String Text)
+        /// <param name="Username">A username.</param>
+        /// <param name="Password">A password.</param>
+        public static HTTPBasicAuthentication Create(String  Username,
+                                                     String  Password)
         {
 
-            if (TryParse(Text, out var httpTokenAuthentication))
-                return httpTokenAuthentication!;
+            if (TryCreate(Username,
+                          Password,
+                          out var httpBasicAuthentication))
+            {
+                return httpBasicAuthentication!;
+            }
 
-            throw new ArgumentException("The given text representation of a HTTP Basic authentication header is invalid!", nameof(Text));
+            throw new ArgumentException("The given username or password of a HTTP Basic Authentication is invalid!");
 
         }
 
         #endregion
 
-        #region (static) TryParse(Text)
+        #region (static) TryCreate(Text)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Try to create a HTTP Basic Authentication based on the given username and password.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
-        public static HTTPBasicAuthentication? TryParse(String Text)
+        /// <param name="Username">A username.</param>
+        /// <param name="Password">A password.</param>
+        public static HTTPBasicAuthentication? TryCreate(String  Username,
+                                                         String  Password)
         {
 
-            if (TryParse(Text, out var httpTokenAuthentication))
-                return httpTokenAuthentication;
+            if (TryCreate(Username,
+                          Password,
+                          out var httpBasicAuthentication))
+            {
+                return httpBasicAuthentication;
+            }
 
             return null;
 
@@ -120,15 +129,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text, out BasicAuthentication)
+        #region (static) TryCreate(Text, out BasicAuthentication)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Try to create a HTTP Basic Authentication based on the given username and password.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP basic authentication header.</param>
-        /// <param name="BasicAuthentication">The parsed HTTP basic authentication header.</param>
-        /// <returns>true, when the parsing was successful, else false.</returns>
-        public static Boolean TryParse(String Text, out HTTPBasicAuthentication? BasicAuthentication)
+        /// <param name="Username">A username.</param>
+        /// <param name="Password">A password.</param>
+        /// <param name="BasicAuthentication">The created HTTP Basic Authentication.</param>
+        public static Boolean TryCreate(String                        Username,
+                                        String                        Password,
+                                        out HTTPBasicAuthentication?  BasicAuthentication)
+        {
+
+            BasicAuthentication = null;
+
+            Username = Username.Trim();
+
+            if (Username.IsNullOrEmpty())
+                return false;
+
+            BasicAuthentication = new HTTPBasicAuthentication(
+                                      Username,
+                                      Password
+                                  );
+
+            return true;
+
+        }
+
+        #endregion
+
+
+        #region (static) ParseHeader   (Text)
+
+        /// <summary>
+        /// Parse the given text as a HTTP Basic Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
+        public static HTTPBasicAuthentication ParseHeader(String Text)
+        {
+
+            if (TryParseHeader(Text, out var httpBasicAuthentication))
+                return httpBasicAuthentication!;
+
+            throw new ArgumentException("The given text representation of a HTTP Basic Authentication header is invalid!", nameof(Text));
+
+        }
+
+        #endregion
+
+        #region (static) TryParseHeader(Text)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP Basic Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
+        public static HTTPBasicAuthentication? TryParseHeader(String Text)
+        {
+
+            if (TryParseHeader(Text, out var httpBasicAuthentication))
+                return httpBasicAuthentication;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (static) TryParseHeader(Text, out BasicAuthentication)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP Basic Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
+        /// <param name="BasicAuthentication">The parsed HTTP Basic Authentication header.</param>
+        public static Boolean TryParseHeader(String Text, out HTTPBasicAuthentication? BasicAuthentication)
         {
 
             BasicAuthentication = null;
@@ -171,8 +247,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
-        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPBasicAuthentication HTTPBasicAuthentication1,
                                            HTTPBasicAuthentication HTTPBasicAuthentication2)
@@ -195,8 +271,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
-        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPBasicAuthentication HTTPBasicAuthentication1,
                                            HTTPBasicAuthentication HTTPBasicAuthentication2)
@@ -210,14 +286,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
-        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPBasicAuthentication HTTPBasicAuthentication1,
                                           HTTPBasicAuthentication HTTPBasicAuthentication2)
 
             => HTTPBasicAuthentication1 is null
-                   ? throw new ArgumentNullException(nameof(HTTPBasicAuthentication1), "The given HTTP basic authentication must not be null!")
+                   ? throw new ArgumentNullException(nameof(HTTPBasicAuthentication1), "The given HTTP Basic Authentication must not be null!")
                    : HTTPBasicAuthentication1.CompareTo(HTTPBasicAuthentication2) < 0;
 
         #endregion
@@ -227,8 +303,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
-        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPBasicAuthentication HTTPBasicAuthentication1,
                                            HTTPBasicAuthentication HTTPBasicAuthentication2)
@@ -242,14 +318,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
-        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPBasicAuthentication HTTPBasicAuthentication1,
                                           HTTPBasicAuthentication HTTPBasicAuthentication2)
 
             => HTTPBasicAuthentication1 is null
-                   ? throw new ArgumentNullException(nameof(HTTPBasicAuthentication1), "The given HTTP basic authentication must not be null!")
+                   ? throw new ArgumentNullException(nameof(HTTPBasicAuthentication1), "The given HTTP Basic Authentication must not be null!")
                    : HTTPBasicAuthentication1.CompareTo(HTTPBasicAuthentication2) > 0;
 
         #endregion
@@ -259,8 +335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP basic authentication.</param>
-        /// <param name="HTTPBasicAuthentication2">Another HTTP basic authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPBasicAuthentication HTTPBasicAuthentication1,
                                            HTTPBasicAuthentication HTTPBasicAuthentication2)
@@ -276,9 +352,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two HTTP basic authentications.
+        /// Compares two HTTP Basic Authentications.
         /// </summary>
-        /// <param name="Object">A HTTP basic authentication to compare with.</param>
+        /// <param name="Object">A HTTP Basic Authentication to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPBasicAuthentication httpBasicAuthentication
@@ -291,9 +367,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(HTTPBasicAuthentication)
 
         /// <summary>
-        /// Compares two HTTP basic authentications.
+        /// Compares two HTTP Basic Authentications.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication">A HTTP basic authentication to compare with.</param>
+        /// <param name="HTTPBasicAuthentication">A HTTP Basic Authentication to compare with.</param>
         public Int32 CompareTo(HTTPBasicAuthentication? HTTPBasicAuthentication)
         {
 
@@ -323,9 +399,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two HTTP basic authentications for equality.
+        /// Compares two HTTP Basic Authentications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP basic authentication to compare with.</param>
+        /// <param name="Object">A HTTP Basic Authentication to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPBasicAuthentication httpBasicAuthentication &&
@@ -336,9 +412,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(HTTPBasicAuthentication)
 
         /// <summary>
-        /// Compares two HTTP basic authentications for equality.
+        /// Compares two HTTP Basic Authentications for equality.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication">A HTTP basic authentication to compare with.</param>
+        /// <param name="HTTPBasicAuthentication">A HTTP Basic Authentication to compare with.</param>
         public Boolean Equals(HTTPBasicAuthentication? HTTPBasicAuthentication)
 
             => HTTPBasicAuthentication is not null &&

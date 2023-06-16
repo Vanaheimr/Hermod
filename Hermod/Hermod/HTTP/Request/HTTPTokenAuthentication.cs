@@ -76,16 +76,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Parse   (Text)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Parse the given text as a HTTP Token Authentication.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        /// <param name="Text">A token.</param>
         public static HTTPTokenAuthentication Parse(String Text)
         {
 
             if (TryParse(Text, out var httpTokenAuthentication))
                 return httpTokenAuthentication!;
 
-            throw new ArgumentException("The given text representation of a HTTP Token authentication header is invalid!", nameof(Text));
+            throw new ArgumentException("The given text is not valid a valid HTTP Token authentication token!", nameof(Text));
 
         }
 
@@ -94,9 +94,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) TryParse(Text)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Try to parse the given text a HTTP Token Authentication.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        /// <param name="Text">A token.</param>
         public static HTTPTokenAuthentication? TryParse(String Text)
         {
 
@@ -112,10 +112,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) TryParse(Text, out TokenAuthentication)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Try to parse the given text a HTTP Token Authentication.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
-        /// <param name="TokenAuthentication">The parsed HTTP Token Authentication header.</param>
+        /// <param name="Text">A token.</param>
+        /// <param name="TokenAuthentication">The new HTTP Token Authentication.</param>
         public static Boolean TryParse(String Text, out HTTPTokenAuthentication? TokenAuthentication)
         {
 
@@ -126,7 +126,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Text.IsNullOrEmpty())
                 return false;
 
+            if (tokenRegExpr.IsMatch(Text))
+            {
+                TokenAuthentication = new HTTPTokenAuthentication(Text);
+                return true;
+            }
+
+            return false;
+
+        }
+
+        #endregion
+
+
+        #region (static) ParseHTTPHeader   (Text)
+
+        /// <summary>
+        /// Parse the given text as a HTTP Token Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        public static HTTPTokenAuthentication ParseHTTPHeader(String Text)
+        {
+
+            if (TryParseHTTPHeader(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication!;
+
+            throw new ArgumentException("The given text representation of a HTTP Token authentication header is invalid!", nameof(Text));
+
+        }
+
+        #endregion
+
+        #region (static) TryParseHTTPHeader(Text)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP Token Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        public static HTTPTokenAuthentication? TryParseHTTPHeader(String Text)
+        {
+
+            if (TryParseHTTPHeader(Text, out var httpTokenAuthentication))
+                return httpTokenAuthentication;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (static) TryParseHTTPHeader(Text, out TokenAuthentication)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP Token Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
+        /// <param name="TokenAuthentication">The parsed HTTP Token Authentication header.</param>
+        public static Boolean TryParseHTTPHeader(String Text, out HTTPTokenAuthentication? TokenAuthentication)
+        {
+
+            TokenAuthentication = null;
+
+            Text = Text.Trim();
+
+            if (Text.IsNullOrEmpty())
+                return false;
+
             var splitted = Text.Split(splitter, StringSplitOptions.RemoveEmptyEntries);
+
+            if (splitted.IsNullOrEmpty())
+                return false;
 
             if (splitted.Length == 2 &&
                 String.Equals(splitted[0], "token", StringComparison.OrdinalIgnoreCase))

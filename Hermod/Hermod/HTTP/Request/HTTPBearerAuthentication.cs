@@ -71,16 +71,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) Parse   (Text)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Parse the given text as a HTTP Bearer Authentication.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Bearer authentication header.</param>
+        /// <param name="Text">A token.</param>
         public static HTTPBearerAuthentication Parse(String Text)
         {
 
-            if (TryParse(Text, out var httpTokenAuthentication))
-                return httpTokenAuthentication!;
+            if (TryParse(Text, out var httpBearerAuthentication))
+                return httpBearerAuthentication!;
 
-            throw new ArgumentException("The given text representation of a HTTP basic authentication header is invalid!", nameof(Text));
+            throw new ArgumentException("The given text is not valid a valid HTTP Token authentication token!", nameof(Text));
 
         }
 
@@ -89,14 +89,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) TryParse(Text)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Try to parse the given text a HTTP Bearer Authentication.
         /// </summary>
-        /// <param name="Text">A text representation of a HTTP Bearer authentication header.</param>
+        /// <param name="Text">A token.</param>
         public static HTTPBearerAuthentication? TryParse(String Text)
         {
 
-            if (TryParse(Text, out var httpTokenAuthentication))
-                return httpTokenAuthentication;
+            if (TryParse(Text, out var httpBearerAuthentication))
+                return httpBearerAuthentication;
 
             return null;
 
@@ -107,11 +107,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) TryParse(Text, out BearerAuthentication)
 
         /// <summary>
-        /// Try to parse the given text.
+        /// Try to parse the given text a HTTP Bearer Authentication.
+        /// </summary>
+        /// <param name="Text">A token.</param>
+        /// <param name="BearerAuthentication">The new HTTP Bearer Authentication.</param>
+        public static Boolean TryParse(String Text, out HTTPBearerAuthentication? BearerAuthentication)
+        {
+
+            BearerAuthentication = null;
+
+            Text = Text.Trim();
+
+            if (Text.IsNullOrEmpty())
+                return false;
+
+            BearerAuthentication = new HTTPBearerAuthentication(Text);
+            return true;
+
+        }
+
+        #endregion
+
+
+        #region (static) ParseHTTPHeader   (Text)
+
+        /// <summary>
+        /// Parse the given text as a HTTP Bearer Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Bearer Authentication header.</param>
+        public static HTTPBearerAuthentication ParseHTTPHeader(String Text)
+        {
+
+            if (TryParseHTTPHeader(Text, out var httpBearerAuthentication))
+                return httpBearerAuthentication!;
+
+            throw new ArgumentException("The given text representation of a HTTP Token authentication header is invalid!", nameof(Text));
+
+        }
+
+        #endregion
+
+        #region (static) TryParseHTTPHeader(Text)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP Bearer Authentication header.
+        /// </summary>
+        /// <param name="Text">A text representation of a HTTP Bearer Authentication header.</param>
+        public static HTTPBearerAuthentication? TryParseHTTPHeader(String Text)
+        {
+
+            if (TryParseHTTPHeader(Text, out var httpBearerAuthentication))
+                return httpBearerAuthentication;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (static) TryParseHTTPHeader(Text, out BearerAuthentication)
+
+        /// <summary>
+        /// Try to parse the given text as a HTTP Bearer Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Bearer Authentication header.</param>
         /// <param name="BearerAuthentication">The parsed HTTP Bearer Authentication header.</param>
-        public static Boolean TryParse(String Text, out HTTPBearerAuthentication? BearerAuthentication)
+        public static Boolean TryParseHTTPHeader(String Text, out HTTPBearerAuthentication? BearerAuthentication)
         {
 
             BearerAuthentication = null;
@@ -127,6 +188,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (splitted.Length == 2 &&
                 String.Equals(splitted[0], "Bearer", StringComparison.OrdinalIgnoreCase))
             {
+
+                splitted[1] = splitted[1]?.Trim() ?? "";
 
                 if (splitted[1].IsNullOrEmpty())
                     return false;
