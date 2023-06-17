@@ -1705,14 +1705,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Location
 
             /// <summary>
-            /// Location
+            /// An absolute or relative HTTP Location.
             /// </summary>
-            public URL? Location
+            public Location? Location
             {
 
                 get
                 {
-                    return URL.Parse(GetHeaderField(HTTPHeaderField.Location));
+                    return HTTP.Location.Parse(GetHeaderField(HTTPHeaderField.Location));
                 }
 
                 set

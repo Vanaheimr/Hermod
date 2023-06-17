@@ -1670,7 +1670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (URLTemplate.IsNullOrEmpty())
+            if (URLTemplate.IsNullOrEmpty)
                 throw new ArgumentNullException(nameof(URLTemplate),   "The given URL template must not be null or empty!");
 
             if (HTTPDelegate is null)
@@ -1790,7 +1790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (URLTemplate.IsNullOrEmpty())
+            if (URLTemplate.IsNullOrEmpty)
                 throw new ArgumentNullException(nameof(URLTemplate),       "The given URL template must not be null or empty!");
 
             if (!HTTPContentTypes.Any())

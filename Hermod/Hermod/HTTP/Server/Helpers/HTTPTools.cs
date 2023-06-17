@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011-2013 Achim Friedland <achim@ahzf.de>
+ * Copyright (c) 2011-2023 Achim Friedland <achim@ahzf.de>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -18,7 +18,6 @@
 
 #region Usings
 
-using System;
 using System.Web;
 
 #endregion
@@ -40,24 +39,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="Location">The location of the redirect.</param>
         public static HTTPResponse MovedPermanently(HTTPRequest  HTTPRequest,
-                                                    HTTPPath      Location)
-        {
+                                                    Location     Location)
 
-            #region Initial checks
-
-            if (Location == null || Location == "")
-                throw new ArgumentNullException("Location", "The parameter 'Location' must not be null or empty!");
-
-            #endregion
-
-            return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.MovedPermanently,
-                CacheControl    = "no-cache",
-                Location        = Location,
-                Connection      = "close"
-            };
-
-        }
+            => new HTTPResponse.Builder(HTTPRequest) {
+                       HTTPStatusCode  = HTTPStatusCode.MovedPermanently,
+                       CacheControl    = "no-cache",
+                       Location        = Location,
+                       Connection      = "close"
+                   };
 
         #endregion
 
@@ -69,24 +58,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The HTTP request.</param>
         /// <param name="Location">The location of the redirect.</param>
         public static HTTPResponse MovedTemporarily(HTTPRequest  HTTPRequest,
-                                                    HTTPPath      Location)
-        {
+                                                    Location     Location)
 
-            #region Initial checks
-
-            if (Location == null || Location == "")
-                throw new ArgumentNullException("Location", "The parameter 'Location' must not be null or empty!");
-
-            #endregion
-
-            return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.TemporaryRedirect,
-                CacheControl    = "no-cache",
-                Location        = Location,
-                Connection      = "close"
-            };
-
-        }
+            => new HTTPResponse.Builder(HTTPRequest) {
+                       HTTPStatusCode  = HTTPStatusCode.TemporaryRedirect,
+                       CacheControl    = "no-cache",
+                       Location        = Location,
+                       Connection      = "close"
+                   };
 
         #endregion
 
@@ -97,6 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Input">An URL encoded string.</param>
         public static String URLDecode(String Input)
+
             => HttpUtility.UrlDecode(Input);
 
         #endregion

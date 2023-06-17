@@ -2012,7 +2012,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (URLTemplate.IsNullOrEmpty())
+            if (URLTemplate.IsNullOrEmpty)
                 throw new ArgumentNullException(nameof(URLTemplate),   "The given URL template must not be null or empty!");
 
             if (HTTPDelegate is null)
@@ -2134,7 +2134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (URLTemplate.IsNullOrEmpty())
+            if (URLTemplate.IsNullOrEmpty)
                 throw new ArgumentNullException(nameof(URLTemplate),       "The given URL template must not be null or empty!");
 
             if (!HTTPContentTypes.Any())
@@ -2314,7 +2314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPRequestHandle? GetRequestHandle(HTTPRequest Request)
 
             => GetRequestHandle(Request.Host,
-                                Request.Path.IsNullOrEmpty() ? HTTPPath.Parse("/") : Request.Path,
+                                Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
                                 Request.HTTPMethod,
                                 AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
                                 ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
@@ -2333,7 +2333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
         {
 
-            Path                       = Path.IsNullOrEmpty()
+            Path                       = Path.IsNullOrEmpty
                                              ? HTTPPath.Parse("/")
                                              : Path;
             HTTPMethod               ??= HTTP.HTTPMethod.GET;

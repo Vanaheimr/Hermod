@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      HTTPAPI          HTTPAPI,
                                                      HTTPHostname     Hostname,
                                                      HTTPPath         URLTemplate,
-                                                     HTTPMethod?      Method = null)
+                                                     HTTPMethod?      Method   = null)
 
             => HTTPServer?.AddMethodCallback(HTTPAPI,
                                              Hostname,
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.UtcNow,
+                                                     Date            = Timestamp.Now,
                                                      CacheControl    = "no-cache",
                                                      Connection      = "close",
                                                      ContentType     = HTTPContentType.TEXT_UTF8,
@@ -85,14 +85,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            HTTPAPI          HTTPAPI,
                                                            HTTPHostname     Hostname,
                                                            HTTPPath         URLTemplate,
-                                                           HTTPPath         URITarget)
+                                                           Location         Location)
         {
 
             HTTPServer.AddMethodCallback(HTTPAPI,
                                          Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate,
-                                         HTTPDelegate: async Request => HTTPTools.MovedTemporarily(Request, URITarget));
+                                         HTTPDelegate: async Request => HTTPTools.MovedTemporarily(Request,
+                                                                                                   Location));
 
         }
 
@@ -117,32 +118,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  HTTPPath          URLTemplate,
                                                  Assembly          ResourceAssembly,
                                                  String            ResourceFilename,
-                                                 HTTPContentType?  ResponseContentType  = null,
-                                                 String            CacheControl         = "no-cache")
+                                                 HTTPContentType?  ResponseContentType   = null,
+                                                 String            CacheControl          = "no-cache")
         {
 
-            #region Get the appropriate content type based on the suffix of the requested resource
+            // Get the appropriate content type based on the suffix of the requested resource
+            ResponseContentType ??= ResourceFilename.Remove(0, ResourceFilename.LastIndexOf(".") + 1) switch {
+                                        "htm"  => HTTPContentType.HTML_UTF8,
+                                        "html" => HTTPContentType.HTML_UTF8,
+                                        "css"  => HTTPContentType.CSS_UTF8,
+                                        "gif"  => HTTPContentType.GIF,
+                                        "jpg"  => HTTPContentType.JPEG,
+                                        "jpeg" => HTTPContentType.JPEG,
+                                        "svg"  => HTTPContentType.SVG,
+                                        "png"  => HTTPContentType.PNG,
+                                        "ico"  => HTTPContentType.ICO,
+                                        "swf"  => HTTPContentType.SWF,
+                                        "js"   => HTTPContentType.JAVASCRIPT_UTF8,
+                                        "txt"  => HTTPContentType.TEXT_UTF8,
+                                        "xml"  => HTTPContentType.XML_UTF8,
+                                        _      => HTTPContentType.OCTETSTREAM,
+                                    };
 
-            if (ResponseContentType == null)
-                switch (ResourceFilename.Remove(0, ResourceFilename.LastIndexOf(".") + 1))
-                {
-                    case "htm":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                    case "html": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                    case "css":  ResponseContentType = HTTPContentType.CSS_UTF8;        break;
-                    case "gif":  ResponseContentType = HTTPContentType.GIF;             break;
-                    case "jpg":  ResponseContentType = HTTPContentType.JPEG;            break;
-                    case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
-                    case "svg":  ResponseContentType = HTTPContentType.SVG;             break;
-                    case "png":  ResponseContentType = HTTPContentType.PNG;             break;
-                    case "ico":  ResponseContentType = HTTPContentType.ICO;             break;
-                    case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
-                    case "js":   ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
-                    case "txt":  ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
-                    case "xml":  ResponseContentType = HTTPContentType.XML_UTF8;        break;
-                    default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
-                }
-
-            #endregion
 
             HTTPServer.AddMethodCallback(HTTPAPI,
                                          Hostname,
@@ -151,15 +148,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPContentType: ResponseContentType,
                                          HTTPDelegate: async Request => {
 
-                                             var FileStream = ResourceAssembly.GetManifestResourceStream(ResourceFilename);
+                                             var fileStream = ResourceAssembly.GetManifestResourceStream(ResourceFilename);
 
-                                             if (FileStream != null)
+                                             if (fileStream != null)
                                                  return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      Server          = HTTPServer.DefaultServerName,
-                                                     Date            = DateTime.UtcNow,
+                                                     Date            = Timestamp.Now,
                                                      ContentType     = ResponseContentType,
-                                                     ContentStream   = FileStream,
+                                                     ContentStream   = fileStream,
                                                      CacheControl    = CacheControl,
                                                      Connection      = "close",
                                                  };
@@ -169,45 +166,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  #region Try to find a appropriate customized errorpage...
 
-                                                 Stream ErrorStream = null;
+                                                 Stream? errorStream = null;
 
                                                  Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.HTML_UTF8, HTTPContentType.TEXT_UTF8 });
 
                                                  if (Request.BestMatchingAcceptType == HTTPContentType.HTML_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.HTML_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
+                                                     errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                                                  }
 
                                                  else if (Request.BestMatchingAcceptType == HTTPContentType.TEXT_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.TEXT_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
+                                                     errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
                                                  }
 
                                                  else if (Request.BestMatchingAcceptType == HTTPContentType.JSON_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.JSON_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.js");
+                                                     errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.js");
                                                  }
 
                                                  else if (Request.BestMatchingAcceptType == HTTPContentType.XML_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.XML_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
+                                                     errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
                                                  }
 
                                                  else if (Request.BestMatchingAcceptType == HTTPContentType.ALL)
                                                  {
                                                      ResponseContentType = HTTPContentType.HTML_UTF8;
-                                                     ErrorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
+                                                     errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                                                  }
 
-                                                 if (ErrorStream != null)
+                                                 if (errorStream is not null)
                                                      return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode = HTTPStatusCode.NotFound,
                                                          ContentType    = ResponseContentType,
-                                                         ContentStream  = ErrorStream,
+                                                         ContentStream  = errorStream,
                                                          CacheControl   = "no-cache",
                                                          Connection     = "close",
                                                      };
@@ -220,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                          Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.UtcNow,
+                                                         Date            = Timestamp.Now,
                                                          CacheControl    = "no-cache",
                                                          Connection      = "close",
                                                      };
@@ -230,8 +227,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              }
 
                                          }, AllowReplacement: URLReplacement.Fail);
-
-            return;
 
         }
 
@@ -273,7 +268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (HTTPLogin.IsNotNullOrEmpty() && HTTPPassword.IsNotNullOrEmpty())
                 {
 
-                    if (Request.Authorization == null                               ||
+                    if (Request.Authorization is null                               ||
                       !(Request.Authorization is HTTPBasicAuthentication basicAuth) ||
                         basicAuth.Username    != HTTPLogin                          ||
                         basicAuth.Password    != HTTPPassword)
@@ -281,7 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                             Server           = HTTPServer.DefaultServerName,
-                            Date             = DateTime.UtcNow,
+                            Date             = Timestamp.Now,
                             WWWAuthenticate  = @"Basic realm=""" + HTTPRealm + @"""",
                             ContentType      = HTTPContentType.TEXT_UTF8,
                             Content          = "Unauthorized Access!".ToUTF8Bytes(),
@@ -292,7 +287,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
                 #endregion
-
 
                 HTTPContentType? ResponseContentType = null;
 
@@ -307,26 +301,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Choose HTTP Content Type based on the file name extention...
 
-                    var FileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
+                    var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
 
                     // Get the appropriate content type based on the suffix of the requested resource
-                    switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
-                    {
-                        case "htm" : ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                        case "html": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                        case "css" : ResponseContentType = HTTPContentType.CSS_UTF8;        break;
-                        case "gif" : ResponseContentType = HTTPContentType.GIF;             break;
-                        case "jpg" : ResponseContentType = HTTPContentType.JPEG;            break;
-                        case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
-                        case "svg" : ResponseContentType = HTTPContentType.SVG;             break;
-                        case "png" : ResponseContentType = HTTPContentType.PNG;             break;
-                        case "ico" : ResponseContentType = HTTPContentType.ICO;             break;
-                        case "swf" : ResponseContentType = HTTPContentType.SWF;             break;
-                        case "js"  : ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
-                        case "txt" : ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
-                        case "xml":  ResponseContentType = HTTPContentType.XML_UTF8;        break;
-                        default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
-                    }
+                    ResponseContentType = fileName.Remove(0, fileName.LastIndexOf(".") + 1) switch {
+                                              "htm"  => HTTPContentType.HTML_UTF8,
+                                              "html" => HTTPContentType.HTML_UTF8,
+                                              "css"  => HTTPContentType.CSS_UTF8,
+                                              "gif"  => HTTPContentType.GIF,
+                                              "jpg"  => HTTPContentType.JPEG,
+                                              "jpeg" => HTTPContentType.JPEG,
+                                              "svg"  => HTTPContentType.SVG,
+                                              "png"  => HTTPContentType.PNG,
+                                              "ico"  => HTTPContentType.ICO,
+                                              "swf"  => HTTPContentType.SWF,
+                                              "js"   => HTTPContentType.JAVASCRIPT_UTF8,
+                                              "txt"  => HTTPContentType.TEXT_UTF8,
+                                              "xml"  => HTTPContentType.XML_UTF8,
+                                              _      => HTTPContentType.OCTETSTREAM,
+                                          };
 
                     #endregion
 
@@ -335,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return new HTTPResponse.Builder(Request) {
                         HTTPStatusCode  = HTTPStatusCode.OK,
                         Server          = HTTPServer.DefaultServerName,
-                        Date            = DateTime.UtcNow,
+                        Date            = Timestamp.Now,
                         ContentType     = ResponseContentType,
                         ContentStream   = fileStream,
                         CacheControl    = "public, max-age=300",
@@ -353,47 +346,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #region Try to find a appropriate customized errorpage...
 
-                    Stream ErrorStream = null;
+                    Stream? errorStream = null;
 
-                    Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.HTML_UTF8, HTTPContentType.TEXT_UTF8 });
+                    Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new[] {
+                                                                                                HTTPContentType.HTML_UTF8,
+                                                                                                HTTPContentType.TEXT_UTF8
+                                                                                            });
 
-                    if (Request.BestMatchingAcceptType == HTTPContentType.HTML_UTF8)
-                    {
-                        ResponseContentType = HTTPContentType.HTML_UTF8;
-                        ErrorStream = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
+                    if (Request.BestMatchingAcceptType == HTTPContentType.HTML_UTF8) {
+                        ResponseContentType  = HTTPContentType.HTML_UTF8;
+                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                     }
 
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.TEXT_UTF8)
-                    {
-                        ResponseContentType = HTTPContentType.TEXT_UTF8;
-                        ErrorStream = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
+                    else if (Request.BestMatchingAcceptType == HTTPContentType.TEXT_UTF8) {
+                        ResponseContentType  = HTTPContentType.TEXT_UTF8;
+                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
                     }
 
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.JSON_UTF8)
-                    {
-                        ResponseContentType = HTTPContentType.JSON_UTF8;
-                        ErrorStream = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.js");
+                    else if (Request.BestMatchingAcceptType == HTTPContentType.JSON_UTF8) {
+                        ResponseContentType  = HTTPContentType.JSON_UTF8;
+                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.js");
                     }
 
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.XML_UTF8)
-                    {
-                        ResponseContentType = HTTPContentType.XML_UTF8;
-                        ErrorStream = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
+                    else if (Request.BestMatchingAcceptType == HTTPContentType.XML_UTF8) {
+                        ResponseContentType  = HTTPContentType.XML_UTF8;
+                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
                     }
 
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.ALL)
-                    {
-                        ResponseContentType = HTTPContentType.HTML_UTF8;
-                        ErrorStream = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
+                    else if (Request.BestMatchingAcceptType == HTTPContentType.ALL) {
+                        ResponseContentType  = HTTPContentType.HTML_UTF8;
+                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                     }
 
-                    if (ErrorStream != null)
+                    if (errorStream is not null)
                         return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                             Server          = HTTPServer.DefaultServerName,
-                            Date            = DateTime.UtcNow,
+                            Date            = Timestamp.Now,
                             ContentType     = ResponseContentType,
-                            ContentStream   = ErrorStream,
+                            ContentStream   = errorStream,
                             CacheControl    = "no-cache",
                             Connection      = "close",
                         };
@@ -406,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.NotFound,
                             Server          = HTTPServer.DefaultServerName,
-                            Date            = DateTime.UtcNow,
+                            Date            = Timestamp.Now,
                             CacheControl    = "no-cache",
                             Connection      = "close",
                         };
@@ -472,26 +463,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
 
-                                                                                  // NumberOfTemplateParameters
-            var _ResourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URLTemplate.ToString().Count(c => c == '{')).ToArray());
+                                                                                 // NumberOfTemplateParameters
+            var resourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URLTemplate.ToString().Count(c => c == '{')).ToArray());
 
-            if (ResponseContentType == null)
-                switch (_ResourceFilename.Remove(0, _ResourceFilename.LastIndexOf(".") + 1))
-                {
-                    case "htm":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                    case "html": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                    case "css":  ResponseContentType = HTTPContentType.CSS_UTF8;        break;
-                    case "gif":  ResponseContentType = HTTPContentType.GIF;             break;
-                    case "jpg":  ResponseContentType = HTTPContentType.JPEG;            break;
-                    case "jpeg": ResponseContentType = HTTPContentType.JPEG;            break;
-                    case "svg":  ResponseContentType = HTTPContentType.SVG;             break;
-                    case "png":  ResponseContentType = HTTPContentType.PNG;             break;
-                    case "ico":  ResponseContentType = HTTPContentType.ICO;             break;
-                    case "swf":  ResponseContentType = HTTPContentType.SWF;             break;
-                    case "js":   ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
-                    case "txt":  ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
-                    default:     ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
-                }
+            ResponseContentType ??= resourceFilename.Remove(0, resourceFilename.LastIndexOf(".") + 1) switch {
+                                        "htm"  => HTTPContentType.HTML_UTF8,
+                                        "html" => HTTPContentType.HTML_UTF8,
+                                        "css"  => HTTPContentType.CSS_UTF8,
+                                        "gif"  => HTTPContentType.GIF,
+                                        "jpg"  => HTTPContentType.JPEG,
+                                        "jpeg" => HTTPContentType.JPEG,
+                                        "svg"  => HTTPContentType.SVG,
+                                        "png"  => HTTPContentType.PNG,
+                                        "ico"  => HTTPContentType.ICO,
+                                        "swf"  => HTTPContentType.SWF,
+                                        "js"   => HTTPContentType.JAVASCRIPT_UTF8,
+                                        "txt"  => HTTPContentType.TEXT_UTF8,
+                                        _      => HTTPContentType.OCTETSTREAM,
+                                    };
 
             #endregion
 
@@ -510,28 +499,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              if (File.Exists(ResourceFilename))
                                              {
 
-                                                 var FileStream = File.OpenRead(ResourceFilename);
-                                                 if (FileStream != null)
-                                                 {
+                                                 var fileStream = File.OpenRead(ResourceFilename);
 
+                                                 if (fileStream is not null)
                                                      return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.UtcNow,
+                                                         Date            = Timestamp.Now,
                                                          ContentType     = ResponseContentType,
-                                                         ContentStream   = FileStream,
+                                                         ContentStream   = fileStream,
                                                          CacheControl    = CacheControl,
                                                          Connection      = "close",
                                                      };
-
-                                                 }
 
                                              }
 
                                              return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.UtcNow,
+                                                 Date            = Timestamp.Now,
                                                  CacheControl    = "no-cache",
                                                  Connection      = "close",
                                              };
@@ -572,63 +558,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              try
                                              {
 
-                                                HTTPContentType ResponseContentType = null;
+                                                 HTTPContentType? ResponseContentType = null;
 
-                                                var NumberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
+                                                 var numberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
 
-                                                var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > NumberOfTemplateParameters)
-                                                                      ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
-                                                                      : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
+                                                 var filePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > numberOfTemplateParameters)
+                                                                       ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
+                                                                       : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
 
-                                                var FileStream  = File.OpenRead(ResourcePath(Request.ParsedURLParameters) +
-                                                                                Path.DirectorySeparatorChar +
-                                                                                FilePath);
+                                                 var fileStream  = File.OpenRead(ResourcePath(Request.ParsedURLParameters) +
+                                                                                 Path.DirectorySeparatorChar +
+                                                                                 filePath);
 
-                                                if (FileStream == null)
-                                                    return Task.FromResult(
-                                                        new HTTPResponse.Builder(Request) {
-                                                            HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                            Server          = HTTPServer.DefaultServerName,
-                                                            Date            = DateTime.UtcNow,
-                                                            CacheControl    = "no-cache",
-                                                            Connection      = "close",
-                                                        }.AsImmutable);
+                                                 if (fileStream is null)
+                                                     return Task.FromResult(
+                                                         new HTTPResponse.Builder(Request) {
+                                                             HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                             Server          = HTTPServer.DefaultServerName,
+                                                             Date            = Timestamp.Now,
+                                                             CacheControl    = "no-cache",
+                                                             Connection      = "close",
+                                                         }.AsImmutable);
 
 
-                                                #region Choose HTTP Content Type based on the file name extention...
+                                                 #region Choose HTTP Content Type based on the file name extention...
 
-                                                var FileName = FilePath.Substring(FilePath.LastIndexOf("/") + 1);
+                                                 var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
 
-                                                // Get the appropriate content type based on the suffix of the requested resource
-                                                switch (FileName.Remove(0, FileName.LastIndexOf(".") + 1))
-                                                {
-                                                    case "htm":   ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                    case "html":  ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                    case "shtml": ResponseContentType = HTTPContentType.HTML_UTF8;       break;
-                                                    case "css":   ResponseContentType = HTTPContentType.CSS_UTF8;        break;
-                                                    case "gif":   ResponseContentType = HTTPContentType.GIF;             break;
-                                                    case "jpg":   ResponseContentType = HTTPContentType.JPEG;            break;
-                                                    case "jpeg":  ResponseContentType = HTTPContentType.JPEG;            break;
-                                                    case "svg":   ResponseContentType = HTTPContentType.SVG;             break;
-                                                    case "png":   ResponseContentType = HTTPContentType.PNG;             break;
-                                                    case "ico":   ResponseContentType = HTTPContentType.ICO;             break;
-                                                    case "swf":   ResponseContentType = HTTPContentType.SWF;             break;
-                                                    case "js":    ResponseContentType = HTTPContentType.JAVASCRIPT_UTF8; break;
-                                                    case "txt":   ResponseContentType = HTTPContentType.TEXT_UTF8;       break;
-                                                    default:      ResponseContentType = HTTPContentType.OCTETSTREAM;     break;
-                                                }
+                                                 // Get the appropriate content type based on the suffix of the requested resource
+                                                 ResponseContentType = fileName.Remove(0, fileName.LastIndexOf(".") + 1) switch {
+                                                                           "htm"   => HTTPContentType.HTML_UTF8,
+                                                                           "html"  => HTTPContentType.HTML_UTF8,
+                                                                           "shtml" => HTTPContentType.HTML_UTF8,
+                                                                           "css"   => HTTPContentType.CSS_UTF8,
+                                                                           "gif"   => HTTPContentType.GIF,
+                                                                           "jpg"   => HTTPContentType.JPEG,
+                                                                           "jpeg"  => HTTPContentType.JPEG,
+                                                                           "svg"   => HTTPContentType.SVG,
+                                                                           "png"   => HTTPContentType.PNG,
+                                                                           "ico"   => HTTPContentType.ICO,
+                                                                           "swf"   => HTTPContentType.SWF,
+                                                                           "js"    => HTTPContentType.JAVASCRIPT_UTF8,
+                                                                           "txt"   => HTTPContentType.TEXT_UTF8,
+                                                                           _       => HTTPContentType.OCTETSTREAM,
+                                                                       };
 
-                                                #endregion
+                                                 #endregion
 
-                                                #region Create HTTP Response
+                                                 #region Create HTTP Response
 
-                                                return Task.FromResult(
+                                                 return Task.FromResult(
                                                     new HTTPResponse.Builder(Request) {
                                                         HTTPStatusCode  = HTTPStatusCode.OK,
                                                         Server          = HTTPServer.DefaultServerName,
-                                                        Date            = DateTime.UtcNow,
+                                                        Date            = Timestamp.Now,
                                                         ContentType     = ResponseContentType,
-                                                        ContentStream   = FileStream,
+                                                        ContentStream   = fileStream,
                                                         CacheControl    = "public, max-age=300",
                                                         //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
                                                         KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(15),
@@ -636,8 +621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         Connection      = "Keep-Alive",
                                                     }.AsImmutable);
 
-                                                #endregion
-
+                                                 #endregion
 
                                             }
                                             catch (Exception e)
@@ -647,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     new HTTPResponse.Builder(Request) {
                                                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                         Server          = HTTPServer.DefaultServerName,
-                                                        Date            = DateTime.UtcNow,
+                                                        Date            = Timestamp.Now,
                                                         ContentType     = HTTPContentType.JSON_UTF8,
                                                         Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
                                                         CacheControl    = "no-cache",
@@ -668,10 +652,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private static Task FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
 
-            => source.
-                   Get<String>(HTTPSSE_EventIdentification).
-                   SubmitEvent(ChangeType,
-                               @"{ ""timestamp"": """ + DateTime.UtcNow.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
+            => source.Get<String>(HTTPSSE_EventIdentification).
+                      SubmitEvent(ChangeType,
+                                  @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
 
         private static void FileWasRenamed(object source, RenamedEventArgs e)
         {
@@ -758,25 +741,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPContentType.PNG,
                                          HTTPDelegate: async Request => {
 
-                                             HTTPContentType ResponseContentType = null;
+                                             HTTPContentType? ResponseContentType = null;
 
-                                             var NumberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
+                                             var numberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
 
-                                             var FilePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > NumberOfTemplateParameters)
+                                             var filePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > numberOfTemplateParameters)
                                                                    ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
                                                                    : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
 
                                              try
                                              {
 
-                                                 var FileStream = File.OpenRead(FileSystemLocation + Path.DirectorySeparatorChar + FilePath);
+                                                 var fileStream = File.OpenRead(FileSystemLocation + Path.DirectorySeparatorChar + filePath);
 
-                                                 if (FileStream != null)
+                                                 if (fileStream is not null)
                                                  {
 
                                                      #region Choose HTTP Content Type based on the file name extention...
 
-                                                     ResponseContentType = HTTPContentType.ForFileExtension(FilePath.Remove(0, FilePath.LastIndexOf(".", StringComparison.InvariantCulture) + 1),
+                                                     ResponseContentType = HTTPContentType.ForFileExtension(filePath.Remove(0, filePath.LastIndexOf(".", StringComparison.InvariantCulture) + 1),
                                                                                                             () => HTTPContentType.OCTETSTREAM).FirstOrDefault();
 
                                                      #endregion
@@ -786,9 +769,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode  = HTTPStatusCode.OK,
                                                          Server          = HTTPServer.DefaultServerName,
-                                                         Date            = DateTime.UtcNow,
+                                                         Date            = Timestamp.Now,
                                                          ContentType     = ResponseContentType,
-                                                         ContentStream   = FileStream,
+                                                         ContentStream   = fileStream,
                                                          CacheControl    = "public, max-age=300",
                                                          //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
                                                          KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
@@ -807,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 Date            = DateTime.UtcNow,
+                                                 Date            = Timestamp.Now,
                                                  ContentType     = HTTPContentType.TEXT_UTF8,
                                                  Content         = "Error 404 - Not found!".ToUTF8Bytes(),
                                                  CacheControl    = "no-cache",

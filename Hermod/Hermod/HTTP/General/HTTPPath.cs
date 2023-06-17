@@ -29,6 +29,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
+    /// Extension methods for HTTP paths.
+    /// </summary>
+    public static class HTTPPathExtensions
+    {
+
+        /// <summary>
+        /// Indicates whether this HTTP path is null or empty.
+        /// </summary>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        public static Boolean IsNullOrEmpty(this HTTPPath? HTTPPath)
+            => !HTTPPath.HasValue || HTTPPath.Value.IsNullOrEmpty;
+
+        /// <summary>
+        /// Indicates whether this HTTP path is null or empty.
+        /// </summary>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        public static Boolean IsNotNullOrEmpty(this HTTPPath? HTTPPath)
+            => HTTPPath.HasValue && HTTPPath.Value.IsNotNullOrEmpty;
+
+    }
+
+
+    /// <summary>
     /// The path of a HTTP path.
     /// </summary>
     public readonly struct HTTPPath : IEquatable<HTTPPath>,
@@ -48,6 +71,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
+        /// Indicates whether the HTTP path is null or empty.
+        /// </summary>
+        public Boolean IsNullOrEmpty
+            => InternalId.IsNullOrEmpty();
+
+        /// <summary>
+        /// Indicates whether the HTTP path is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => InternalId.IsNotNullOrEmpty();
+
+        /// <summary>
         /// The length of the HTTP path.
         /// </summary>
         public UInt32 Length
@@ -60,10 +95,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP path
         /// </summary>
-        /// <param name="Path">The uniform resource identifier.</param>
+        /// <param name="Path">The HTTP path.</param>
         private HTTPPath(String Path)
         {
-            this.InternalId  = Path;
+            this.InternalId = Path;
         }
 
         #endregion
@@ -239,20 +274,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public Boolean EndsWith(HTTPPath value)
             => InternalId.EndsWith(value.ToString());
-
-
-        public Boolean IsNullOrEmpty()
-        {
-
-            if (String.IsNullOrEmpty(InternalId))
-                return true;
-
-            return String.IsNullOrEmpty(InternalId.Trim());
-
-        }
-
-        public Boolean IsNotNullOrEmpty()
-            => !IsNullOrEmpty();
 
 
         #region Operator overloading
