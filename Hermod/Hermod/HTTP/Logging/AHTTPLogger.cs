@@ -38,6 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public abstract class AHTTPLogger
     {
 
+        #region (class) RequestData
+
         public class RequestData
         {
             public String       LoggingPath     { get; }
@@ -57,6 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
         }
+
+        #endregion
+
+        #region (class) ResponseData
 
         public class ResponseData
         {
@@ -80,6 +86,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
         }
+
+        #endregion
 
 
         #region Data
@@ -459,9 +467,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            HTTPRequest  Request)
         {
 
-            if (Request is null)
-                return;
-
             await cliRequestChannel.Writer.WriteAsync(new RequestData(LoggingPath,
                                                                       Context,
                                                                       LogEventName,
@@ -486,9 +491,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             HTTPRequest   Request,
                                                             HTTPResponse  Response)
         {
-
-            if (Response is null)
-                return;
 
             await cliResponseChannel.Writer.WriteAsync(new ResponseData(LoggingPath,
                                                                         Context,
@@ -515,9 +517,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         HTTPRequest  Request)
         {
 
-            if (Request is null)
-                return;
-
             await discRequestChannel.Writer.WriteAsync(new RequestData(LoggingPath,
                                                                        Context,
                                                                        LogEventName,
@@ -542,9 +541,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPRequest   Request,
                                                          HTTPResponse  Response)
         {
-
-            if (Response is null)
-                return;
 
             await discResponseChannel.Writer.WriteAsync(new ResponseData(LoggingPath,
                                                                          Context,

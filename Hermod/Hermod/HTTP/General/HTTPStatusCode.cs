@@ -59,6 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => Code >= 200 && Code < 300;
 
         /// <summary>
+        /// Is NOT successful.
+        /// </summary>
+        public Boolean  IsNotSuccessful
+            => Code < 200 && Code >= 300;
+
+        /// <summary>
         /// Is redirection.
         /// </summary>
         public Boolean  IsRedirection
@@ -75,6 +81,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public Boolean  IsServerError
             => Code >= 500 && Code < 600;
+
+
+        /// <summary>
+        /// Is a reason for a retransmission.
+        /// </summary>
+        public Boolean IsReasonForRetransmission
+
+            => Code == RequestTimeout.Code ||
+               Code == GatewayTimeout.Code ||
+               Code == BadGateway.    Code;
+
+        /// <summary>
+        /// Is NOT a reason for a retransmission.
+        /// </summary>
+        public Boolean IsNoReasonForRetransmission
+            => !IsReasonForRetransmission;
 
 
 
