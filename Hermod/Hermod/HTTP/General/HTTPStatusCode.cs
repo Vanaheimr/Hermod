@@ -955,7 +955,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPStatusCode1">A HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPStatusCode HTTPStatusCode1, HTTPStatusCode HTTPStatusCode2)
+        public static Boolean operator == (HTTPStatusCode? HTTPStatusCode1,
+                                           HTTPStatusCode? HTTPStatusCode2)
         {
 
             // If both are null, or both are same instance, return true.
@@ -980,8 +981,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPStatusCode1">A HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPStatusCode HTTPStatusCode1,
-                                           HTTPStatusCode HTTPStatusCode2)
+        public static Boolean operator != (HTTPStatusCode? HTTPStatusCode1,
+                                           HTTPStatusCode? HTTPStatusCode2)
 
             => !(HTTPStatusCode1 == HTTPStatusCode2);
 
@@ -995,8 +996,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPStatusCode1">A HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPStatusCode HTTPStatusCode1,
-                                          HTTPStatusCode HTTPStatusCode2)
+        public static Boolean operator < (HTTPStatusCode? HTTPStatusCode1,
+                                          HTTPStatusCode? HTTPStatusCode2)
 
             => HTTPStatusCode1 is null
                    ? throw new ArgumentNullException(nameof(HTTPStatusCode1), "The given HTTP status code must not be null!")
@@ -1012,7 +1013,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPStatusCode1">A HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPStatusCode HTTPStatusCode1, HTTPStatusCode HTTPStatusCode2)
+        public static Boolean operator <= (HTTPStatusCode? HTTPStatusCode1,
+                                           HTTPStatusCode? HTTPStatusCode2)
 
             => !(HTTPStatusCode1 > HTTPStatusCode2);
 
@@ -1026,8 +1028,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPStatusCode1">A HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPStatusCode HTTPStatusCode1,
-                                          HTTPStatusCode HTTPStatusCode2)
+        public static Boolean operator > (HTTPStatusCode? HTTPStatusCode1,
+                                          HTTPStatusCode? HTTPStatusCode2)
 
             => HTTPStatusCode1 is null
                    ? throw new ArgumentNullException(nameof(HTTPStatusCode1), "The given HTTP status code must not be null!")
@@ -1043,8 +1045,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPStatusCode1">A HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPStatusCode HTTPStatusCode1,
-                                           HTTPStatusCode HTTPStatusCode2)
+        public static Boolean operator >= (HTTPStatusCode? HTTPStatusCode1,
+                                           HTTPStatusCode? HTTPStatusCode2)
 
             => !(HTTPStatusCode1 < HTTPStatusCode2);
 
