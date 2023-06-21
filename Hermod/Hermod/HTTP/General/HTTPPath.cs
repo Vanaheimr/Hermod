@@ -113,10 +113,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPPath Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPPath httpPath))
+            if (TryParse(Text, out var httpPath))
                 return httpPath;
 
-            throw new ArgumentException("The given string could not be parsed as a HTTP path!", nameof(Text));
+            throw new ArgumentException($"Invalid text representation of a HTTP path: '{Text}'!",
+                                        nameof(Text));
 
         }
 
@@ -131,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPPath? TryParse(String Text)
         {
 
-            if (TryParse(Text, out HTTPPath httpPath))
+            if (TryParse(Text, out var httpPath))
                 return httpPath;
 
             return null;
@@ -667,7 +668,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
 
             => Object is HTTPPath httpPath
                    ? CompareTo(httpPath)
@@ -701,7 +702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
             => Object is HTTPPath httpPath &&
                    Equals(httpPath);
