@@ -37,10 +37,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        // token68 = 1*( ALPHA / DIGIT / "-" / "." / "_" / "~" / "+" / "/" ) *"="
-        private static readonly Regex   tokenRegExpr   = new (@"^[A-Za-z0-9\-._~+/]+=*[^=]$");
+        // All Unicode code points from U+0021 to U+007E
+        private static readonly Regex   tokenRegExpr  = new (@"^[A-Za-z0-9!""#$%&'()\*\+,\-\./:;<=>\?@\[\]\\^_`{}\|~]*$");
 
-        private static readonly Char[]  splitter       = new[] { ' ' };
+        private static readonly Char[]  splitter      = new[] { ' ' };
 
         #endregion
 
