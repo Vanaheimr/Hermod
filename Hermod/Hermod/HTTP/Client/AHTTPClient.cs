@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Net.Security;
@@ -28,7 +27,6 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Linq.Expressions;
 
 #endregion
 
@@ -1362,6 +1360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              RemoteIPAddress.ToString(), ":", RemotePort);
 
         #endregion
+
 
     }
 
