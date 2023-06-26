@@ -17,11 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
-using System;
 using System.Globalization;
-using System.Linq;
-using System.Text.RegularExpressions;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -85,8 +83,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The length of the HTTP path.
         /// </summary>
-        public UInt32 Length
-            => (UInt32) InternalId.Length;
+        public UInt64 Length
+            => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
 

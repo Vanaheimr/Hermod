@@ -23,6 +23,7 @@ using System.Net.Sockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Net.WebSockets;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -437,6 +438,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
                     return null;
                 }
+
+            }
+        }
+
+        #endregion
+
+        #region HTTPBodyAsJSONObject
+
+        /// <summary>
+        /// Return the HTTP body/content as a JSON object.
+        /// </summary>
+        public JObject? HTTPBodyAsJSONObject
+        {
+            get
+            {
+
+                try
+                {
+
+                    TryReadHTTPBodyStream();
+
+                    if (httpBody is not null &&
+                        httpBody.Length > 0)
+                    {
+                        return JObject.Parse(httpBody.ToUTF8String());
+                    }
+
+                }
+                catch
+                { }
+
+                return null;
+
+            }
+        }
+
+        #endregion
+
+        #region HTTPBodyAsJSONArray
+
+        /// <summary>
+        /// Return the HTTP body/content as a JSON array.
+        /// </summary>
+        public JArray? HTTPBodyAsJSONArray
+        {
+            get
+            {
+
+                try
+                {
+
+                    TryReadHTTPBodyStream();
+
+                    if (httpBody is not null &&
+                        httpBody.Length > 0)
+                    {
+                        return JArray.Parse(httpBody.ToUTF8String());
+                    }
+
+                }
+                catch
+                { }
+
+                return null;
 
             }
         }
