@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Text;
 using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
@@ -249,345 +248,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     }
 
-
-    #region HTTPResponse<TContent>
-
-    /// <summary>
-    /// A helper class to transport HTTP data and its metadata.
-    /// </summary>
-    /// <typeparam name="TContent">The type of the parsed data.</typeparam>
-    public class HTTPResponse<TContent> : HTTPResponse
-    {
-
-        #region Data
-
-        private readonly Boolean isFault;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// The parsed content.
-        /// </summary>
-        public TContent    Content      { get; }
-
-        /// <summary>
-        /// An exception during parsing.
-        /// </summary>
-        public Exception?  Exception    { get; }
-
-        /// <summary>
-        /// An error during parsing.
-        /// </summary>
-        public Boolean HasErrors
-            => Exception is not null && !isFault;
-
-        #endregion
-
-        #region Constructor(s)
-
-        #region (private) HTTPResponse(Response, Content, IsFault = false, NumberOfTransmissionRetries = 0, Exception = null)
-
-        private HTTPResponse(HTTPResponse  Response,
-                             TContent      Content,
-                             Boolean?      IsFault     = false,
-                             Exception?    Exception   = null)
-
-            : base(Response)
-
-        {
-
-            this.Content    = Content;
-            this.isFault    = IsFault ?? false;
-            this.Exception  = Exception;
-
-        }
-
-        #endregion
-
-        #region HTTPResponse(Response, Content)
-
-        public HTTPResponse(HTTPResponse  Response,
-                            TContent      Content)
-
-            : this(Response,
-                   Content,
-                   null,
-                   null)
-
-        { }
-
-        #endregion
-
-        #region HTTPResponse(Response, IsFault)
-
-        public HTTPResponse(HTTPResponse  Response,
-                            Boolean       IsFault)
-
-            : this(Response,
-                   default,
-                   IsFault)
-
-        { }
-
-        #endregion
-
-        #region HTTPResponse(Response, Exception)
-
-        public HTTPResponse(HTTPResponse  Response,
-                            Exception     Exception)
-
-            : this(Response,
-                   default,
-                   true,
-                   Exception)
-
-        { }
-
-        #endregion
-
-
-        #region (private) HTTPResponse(Content, Exception)
-
-        private HTTPResponse(TContent   Content,
-                             Exception  Exception)
-
-            : base(null)
-
-        {
-
-            this.Content    = Content;
-            this.isFault    = true;
-            this.Exception  = Exception;
-
-        }
-
-        #endregion
-
-
-        #region HTTPResponse(Request, Content)
-
-        private HTTPResponse(HTTPRequest  Request,
-                             TContent     Content)
-
-            : this(Builder.OK(Request), Content, false)
-
-        { }
-
-        #endregion
-
-        #region HTTPResponse(Request, Exception)
-
-        public HTTPResponse(HTTPRequest  Request,
-                            Exception    Exception)
-
-            : this(new Builder(Request) {
-                       HTTPStatusCode = HTTPStatusCode.BadRequest
-                   },
-                   default,
-                   true,
-                   Exception)
-
-        { }
-
-        #endregion
-
-        #endregion
-
-
-        #region ConvertContent<TResult>(ContentConverter)
-
-        /// <summary>
-        /// Convert the content of the HTTP response body via the given
-        /// content converter delegate.
-        /// </summary>
-        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
-        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, TResult> ContentConverter)
-        {
-
-            if (ContentConverter is null)
-                throw new ArgumentNullException(nameof(ContentConverter),  "The given content converter delegate must not be null!");
-
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(this.Content));
-
-        }
-
-        #endregion
-
-        #region ConvertContent<TResult>(ContentConverter, OnException = null)
-
-        /// <summary>
-        /// Convert the content of the HTTP response body via the given
-        /// content converter delegate.
-        /// </summary>
-        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
-        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                             OnExceptionDelegate?                          OnException   = null)
-        {
-
-            if (ContentConverter is null)
-                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
-
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(this.Content,
-                                                              OnException));
-
-        }
-
-        #endregion
-
-
-        #region ConvertContent<TRequest, TResult>(Request, ContentConverter)
-
-        /// <summary>
-        /// Convert the content of the HTTP response body via the given
-        /// content converter delegate.
-        /// </summary>
-        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
-        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
-        /// <param name="Request">The request leading to this response.</param>
-        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                           Request,
-                                                                       Func<TRequest, TContent, TResult>  ContentConverter)
-        {
-
-            if (ContentConverter is null)
-                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
-
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(Request,
-                                                              this.Content));
-
-        }
-
-        #endregion
-
-        #region ConvertContent<TRequest, TResult>(Request, ContentConverter, OnException = null)
-
-        /// <summary>
-        /// Convert the content of the HTTP response body via the given
-        /// content converter delegate.
-        /// </summary>
-        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
-        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
-        /// <param name="Request">The request leading to this response.</param>
-        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                Request,
-                                                                       Func<TRequest, TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate?                                    OnException   = null)
-        {
-
-            if (ContentConverter is null)
-                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
-
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(Request,
-                                                              this.Content,
-                                                              OnException));
-
-        }
-
-        #endregion
-
-        #region ConvertContent<TRequest, TResult>(Request, ContentConverter, OnException = null)
-
-        /// <summary>
-        /// Convert the content of the HTTP response body via the given
-        /// content converter delegate.
-        /// </summary>
-        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
-        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
-        /// <param name="Request">The request leading to this response.</param>
-        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
-        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                              Request,
-                                                                       Func<TRequest, TContent, HTTPResponse, OnExceptionDelegate, TResult>  ContentConverter,
-                                                                       OnExceptionDelegate?                                                  OnException   = null)
-        {
-
-            if (ContentConverter is null)
-                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
-
-            return new HTTPResponse<TResult>(this,
-                                             ContentConverter(Request,
-                                                              Content,
-                                                              this,
-                                                              OnException));
-
-        }
-
-        #endregion
-
-
-
-        public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
-                                                TContent     Content)
-
-            => new (HTTPRequest, Content);
-
-        public static HTTPResponse<TContent> OK(TContent Content)
-
-            => new (null, Content, null, null);
-
-        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
-                                                     TContent      Content)
-
-            => new (Response,
-                    Content,
-                    true);
-
-        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
-                                                     Exception     Exception)
-
-            => new (Response,
-                    default,
-                    true,
-                    Exception);
-
-        public static HTTPResponse<TContent> ClientError(TContent Content)
-
-            => new (null, Content, IsFault: true);
-
-        public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
-                                                             Exception  Exception)
-
-            => new (Content, Exception);
-
-
-        #region (static) GatewayTimeout
-
-        public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
-
-            => new (new Builder(null,
-                                HTTPStatusCode.GatewayTimeout),
-                    Content);
-
-        #endregion
-
-
-    }
-
-    #endregion
-
     #region HTTPResponse
 
     /// <summary>
     /// A read-only HTTP response header.
     /// </summary>
-    public class HTTPResponse : AHTTPPDU
+    public partial class HTTPResponse : AHTTPPDU
     {
 
         #region Data
 
-        public const String RequestMarker = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        public const String ResponseMarker = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-        public const String EndMarker = "======================================================================================";
+        public const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        public const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+        public const String EndMarker       = "======================================================================================";
 
         #endregion
 
@@ -596,12 +269,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional HTTP request for this HTTP response.
         /// </summary>
-        public HTTPRequest? HTTPRequest { get; }
+        public HTTPRequest?    HTTPRequest       { get; }
 
         /// <summary>
         /// The HTTP status code.
         /// </summary>
-        public HTTPStatusCode HTTPStatusCode { get; }
+        public HTTPStatusCode  HTTPStatusCode    { get; }
 
         #endregion
 
@@ -609,109 +282,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Age
 
+        /// <summary>
+        /// Age
+        /// </summary>
         public UInt64? Age
-        {
-            get
-            {
-                return GetHeaderField_UInt64(HTTPHeaderField.Age);
-            }
-        }
+
+            => GetHeaderField(HTTPResponseHeaderField.Age);
 
         #endregion
 
         #region Allow
 
-        List<HTTPMethod>? allow;
-
         /// <summary>
         /// Allow
         /// </summary>
-        public List<HTTPMethod>? Allow
-        {
-            get
-            {
+        public IEnumerable<HTTPMethod> Allow
 
-                if (allow is not null)
-                    return allow;
-
-                allow = GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Allow);
-
-                return allow;
-
-            }
-        }
+            => GetHeaderFields(HTTPResponseHeaderField.Allow) ?? Array.Empty<HTTPMethod>();
 
         #endregion
 
         #region DAV
 
-        public String DAV
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.DAV);
-            }
-        }
+        /// <summary>
+        /// DAV
+        /// </summary>
+        public String? DAV
+
+            => GetHeaderField(HTTPResponseHeaderField.DAV);
 
         #endregion
 
         #region ETag
 
-        public String ETag
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.ETag);
-            }
-        }
+        /// <summary>
+        /// E-Tag
+        /// </summary>
+        public String? ETag
+
+            => GetHeaderField(HTTPResponseHeaderField.ETag);
 
         #endregion
 
         #region Expires
 
-        public String Expires
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Expires);
-            }
-        }
+        /// <summary>
+        /// Expires
+        /// </summary>
+        public String? Expires
+
+            => GetHeaderField(HTTPResponseHeaderField.Expires);
 
         #endregion
 
         #region LastModified
 
-        public String LastModified
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.LastModified);
-            }
-        }
+        /// <summary>
+        /// LastModified
+        /// </summary>
+        public DateTime? LastModified
+
+            => GetHeaderField(HTTPResponseHeaderField.LastModified);
 
         #endregion
 
         #region Location
 
-        public String Location
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.Location);
-            }
-        }
+        public Location? Location
+
+            => GetHeaderField(HTTPResponseHeaderField.Location);
 
         #endregion
 
         #region ProxyAuthenticate
 
-        public String ProxyAuthenticate
-        {
-            get
-            {
-                return GetHeaderField(HTTPHeaderField.ProxyAuthenticate);
-            }
-        }
+        public String? ProxyAuthenticate
+
+            => GetHeaderField(HTTPResponseHeaderField.ProxyAuthenticate);
 
         #endregion
 
@@ -721,7 +368,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Retry-After
         /// </summary>
         public String? RetryAfter
-            => GetHeaderField(HTTPHeaderField.RetryAfter);
+
+            => GetHeaderField(HTTPResponseHeaderField.RetryAfter);
 
         #endregion
 
@@ -731,7 +379,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Server
         /// </summary>
         public String? Server
-            => GetHeaderField(HTTPHeaderField.Server);
+
+            => GetHeaderField(HTTPResponseHeaderField.Server);
 
         #endregion
 
@@ -742,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String? Vary
 
-            => GetHeaderField(HTTPHeaderField.Vary);
+            => GetHeaderField(HTTPResponseHeaderField.Vary);
 
         #endregion
 
@@ -752,7 +401,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// WWW-Authenticate
         /// </summary>
         public String? WWWAuthenticate
-            => GetHeaderField(HTTPHeaderField.WWWAuthenticate);
+
+            => GetHeaderField(HTTPResponseHeaderField.WWWAuthenticate);
 
         #endregion
 
@@ -762,7 +412,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Transfer-Encoding
         /// </summary>
         public String? TransferEncoding
-            => GetHeaderField(HTTPHeaderField.TransferEncoding);
+
+            => GetHeaderField(HTTPResponseHeaderField.TransferEncoding);
 
         #endregion
 
@@ -775,7 +426,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Sec-WebSocket-Accept
         /// </summary>
         public String? SecWebSocketAccept
-            => GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
+
+            => GetHeaderField(HTTPResponseHeaderField.SecWebSocketAccept);
 
         #endregion
 
@@ -788,7 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Access-Control-Allow-Origin
         /// </summary>
         public String? AccessControlAllowOrigin
-            => GetHeaderField(HTTPHeaderField.AccessControlAllowOrigin);
+            => GetHeaderField(HTTPResponseHeaderField.AccessControlAllowOrigin);
 
         #endregion
 
@@ -797,9 +449,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Access-Control-Allow-Methods
         /// </summary>
-        public IEnumerable<String>? AccessControlAllowMethods
+        public IEnumerable<String> AccessControlAllowMethods
 
-            => GetHeaderField<IEnumerable<String>?>(HTTPHeaderField.AccessControlAllowMethods);
+            => GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods);
 
         #endregion
 
@@ -808,8 +460,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Access-Control-Allow-Headers
         /// </summary>
-        public String? AccessControlAllowHeaders
-            => GetHeaderField(HTTPHeaderField.AccessControlAllowHeaders);
+        public IEnumerable<String> AccessControlAllowHeaders
+
+            => GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowHeaders);
 
         #endregion
 
@@ -819,7 +472,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Access-Control-Max-Age
         /// </summary>
         public UInt64? AccessControlMaxAge
-            => GetHeaderField_UInt64(HTTPHeaderField.AccessControlMaxAge);
+
+            => GetHeaderField(HTTPResponseHeaderField.AccessControlMaxAge);
 
         #endregion
 
@@ -1477,1076 +1131,330 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+    }
 
-        #region (class) Builder
+    #endregion
+
+    #region HTTPResponse<TContent>
+
+    /// <summary>
+    /// A helper class to transport HTTP data and its metadata.
+    /// </summary>
+    /// <typeparam name="TContent">The type of the parsed data.</typeparam>
+    public class HTTPResponse<TContent> : HTTPResponse
+    {
+
+        #region Data
+
+        private readonly Boolean isFault;
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
-        /// A read-write HTTP response header.
+        /// The parsed content.
         /// </summary>
-        public class Builder : AHTTPPDUBuilder
+        public TContent    Content      { get; }
+
+        /// <summary>
+        /// An exception during parsing.
+        /// </summary>
+        public Exception?  Exception    { get; }
+
+        /// <summary>
+        /// An error during parsing.
+        /// </summary>
+        public Boolean HasErrors
+            => Exception is not null && !isFault;
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region (private) HTTPResponse(Response, Content, IsFault = false, NumberOfTransmissionRetries = 0, Exception = null)
+
+        private HTTPResponse(HTTPResponse  Response,
+                             TContent      Content,
+                             Boolean?      IsFault     = false,
+                             Exception?    Exception   = null)
+
+            : base(Response)
+
         {
 
-            #region Properties
-
-            /// <summary>
-            /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
-            /// </summary>
-            public Object?            SubprotocolResponse    { get; set; }
-
-            /// <summary>
-            /// The correlated HTTP request.
-            /// </summary>
-            public HTTPRequest        HTTPRequest            { get; }
-
-            /// <summary>
-            /// The timestamp of the HTTP response.
-            /// </summary>
-            public DateTime           Timestamp              { get; }
-
-            /// <summary>
-            /// The cancellation token.
-            /// </summary>
-            public CancellationToken  CancellationToken      { get; set; }
-
-            /// <summary>
-            /// The runtime of the HTTP request/response pair.
-            /// </summary>
-            public TimeSpan?          Runtime                { get; }
-
-            /// <summary>
-            /// The entire HTTP header.
-            /// </summary>
-            public String             HTTPHeader
-
-                => HTTPStatusCode.HTTPResponseString + Environment.NewLine +
-                         ConstructedHTTPHeader       + Environment.NewLine +
-                         Environment.NewLine;
-
-            #endregion
-
-            #region Response header fields
-
-            #region Age
-
-            /// <summary>
-            /// Age
-            /// </summary>
-            public UInt64? Age
-            {
-
-                get
-                {
-                    return GetHeaderField_UInt64(HTTPHeaderField.Age);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Age, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Allow
-
-            /// <summary>
-            /// Allow
-            /// </summary>
-            public List<HTTPMethod>? Allow
-            {
-
-                get
-                {
-                    return GetHeaderField<List<HTTPMethod>>(HTTPHeaderField.Allow);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Allow, value);
-                }
-
-            }
-
-            #endregion
-
-            #region AcceptPatch
-
-            /// <summary>
-            /// Accept-Patch
-            /// </summary>
-            public List<HTTPContentType>? AcceptPatch
-            {
-
-                get
-                {
-                    return GetHeaderField<List<HTTPContentType>>(HTTPHeaderField.AcceptPatch);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Allow, value);
-                }
-
-            }
-
-            #endregion
-
-            #region DAV
-
-            /// <summary>
-            /// DAV
-            /// </summary>
-            public String? DAV
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.Age);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.DAV, value);
-                }
-
-            }
-
-            #endregion
-
-            #region ETag
-
-            /// <summary>
-            /// ETag
-            /// </summary>
-            public String? ETag
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.ETag);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.ETag, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Expires
-
-            /// <summary>
-            /// Expires
-            /// </summary>
-            public String? Expires
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.Expires);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Expires, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Keep-Alive
-
-            /// <summary>
-            /// Keep-Alive
-            /// </summary>
-            public KeepAliveType? KeepAlive
-            {
-
-                get
-                {
-                    return new KeepAliveType(GetHeaderField(HTTPHeaderField.KeepAlive));
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.KeepAlive, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Last-Modified
-
-            /// <summary>
-            /// Last-Modified
-            /// </summary>
-            public String? LastModified
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.LastModified);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.LastModified, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Location
-
-            /// <summary>
-            /// An absolute or relative HTTP Location.
-            /// </summary>
-            public Location? Location
-            {
-
-                get
-                {
-                    return HTTP.Location.Parse(GetHeaderField(HTTPHeaderField.Location));
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Location, value);
-                }
-
-            }
-
-            #endregion
-
-            #region X-LocationAfterAuth
-
-            /// <summary>
-            /// X-LocationAfterAuth
-            /// </summary>
-            public HTTPPath? XLocationAfterAuth
-            {
-
-                get
-                {
-                    return HTTPPath.Parse(GetHeaderField(HTTPHeaderField.XLocationAfterAuth));
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.XLocationAfterAuth, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Proxy-Authenticate
-
-            /// <summary>
-            /// Proxy-Authenticate
-            /// </summary>
-            public String? ProxyAuthenticate
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.ProxyAuthenticate);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.ProxyAuthenticate, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Retry-After
-
-            /// <summary>
-            /// Retry-After
-            /// </summary>
-            public String? RetryAfter
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.RetryAfter);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.RetryAfter, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Server
-
-            /// <summary>
-            /// Server
-            /// </summary>
-            public String? Server
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.Server);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Server, value);
-                }
-
-            }
-
-            #endregion
-
-            #region SetCookie
-
-            /// <summary>
-            /// Set-Cookie
-            /// </summary>
-            public String? SetCookie
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.SetCookie);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.SetCookie, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Set-Cookies
-
-            /// <summary>
-            /// Set-Cookies
-            /// </summary>
-            public String[]? SetCookies
-            {
-
-                get
-                {
-                    return GetHeaderFields(HTTPHeaderField.SetCookie);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.SetCookie, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Vary
-
-            /// <summary>
-            /// Vary
-            /// </summary>
-            public String? Vary
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.Vary);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.Vary, value);
-                }
-
-            }
-
-            #endregion
-
-            #region WWWAuthenticate
-
-            /// <summary>
-            /// WWW-Authenticate
-            /// </summary>
-            public String? WWWAuthenticate
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.WWWAuthenticate);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.WWWAuthenticate, value);
-                }
-
-            }
-
-            #endregion
-
-            #region SecWebSocketAccept
-
-            /// <summary>
-            /// Sec-WebSocket-Accept
-            /// </summary>
-            public String? SecWebSocketAccept
-            {
-
-                get
-                {
-                    return GetHeaderField(HTTPHeaderField.SecWebSocketAccept);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPHeaderField.SecWebSocketAccept, value);
-                }
-
-            }
-
-            #endregion
-
-            #endregion
-
-            #region Constructor(s)
-
-            #region Builder(             HTTPStatusCode = null)
-
-            /// <summary>
-            /// Create a new HTTP response.
-            /// </summary>
-            /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPStatusCode?  HTTPStatusCode   = null)
-            {
-
-                this.HTTPStatusCode     = HTTPStatusCode ?? HTTPStatusCode.OK;
-                this.Timestamp          = Illias.Timestamp.Now;
-                this.ProtocolName       = "HTTP";
-                this.ProtocolVersion    = new HTTPVersion(1, 1);
-                this.CancellationToken  = new CancellationTokenSource().Token;
-                base.EventTrackingId    = EventTracking_Id.New;
-                this.Runtime            = TimeSpan.Zero;
-
-            }
-
-            #endregion
-
-            #region Builder(HTTPRequest, HTTPStatusCode = null)
-
-            /// <summary>
-            /// Create a new HTTP response.
-            /// </summary>
-            /// <param name="HTTPRequest">The HTTP request for this response.</param>
-            /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPRequest      HTTPRequest,
-                           HTTPStatusCode?  HTTPStatusCode   = null)
-            {
-
-                this.HTTPRequest        = HTTPRequest;
-                this.HTTPStatusCode     = HTTPStatusCode ?? HTTPStatusCode.OK;
-                this.Timestamp          = Illias.Timestamp.Now;
-                this.ProtocolName       = "HTTP";
-                this.ProtocolVersion    = new HTTPVersion(1, 1);
-                this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
-                base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
-                this.Runtime            = HTTPRequest is not null
-                                              ? Illias.Timestamp.Now - HTTPRequest.Timestamp
-                                              : TimeSpan.Zero;
-
-            }
-
-            #endregion
-
-            #endregion
-
-
-            #region Set(HeaderField, Value)
-
-            /// <summary>
-            /// Set a HTTP header field.
-            /// A field value of NULL will remove the field from the header.
-            /// </summary>
-            /// <param name="HeaderField">The header field.</param>
-            /// <param name="Value">The value. NULL will remove the field from the header.</param>
-            public Builder Set(HTTPHeaderField HeaderField, Object Value)
-            {
-
-                base.SetHeaderField(HeaderField, Value);
-
-                return this;
-
-            }
-
-            /// <summary>
-            /// Set a HTTP header field.
-            /// A field value of NULL will remove the field from the header.
-            /// </summary>
-            /// <param name="HeaderField">The header field.</param>
-            /// <param name="Value">The value. NULL will remove the field from the header.</param>
-            public Builder Set(String HeaderField, Object Value)
-            {
-
-                base.SetHeaderField(HeaderField, Value);
-
-                return this;
-
-            }
-
-            #endregion
-
-
-            #region (implicit operator) HTTPResponseBuilder => HTTPResponse
-
-            /// <summary>
-            /// An implicit conversion of a HTTPResponseBuilder into a HTTPResponse.
-            /// </summary>
-            /// <param name="HTTPResponseBuilder">A HTTP response builder.</param>
-            public static implicit operator HTTPResponse(Builder HTTPResponseBuilder)
-                => HTTPResponseBuilder.AsImmutable;
-
-            #endregion
-
-
-            #region Set non-http header fields
-
-            #region SetHTTPStatusCode(HTTPStatusCode)
-
-            /// <summary>
-            /// Set the HTTP status code.
-            /// </summary>
-            /// <param name="HTTPStatusCode">A HTTP status code.</param>
-            public Builder SetHTTPStatusCode(HTTPStatusCode HTTPStatusCode)
-            {
-                this.HTTPStatusCode = HTTPStatusCode;
-                return this;
-            }
-
-            #endregion
-
-            #region SetProtocolName(ProtocolName)
-
-            /// <summary>
-            /// Set the protocol name.
-            /// </summary>
-            /// <param name="ProtocolName">The protocol name.</param>
-            public Builder SetProtocolName(String ProtocolName)
-            {
-                this.ProtocolName = ProtocolName;
-                return this;
-            }
-
-            #endregion
-
-            #region SetProtocolVersion(ProtocolVersion)
-
-            /// <summary>
-            /// Set the protocol version.
-            /// </summary>
-            /// <param name="ProtocolVersion">The protocol version.</param>
-            public Builder SetProtocolVersion(HTTPVersion ProtocolVersion)
-            {
-                this.ProtocolVersion = ProtocolVersion;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContent(...)
-
-            #region SetContent(ByteArray)
-
-            /// <summary>
-            /// The HTTP content/body.
-            /// </summary>
-            /// <param name="ByteArray">The HTTP content/body.</param>
-            public Builder SetContent(Byte[] ByteArray)
-            {
-                this.Content = ByteArray;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContent(String)
-
-            /// <summary>
-            /// The HTTP content/body.
-            /// </summary>
-            /// <param name="String">The HTTP content/body.</param>
-            public Builder SetContent(String String)
-            {
-                this.Content = String.ToUTF8Bytes();
-                return this;
-            }
-
-            #endregion
-
-            #endregion
-
-            #region SetContentStream(ContentStream)
-
-            /// <summary>
-            /// The HTTP content/body as a stream.
-            /// </summary>
-            /// <param name="ContentStream">The HTTP content/body as a stream.</param>
-            public Builder SetContent(Stream ContentStream)
-            {
-                this.ContentStream = ContentStream;
-                return this;
-            }
-
-            #endregion
-
-            #endregion
-
-            #region Set general header fields
-
-            #region SetCacheControl(CacheControl)
-
-            /// <summary>
-            /// Set the HTTP CacheControl.
-            /// </summary>
-            /// <param name="CacheControl">CacheControl.</param>
-            public Builder SetCacheControl(String CacheControl)
-            {
-                this.CacheControl = CacheControl;
-                return this;
-            }
-
-            #endregion
-
-            #region SetConnection(Connection)
-
-            /// <summary>
-            /// Set the HTTP connection.
-            /// </summary>
-            /// <param name="Connection">A connection.</param>
-            public Builder SetConnection(String Connection)
-            {
-                this.Connection = Connection;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentEncoding(ContentEncoding)
-
-            /// <summary>
-            /// Set the HTTP Content-Encoding.
-            /// </summary>
-            /// <param name="ContentEncoding">The encoding of the HTTP content/body.</param>
-            public Builder SetContentEncoding(Encoding ContentEncoding)
-            {
-                this.ContentEncoding = ContentEncoding;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentLanguage(ContentLanguages)
-
-            /// <summary>
-            /// Set the HTTP Content-Languages.
-            /// </summary>
-            /// <param name="ContentLanguages">The languages of the HTTP content/body.</param>
-            public Builder SetContentLanguage(List<String> ContentLanguages)
-            {
-                this.ContentLanguage = ContentLanguages;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentLength(ContentLength)
-
-            /// <summary>
-            /// Set the HTTP Content-Length.
-            /// </summary>
-            /// <param name="ContentLength">The length of the HTTP content/body.</param>
-            public Builder SetContentLength(UInt64? ContentLength)
-            {
-                this.ContentLength = ContentLength;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentLocation(ContentLocation)
-
-            /// <summary>
-            /// Set the HTTP ContentLocation.
-            /// </summary>
-            /// <param name="ContentLocation">ContentLocation.</param>
-            public Builder SetContentLocation(String ContentLocation)
-            {
-                this.ContentLocation = ContentLocation;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentMD5(ContentMD5)
-
-            /// <summary>
-            /// Set the HTTP ContentMD5.
-            /// </summary>
-            /// <param name="ContentMD5">ContentMD5.</param>
-            public Builder SetContentMD5(String ContentMD5)
-            {
-                this.ContentMD5 = ContentMD5;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentRange(ContentRange)
-
-            /// <summary>
-            /// Set the HTTP ContentRange.
-            /// </summary>
-            /// <param name="ContentRange">ContentRange.</param>
-            public Builder SetContentRange(String ContentRange)
-            {
-                this.ContentRange = ContentRange;
-                return this;
-            }
-
-            #endregion
-
-            #region SetContentType(ContentType)
-
-            /// <summary>
-            /// Set the HTTP Content-Type.
-            /// </summary>
-            /// <param name="ContentType">The type of the HTTP content/body.</param>
-            public Builder SetContentType(HTTPContentType ContentType)
-            {
-                this.ContentType = ContentType;
-                return this;
-            }
-
-            #endregion
-
-            #region SetDate(Date)
-
-            /// <summary>
-            /// Set the HTTP Date.
-            /// </summary>
-            /// <param name="Date">DateTime.</param>
-            public Builder SetDate(DateTime Date)
-            {
-                this.Date = Date;
-                return this;
-            }
-
-            #endregion
-
-            #region SetVia(Via)
-
-            /// <summary>
-            /// Set the HTTP Via.
-            /// </summary>
-            /// <param name="Via">Via.</param>
-            public Builder SetVia(String Via)
-            {
-                this.Via = Via;
-                return this;
-            }
-
-            #endregion
-
-            #endregion
-
-
-            #region (static) ClientError       (Request, Configurator = null)
-
-            /// <summary>
-            /// Create a new 0-ClientError HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder ClientError(HTTPRequest      Request,
-                                              Action<Builder>  Configurator = null)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.ClientError);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            /// <summary>
-            /// Create a new 0-ClientError HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder ClientError(HTTPRequest             Request,
-                                              Func<Builder, Builder>  Configurator)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.ClientError);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            #endregion
-
-
-            #region (static) OK                (Request, Configurator = null)
-
-            /// <summary>
-            /// Create a new 200-OK HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder OK(HTTPRequest      Request,
-                                     Action<Builder>  Configurator = null)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.OK);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            /// <summary>
-            /// Create a new 200-OK HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder OK(HTTPRequest             Request,
-                                     Func<Builder, Builder>  Configurator)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.OK);
-
-                if (Configurator != null)
-                    return Configurator(response);
-
-                return response;
-
-            }
-
-            #endregion
-
-            #region (static) BadRequest        (Request, Configurator = null)
-
-            /// <summary>
-            /// Create a new 400-BadRequest HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder BadRequest(HTTPRequest      Request,
-                                             Action<Builder>  Configurator = null)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.BadRequest);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            /// <summary>
-            /// Create a new 400-BadRequest HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder BadRequest(HTTPRequest             Request,
-                                             Func<Builder, Builder>  Configurator)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.BadRequest);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            #endregion
-
-            #region (static) ServiceUnavailable(Request, Configurator = null)
-
-            /// <summary>
-            /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder ServiceUnavailable(HTTPRequest      Request,
-                                                     Action<Builder>  Configurator = null)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            /// <summary>
-            /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder ServiceUnavailable(HTTPRequest             Request,
-                                                     Func<Builder, Builder>  Configurator)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            #endregion
-
-            #region (static) FailedDependency  (Request, Configurator = null)
-
-            /// <summary>
-            /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder FailedDependency(HTTPRequest      Request,
-                                                   Action<Builder>  Configurator = null)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.FailedDependency);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            /// <summary>
-            /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder FailedDependency(HTTPRequest             Request,
-                                                   Func<Builder, Builder>  Configurator)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.FailedDependency);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            #endregion
-
-            #region (static) GatewayTimeout    (Request, Configurator = null)
-
-            /// <summary>
-            /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder GatewayTimeout(HTTPRequest      Request,
-                                                 Action<Builder>  Configurator = null)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.GatewayTimeout);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            /// <summary>
-            /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
-            /// </summary>
-            /// <param name="Request">A HTTP request.</param>
-            /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder GatewayTimeout(HTTPRequest             Request,
-                                                 Func<Builder, Builder>  Configurator)
-            {
-
-                var response = new Builder(Request, HTTPStatusCode.GatewayTimeout);
-
-                Configurator?.Invoke(response);
-
-                return response;
-
-            }
-
-            #endregion
-
-
-            #region PrepareImmutability()
-
-            /// <summary>
-            /// Prepares the immutability of an HTTP PDU, e.g. calculates
-            /// and set the Content-Length header.
-            /// </summary>
-            protected override void PrepareImmutability()
-            {
-                base.PrepareImmutability();
-            }
-
-            #endregion
-
-            #region AsImmutable
-
-            /// <summary>
-            /// Converts this HTTPResponseBuilder into an immutable HTTPResponse.
-            /// </summary>
-            public HTTPResponse AsImmutable
-            {
-                get
-                {
-
-                    PrepareImmutability();
-
-                    if      (Content       is not null)
-                        return Parse(HTTPHeader, Content,       HTTPRequest, SubprotocolResponse);
-
-                    else if (ContentStream is not null)
-                        return Parse(HTTPHeader, ContentStream, HTTPRequest, SubprotocolResponse);
-
-                    else
-                        return Parse(HTTPHeader,                HTTPRequest, SubprotocolResponse);
-
-                }
-            }
-
-            #endregion
+            this.Content    = Content;
+            this.isFault    = IsFault ?? false;
+            this.Exception  = Exception;
 
         }
 
         #endregion
+
+        #region HTTPResponse(Response, Content)
+
+        public HTTPResponse(HTTPResponse  Response,
+                            TContent      Content)
+
+            : this(Response,
+                   Content,
+                   null,
+                   null)
+
+        { }
+
+        #endregion
+
+        #region HTTPResponse(Response, IsFault)
+
+        public HTTPResponse(HTTPResponse  Response,
+                            Boolean       IsFault)
+
+            : this(Response,
+                   default,
+                   IsFault)
+
+        { }
+
+        #endregion
+
+        #region HTTPResponse(Response, Exception)
+
+        public HTTPResponse(HTTPResponse  Response,
+                            Exception     Exception)
+
+            : this(Response,
+                   default,
+                   true,
+                   Exception)
+
+        { }
+
+        #endregion
+
+
+        #region (private) HTTPResponse(Content, Exception)
+
+        private HTTPResponse(TContent   Content,
+                             Exception  Exception)
+
+            : base(null)
+
+        {
+
+            this.Content    = Content;
+            this.isFault    = true;
+            this.Exception  = Exception;
+
+        }
+
+        #endregion
+
+
+        #region HTTPResponse(Request, Content)
+
+        private HTTPResponse(HTTPRequest  Request,
+                             TContent     Content)
+
+            : this(Builder.OK(Request), Content, false)
+
+        { }
+
+        #endregion
+
+        #region HTTPResponse(Request, Exception)
+
+        public HTTPResponse(HTTPRequest  Request,
+                            Exception    Exception)
+
+            : this(new Builder(Request) {
+                       HTTPStatusCode = HTTPStatusCode.BadRequest
+                   },
+                   default,
+                   true,
+                   Exception)
+
+        { }
+
+        #endregion
+
+        #endregion
+
+
+        #region ConvertContent<TResult>(ContentConverter)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, TResult> ContentConverter)
+        {
+
+            if (ContentConverter is null)
+                throw new ArgumentNullException(nameof(ContentConverter),  "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(this.Content));
+
+        }
+
+        #endregion
+
+        #region ConvertContent<TResult>(ContentConverter, OnException = null)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPResponse<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
+                                                             OnExceptionDelegate?                          OnException   = null)
+        {
+
+            if (ContentConverter is null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(this.Content,
+                                                              OnException));
+
+        }
+
+        #endregion
+
+
+        #region ConvertContent<TRequest, TResult>(Request, ContentConverter)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="Request">The request leading to this response.</param>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                           Request,
+                                                                       Func<TRequest, TContent, TResult>  ContentConverter)
+        {
+
+            if (ContentConverter is null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(Request,
+                                                              this.Content));
+
+        }
+
+        #endregion
+
+        #region ConvertContent<TRequest, TResult>(Request, ContentConverter, OnException = null)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="Request">The request leading to this response.</param>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                Request,
+                                                                       Func<TRequest, TContent, OnExceptionDelegate, TResult>  ContentConverter,
+                                                                       OnExceptionDelegate?                                    OnException   = null)
+        {
+
+            if (ContentConverter is null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(Request,
+                                                              this.Content,
+                                                              OnException));
+
+        }
+
+        #endregion
+
+        #region ConvertContent<TRequest, TResult>(Request, ContentConverter, OnException = null)
+
+        /// <summary>
+        /// Convert the content of the HTTP response body via the given
+        /// content converter delegate.
+        /// </summary>
+        /// <typeparam name="TRequest">The type of the converted HTTP request body content.</typeparam>
+        /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
+        /// <param name="Request">The request leading to this response.</param>
+        /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
+        /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
+        public HTTPResponse<TResult> ConvertContent<TRequest, TResult>(TRequest                                                              Request,
+                                                                       Func<TRequest, TContent, HTTPResponse, OnExceptionDelegate, TResult>  ContentConverter,
+                                                                       OnExceptionDelegate?                                                  OnException   = null)
+        {
+
+            if (ContentConverter is null)
+                throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
+
+            return new HTTPResponse<TResult>(this,
+                                             ContentConverter(Request,
+                                                              Content,
+                                                              this,
+                                                              OnException));
+
+        }
+
+        #endregion
+
+
+
+        public static HTTPResponse<TContent> OK(HTTPRequest  HTTPRequest,
+                                                TContent     Content)
+
+            => new (HTTPRequest, Content);
+
+        public static HTTPResponse<TContent> OK(TContent Content)
+
+            => new (null, Content, null, null);
+
+        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
+                                                     TContent      Content)
+
+            => new (Response,
+                    Content,
+                    true);
+
+        public static HTTPResponse<TContent> IsFault(HTTPResponse  Response,
+                                                     Exception     Exception)
+
+            => new (Response,
+                    default,
+                    true,
+                    Exception);
+
+        public static HTTPResponse<TContent> ClientError(TContent Content)
+
+            => new (null, Content, IsFault: true);
+
+        public static HTTPResponse<TContent> ExceptionThrown(TContent   Content,
+                                                             Exception  Exception)
+
+            => new (Content, Exception);
+
+
+        #region (static) GatewayTimeout
+
+        public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
+
+            => new (new Builder(null,
+                                HTTPStatusCode.GatewayTimeout),
+                    Content);
+
+        #endregion
+
 
     }
 

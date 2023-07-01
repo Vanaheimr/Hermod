@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.MIME
 
 
             if (Headers.TryGetValue("Content-Type", out Object Value) &&
-                HTTPContentType.TryParseString(Value as String, out HTTPContentType ContentType))
+                HTTPContentType.TryParse(Value as String, out HTTPContentType ContentType))
             {
                 Headers["Content-Type"] = ContentType;
                 this.ContentType = ContentType;

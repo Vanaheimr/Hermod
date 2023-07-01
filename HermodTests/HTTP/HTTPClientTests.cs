@@ -68,10 +68,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
                                                                        new HTTPResponse.Builder(Request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
                                                                            Server                     = "Test Server",
-                                                                           Date                       = DateTime.UtcNow,
+                                                                           Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
                                                                            AccessControlAllowMethods  = new[] { "GET" },
-                                                                           AccessControlAllowHeaders  = "Content-Type, Accept, Authorization",
+                                                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                                            ContentType                = HTTPContentType.TEXT_UTF8,
                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
                                                                            Connection                 = "close"

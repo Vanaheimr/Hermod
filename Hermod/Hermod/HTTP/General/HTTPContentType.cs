@@ -17,12 +17,9 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Diagnostics;
 
 #endregion
 
@@ -43,46 +40,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           IComparable
     {
 
-        private static readonly Char[]                                Splitter        = new Char[1] { ';' };
+        #region Data
 
-        private static readonly Dictionary<String, HTTPContentType>   _Lookup         = new ();
-        private static readonly Dictionary<String, HTTPContentType[]> _ReverseLookup  = new ();
+        private static readonly  Char[]                                 splitter        = new[] { ';' };
+
+        private static readonly  Dictionary<String, HTTPContentType>    lookup          = new ();
+        private static readonly  Dictionary<String, HTTPContentType[]>  reverseLookup   = new ();
+
+        private        readonly  String[] fileExtensions;
+
+        #endregion
 
         #region Properties
 
         /// <summary>
         /// The media main type.
         /// </summary>
-        public String   MediaMainType    { get; }
+        public String               MediaMainType    { get; }
 
         /// <summary>
         /// The media sub type.
         /// </summary>
-        public String   MediaSubType     { get; }
+        public String               MediaSubType     { get; }
 
         /// <summary>
-        /// The (optional) character set.
+        /// The optional character set.
         /// </summary>
-        public String   CharSet          { get; }
-
-
-        private readonly String[] fileExtensions;
+        public String?              CharSet          { get; }
 
         /// <summary>
         /// Well-known file extentions using this HTTP content type.
         /// </summary>
-        public IEnumerable<String> FileExtensions
+        public IEnumerable<String>  FileExtensions
             => fileExtensions;
 
         /// <summary>
         /// The (optional) MIME boundary.
         /// </summary>
-        public String?  MIMEBoundary     { get; }
+        public String?              MIMEBoundary     { get; }
 
         /// <summary>
         /// The (optional) (SOAP) action.
         /// </summary>
-        public String?  Action           { get; }
+        public String?              Action           { get; }
 
 
         #region DebugView
@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FileExtensions">Well-known file extentions using this HTTP content type.</param>
         public HTTPContentType(String           MediaMainType,
                                String           MediaSubType,
-                               String           CharSet,
+                               String?          CharSet,
                                String?          Action,
                                String?          MIMEBoundary,
                                params String[]  FileExtensions)
@@ -123,20 +123,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MIMEBoundary     = MIMEBoundary;
             this.fileExtensions   = FileExtensions ?? Array.Empty<String>();
 
-            if (!_Lookup.ContainsKey(MediaMainType + "/" + MediaSubType))
-                _Lookup.Add(MediaMainType + "/" + MediaSubType, this);
+            if (!lookup.ContainsKey(MediaMainType + "/" + MediaSubType))
+                lookup.Add(MediaMainType + "/" + MediaSubType, this);
 
             if (fileExtensions.Any())
             {
                 fileExtensions.ForEach(FileExtension => {
-                    if (_ReverseLookup.ContainsKey(FileExtension)) {
-                        var List = new List<HTTPContentType>(_ReverseLookup[FileExtension]) {
+                    if (reverseLookup.ContainsKey(FileExtension)) {
+                        var List = new List<HTTPContentType>(reverseLookup[FileExtension]) {
                                        this
                                    };
-                        _ReverseLookup[FileExtension] = List.ToArray();
+                        reverseLookup[FileExtension] = List.ToArray();
                     }
                     else
-                        _ReverseLookup.Add(FileExtension, new HTTPContentType[] { this });
+                        reverseLookup.Add(FileExtension, new HTTPContentType[] { this });
                 });
             }
 
@@ -147,81 +147,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Static HTTP content types
 
-        public static readonly HTTPContentType ALL                  = new HTTPContentType("*", "*",                                    "utf-8", null, null);
+        public static readonly HTTPContentType ALL                  = new ("*", "*",                                    "utf-8", null, null);
 
-        public static readonly HTTPContentType TEXT_UTF8            = new HTTPContentType("text", "plain",                             "utf-8", null, null, "txt");
-        public static readonly HTTPContentType HTML_UTF8            = new HTTPContentType("text", "html",                              "utf-8", null, null, "htm", "html");
-        public static readonly HTTPContentType CSS_UTF8             = new HTTPContentType("text", "css",                               "utf-8", null, null, "css");
-        public static readonly HTTPContentType CSV_Text_UTF8        = new HTTPContentType("text", "csv",                               "utf-8", null, null, "css");
-        public static readonly HTTPContentType JAVASCRIPT_UTF8      = new HTTPContentType("text", "javascript",                        "utf-8", null, null, "js");
-        public static readonly HTTPContentType XMLTEXT_UTF8         = new HTTPContentType("text", "xml",                               "utf-8", null, null, "xml");
-        public static readonly HTTPContentType MARKDOWN_UTF8        = new HTTPContentType("text", "markdown",                          "utf-8", null, null, "md");
+        public static readonly HTTPContentType TEXT_UTF8            = new ("text", "plain",                             "utf-8", null, null, "txt");
+        public static readonly HTTPContentType HTML_UTF8            = new ("text", "html",                              "utf-8", null, null, "htm", "html");
+        public static readonly HTTPContentType CSS_UTF8             = new ("text", "css",                               "utf-8", null, null, "css");
+        public static readonly HTTPContentType CSV_Text_UTF8        = new ("text", "csv",                               "utf-8", null, null, "css");
+        public static readonly HTTPContentType JAVASCRIPT_UTF8      = new ("text", "javascript",                        "utf-8", null, null, "js");
+        public static readonly HTTPContentType XMLTEXT_UTF8         = new ("text", "xml",                               "utf-8", null, null, "xml");
+        public static readonly HTTPContentType MARKDOWN_UTF8        = new ("text", "markdown",                          "utf-8", null, null, "md");
 
-        public static readonly HTTPContentType JSON_UTF8            = new HTTPContentType("application", "json",                       "utf-8", null, null, "json");
-        public static readonly HTTPContentType JSONLD_UTF8          = new HTTPContentType("application", "ld+json",                    "utf-8", null, null, "json-ld");
-        public static readonly HTTPContentType GeoJSON_UTF8         = new HTTPContentType("application", "geo+json",                   "utf-8", null, null, "geojson");
-        public static readonly HTTPContentType JSONMergePatch_UTF8  = new HTTPContentType("application", "merge-patch+json",           "utf-8", null, null);
-        public static readonly HTTPContentType XML_UTF8             = new HTTPContentType("application", "xml",                        "utf-8", null, null, "xml");
-        public static readonly HTTPContentType SOAPXML_UTF8         = new HTTPContentType("application", "soap+xml",                   "utf-8", null, null, "soap");
+        public static readonly HTTPContentType JSON_UTF8            = new ("application", "json",                       "utf-8", null, null, "json");
+        public static readonly HTTPContentType JSONLD_UTF8          = new ("application", "ld+json",                    "utf-8", null, null, "json-ld");
+        public static readonly HTTPContentType GeoJSON_UTF8         = new ("application", "geo+json",                   "utf-8", null, null, "geojson");
+        public static readonly HTTPContentType JSONMergePatch_UTF8  = new ("application", "merge-patch+json",           "utf-8", null, null);
+        public static readonly HTTPContentType XML_UTF8             = new ("application", "xml",                        "utf-8", null, null, "xml");
+        public static readonly HTTPContentType SOAPXML_UTF8         = new ("application", "soap+xml",                   "utf-8", null, null, "soap");
 
-        public static readonly HTTPContentType GEXF_UTF8            = new HTTPContentType("application", "gexf+xml",                   "utf-8", null, null, "gexf");
-        public static readonly HTTPContentType GRAPHML_UTF8         = new HTTPContentType("application", "graphml+xml",                "utf-8", null, null, "graphml");
-        public static readonly HTTPContentType SWF                  = new HTTPContentType("application", "x-shockwave-flash",          null,    null, null, "swf");
-        public static readonly HTTPContentType PDF                  = new HTTPContentType("application", "pdf",                        "utf-8", null, null, "pdf");
-        public static readonly HTTPContentType CSV_App_UTF8         = new HTTPContentType("application", "csv",                        "utf-8", null, null, "csv");
-        public static readonly HTTPContentType SIG                  = new HTTPContentType("application", "pgp-signature",              "utf-8", null, null, "sig");
+        public static readonly HTTPContentType GEXF_UTF8            = new ("application", "gexf+xml",                   "utf-8", null, null, "gexf");
+        public static readonly HTTPContentType GRAPHML_UTF8         = new ("application", "graphml+xml",                "utf-8", null, null, "graphml");
+        public static readonly HTTPContentType SWF                  = new ("application", "x-shockwave-flash",          null,    null, null, "swf");
+        public static readonly HTTPContentType PDF                  = new ("application", "pdf",                        "utf-8", null, null, "pdf");
+        public static readonly HTTPContentType CSV_App_UTF8         = new ("application", "csv",                        "utf-8", null, null, "csv");
+        public static readonly HTTPContentType SIG                  = new ("application", "pgp-signature",              "utf-8", null, null, "sig");
 
-        public static readonly HTTPContentType GIF                  = new HTTPContentType("image", "gif",                              null,    null, null, "gif");
-        public static readonly HTTPContentType ICO                  = new HTTPContentType("image", "ico",                              null,    null, null, "ico");
-        public static readonly HTTPContentType PNG                  = new HTTPContentType("image", "png",                              null,    null, null, "png");
-        public static readonly HTTPContentType JPEG                 = new HTTPContentType("image", "jpeg",                             null,    null, null, "jpg", "jpeg");
-        public static readonly HTTPContentType SVG                  = new HTTPContentType("image", "svg+xml",                          "utf-8", null, null, "svg");
+        public static readonly HTTPContentType GIF                  = new ("image", "gif",                              null,    null, null, "gif");
+        public static readonly HTTPContentType ICO                  = new ("image", "ico",                              null,    null, null, "ico");
+        public static readonly HTTPContentType PNG                  = new ("image", "png",                              null,    null, null, "png");
+        public static readonly HTTPContentType JPEG                 = new ("image", "jpeg",                             null,    null, null, "jpg", "jpeg");
+        public static readonly HTTPContentType SVG                  = new ("image", "svg+xml",                          "utf-8", null, null, "svg");
 
-        public static readonly HTTPContentType OGM                  = new HTTPContentType("video", "ogm",                              null,    null, null, "ogm");
-        public static readonly HTTPContentType OGV                  = new HTTPContentType("video", "ogv",                              null,    null, null, "ogv");
-        public static readonly HTTPContentType OGG                  = new HTTPContentType("video", "ogg",                              null,    null, null, "ogg");
-        public static readonly HTTPContentType MP4                  = new HTTPContentType("video", "mp4",                              null,    null, null, "mp4");
-        public static readonly HTTPContentType WEBM                 = new HTTPContentType("video", "webm",                             null,    null, null, "webm");
+        public static readonly HTTPContentType OGM                  = new ("video", "ogm",                              null,    null, null, "ogm");
+        public static readonly HTTPContentType OGV                  = new ("video", "ogv",                              null,    null, null, "ogv");
+        public static readonly HTTPContentType OGG                  = new ("video", "ogg",                              null,    null, null, "ogg");
+        public static readonly HTTPContentType MP4                  = new ("video", "mp4",                              null,    null, null, "mp4");
+        public static readonly HTTPContentType WEBM                 = new ("video", "webm",                             null,    null, null, "webm");
 
-        public static readonly HTTPContentType WOFF                 = new HTTPContentType("application", "font-woff",                  "utf-8", null, null, "woff", "woff2");
+        public static readonly HTTPContentType WOFF                 = new ("application", "font-woff",                  "utf-8", null, null, "woff", "woff2");
 
-        public static readonly HTTPContentType XWWWFormUrlEncoded   = new HTTPContentType("application", "x-www-form-urlencoded",      "utf-8", null, null);
-        public static readonly HTTPContentType OCTETSTREAM          = new HTTPContentType("application", "octet-stream",               "utf-8", null, null);
-        public static readonly HTTPContentType EVENTSTREAM          = new HTTPContentType("text", "event-stream",                      "utf-8", null, null);
+        public static readonly HTTPContentType XWWWFormUrlEncoded   = new ("application", "x-www-form-urlencoded",      "utf-8", null, null);
+        public static readonly HTTPContentType OCTETSTREAM          = new ("application", "octet-stream",               "utf-8", null, null);
+        public static readonly HTTPContentType EVENTSTREAM          = new ("text", "event-stream",                      "utf-8", null, null);
 
-        public static readonly HTTPContentType MULTIPART_FORMDATA   = new HTTPContentType("multipart", "form-data",                    "utf-8", null, null);
+        public static readonly HTTPContentType MULTIPART_FORMDATA   = new ("multipart", "form-data",                    "utf-8", null, null);
 
         #endregion
 
 
-        #region TryParseString(Text, out HTTPContentType)
+        #region TryParse(Text, out HTTPContentType)
 
-        public static Boolean TryParseString(String Text, out HTTPContentType HTTPContentType)
+        public static Boolean TryParse(String Text, out HTTPContentType? HTTPContentType)
         {
 
             try
             {
 
-                var Parts       = Text.Split     (Splitter, StringSplitOptions.RemoveEmptyEntries).
+                var parts       = Text.Split     (splitter, StringSplitOptions.RemoveEmptyEntries).
                                        SafeSelect(part => part.Trim()).
                                        ToArray();
 
-                var MediaTypes  = Parts[0].Split('/');
-                var Charset     = Array.Find(Parts, part => part.StartsWith("charset",  StringComparison.OrdinalIgnoreCase));
-                var Boundary    = Array.Find(Parts, part => part.StartsWith("boundary", StringComparison.OrdinalIgnoreCase));
+                var mediaTypes  = parts[0].Split('/');
+                var charset     = Array.Find(parts, part => part.StartsWith("charset",  StringComparison.OrdinalIgnoreCase));
+                var boundary    = Array.Find(parts, part => part.StartsWith("boundary", StringComparison.OrdinalIgnoreCase));
 
-                    Charset     = Charset.IsNeitherNullNorEmpty()
-                                      ? Charset.Substring(Charset.IndexOf("=") + 1).Trim()
+                    charset     = charset is not null && charset.IsNeitherNullNorEmpty()
+                                      ? charset.Substring(charset.IndexOf("=") + 1).Trim()
                                       : null;
 
-                if (Boundary != null)
+                if (boundary is not null)
                 {
 
-                    HTTPContentType = new HTTPContentType(MediaTypes[0],
-                                                          MediaTypes[1],
-                                                          Charset,
+                    HTTPContentType = new HTTPContentType(mediaTypes[0],
+                                                          mediaTypes[1],
+                                                          charset,
                                                           null,
-                                                          Boundary.Substring(Boundary.IndexOf("----")));
+                                                          boundary[boundary.IndexOf("----")..]);
                     return true;
 
                 }
@@ -229,14 +229,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else
                 {
 
-                    HTTPContentType  = (from    _FieldInfo in typeof(HTTPContentType).GetFields()
-                                        let    __HTTPContentType  = _FieldInfo.GetValue(null) as HTTPContentType
-                                        where  __HTTPContentType != null
-                                        where  __HTTPContentType.MediaMainType == MediaTypes[0] && __HTTPContentType.MediaSubType == MediaTypes[1]
-                                        select __HTTPContentType).FirstOrDefault()
+                    HTTPContentType  = (from    fieldInfo in typeof(HTTPContentType).GetFields()
+                                        let    httpContentType  = fieldInfo.GetValue(null) as HTTPContentType
+                                        where  httpContentType is not null
+                                        where  httpContentType.MediaMainType == mediaTypes[0] && httpContentType.MediaSubType == mediaTypes[1]
+                                        select httpContentType).FirstOrDefault()
 
-                                    ??  new HTTPContentType(MediaTypes[0],
-                                                            MediaTypes[1],
+                                    ??  new HTTPContentType(mediaTypes[0],
+                                                            mediaTypes[1],
                                                             null,
                                                             null,
                                                             null);
@@ -256,11 +256,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        public static HTTPContentType ForMediaType(String                 MediaType,
-                                                   Func<HTTPContentType>  DefaultValueFactory = null)
+        #region ForMediaType(MediaType, DefaultValueFactory = null)
+
+        public static HTTPContentType? ForMediaType(String                  MediaType,
+                                                    Func<HTTPContentType>?  DefaultValueFactory   = null)
         {
 
-            if (_Lookup.TryGetValue(MediaType, out HTTPContentType HTTPContentType))
+            if (lookup.TryGetValue(MediaType, out var HTTPContentType))
                 return HTTPContentType;
 
             if (DefaultValueFactory != null)
@@ -270,98 +272,109 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
-        public static IEnumerable<HTTPContentType> ForFileExtension(String                 FileExtension,
-                                                                    Func<HTTPContentType>  DefaultValueFactory = null)
+        #endregion
+
+        #region ForFileExtension(FileExtension, DefaultValueFactory = null)
+
+        public static IEnumerable<HTTPContentType> ForFileExtension(String                  FileExtension,
+                                                                    Func<HTTPContentType>?  DefaultValueFactory   = null)
         {
 
-            if (_ReverseLookup.TryGetValue(FileExtension, out HTTPContentType[] HTTPContentTypes))
-                return HTTPContentTypes;
+            if (reverseLookup.TryGetValue(FileExtension, out var httpContentTypes))
+                return httpContentTypes;
 
-            if (DefaultValueFactory != null)
-                return new HTTPContentType[] { DefaultValueFactory() };
+            if (DefaultValueFactory is not null)
+                return new[] { DefaultValueFactory() };
 
-            return new HTTPContentType[0];
+            return Array.Empty<HTTPContentType>();
 
         }
+
+        #endregion
 
 
         #region Operator overloading
 
-        #region Operator == (myHTTPContentType1, myHTTPContentType2)
+        #region Operator == (HTTPContentType1, HTTPContentType2)
 
-        public static Boolean operator == (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
+        public static Boolean operator == (HTTPContentType? HTTPContentType1,
+                                           HTTPContentType? HTTPContentType2)
         {
 
             // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(myHTTPContentType1, myHTTPContentType2))
+            if (Object.ReferenceEquals(HTTPContentType1, HTTPContentType2))
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) myHTTPContentType1 == null) || ((Object) myHTTPContentType2 == null))
+            if (HTTPContentType1 is null || HTTPContentType2 is null)
                 return false;
 
-            return myHTTPContentType1.Equals(myHTTPContentType2);
+            return HTTPContentType1.Equals(HTTPContentType2);
 
         }
 
         #endregion
 
-        #region Operator != (myHTTPContentType1, myHTTPContentType2)
+        #region Operator != (HTTPContentType1, HTTPContentType2)
 
-        public static Boolean operator != (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
-            => !(myHTTPContentType1 == myHTTPContentType2);
+        public static Boolean operator != (HTTPContentType? HTTPContentType1,
+                                           HTTPContentType? HTTPContentType2)
+
+            => !(HTTPContentType1 == HTTPContentType2);
 
         #endregion
 
-        #region Operator <  (myHTTPContentType1, myHTTPContentType2)
+        #region Operator <  (HTTPContentType1, HTTPContentType2)
 
-        public static Boolean operator < (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
+        public static Boolean operator < (HTTPContentType? HTTPContentType1,
+                                          HTTPContentType? HTTPContentType2)
         {
 
-            // Check if myHTTPContentType1 is null
-            if ((Object) myHTTPContentType1 == null)
-                throw new ArgumentNullException("Parameter myHTTPContentType1 must not be null!");
+            if (HTTPContentType1 is null)
+                throw new ArgumentNullException(nameof(HTTPContentType1), "The given HTTPContentType1 must not be null!");
 
-            // Check if myHTTPContentType2 is null
-            if ((Object) myHTTPContentType2 == null)
-                throw new ArgumentNullException("Parameter myHTTPContentType2 must not be null!");
+            if (HTTPContentType2 is null)
+                throw new ArgumentNullException(nameof(HTTPContentType2), "The given HTTPContentType2 must not be null!");
 
-            return myHTTPContentType1.CompareTo(myHTTPContentType2) < 0;
+            return HTTPContentType1.CompareTo(HTTPContentType2) < 0;
 
         }
 
         #endregion
 
-        #region Operator >  (myHTTPContentType1, myHTTPContentType2)
+        #region Operator >  (HTTPContentType1, HTTPContentType2)
 
-        public static Boolean operator > (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
+        public static Boolean operator > (HTTPContentType? HTTPContentType1,
+                                          HTTPContentType? HTTPContentType2)
         {
 
-            // Check if myHTTPContentType1 is null
-            if ((Object) myHTTPContentType1 == null)
-                throw new ArgumentNullException("Parameter myHTTPContentType1 must not be null!");
+            if (HTTPContentType1 is null)
+                throw new ArgumentNullException(nameof(HTTPContentType1), "The given HTTPContentType1 must not be null!");
 
-            // Check if myHTTPContentType2 is null
-            if ((Object) myHTTPContentType2 == null)
-                throw new ArgumentNullException("Parameter myHTTPContentType2 must not be null!");
+            if (HTTPContentType2 is null)
+                throw new ArgumentNullException(nameof(HTTPContentType2), "The given HTTPContentType2 must not be null!");
 
-            return myHTTPContentType1.CompareTo(myHTTPContentType2) > 0;
+            return HTTPContentType1.CompareTo(HTTPContentType2) > 0;
 
         }
 
         #endregion
 
-        #region Operator <= (myHTTPContentType1, myHTTPContentType2)
+        #region Operator <= (HTTPContentType1, HTTPContentType2)
 
-        public static Boolean operator <= (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
-            => !(myHTTPContentType1 > myHTTPContentType2);
+        public static Boolean operator <= (HTTPContentType? HTTPContentType1,
+                                           HTTPContentType? HTTPContentType2)
+
+            => !(HTTPContentType1 > HTTPContentType2);
 
         #endregion
 
-        #region Operator >= (myHTTPContentType1, myHTTPContentType2)
+        #region Operator >= (HTTPContentType1, HTTPContentType2)
 
-        public static Boolean operator >= (HTTPContentType myHTTPContentType1, HTTPContentType myHTTPContentType2)
-            => !(myHTTPContentType1 < myHTTPContentType2);
+        public static Boolean operator >= (HTTPContentType? HTTPContentType1,
+                                           HTTPContentType? HTTPContentType2)
+
+            => !(HTTPContentType1 < HTTPContentType2);
 
         #endregion
 
@@ -372,36 +385,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP content types.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">A HTTP content type to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            var HTTPContentType = Object as HTTPContentType;
-            if ((Object) HTTPContentType == null)
-                throw new ArgumentException("The given object is not a HTTPContentType!");
-
-            return CompareTo(HTTPContentType);
-
-        }
+            => Object is HTTPContentType httpContentType
+                   ? CompareTo(httpContentType)
+                   : throw new ArgumentException("The given object is not a HTTP content type!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(HTTPContentType)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP content types.
         /// </summary>
-        /// <param name="HTTPContentType">An object to compare with.</param>
-        public Int32 CompareTo(HTTPContentType HTTPContentType)
+        /// <param name="HTTPContentType">A HTTP content type to compare with.</param>
+        public Int32 CompareTo(HTTPContentType? HTTPContentType)
         {
 
-            if ((Object) HTTPContentType == null)
-                throw new ArgumentNullException("The given HTTPContentType must not be null!");
+            if (HTTPContentType is null)
+                throw new ArgumentNullException(nameof(HTTPContentType),
+                                                "The given HTTP content type must not be null!");
 
             var c = MediaMainType.CompareTo(HTTPContentType.MediaMainType);
 
@@ -421,43 +428,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP content types for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="HTTPContentType">A HTTP content type to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            var HTTPContentType = Object as HTTPContentType;
-            if ((Object) HTTPContentType == null)
-                return false;
-
-            return Equals(HTTPContentType);
-
-        }
+            => Object is HTTPContentType httpContentType &&
+                   Equals(httpContentType);
 
         #endregion
 
         #region Equals(HTTPContentType)
 
         /// <summary>
-        /// Compares two HTTPContentTypes for equality.
+        /// Compares two HTTP content types for equality.
         /// </summary>
-        /// <param name="HTTPContentType">A HTTPContentType to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPContentType HTTPContentType)
-        {
+        /// <param name="HTTPContentType">A HTTP content type to compare with.</param>
+        public Boolean Equals(HTTPContentType? HTTPContentType)
 
-            if ((Object) HTTPContentType == null)
-                return false;
+            => HTTPContentType is not null &&
 
-            return MediaMainType.Equals(HTTPContentType.MediaMainType) &&
-                   MediaSubType. Equals(HTTPContentType.MediaSubType);
-
-        }
+               MediaMainType.Equals(HTTPContentType.MediaMainType) &&
+               MediaSubType. Equals(HTTPContentType.MediaSubType);
 
         #endregion
 

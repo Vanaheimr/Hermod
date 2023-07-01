@@ -53,14 +53,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Parse(AcceptString)
+        #region TryParse(AcceptString, out AcceptTypes)
 
-        public static AcceptTypes Parse(String AcceptString)
+        public static Boolean TryParse(String AcceptString, out AcceptTypes? AcceptTypes)
+        {
 
-            => new (AcceptString.Split(splitter, StringSplitOptions.RemoveEmptyEntries)?.Select(acceptString => new AcceptType(acceptString))?.ToArray()
-                        ?? Array.Empty<AcceptType>());
+            var elements = AcceptString.Split(splitter, StringSplitOptions.RemoveEmptyEntries);
+
+            if (elements.Any())
+            {
+
+                var list = new List<AcceptType>();
+
+                foreach (var element in elements)
+                {
+
+                    var element2 = element?.Trim();
+
+                    if (element2 is not null &&
+                        element2.IsNotNullOrEmpty() &&
+                        AcceptType.TryParse(element2, out var acceptType) &&
+                        acceptType is not null)
+                    {
+                        list.Add(acceptType);
+                    }
+
+                }
+
+                AcceptTypes = new AcceptTypes(list.ToArray());
+                return true;
+
+            }
+
+            AcceptTypes = null;
+            return false;
+
+        }
 
         #endregion
+
 
         #region FromHTTPContentTypes(params HTTPContentTypes)
 
@@ -71,6 +102,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region Clone()
+
+        public AcceptTypes Clone()
+
+            => new (acceptedTypes.Select (acceptType => acceptType.Clone()).
+                                  ToArray());
+
+        #endregion
 
 
         #region Add(AcceptType)

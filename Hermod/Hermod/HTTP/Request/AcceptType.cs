@@ -30,7 +30,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A single HTTP accept type.
     /// </summary>
-    public class AcceptType : IEquatable<AcceptType>, IComparable<AcceptType>, IComparable
+    public class AcceptType : IEquatable<AcceptType>,
+                              IComparable<AcceptType>,
+                              IComparable
     {
 
         #region Data
@@ -44,12 +46,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The accepted content type.
         /// </summary>
-        public HTTPContentType ContentType { get; set; }
+        public HTTPContentType  ContentType    { get; set; }
 
         /// <summary>
         /// A value between 0..1; default is 1.
         /// </summary>
-        public Double          Quality     { get; set; }
+        public Double           Quality        { get; set; }
 
         #endregion
 
@@ -62,18 +64,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPContentType">The accepted content type.</param>
         /// <param name="Quality">The preference of the content type.</param>
-        public AcceptType(HTTPContentType HTTPContentType, Double Quality = 1.0)
+        public AcceptType(HTTPContentType  HTTPContentType,
+                          Double           Quality   = 1.0)
         {
 
-            #region Initial checks
-
-            if (HTTPContentType == null)
-                throw new ArgumentNullException("The given HTTPContentType must not be null!");
-
-            #endregion
-
-            this.ContentType = HTTPContentType;
-            this.Quality     = Quality;
+            this.ContentType  = HTTPContentType;
+            this.Quality      = Quality;
 
         }
 
@@ -84,17 +80,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AcceptType(String AcceptString, Double Quality)
         {
 
-            #region Initial checks
+            var acceptString  = AcceptString.Split('/');
 
-            if (AcceptString.IsNullOrEmpty())
-                throw new ArgumentNullException("The given Accept string must not be null or empty!");
-
-            #endregion
-
-            var _AcceptString  = AcceptString.Split('/');
-
-            this.ContentType   = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(_AcceptString[0], _AcceptString[1], "utf-8", null, null));
-            this.Quality       = Quality;
+            this.ContentType  = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(acceptString[0], acceptString[1], "utf-8", null, null));
+            this.Quality      = Quality;
 
         }
 
@@ -127,31 +116,99 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // */*
             // q=0.8
 
-            this.Quality              = 1;
+            var splittedAcceptString  = AcceptString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()).ToArray();
+            var mediaTypes            = splittedAcceptString[0].Split('/');
+            var charset               = Array.Find(splittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
+            var quality               = Array.Find(splittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
 
-            var SplittedAcceptString  = AcceptString.Split(new Char[1] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()).ToArray();
-            var MediaTypes            = SplittedAcceptString[0].Split('/');
-            var Charset               = Array.Find(SplittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
-            var Quality               = Array.Find(SplittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
-
-            if (MediaTypes.Length == 1)
+            if (mediaTypes.Length == 1)
             {
-                this.ContentType          = HTTPContentType.ALL;
+                this.ContentType      = HTTPContentType.ALL;
             }
-            else if(MediaTypes.Length == 2)
+            else if(mediaTypes.Length == 2)
             {
-                this.ContentType          = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(MediaTypes[0],
-                                                                                                                 MediaTypes[1],
-                                                                                                                 Charset.IsNotNullOrEmpty() ? Charset.Substring(8) : null,
-                                                                                                                 null,
-                                                                                                                 null));
+                this.ContentType      = HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(mediaTypes[0],
+                                                                                                             mediaTypes[1],
+                                                                                                             charset.IsNotNullOrEmpty() ? charset.Substring(8) : null,
+                                                                                                             null,
+                                                                                                             null));
             }
 
-            this.Quality              = Quality.IsNotNullOrEmpty() ? Double.Parse(Quality.Substring(2), CultureInfo.InvariantCulture) : 1.0;
+            this.Quality              = quality is not null && quality.IsNotNullOrEmpty()
+                                            ? Double.Parse(quality[2..], CultureInfo.InvariantCulture)
+                                            : 1.0;
 
         }
 
         #endregion
+
+        #endregion
+
+
+        public static Boolean TryParse(String AcceptString, out AcceptType? AcceptType)
+        {
+
+            // text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+
+            // text/html
+            // application/xhtml+xml
+            // application/xml;q=0.9
+            // */*;q=0.8
+
+            // text/html,application/xhtml+xml,application/xml
+            // q=0.9,*/*
+            // q=0.8
+
+            // text/html
+            // application/xhtml+xml
+            // application/xml
+            // q=0.9
+            // */*
+            // q=0.8
+
+            var splittedAcceptString  = AcceptString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()).ToArray();
+            var mediaTypes            = splittedAcceptString[0].Split('/');
+            var charset               = Array.Find(splittedAcceptString, part => part.StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
+            var quality               = Array.Find(splittedAcceptString, part => part.StartsWith("q=",       StringComparison.OrdinalIgnoreCase));
+
+            var quality2              = quality is not null && quality.IsNotNullOrEmpty()
+                                            ? Double.Parse(quality[2..], CultureInfo.InvariantCulture)
+                                            : 1.0;
+
+            if (mediaTypes.Length == 1)
+            {
+
+                AcceptType = new AcceptType(HTTPContentType.ALL);
+                return true;
+
+            }
+            else if(mediaTypes.Length == 2)
+            {
+
+                AcceptType = new AcceptType(
+                                 HTTPContentType.ForMediaType(AcceptString, () => new HTTPContentType(mediaTypes[0],
+                                                                                                      mediaTypes[1],
+                                                                                                      charset.IsNotNullOrEmpty() ? charset.Substring(8) : null,
+                                                                                                      null,
+                                                                                                      null)),
+                                 quality2
+                             );
+
+                return true;
+
+            }
+
+            AcceptType = null;
+            return false;
+
+        }
+
+        #region Clone()
+
+        public AcceptType Clone()
+
+            => new (ContentType,
+                    Quality);
 
         #endregion
 
@@ -161,42 +218,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two accept types.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">An accept type to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            // Check if the given object is an AcceptType.
-            var AcceptType = Object as AcceptType;
-            if ((Object) AcceptType == null)
-                throw new ArgumentException("The given object is not a AcceptType!");
-
-            return CompareTo(AcceptType);
-
-        }
+            => Object is AcceptType acceptType
+                   ? CompareTo(acceptType)
+                   : throw new ArgumentException("The given object is not an accept type!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(AcceptType)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two accept types.
         /// </summary>
-        /// <param name="AcceptType">An object to compare with.</param>
-        public Int32 CompareTo(AcceptType AcceptType)
+        /// <param name="AcceptType">An accept type to compare with.</param>
+        public Int32 CompareTo(AcceptType? AcceptType)
         {
 
-            if ((Object) AcceptType == null)
-                throw new ArgumentNullException("The given AcceptType must not be null!");
+            if (AcceptType is null)
+                throw new ArgumentNullException(nameof(AcceptType),
+                                                "The given accept type must not be null!");
 
-            if (Quality == AcceptType.Quality)
-                return _PlaceOfOccurence.CompareTo(AcceptType._PlaceOfOccurence);
-            else
-                return Quality.CompareTo(AcceptType.Quality) * -1;
+            return Quality == AcceptType.Quality
+                       ? _PlaceOfOccurence.CompareTo(AcceptType._PlaceOfOccurence)
+                       : Quality.CompareTo(AcceptType.Quality) * -1;
 
         }
 

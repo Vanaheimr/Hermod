@@ -673,9 +673,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         Connection            = "Upgrade",
                                                         Upgrade               = "websocket",
                                                         SecWebSocketKey       = swkaSHA1Base64,
-                                                        SecWebSocketProtocol  = SecWebSocketProtocols.Any()
-                                                                                    ? SecWebSocketProtocols.AggregateWith(", ")
-                                                                                    : null,
+                                                        SecWebSocketProtocol  = SecWebSocketProtocols,
                                                         SecWebSocketVersion   = "13",
                                                         Authorization         = HTTPAuthentication
                                                     }.AsImmutable;

@@ -2316,7 +2316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => GetRequestHandle(Request.Host,
                                 Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
                                 Request.HTTPMethod,
-                                AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),
+                                AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),// ?? AvailableContentTypes.First(),
                                 ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
 
         #endregion
@@ -2826,7 +2826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddHandler(HTTPAPI,
                            request => {
 
-                              var _HTTPEvents = eventSource.GetAllEventsGreater(request.GetHeaderField_UInt64("Last-Event-ID")).
+                              var _HTTPEvents = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
                                                             Where(IncludeFilterAtRuntime).
                                                             Aggregate(new StringBuilder(),
                                                                       (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).

@@ -15,23 +15,15 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
     /// HTTP Keep-Alive response header property.
     /// </summary>
-    public class KeepAliveType : IEquatable<KeepAliveType>, IComparable<KeepAliveType>, IComparable
+    public class KeepAliveType : IEquatable<KeepAliveType>,
+                                 IComparable<KeepAliveType>,
+                                 IComparable
     {
 
         #region Properties
@@ -74,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Char[] _Equals  = new Char[1] { '=' };
 
             // "timeout=10, max=5"
-            foreach (var Token in KeepAliveString.Split(new Char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(v => v.Trim()))
+            foreach (var Token in KeepAliveString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(v => v.Trim()))
             {
 
                 var Property = Token.Split(_Equals, StringSplitOptions.RemoveEmptyEntries).Select(v => v.Trim()).ToArray();
@@ -106,45 +98,100 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region TryParse(KeepAliveString, KeepAliveType)
+
+        /// <summary>
+        /// Parse the string representation of a HTTP accept header field.
+        /// </summary>
+        /// <param name="AcceptString"></param>
+        public static Boolean TryParse(String KeepAliveString, out KeepAliveType? KeepAliveType)
+        {
+
+            UInt32 _Value;
+            Char[] equals  = new[] { '=' };
+
+            TimeSpan? timeout               = null;
+            UInt32?   maxNumberOfRequests   = null;
+
+            KeepAliveType = null;
+
+            // "timeout=10, max=5"
+            foreach (var token in KeepAliveString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).
+                                                  Select(v => v.Trim()))
+            {
+
+                var property = token.Split (equals, StringSplitOptions.RemoveEmptyEntries).
+                                     Select(v => v.Trim()).ToArray();
+
+                if (property.Length == 2)
+                    if (property[0] == "timeout")
+                        if (UInt32.TryParse(property[1], out _Value))
+                        {
+                            timeout = TimeSpan.FromSeconds(_Value);
+                            continue;
+                        }
+
+                if (property.Length == 2)
+                    if (property[0] == "max")
+                        if (UInt32.TryParse(property[1], out _Value))
+                        {
+                            maxNumberOfRequests = _Value;
+                            continue;
+                        }
+
+                return false;
+
+            }
+
+            KeepAliveType = new KeepAliveType(timeout,
+                                              maxNumberOfRequests);
+
+            return true;
+
+        }
+
+        #endregion
+
+
         #region IComparable<KeepAliveType> Members
 
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP Keep Alives.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">A HTTP Keep Alive to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object is null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (!(Object is KeepAliveType KeepAliveType))
-                throw new ArgumentException("The given object is not a KeepAliveType!");
-
-            return CompareTo(KeepAliveType);
-
-        }
+            => Object is KeepAliveType keepAliveType
+                   ? CompareTo(keepAliveType)
+                   : throw new ArgumentException("The given object is not a HTTP Keep Alive!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(KeepAliveType)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP Keep Alives.
         /// </summary>
-        /// <param name="KeepAliveType">An object to compare with.</param>
-        public Int32 CompareTo(KeepAliveType KeepAliveType)
+        /// <param name="KeepAliveType">A HTTP Keep Alive to compare with.</param>
+        public Int32 CompareTo(KeepAliveType? KeepAliveType)
         {
 
             if (KeepAliveType is null)
-                throw new ArgumentNullException("The given KeepAliveType must not be null!");
+                throw new ArgumentNullException(nameof(KeepAliveType),
+                                                "The given KeepAliveType must not be null!");
 
-            if (Timeout == KeepAliveType.Timeout)
-                return MaxNumberOfRequests.Value.CompareTo(KeepAliveType.MaxNumberOfRequests.Value);
-            else
-                return Timeout.Value.CompareTo(KeepAliveType.Timeout.Value);
+            var c = -1;
+
+            if (MaxNumberOfRequests.HasValue && KeepAliveType.MaxNumberOfRequests.HasValue)
+                MaxNumberOfRequests.Value.CompareTo(KeepAliveType.MaxNumberOfRequests.Value);
+
+            if (c == 0 && Timeout.HasValue && KeepAliveType.Timeout.HasValue)
+                c = Timeout.Value.CompareTo(KeepAliveType.Timeout.Value);
+
+            return c;
 
         }
 
@@ -157,47 +204,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP Keep Alives for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A HTTP Keep Alive to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object is null)
-                return false;
-
-            if (!(Object is KeepAliveType KeepAliveType))
-                return false;
-
-            return Equals(KeepAliveType);
-
-        }
+            => Object is KeepAliveType keepAliveType &&
+                   Equals(keepAliveType);
 
         #endregion
 
         #region Equals(KeepAliveType)
 
         /// <summary>
-        /// Compares two KeepAliveType for equality.
+        /// Compares two HTTP Keep Alives for equality.
         /// </summary>
-        /// <param name="KeepAliveType">An KeepAliveType to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(KeepAliveType KeepAliveType)
-        {
+        /// <param name="KeepAliveType">A HTTP Keep Alive to compare with.</param>
+        public Boolean Equals(KeepAliveType? KeepAliveType)
 
-            if (KeepAliveType is null)
-                return false;
+            => KeepAliveType is not null &&
 
-            if (!Timeout.Equals(KeepAliveType.Timeout))
-                return false;
+            ((!Timeout.            HasValue && !KeepAliveType.Timeout.            HasValue) ||
+              (Timeout.            HasValue &&  KeepAliveType.Timeout.            HasValue && Timeout.            Value.Equals(KeepAliveType.Timeout.            Value))) &&
 
-            if (!MaxNumberOfRequests.Equals(KeepAliveType.MaxNumberOfRequests))
-                return false;
-
-            return true;
-
-        }
+            ((!MaxNumberOfRequests.HasValue && !KeepAliveType.MaxNumberOfRequests.HasValue) ||
+              (MaxNumberOfRequests.HasValue &&  KeepAliveType.MaxNumberOfRequests.HasValue && MaxNumberOfRequests.Value.Equals(KeepAliveType.MaxNumberOfRequests.Value)));
 
         #endregion
 
@@ -211,7 +242,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
-            return Timeout.GetHashCode() ^ MaxNumberOfRequests.GetHashCode();
+            unchecked
+            {
+
+                return (Timeout?.            GetHashCode() ?? 0) * 3 ^
+                        MaxNumberOfRequests?.GetHashCode() ?? 0;
+
+            }
         }
 
         #endregion
@@ -222,19 +259,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
 
-            var Response = new List<String>();
+            => String.Concat(
 
-            if (Timeout.HasValue)
-                Response.Add("timeout=" + ((UInt32) Timeout.Value.TotalSeconds));
+                   Timeout.HasValue
+                       ? "timeout=" + ((UInt32) Timeout.Value.TotalSeconds)
+                       : "",
 
-            if (MaxNumberOfRequests.HasValue)
-                Response.Add("max=" + MaxNumberOfRequests.Value);
+                   MaxNumberOfRequests.HasValue
+                       ? "max="     + MaxNumberOfRequests.Value
+                       : ""
 
-            return Response.AggregateOrDefault((a, b) => a + ", " + b, "");
-
-        }
+               );
 
         #endregion
 

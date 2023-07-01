@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2018, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr Hermod <http://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2010-2023 GraphDefined GmbH
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,18 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Threading.Tasks;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Threading;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    /// <summary>
+    /// A HTTP request.
+    /// </summary>
     public partial class HTTPRequest : AHTTPPDU
     {
 
@@ -44,13 +40,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            private readonly HTTPClient _HTTPClient;
+            private readonly AHTTPClient? httpClient;
 
             #region Non-http header fields
+
+            /// <summary>
+            /// The related HTTP server.
+            /// </summary>
+            public HTTPServer?  HTTPServer      { get; set; }
 
             #region EntireRequestHeader
 
             public String EntireRequestHeader
+
                 => HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
 
             #endregion
@@ -58,68 +60,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region HTTPRequestLine
 
             public String HTTPRequestLine
-                => String.Concat(HTTPMethod, " ", _URI, QueryString, " ", ProtocolName, "/", ProtocolVersion);
+
+                => String.Concat(HTTPMethod, " ", FakeURLPrefix, Path, QueryString, " ", ProtocolName, "/", ProtocolVersion);
 
             #endregion
-
-            #region HTTPMethod
-
-            private HTTPMethod _HTTPMethod;
 
             /// <summary>
             /// The http method.
             /// </summary>
-            public HTTPMethod HTTPMethod
-            {
-
-                get
-                {
-                    return _HTTPMethod;
-                }
-
-                set
-                {
-                    SetProperty(ref _HTTPMethod, value, "HTTPMethod");
-                }
-
-            }
-
-            #endregion
-
-            #region FakeURIPrefix
-
-            public String FakeURIPrefix { get; set; }
-
-            #endregion
-
-            #region URI
-
-            private HTTPURI _URI;
+            public HTTPMethod   HTTPMethod      { get; set; }
 
             /// <summary>
-            /// The minimal URL (this means e.g. without the query string).
+            /// Fake URL prefix.
             /// </summary>
-            public HTTPURI URI
-            {
+            public String?      FakeURLPrefix   { get; set; }
 
-                get
-                {
-                    return _URI;
-                }
-
-                set
-                {
-                    SetProperty(ref _URI, value, "URI");
-                }
-
-            }
-
-            #endregion
+            /// <summary>
+            /// The minimal path (this means e.g. without the query string).
+            /// </summary>
+            public HTTPPath     Path            { get; set; }
 
             /// <summary>
             /// The HTTP query string.
             /// </summary>
-            public QueryString QueryString { get; }
+            public QueryString  QueryString     { get; }
 
             #endregion
 
@@ -132,27 +96,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public AcceptTypes Accept
             {
+
                 get
                 {
-                    return GetHeaderField<AcceptTypes>(HTTPHeaderField.Accept);
+                    return GetHeaderField(HTTPRequestHeaderField.Accept);
                 }
+
+                set
+                {
+                    SetHeaderField(HTTPRequestHeaderField.Accept, value);
+                }
+
             }
 
             #endregion
 
             #region Accept-Charset
 
-            public String AcceptCharset
+            public String? AcceptCharset
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.AcceptCharset);
+                    return GetHeaderField(HTTPRequestHeaderField.AcceptCharset);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.AcceptCharset, value);
+                    SetHeaderField(HTTPRequestHeaderField.AcceptCharset, value);
                 }
 
             }
@@ -161,17 +132,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Accept-Encoding
 
-            public String AcceptEncoding
+            public String? AcceptEncoding
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.AcceptEncoding);
+                    return GetHeaderField(HTTPRequestHeaderField.AcceptEncoding);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.AcceptEncoding, value);
+                    SetHeaderField(HTTPRequestHeaderField.AcceptEncoding, value);
                 }
 
             }
@@ -180,17 +151,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Accept-Language
 
-            public String AcceptLanguage
+            public String? AcceptLanguage
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.AcceptLanguage);
+                    return GetHeaderField(HTTPRequestHeaderField.AcceptLanguage);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.AcceptLanguage, value);
+                    SetHeaderField(HTTPRequestHeaderField.AcceptLanguage, value);
                 }
 
             }
@@ -199,17 +170,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Accept-Ranges
 
-            public String AcceptRanges
+            public String? AcceptRanges
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.AcceptRanges);
+                    return GetHeaderField(HTTPRequestHeaderField.AcceptRanges);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.AcceptRanges, value);
+                    SetHeaderField(HTTPRequestHeaderField.AcceptRanges, value);
                 }
 
             }
@@ -218,27 +189,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Authorization
 
-            public IHTTPAuthentication Authorization
+            public IHTTPAuthentication? Authorization
             {
 
                 get
                 {
-
-                    var aa = GetHeaderField<String>(HTTPHeaderField.Authorization);
-
-                    if (HTTPBasicAuthentication. TryParse(aa, out HTTPBasicAuthentication  BasicAuth))
-                        return BasicAuth;
-
-                    if (HTTPBearerAuthentication.TryParse(aa, out HTTPBearerAuthentication BearerAuth))
-                        return BearerAuth;
-
-                    return null;
-
+                    return GetHeaderField(HTTPRequestHeaderField.Authorization);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Authorization, value);
+                    SetHeaderField(HTTPRequestHeaderField.Authorization, value);
                 }
 
             }
@@ -247,17 +208,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Depth
 
-            public String Depth
+            public String? Depth
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Depth);
+                    return GetHeaderField(HTTPRequestHeaderField.Depth);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Depth, value);
+                    SetHeaderField(HTTPRequestHeaderField.Depth, value);
                 }
 
             }
@@ -266,17 +227,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Destination
 
-            public String Destination
+            public String? Destination
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Destination);
+                    return GetHeaderField(HTTPRequestHeaderField.Destination);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Destination, value);
+                    SetHeaderField(HTTPRequestHeaderField.Destination, value);
                 }
 
             }
@@ -285,17 +246,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Expect
 
-            public String Expect
+            public String? Expect
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Expect);
+                    return GetHeaderField(HTTPRequestHeaderField.Expect);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Expect, value);
+                    SetHeaderField(HTTPRequestHeaderField.Expect, value);
                 }
 
             }
@@ -304,17 +265,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region From
 
-            public String From
+            public String? From
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.From);
+                    return GetHeaderField(HTTPRequestHeaderField.From);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.From, value);
+                    SetHeaderField(HTTPRequestHeaderField.From, value);
                 }
 
             }
@@ -323,17 +284,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Host
 
-            public String Host
+            public HTTPHostname Host
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Host);
+                    return GetHeaderField(HTTPRequestHeaderField.Host);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Host, value);
+                    SetHeaderField(HTTPRequestHeaderField.Host, value);
                 }
 
             }
@@ -342,17 +303,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region If
 
-            public String If
+            public String? If
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.If);
+                    return GetHeaderField(HTTPRequestHeaderField.If);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.If, value);
+                    SetHeaderField(HTTPRequestHeaderField.If, value);
                 }
 
             }
@@ -361,17 +322,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region If-Match
 
-            public String IfMatch
+            public String? IfMatch
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.IfMatch);
+                    return GetHeaderField(HTTPRequestHeaderField.IfMatch);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.IfMatch, value);
+                    SetHeaderField(HTTPRequestHeaderField.IfMatch, value);
                 }
 
             }
@@ -380,17 +341,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region If-Modified-Since
 
-            public String IfModifiedSince
+            public String? IfModifiedSince
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.IfModifiedSince);
+                    return GetHeaderField(HTTPRequestHeaderField.IfModifiedSince);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.IfModifiedSince, value);
+                    SetHeaderField(HTTPRequestHeaderField.IfModifiedSince, value);
                 }
 
             }
@@ -399,17 +360,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region If-None-Match
 
-            public String IfNoneMatch
+            public String? IfNoneMatch
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.IfNoneMatch);
+                    return GetHeaderField(HTTPRequestHeaderField.IfNoneMatch);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.IfNoneMatch, value);
+                    SetHeaderField(HTTPRequestHeaderField.IfNoneMatch, value);
                 }
 
             }
@@ -418,17 +379,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region If-Range
 
-            public String IfRange
+            public String? IfRange
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.IfRange);
+                    return GetHeaderField(HTTPRequestHeaderField.IfRange);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.IfRange, value);
+                    SetHeaderField(HTTPRequestHeaderField.IfRange, value);
                 }
 
             }
@@ -437,17 +398,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region If-Unmodified-Since
 
-            public String IfUnmodifiedSince
+            public String? IfUnmodifiedSince
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.IfModifiedSince);
+                    return GetHeaderField(HTTPRequestHeaderField.IfModifiedSince);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.IfUnmodifiedSince, value);
+                    SetHeaderField(HTTPRequestHeaderField.IfUnmodifiedSince, value);
                 }
 
             }
@@ -456,17 +417,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Lock-Token
 
-            public String LockToken
+            public String? LockToken
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.LockToken);
+                    return GetHeaderField(HTTPRequestHeaderField.LockToken);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.LockToken, value);
+                    SetHeaderField(HTTPRequestHeaderField.LockToken, value);
                 }
 
             }
@@ -480,12 +441,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 get
                 {
-                    return GetHeaderField_UInt64(HTTPHeaderField.MaxForwards);
+                    return GetHeaderField(HTTPRequestHeaderField.MaxForwards);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.MaxForwards, value);
+                    SetHeaderField(HTTPRequestHeaderField.MaxForwards, value);
                 }
 
             }
@@ -494,17 +455,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Overwrite
 
-            public String Overwrite
+            public String? Overwrite
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Overwrite);
+                    return GetHeaderField(HTTPRequestHeaderField.Overwrite);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Overwrite, value);
+                    SetHeaderField(HTTPRequestHeaderField.Overwrite, value);
                 }
 
             }
@@ -513,17 +474,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Proxy-Authorization
 
-            public String ProxyAuthorization
+            public String? ProxyAuthorization
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.ProxyAuthorization);
+                    return GetHeaderField(HTTPRequestHeaderField.ProxyAuthorization);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.ProxyAuthorization, value);
+                    SetHeaderField(HTTPRequestHeaderField.ProxyAuthorization, value);
                 }
 
             }
@@ -532,17 +493,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Range
 
-            public String Range
+            public String? Range
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Range);
+                    return GetHeaderField(HTTPRequestHeaderField.Range);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Range, value);
+                    SetHeaderField(HTTPRequestHeaderField.Range, value);
                 }
 
             }
@@ -551,17 +512,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Referer
 
-            public String Referer
+            public String? Referer
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Referer);
+                    return GetHeaderField(HTTPRequestHeaderField.Referer);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Referer, value);
+                    SetHeaderField(HTTPRequestHeaderField.Referer, value);
                 }
 
             }
@@ -570,17 +531,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region TE
 
-            public String TE
+            public String? TE
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.TE);
+                    return GetHeaderField(HTTPRequestHeaderField.TE);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.TE, value);
+                    SetHeaderField(HTTPRequestHeaderField.TE, value);
                 }
 
             }
@@ -589,17 +550,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Timeout
 
-            public UInt64? Timeout
+            public TimeSpan? Timeout
             {
 
                 get
                 {
-                    return GetHeaderField_UInt64(HTTPHeaderField.Timeout);
+                    return GetHeaderField(HTTPRequestHeaderField.Timeout);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Timeout, value);
+                    SetHeaderField(HTTPRequestHeaderField.Timeout, value);
                 }
 
             }
@@ -608,17 +569,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region User-Agent
 
-            public String UserAgent
+            public String? UserAgent
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.ContentLocation);
+                    return GetHeaderField(HTTPRequestHeaderField.UserAgent);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.UserAgent, value);
+                    SetHeaderField(HTTPRequestHeaderField.UserAgent, value);
                 }
 
             }
@@ -629,16 +590,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public UInt64? LastEventId
             {
-                
+
                 get
                 {
-                    return GetHeaderField_UInt64(HTTPHeaderField.LastEventId);
+                    return GetHeaderField(HTTPRequestHeaderField.LastEventId);
                 }
 
                 set
                 {
                     if (value != null && value.HasValue)
-                        SetHeaderField("Last-Event-Id", value.Value);
+                        SetHeaderField(HTTPRequestHeaderField.LastEventId, value.Value);
                     else
                         throw new Exception("Could not set the HTTP request header 'Last-Event-Id' field!");
                 }
@@ -649,17 +610,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Cookie
 
-            public String Cookie
+            public HTTPCookies? Cookie
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPHeaderField.Cookie);
+                    return GetHeaderField(HTTPRequestHeaderField.Cookie);
                 }
 
                 set
                 {
-                    SetHeaderField(HTTPHeaderField.Cookie, value);
+                    SetHeaderField(HTTPRequestHeaderField.Cookie, value);
+                }
+
+            }
+
+            #endregion
+
+            #region API_Key
+
+            public APIKey_Id? API_Key
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPRequestHeaderField.API_Key);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPRequestHeaderField.API_Key, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SecWebSocketKey
+
+            public String? SecWebSocketKey
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketKey);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketKey, value);
+                }
+
+            }
+
+            #endregion
+
+            #region X_ClientId
+
+            public String? X_ClientId
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPRequestHeaderField.X_ClientId);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPRequestHeaderField.X_ClientId, value);
                 }
 
             }
@@ -672,21 +690,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
-            #region HTTPRequestBuilder()
+            #region HTTPRequestBuilder(Client = null)
 
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(HTTPClient Client)
+            public Builder(AHTTPClient? Client = null)
             {
 
-                this._HTTPClient      = Client;
+                this.httpClient       = Client;
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
-                this.URI              = HTTPURI.Parse("/");
-                this.QueryString     = QueryString.New;
-                SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes());
+                this.Path             = HTTPPath.Parse("/");
+                this.QueryString      = QueryString.New;
+                SetHeaderField(HTTPRequestHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
                 this.ProtocolVersion  = new HTTPVersion(1, 1);
 
@@ -694,26 +712,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region HTTPRequestBuilder(OtherHTTPRequest)
+            #region HTTPRequestBuilder(Request)
 
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(HTTPRequest OtherHTTPRequest)
+            public Builder(HTTPRequest Request)
             {
 
              //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
-                this.HTTPMethod       = OtherHTTPRequest.HTTPMethod;
-                this.URI              = OtherHTTPRequest.URI;
-                this.QueryString     = OtherHTTPRequest.QueryString;
-                SetHeaderField(HTTPHeaderField.Accept, new AcceptTypes(OtherHTTPRequest.Accept.ToArray()));
-                this.ProtocolName     = OtherHTTPRequest.ProtocolName;
-                this.ProtocolVersion  = OtherHTTPRequest.ProtocolVersion;
+                this.HTTPServer       = Request.HTTPServer;
+                this.HTTPMethod       = Request.HTTPMethod;
+                this.Path             = Request.Path;
+                this.QueryString      = Request.QueryString;
+                if (Request.Accept is not null)
+                    SetHeaderField(HTTPRequestHeaderField.Accept, Request.Accept.Clone());
+                this.ProtocolName     = Request.ProtocolName;
+                this.ProtocolVersion  = Request.ProtocolVersion;
 
-                this.Content          = OtherHTTPRequest.HTTPBody;
-                this.ContentStream    = OtherHTTPRequest.HTTPBodyStream;
+                this.Content          = Request.HTTPBody;
+                this.ContentStream    = Request.HTTPBodyStream;
 
-                foreach (var kvp in OtherHTTPRequest)
+                foreach (var kvp in Request)
                     Set(kvp.Key, kvp.Value);
 
             }
@@ -723,27 +743,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            #region (operator) HTTPRequestBuilder => HTTPRequestHeader
+            #region SetURL(URL)
 
             /// <summary>
-            /// An implicit conversion from a HTTPRequestBuilder into a HTTPRequest.
+            /// Set the HTTP URL.
             /// </summary>
-            /// <param name="Builder">An HTTP request builder.</param>
-            public static implicit operator HTTPRequest(Builder Builder)
-                => Builder.AsImmutable;
-
-            #endregion
-
-
-            #region SetURI(URI)
-
-            /// <summary>
-            /// Set the HTTP method.
-            /// </summary>
-            /// <param name="URI">The new URI.</param>
-            public Builder SetURI(HTTPURI URI)
+            /// <param name="URL">The new URL.</param>
+            public Builder SetURL(HTTPPath URL)
             {
-                this.URI = URI;
+                this.Path = URL;
                 return this;
             }
 
@@ -844,7 +852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The HTTP content/body as a stream.
             /// </summary>
-            /// <param name="Stream">The HTTP content/body as a stream.</param>
+            /// <param name="ContentStream">The HTTP content/body as a stream.</param>
             public Builder SetContent(Stream ContentStream)
             {
                 this.ContentStream = ContentStream;
@@ -855,7 +863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region Set general header fields
+            #region Set general  header fields
 
             #region SetCacheControl(CacheControl)
 
@@ -1013,7 +1021,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region Set request header fields
+            #region Set request  header fields
 
             #region AddAccept(AcceptType)
 
@@ -1100,15 +1108,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region SetAuthorization(Authorization)
+            #region SetAuthorization(Authentication)
 
             /// <summary>
-            /// Set the HTTP Authorization header field.
+            /// Set the HTTP Authentication header field.
             /// </summary>
-            /// <param name="Authorization">Authorization.</param>
-            public Builder SetAuthorization(HTTPBasicAuthentication Authorization)
+            /// <param name="Authentication">Authentication.</param>
+            public Builder SetAuthorization(IHTTPAuthentication Authentication)
             {
-                this.Authorization = Authorization;
+                this.Authorization = Authentication;
                 return this;
             }
 
@@ -1162,7 +1170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Host header field.
             /// </summary>
             /// <param name="Host">Host.</param>
-            public Builder SetHost(String Host)
+            public Builder SetHost(HTTPHostname Host)
             {
                 this.Host = Host;
                 return this;
@@ -1358,7 +1366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Timeout header field.
             /// </summary>
             /// <param name="Timeout">Timeout.</param>
-            public Builder SetTimeout(UInt64? Timeout)
+            public Builder SetTimeout(TimeSpan? Timeout)
             {
                 this.Timeout = Timeout;
                 return this;
@@ -1400,9 +1408,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP Cookie header field.
             /// </summary>
             /// <param name="Cookie">Cookie.</param>
-            public Builder SetCookie(String Cookie)
+            public Builder SetCookie(HTTPCookies Cookies)
             {
-                this.Cookie = Cookie;
+                this.Cookie = Cookies;
                 return this;
             }
 
@@ -1415,14 +1423,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public void Set(String Field, Object Value)
             {
-                SetHeaderField(new HTTPHeaderField(Field, typeof(Object), HeaderFieldType.Request, RequestPathSemantic.both), Value);
+
+                SetHeaderField(new HTTPHeaderField(
+                                   Field,
+                                   HeaderFieldType.Request,
+                                   RequestPathSemantic.both
+                               ),
+                               Value);
+
             }
 
             #endregion
 
 
             public Task<HTTPResponse> ExecuteReturnResult()
-                => _HTTPClient?.Execute(AsImmutable);
+                => httpClient?.Execute(AsImmutable);
 
 
             #region PrepareImmutability()
@@ -1438,6 +1453,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+
+            #region (operator) HTTPRequestBuilder => HTTPRequest
+
+            /// <summary>
+            /// An implicit conversion from a HTTP request builder into a HTTP request.
+            /// </summary>
+            /// <param name="Builder">An HTTP request builder.</param>
+            public static implicit operator HTTPRequest(Builder Builder)
+                => Builder.AsImmutable;
+
+            #endregion
+
             #region AsImmutable
 
             /// <summary>
@@ -1450,8 +1477,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     PrepareImmutability();
 
-                    return new HTTPRequest(EntireRequestHeader, Content) {
-                        FakeURIPrefix = FakeURIPrefix
+                    return new HTTPRequest(
+                               Illias.Timestamp.Now,
+                               new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                               IPSocket.LocalhostV4(IPPort.HTTPS),
+                               IPSocket.LocalhostV4(IPPort.HTTPS),
+                               HTTPServer,
+
+                               EntireRequestHeader,
+                               Content) {
+
+                        FakeURLPrefix = FakeURLPrefix
+
                     };
 
                 }
