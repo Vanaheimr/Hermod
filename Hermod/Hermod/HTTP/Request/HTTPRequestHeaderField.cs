@@ -1456,6 +1456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// Send a HTTP cookie.
+        /// In fact this can be a collection of cookies separated by "; ".
         /// </summary>
         /// <example>Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
@@ -1550,7 +1551,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        
 
     }
 

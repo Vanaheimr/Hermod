@@ -220,13 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 get
                 {
-
-                    var keepAlive = GetHeaderField(HTTPResponseHeaderField.KeepAlive.Name);
-
-                    return keepAlive is not null
-                               ? new KeepAliveType(keepAlive)
-                               : null;
-
+                    return GetHeaderField(HTTPResponseHeaderField.KeepAlive);
                 }
 
                 set
@@ -270,13 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 get
                 {
-
-                    var location = GetHeaderField(HTTPResponseHeaderField.Location.Name);
-
-                    return location is not null
-                               ? HTTP.Location.Parse(location)
-                               : null;
-
+                    return GetHeaderField(HTTPResponseHeaderField.Location);
                 }
 
                 set
@@ -387,34 +375,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Set-Cookie
             /// </summary>
-            public String? SetCookie
+            public HTTPCookies? SetCookie
             {
 
                 get
                 {
                     return GetHeaderField(HTTPResponseHeaderField.SetCookie);
-                }
-
-                set
-                {
-                    SetHeaderField(HTTPResponseHeaderField.SetCookie, value);
-                }
-
-            }
-
-            #endregion
-
-            #region Set-Cookies
-
-            /// <summary>
-            /// Set-Cookies
-            /// </summary>
-            public String[]? SetCookies
-            {
-
-                get
-                {
-                    return GetHeaderFields(HTTPResponseHeaderField.SetCookie);
                 }
 
                 set

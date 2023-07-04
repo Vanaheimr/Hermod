@@ -17,9 +17,7 @@
 
 #region Usings
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -31,19 +29,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A single HTTP cookie.
     /// </summary>
-    public class HTTPCookie : IEquatable <HTTPCookie>,
+    public class HTTPCookie : IEnumerable<KeyValuePair<String, String>>,
+                              IEquatable<HTTPCookie>,
                               IComparable<HTTPCookie>,
-                              IEnumerable<KeyValuePair<String, String>>
+                              IComparable
     {
 
         #region Data
 
-        private static readonly Char[] MultipleCookiesSplitter = new Char[] { ';' };
-
         /// <summary>
         /// The data stored within the cookie.
         /// </summary>
-        private readonly Dictionary<String, String> crumbs;
+        private readonly Dictionary<String, String>  crumbs;
+
+        /// <summary>
+        /// The parts of the cookie.
+        /// </summary>
+        private readonly Dictionary<String, String>  parts;
 
         #endregion
 
@@ -52,7 +54,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The name of the cookie.
         /// </summary>
-        public HTTPCookieName  Name   { get; }
+        public HTTPCookieName  Name        { get; }
+
+        public String?         Path        { get; }
+
+        public Boolean         Secure      { get; }
+
+        public Boolean         HTTPOnly    { get; }
+
+        public String?         SameSite    { get; }
+
+        public DateTime?       Expires     { get; }
 
         #endregion
 
@@ -62,20 +74,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP cookie.
         /// </summary>
         private HTTPCookie(HTTPCookieName                             Name,
-                           IEnumerable<KeyValuePair<String, String>>  Crumbs)
+                           IEnumerable<KeyValuePair<String, String>>  Crumbs,
+                           IEnumerable<KeyValuePair<String, String>>  Parts)
         {
 
             this.Name    = Name;
             this.crumbs  = new Dictionary<String, String>();
+            this.parts   = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
 
-            if (Crumbs != null)
+            foreach (var crumb in Crumbs)
             {
-                foreach (var crumb in Crumbs)
-                {
-                    if (!this.crumbs.ContainsKey(crumb.Key))
-                        this.crumbs.Add(crumb.Key, crumb.Value);
-                }
+                if (!this.crumbs.ContainsKey(crumb.Key))
+                    this.crumbs.Add(crumb.Key, crumb.Value);
+                else
+                    this.crumbs[crumb.Key] = crumb.Value;
             }
+
+            foreach (var part in Parts)
+            {
+                if (!this.parts.ContainsKey(part.Key))
+                    this.parts.Add(part.Key, part.Value);
+                else
+                    this.parts[part.Key] = part.Value;
+            }
+
+            this.Path      = parts.ContainsKey("Path")     ? parts["Path"]                    : null;
+            this.Secure    = parts.ContainsKey("Secure");
+            this.HTTPOnly  = parts.ContainsKey("HTTPOnly");
+            this.SameSite  = parts.ContainsKey("SameSite") ? parts["SameSite"]                : null;
+            this.Expires   = parts.ContainsKey("Expires")  ? DateTime.Parse(parts["Expires"]) : null;
 
         }
 
@@ -91,10 +118,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPCookie Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPCookie httpCookie))
-                return httpCookie;
+            if (TryParse(Text, out var httpCookie))
+                return httpCookie!;
 
-            return null;
+            throw new ArgumentException("The given JSON representation of a single HTTP cookie is invalid!",
+                                        nameof(Text));
 
         }
 
@@ -107,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a single HTTP cookie.</param>
         /// <param name="HTTPCookie">The parsed HTTP cookie.</param>
-        public static Boolean TryParse(String Text, out HTTPCookie HTTPCookie)
+        public static Boolean TryParse(String Text, out HTTPCookie? HTTPCookie)
         {
 
             if (Text.IsNotNullOrEmpty())
@@ -119,41 +147,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            if (!HTTPCookieName.TryParse(Text.Substring(0, Text.IndexOf('=')),
-                                         out HTTPCookieName cookieName))
+            if (!HTTPCookieName.TryParse(Text[..Text.IndexOf('=')],
+                                         out var cookieName))
             {
                 HTTPCookie = null;
                 return false;
             }
 
-            var split2 = new Char[] { '=' };
-            var crumbs = new Dictionary<String, String>();
+            var split2 = new[] { '=' };
+            var parts  = new Dictionary<String, String>();
 
-            Text.Substring (Text.IndexOf('=') + 1).
-                 Split     (':').
+            Text.Split     (';').
                  SafeSelect(command => command.Split(split2, 2)).
                  ForEach   (tuple   => {
                                if (tuple[0].IsNotNullOrEmpty())
                                {
                                    if (tuple.Length == 1)
                                    {
-                                       if (!crumbs.ContainsKey(tuple[0].Trim()))
-                                           crumbs.Add(tuple[0].Trim(), "");
+                                       if (!parts.ContainsKey(tuple[0].Trim()))
+                                           parts.Add(tuple[0].Trim(), "");
                                        else
-                                           crumbs[tuple[0].Trim()] = "";
+                                           parts[tuple[0].Trim()] = "";
                                    }
                                    else if (tuple.Length == 2)
                                    {
-                                       if (!crumbs.ContainsKey(tuple[0].Trim()))
-                                           crumbs.Add(tuple[0].Trim(), tuple[1]);
+                                       if (!parts.ContainsKey(tuple[0].Trim()))
+                                           parts.Add(tuple[0].Trim(), tuple[1]);
                                        else
-                                           crumbs[tuple[0].Trim()] = tuple[1];
+                                           parts[tuple[0].Trim()] = tuple[1];
                                    }
                                }
                           });
 
+
+            var crumbs = new Dictionary<String, String>();
+
+            parts[cookieName.ToString()].Split     (':').
+                                         SafeSelect(command => command.Split(split2, 2)).
+                                         ForEach   (tuple   => {
+                                                       if (tuple[0].IsNotNullOrEmpty())
+                                                       {
+                                                           if (tuple.Length == 1)
+                                                           {
+                                                               if (!crumbs.ContainsKey(tuple[0].Trim()))
+                                                                   crumbs.Add(tuple[0].Trim(), "");
+                                                               else
+                                                                   crumbs[tuple[0].Trim()] = "";
+                                                           }
+                                                           else if (tuple.Length == 2)
+                                                           {
+                                                               if (!crumbs.ContainsKey(tuple[0].Trim()))
+                                                                   crumbs.Add(tuple[0].Trim(), tuple[1]);
+                                                               else
+                                                                   crumbs[tuple[0].Trim()] = tuple[1];
+                                                           }
+                                                       }
+                                                  });
+
+            parts.Remove(cookieName.ToString());
+
+
             HTTPCookie = new HTTPCookie(cookieName,
-                                        crumbs);
+                                        crumbs,
+                                        parts);
 
             return true;
 
@@ -168,13 +224,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the value of the given crumb.
         /// </summary>
         /// <param name="Crumb">The key/name of the crumb.</param>
-        public String this[String Crumb]
+        public String? this[String Crumb]
         {
             get
             {
 
-                if (crumbs.TryGetValue(Crumb, out String Value))
-                    return Value;
+                if (crumbs.TryGetValue(Crumb, out var value))
+                    return value;
 
                 return null;
 
@@ -189,11 +245,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the value of the given crumb.
         /// </summary>
         /// <param name="Crumb">The key/name of the crumb.</param>
-        public String Get(String Crumb)
+        public String? Get(String Crumb)
         {
 
-            if (crumbs.TryGetValue(Crumb, out String Value))
-                return Value;
+            if (crumbs.TryGetValue(Crumb, out var value))
+                return value;
 
             return null;
 
@@ -208,18 +264,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Crumb">The key/name of the crumb.</param>
         /// <param name="Value">The value of the crumb.</param>
-        public Boolean TryGet(String Crumb, out String Value)
+        public Boolean TryGet(String Crumb, out String? Value)
 
             => crumbs.TryGetValue(Crumb, out Value);
 
         #endregion
 
 
+        #region GetEnumerator()
+
         public IEnumerator<KeyValuePair<String, String>> GetEnumerator()
             => crumbs.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
             => crumbs.GetEnumerator();
+
+        #endregion
 
 
         #region Operator overloading
@@ -232,7 +292,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookie1">A HTTP cookie.</param>
         /// <param name="HTTPCookie2">Another HTTP cookie.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPCookie HTTPCookie1, HTTPCookie HTTPCookie2)
+        public static Boolean operator == (HTTPCookie HTTPCookie1,
+                                           HTTPCookie HTTPCookie2)
         {
 
             // If both are null, or both are same instance, return true.
@@ -240,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPCookie1 == null) || ((Object) HTTPCookie2 == null))
+            if (HTTPCookie1 is null || HTTPCookie2 is null)
                 return false;
 
             return HTTPCookie1.Equals(HTTPCookie2);
@@ -257,7 +318,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookie1">A HTTP cookie.</param>
         /// <param name="HTTPCookie2">Another HTTP cookie.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPCookie HTTPCookie1, HTTPCookie HTTPCookie2)
+        public static Boolean operator != (HTTPCookie HTTPCookie1,
+                                           HTTPCookie HTTPCookie2)
+
             => !(HTTPCookie1 == HTTPCookie2);
 
         #endregion
@@ -270,10 +333,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookie1">A HTTP cookie.</param>
         /// <param name="HTTPCookie2">Another HTTP cookie.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPCookie HTTPCookie1, HTTPCookie HTTPCookie2)
+        public static Boolean operator < (HTTPCookie HTTPCookie1,
+                                          HTTPCookie HTTPCookie2)
         {
 
-            if ((Object) HTTPCookie1 == null)
+            if (HTTPCookie1 is null)
                 throw new ArgumentNullException("The given HTTPCookie1 must not be null!");
 
             return HTTPCookie1.CompareTo(HTTPCookie2) < 0;
@@ -290,7 +354,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookie1">A HTTP cookie.</param>
         /// <param name="HTTPCookie2">Another HTTP cookie.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPCookie HTTPCookie1, HTTPCookie HTTPCookie2)
+        public static Boolean operator <= (HTTPCookie HTTPCookie1,
+                                           HTTPCookie HTTPCookie2)
+
             => !(HTTPCookie1 > HTTPCookie2);
 
         #endregion
@@ -303,10 +369,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookie1">A HTTP cookie.</param>
         /// <param name="HTTPCookie2">Another HTTP cookie.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPCookie HTTPCookie1, HTTPCookie HTTPCookie2)
+        public static Boolean operator > (HTTPCookie HTTPCookie1,
+                                          HTTPCookie HTTPCookie2)
         {
 
-            if ((Object) HTTPCookie1 == null)
+            if (HTTPCookie1 is null)
                 throw new ArgumentNullException("The given HTTPCookie1 must not be null!");
 
             return HTTPCookie1.CompareTo(HTTPCookie2) > 0;
@@ -323,7 +390,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPCookie1">A HTTP cookie.</param>
         /// <param name="HTTPCookie2">Another HTTP cookie.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPCookie HTTPCookie1, HTTPCookie HTTPCookie2)
+        public static Boolean operator >= (HTTPCookie HTTPCookie1,
+                                           HTTPCookie HTTPCookie2)
+
             => !(HTTPCookie1 < HTTPCookie2);
 
         #endregion
@@ -335,38 +404,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP cookies.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">A HTTP cookie to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
-
-            var HTTPCookie = Object as HTTPCookie;
-            if ((Object) HTTPCookie == null)
-                throw new ArgumentException("The given object is not a HTTP cookie!", nameof(Object));
-
-            return CompareTo(HTTPCookie);
-
-        }
+            => Object is HTTPCookie httpCookie
+                   ? CompareTo(httpCookie)
+                   : throw new ArgumentException("The given object is not a HTTP cookie!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(HTTPCookie)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP cookies.
         /// </summary>
-        /// <param name="HTTPCookie">An object to compare with.</param>
-        public Int32 CompareTo(HTTPCookie HTTPCookie)
+        /// <param name="HTTPCookie">A HTTP cookie to compare with.</param>
+        public Int32 CompareTo(HTTPCookie? HTTPCookie)
         {
 
-            if ((Object) HTTPCookie == null)
-                throw new ArgumentNullException(nameof(HTTPCookie), "The given HTTPCookie must not be null!");
+            if (HTTPCookie is null)
+                throw new ArgumentNullException(nameof(HTTPCookie), "The given HTTP Cookie must not be null!");
 
-            return String.Compare(ToString(), HTTPCookie.ToString(), StringComparison.Ordinal);
+            return String.Compare(ToString(),
+                                  HTTPCookie.ToString(),
+                                  StringComparison.Ordinal);
 
         }
 
@@ -379,42 +443,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP cookies for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A HTTP cookie to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            var HTTPCookie = Object as HTTPCookie;
-            if ((Object) HTTPCookie == null)
-                return false;
-
-            return Equals(HTTPCookie);
-
-        }
+            => Object is HTTPCookie httpCookie &&
+                   Equals(httpCookie);
 
         #endregion
 
         #region Equals(HTTPCookie)
 
         /// <summary>
-        /// Compares two HTTPCookies for equality.
+        /// Compares two HTTP cookies for equality.
         /// </summary>
-        /// <param name="HTTPCookie">A HTTPCookie to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPCookie HTTPCookie)
-        {
+        /// <param name="HTTPCookie">A HTTP cookie to compare with.</param>
+        public Boolean Equals(HTTPCookie? HTTPCookie)
 
-            if ((Object) HTTPCookie == null)
-                return false;
-
-            return ToString().Equals(HTTPCookie.ToString());
-
-        }
+            => HTTPCookie is not null &&
+               String.Equals(ToString(),
+                             HTTPCookie.ToString(),
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -442,7 +492,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => Name.ToString();
+        {
+
+            var _crumbs = crumbs.Select(crumb => crumb.Value.IsNotNullOrEmpty() ? $"{crumb.Key}={crumb.Value}" : crumb.Key).
+                                 AggregateWith(":");
+
+            var _parts  = parts. Select(part  => part. Value.IsNotNullOrEmpty() ? $"{part.Key }={part. Value}" : part. Key).
+                                 AggregateWith("; ");
+
+             return $"{Name}={_crumbs}{(_parts.IsNotNullOrEmpty() ? "; " + _parts : "")}";
+
+        }
 
         #endregion
 

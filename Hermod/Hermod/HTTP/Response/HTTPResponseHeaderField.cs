@@ -500,8 +500,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Set-Cookie: UserID=JohnDoe; Max-Age=3600; Version=1</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
-        public static readonly HTTPResponseHeaderField SetCookie = new ("Set-Cookie",
-                                                                        RequestPathSemantic.EndToEnd);
+        public static readonly HTTPResponseHeaderField<HTTPCookies?> SetCookie = new ("Set-Cookie",
+                                                                                      RequestPathSemantic.EndToEnd,
+                                                                                      HTTPCookies.TryParse);
 
         #endregion
 

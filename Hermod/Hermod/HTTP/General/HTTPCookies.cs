@@ -17,12 +17,9 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
+using System.Collections;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections;
 
 #endregion
 
@@ -30,45 +27,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Multiple HTTP cookies.
+    /// A collection of HTTP cookies.
     /// </summary>
     public class HTTPCookies : IEnumerable<HTTPCookie>
     {
 
         #region Data
 
-        private static readonly Char[] MultipleCookiesSplitter = new Char[] { ';' };
+        private readonly Dictionary<HTTPCookieName, HTTPCookie> cookies;
 
-        private readonly Dictionary<HTTPCookieName, HTTPCookie> Cookies;
+        private static readonly Char[] multipleCookiesSplitter = new[] { ';' };
 
         #endregion
 
         #region Constructor(s)
 
+        #region HTTPCookies(Cookies)
+
         /// <summary>
-        /// Create new HTTP cookies.
+        /// Create a new collection of HTTP cookies.
         /// </summary>
         /// <param name="Cookies">An enumeration of HTTP cookies.</param>
-        private HTTPCookies(IEnumerable<HTTPCookie> Cookies = null)
+        public HTTPCookies(IEnumerable<HTTPCookie> Cookies)
+
+            : this(Cookies.ToArray())
+
+        { }
+
+        #endregion
+
+        #region HTTPCookies(params Cookies)
+
+        /// <summary>
+        /// Create a new collection of HTTP cookies.
+        /// </summary>
+        /// <param name="Cookies">An array of HTTP cookies.</param>
+        public HTTPCookies(params HTTPCookie[] Cookies)
         {
 
-            this.Cookies = new Dictionary<HTTPCookieName, HTTPCookie>();
+            this.cookies = new Dictionary<HTTPCookieName, HTTPCookie>();
 
-            if (Cookies != null)
+            // There is no gurantee, that cookie.Name is unquie within a HTTP request!
+            // Therefore use the latest cookie having this id/name!
+            foreach (var cookie in Cookies)
             {
 
-                foreach (var cookie in Cookies)
-                {
+                if (!this.cookies.ContainsKey(cookie.Name))
+                    this.cookies.Add(cookie.Name, cookie);
 
-                    // There is no gurantee, that cookie.Name is unquie within a HTTP request!
-                    // Therefore use the latest cookie having this id/name!
-                    if (!this.Cookies.ContainsKey(cookie.Name))
-                        this.Cookies.Add(cookie.Name, cookie);
-
-                    else
-                        this.Cookies[cookie.Name] = cookie;
-
-                }
+                else
+                    this.cookies[cookie.Name] = cookie;
 
             }
 
@@ -76,37 +84,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #endregion
 
-        #region Parse   (Text)
+
+        #region Parse   (Texts)
 
         /// <summary>
-        /// Parse the given text as multiple HTTP cookies.
+        /// Parse the given enumeration of texts.
         /// </summary>
-        /// <param name="Text">A text representation of multiple HTTP cookies.</param>
-        public static HTTPCookies Parse(String Text)
+        /// <param name="Texts">An enumeration of text representations of HTTP cookies.</param>
+        public static HTTPCookies Parse(IEnumerable<String> Texts)
         {
 
-            if (TryParse(Text, out HTTPCookies _HTTPCookies))
-                return _HTTPCookies;
+            if (TryParse(Texts, out var httpCookies))
+                return httpCookies!;
 
-            return null;
+            throw new ArgumentException("The given JSON representation of HTTP cookies is invalid!",
+                                        nameof(Texts));
+
+        }
+
+        /// <summary>
+        /// Parse the given enumeration of texts.
+        /// </summary>
+        /// <param name="Texts">An enumeration of text representations of HTTP cookies.</param>
+        public static HTTPCookies Parse(params String[] Texts)
+        {
+
+            // Might be multiple cookies in one string!
+            if (Texts.Length == 1 &&
+                TryParse(Texts[0], out var httpCookies))
+            {
+                return httpCookies!;
+            }
+
+            if (TryParse(Texts, out httpCookies))
+                return httpCookies!;
+
+            throw new ArgumentException("The given JSON representation of HTTP cookies is invalid!",
+                                        nameof(Texts));
 
         }
 
         #endregion
 
-        #region TryParse(Text, out HTTPCookies)
+        #region TryParse(Text,  out HTTPCookies)
 
         /// <summary>
-        /// Parse the given string as multiple HTTP cookies.
+        /// Parse the given string as one or multiple HTTP cookies.
         /// </summary>
-        /// <param name="Text">A text representation of multiple HTTP cookies.</param>
+        /// <param name="Text">A text representation of one or multiple HTTP cookies.</param>
         /// <param name="HTTPCookies">The parsed enumeration of HTTP cookies.</param>
-        public static Boolean TryParse(String Text, out HTTPCookies HTTPCookies)
+        public static Boolean TryParse(String Text, out HTTPCookies? HTTPCookies)
         {
 
-            if (Text.IsNotNullOrEmpty())
-                Text = Text.Trim();
+            Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
             {
@@ -114,27 +146,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            HTTPCookie Cookie = null;
-            var Cookies = new List<HTTPCookie>();
+            if (TryParse(Text.Split(multipleCookiesSplitter,
+                                    StringSplitOptions.RemoveEmptyEntries),
+                         out HTTPCookies))
+            {
+                return true;
+            }
 
-            foreach (var TextCookie in Text.Split(MultipleCookiesSplitter, StringSplitOptions.RemoveEmptyEntries))
+            return false;
+
+        }
+
+        #endregion
+
+        #region TryParse(Texts, out HTTPCookies)
+
+        /// <summary>
+        /// Parse the given enumeration of texts.
+        /// </summary>
+        /// <param name="Texts">An enumeration of text representations of HTTP cookies.</param>
+        /// <param name="HTTPCookies">The parsed enumeration of HTTP cookies.</param>
+        public static Boolean TryParse(IEnumerable<String> Texts, out HTTPCookies? HTTPCookies)
+        {
+
+            if (!Texts.Any())
+            {
+                HTTPCookies = null;
+                return false;
+            }
+
+            var parsedCookies = new Dictionary<HTTPCookieName, HTTPCookie>();
+
+            foreach (var singleCookie in Texts)
             {
 
                 try
                 {
 
-                    if (HTTPCookie.TryParse(TextCookie, out Cookie))
-                        Cookies.Add(Cookie);
+                    if (HTTPCookie.TryParse(singleCookie, out var parsedCookie) &&
+                        parsedCookie is not null)
+                    {
+
+                        // There is no gurantee, that cookie.Name is unquie within a HTTP request!
+                        // Therefore use the latest cookie having this id/name!
+                        if (!parsedCookies.ContainsKey(parsedCookie.Name))
+                            parsedCookies.Add(parsedCookie.Name, parsedCookie);
+                        else
+                            parsedCookies[parsedCookie.Name] = parsedCookie;
+
+                    }
 
                 }
-#pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
-                catch (Exception)
-#pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.
+                catch
                 { }
 
             }
 
-            HTTPCookies = new HTTPCookies(Cookies);
+            HTTPCookies = new HTTPCookies(parsedCookies.Values);
             return true;
 
         }
@@ -142,19 +210,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-        public Boolean TryGet(HTTPCookieName CookieName, out HTTPCookie Cookie)
-            => Cookies.TryGetValue(CookieName, out Cookie);
+        #region Contains(CookieName)
 
         public Boolean Contains(HTTPCookieName CookieName)
-            => Cookies.ContainsKey(CookieName);
 
+            => cookies.ContainsKey(CookieName);
+
+        #endregion
+
+        #region TryGet(CookieName, Cookie)
+
+        public Boolean TryGet(HTTPCookieName   CookieName,
+                              out HTTPCookie?  Cookie)
+
+            => cookies.TryGetValue(CookieName, out Cookie);
+
+        #endregion
+
+
+        #region GetEnumerator()
 
         public IEnumerator<HTTPCookie> GetEnumerator()
-            => Cookies.Values.GetEnumerator();
+            => cookies.Values.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator()
-            => Cookies.Values.GetEnumerator();
+            => cookies.Values.GetEnumerator();
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => cookies.Values.AggregateWith(';');
+
+        #endregion
 
 
     }
