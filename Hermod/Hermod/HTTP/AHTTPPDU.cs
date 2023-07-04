@@ -797,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         SetHeaderField(Key, Value);
                         return true;
                     }
-                    catch (Exception)
+                    catch
                     {
                         Value = default;
                         return false;

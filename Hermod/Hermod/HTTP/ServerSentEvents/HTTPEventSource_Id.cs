@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPEventSourceId = new HTTPEventSource_Id(Text);
                 return true;
             }
-            catch (Exception)
+            catch
             {
                 HTTPEventSourceId = default(HTTPEventSource_Id);
                 return false;

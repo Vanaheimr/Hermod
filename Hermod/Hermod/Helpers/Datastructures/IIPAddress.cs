@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Text, out var ipAddress))
                 return ipAddress!;
 
-            throw new ArgumentException("Invalid text representation of an IP address: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of an IP address: '" + Text + "'!",
                                         nameof(Text));
 
         }

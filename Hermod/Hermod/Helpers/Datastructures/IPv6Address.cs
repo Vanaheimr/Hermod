@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Text, out var ipv6Address))
                 return ipv6Address;
 
-            throw new ArgumentException("Invalid text representation of an IPv6 address: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of an IPv6 address: '" + Text + "'!",
                                         nameof(Text));
 
         }
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Hostname, out var ipv6Address))
                 return ipv6Address;
 
-            throw new ArgumentException("Invalid text representation of an IPv6 address: '" + Hostname + "'!",
+            throw new ArgumentException($"Invalid text representation of an IPv6 address: '" + Hostname + "'!",
                                         nameof(Hostname));
 
         }

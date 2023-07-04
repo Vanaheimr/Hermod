@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         }
 
                     }
-                    catch (Exception)
+                    catch
                     { }
 
                     try
@@ -407,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         }
 
                     }
-                    catch (Exception)
+                    catch
                     { }
 
                     Stream = null;
@@ -422,7 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         }
 
                     }
-                    catch (Exception)
+                    catch
                     { }
 
                     #endregion

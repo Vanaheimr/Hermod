@@ -1332,7 +1332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 //                                                          false);// true);
 
                 //            }
-                //            catch (Exception)
+                //            catch
                 //            {
                 //                TCPSocket = null;
                 //                restart   = true;

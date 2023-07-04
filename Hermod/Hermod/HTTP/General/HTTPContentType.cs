@@ -246,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
             }
-            catch (Exception)
+            catch
             {
                 HTTPContentType = null;
                 return false;

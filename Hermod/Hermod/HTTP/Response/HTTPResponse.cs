@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             }
-            catch (Exception)
+            catch
             {
                 JSON = new JObject();
                 return false;
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             }
-            catch (Exception)
+            catch
             {
                 JSON = new JArray();
                 return false;

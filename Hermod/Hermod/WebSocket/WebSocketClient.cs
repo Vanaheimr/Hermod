@@ -627,7 +627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                       false);
 
                                         }
-                                        catch (Exception)
+                                        catch
                                         {
                                             TCPSocket  = null;
                                             restart    = true;
@@ -1355,7 +1355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
             }
-            catch (Exception)
+            catch
             { }
 
             try
@@ -1366,7 +1366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     TLSStream.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
             try
@@ -1377,7 +1377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     TCPStream.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
             try
@@ -1388,7 +1388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     //TCPClient.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
         }

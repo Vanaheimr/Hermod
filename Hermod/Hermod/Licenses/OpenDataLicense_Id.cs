@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Text, out var dataLicenseId))
                 return dataLicenseId;
 
-            throw new ArgumentException("Invalid text representation of a data license identification: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of a data license identification: '{Text}'!",
                                         nameof(Text));
 
         }

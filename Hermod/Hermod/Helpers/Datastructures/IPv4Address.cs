@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Text, out var ipv4Address))
                 return ipv4Address;
 
-            throw new ArgumentException("Invalid text representation of an IPv4 address: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of an IPv4 address: '" + Text + "'!",
                                         nameof(Text));
 
         }
@@ -304,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Hostname, out var ipv4Address))
                 return ipv4Address;
 
-            throw new ArgumentException("Invalid text representation of an IPv4 address: '" + Hostname + "'!",
+            throw new ArgumentException($"Invalid text representation of an IPv4 address: '" + Hostname + "'!",
                                         nameof(Hostname));
 
         }

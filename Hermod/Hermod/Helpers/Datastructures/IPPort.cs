@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 IPPort = new IPPort((UInt16) Number);
                 return true;
             }
-            catch (Exception)
+            catch
             {
                 IPPort = default;
                 return false;

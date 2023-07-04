@@ -1354,7 +1354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         _Values.Add(Value);
 
                     }
-                    catch (Exception)
+                    catch
                     {
                         ErrorResponse = "Invalid item '" + item + "' within the " + PropertyDescription + " array!";
                         return true;

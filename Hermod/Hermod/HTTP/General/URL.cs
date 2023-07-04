@@ -305,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     return true;
 
                 }
-                catch (Exception)
+                catch
                 { }
             }
 

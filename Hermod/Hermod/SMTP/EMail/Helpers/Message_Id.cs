@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 }
 
             }
-            catch (Exception)
+            catch
             { }
 
             MessageId = default;
@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 }
 
             }
-            catch (Exception)
+            catch
             { }
 
             MessageId = default;

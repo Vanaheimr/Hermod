@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                     {
                                         CSVLine = Encoding.UTF8.GetString(MemoryStream.ToArray());
                                     }
-                                    catch (Exception)
+                                    catch
                                     {
                                         TCPConnection.WriteLineToResponseStream("Protocol Error: Invalid UTF8 encoding!");
                                     }
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                                             ToArray();
 
                                     }
-                                    catch (Exception)
+                                    catch
                                     {
                                         TCPConnection.WriteLineToResponseStream("Protocol Error: Invalid CSV data!");
                                     }
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             }
 #pragma warning disable RCS1075 // Avoid empty catch clause that catches System.Exception.
 #pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
-            catch (Exception)
+            catch
             { }
 #pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
 #pragma warning restore RCS1075 // Avoid empty catch clause that catches System.Exception.

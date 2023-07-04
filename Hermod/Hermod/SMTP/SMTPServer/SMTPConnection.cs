@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             {
                                                 IncomingMail = EMail.Parse(MailText);
                                             }
-                                            catch (Exception)
+                                            catch
                                             { }
 
                                             if (IncomingMail == null)
@@ -724,7 +724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             {
                 TCPConnection.Close((ClientClose) ? ConnectionClosedBy.Client : ConnectionClosedBy.Server);
             }
-            catch (Exception)
+            catch
             { }
 
             #endregion

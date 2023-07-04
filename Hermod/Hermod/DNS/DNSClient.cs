@@ -477,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                 QueryTimeout);
 
                     }
-                    catch (Exception)
+                    catch
                     {
                         // A SocketException might be thrown after the timeout was reached!
                         //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
@@ -532,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         }
 
                     }
-                    catch (Exception)
+                    catch
                     { }
 
                 }

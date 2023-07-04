@@ -657,7 +657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         TCPConnection);
 
             }
-            catch (Exception)
+            catch
             { }
 
         }
@@ -689,7 +689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                            ClosedBy);
 
             }
-            catch (Exception)
+            catch
             { }
 
         }

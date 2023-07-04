@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (TryParse(Text, out InfoStatus infoStatus))
                 return infoStatus;
 
-            throw new ArgumentException("Invalid text representation of an info status: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of an info status: '" + Text + "'!",
                                         nameof(Text));
 
         }

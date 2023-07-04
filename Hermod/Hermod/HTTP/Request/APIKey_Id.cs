@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (TryParse(Text, out APIKey_Id apiKeyId))
                 return apiKeyId;
 
-            throw new ArgumentException("Invalid text representation of an API key identification: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of an API key identification: '{Text}'!",
                                         nameof(Text));
 
         }

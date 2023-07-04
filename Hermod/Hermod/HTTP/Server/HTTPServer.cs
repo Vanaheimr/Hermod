@@ -1412,7 +1412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         HTTPHeaderString = Encoding.UTF8.GetString(MemoryStream.ToArray());
 
                                     }
-                                    catch (Exception)
+                                    catch
                                     {
 
                                         NotifyErrors(null,

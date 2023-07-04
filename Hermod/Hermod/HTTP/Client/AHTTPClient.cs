@@ -599,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                           false);// true);
 
                             }
-                            catch (Exception)
+                            catch
                             {
                                 tcpSocket = null;
                                 restart   = true;
@@ -1296,7 +1296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     httpStream.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
             try
@@ -1307,7 +1307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     tlsStream.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
             try
@@ -1318,7 +1318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     tcpStream.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
             try
@@ -1329,7 +1329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //TCPClient.Dispose();
                 }
             }
-            catch (Exception)
+            catch
             { }
 
         }

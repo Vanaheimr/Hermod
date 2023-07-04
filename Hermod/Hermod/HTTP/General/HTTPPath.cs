@@ -159,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPPath = new HTTPPath(Text);
                 return true;
             }
-            catch (Exception)
+            catch
             { }
 
             HTTPPath = default;
