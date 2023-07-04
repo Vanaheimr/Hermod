@@ -28,6 +28,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     /// <summary>
     /// A collection of HTTP cookies.
+    /// 
+    /// Multiple HTTP cookies are send from the server to the client in multiple "Set-Cookie" headers,
+    /// but from the client to the server multiple HTTP cookies are send in one "Cookie" header concatenated via "; ".
     /// </summary>
     public class HTTPCookies : IEnumerable<HTTPCookie>
     {
@@ -246,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => cookies.Values.AggregateWith(';');
+            => cookies.Values.AggregateWith("; ");
 
         #endregion
 

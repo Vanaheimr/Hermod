@@ -98,11 +98,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     this.parts[part.Key] = part.Value;
             }
 
-            this.Path      = parts.ContainsKey("Path")     ? parts["Path"]                    : null;
+            this.Path      = parts.ContainsKey("Path")     ? parts["Path"]                                      : null;
             this.Secure    = parts.ContainsKey("Secure");
             this.HTTPOnly  = parts.ContainsKey("HTTPOnly");
-            this.SameSite  = parts.ContainsKey("SameSite") ? parts["SameSite"]                : null;
-            this.Expires   = parts.ContainsKey("Expires")  ? DateTime.Parse(parts["Expires"]) : null;
+            this.SameSite  = parts.ContainsKey("SameSite") ? parts["SameSite"]                                  : null;
+            this.Expires   = parts.ContainsKey("Expires")  ? DateTime.Parse(parts["Expires"]).ToUniversalTime() : null;
 
         }
 
@@ -505,6 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
 
     }
 
