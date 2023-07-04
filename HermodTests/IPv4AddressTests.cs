@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +17,11 @@
 
 #region Usings
 
-using System;
-
-using org.GraphDefined.Vanaheimr.Hermod;
-
 using NUnit.Framework;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 {
 
     /// <summary>
@@ -44,10 +40,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void ParseIPv4String_001()
         {
 
-            var _IPv4String  = "141.24.12.2";
-            var _IPv4Address = IPv4Address.Parse(_IPv4String);
+            var ipv4String  = "141.24.12.2";
+            var ipv4Address = IPv4Address.Parse(ipv4String);
 
-            Assert.AreEqual(_IPv4String, _IPv4Address.ToString());
+            Assert.AreEqual(ipv4String, ipv4Address.ToString());
 
         }
 
@@ -59,10 +55,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_002()
         {
-            IPv4Address.Parse("141.24.12");
+            Assert.Throws<ArgumentException>(() => IPv4Address.Parse("141.24.12"));
         }
 
         #endregion
@@ -73,10 +68,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_003()
         {
-            IPv4Address.Parse("300.24.12.2");
+            Assert.Throws<ArgumentException>(() => IPv4Address.Parse("300.24.12.2"));
         }
 
         #endregion
@@ -87,10 +81,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_004()
         {
-            IPv4Address.Parse("141.300.12.2");
+            Assert.Throws<ArgumentException>(() => IPv4Address.Parse("141.300.12.2"));
         }
 
         #endregion
@@ -101,10 +94,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_005()
         {
-            IPv4Address.Parse("141.24.300.2");
+            Assert.Throws<ArgumentException>(() => IPv4Address.Parse("141.24.300.2"));
         }
 
         #endregion
@@ -115,10 +107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address string parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4String_006()
         {
-            IPv4Address.Parse("141.24.12.300");
+            Assert.Throws<ArgumentException>(() => IPv4Address.Parse("141.24.12.300"));
         }
 
         #endregion
@@ -145,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         [Test]
         public void ParseIPv4ByteArray_002()
         {
-            Assert.AreEqual("10.11.12.13", new IPv4Address(new Byte[4] { 0x0A, 0x0B, 0x0C, 0x0D }).ToString());
+            Assert.AreEqual("10.11.12.13", new IPv4Address(new Byte[] { 0x0A, 0x0B, 0x0C, 0x0D }).ToString());
         }
 
         #endregion
@@ -156,10 +147,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPv4Address byte array parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseIPv4ByteArray_003()
         {
-            new IPv4Address(new Byte[2]);
+            Assert.Throws<FormatException>(() => new IPv4Address(new Byte[2]));
         }
 
         #endregion

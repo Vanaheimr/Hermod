@@ -451,26 +451,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of this request.
         /// </summary>
-        public HTTPServer        HTTPServer                  { get; }
+        public HTTPServer         HTTPServer                { get; }
 
 
-        public X509Certificate2  ServerCertificate           { get; }
+        public X509Certificate2?  ServerCertificate         { get; }
 
-        public X509Certificate2  ClientCertificate           { get; }
+        public X509Certificate2?  ClientCertificate         { get; }
 
         /// <summary>
         /// Add this prefix to the URL before sending the request.
         /// </summary>
-        public String            FakeURLPrefix               { get; internal set; }
+        public String             FakeURLPrefix             { get; internal set; }
 
         /// <summary>
         /// The best matching accept type.
         /// Set by the HTTP server.
         /// </summary>
-        public HTTPContentType   BestMatchingAcceptType      { get; internal set; }
+        public HTTPContentType    BestMatchingAcceptType    { get; internal set; }
 
 
-        public Object            SubprotocolRequest          { get; set; }
+        public Object             SubprotocolRequest        { get; set; }
 
         #endregion
 
@@ -479,38 +479,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP method.
         /// </summary>
-        public HTTPMethod   HTTPMethod              { get; }
+        public HTTPMethod          HTTPMethod              { get; }
 
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public HTTPPath     Path                     { get; }
+        public HTTPPath            Path                    { get; }
 
         /// <summary>
         /// The parsed URL parameters of the best matching URL template.
         /// Set by the HTTP server.
         /// </summary>
-        public String[]     ParsedURLParameters     { get; internal set; }
+        public String[]            ParsedURLParameters     { get; internal set; }
 
         /// <summary>
         /// The HTTP query string.
         /// </summary>
-        public QueryString  QueryString             { get; }
+        public QueryString         QueryString             { get; }
 
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String       ProtocolName            { get; }
+        public String              ProtocolName            { get; }
 
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion  ProtocolVersion         { get; }
+        public HTTPVersion         ProtocolVersion         { get; }
 
         /// <summary>
         /// Construct the entire HTTP request header.
         /// </summary>
-        public String       EntireRequestHeader
+        public String              EntireRequestHeader
 
             => String.Concat(HTTPMethod, " ",
                              FakeURLPrefix, Path, QueryString, " ",
@@ -897,27 +897,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ServerCertificate  = ServerCertificate;
             this.ClientCertificate  = ClientCertificate;
 
-            #region Parse HTTPMethod (first line of the http request)
 
-            var _HTTPMethodHeader = FirstPDULine.Split(_SpaceSeparator, StringSplitOptions.RemoveEmptyEntries);
+            // 1st line of the request
+
+            #region Parse method
+
+            var httpMethodHeader    = FirstPDULine.Split(spaceSeparator,
+                                                         StringSplitOptions.RemoveEmptyEntries);
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
-            if (_HTTPMethodHeader.Length != 3)
-                throw new Exception("Bad request");
+            if (httpMethodHeader.Length != 3)
+                throw new Exception("Invlaid first HTTP PDU line!");
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            this.HTTPMethod = HTTPMethod.TryParse(_HTTPMethodHeader[0], out HTTPMethod _HTTPMethod)
-                                  ? _HTTPMethod
-                                  : new HTTPMethod(_HTTPMethodHeader[0]);
+            this.HTTPMethod         = HTTPMethod.TryParse(httpMethodHeader[0], out var httpMethod)
+                                          ? httpMethod
+                                          : new HTTPMethod(httpMethodHeader[0]);
 
             #endregion
 
-            #region Parse URL and QueryString (first line of the http request)
+            #region Parse protocol name and -version
 
-            var RawUrl      = _HTTPMethodHeader[1];
-            var _ParsedURL  = RawUrl.Split(_URLSeparator, 2, StringSplitOptions.None);
-            this.Path       = HTTPPath.Parse(_ParsedURL[0]);
+            var protocolArray       = httpMethodHeader[2].Split(slashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+            this.ProtocolName       = protocolArray[0].ToUpper();
+
+            if (!String.Equals(ProtocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
+                throw new Exception("Invalid protocol!");
+
+            if (HTTPVersion.TryParse(protocolArray[1], out var httpVersion))
+                this.ProtocolVersion  = httpVersion;
+
+            if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
+                throw new Exception("HTTP version not supported!");
+
+            #endregion
+
+            #region Parse URL
+
+            var rawURL      = httpMethodHeader[1];
+            var parsedURL   = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
+            this.Path       = HTTPPath.Parse(parsedURL[0]);
 
             //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
             if (Path.Contains("://"))
@@ -926,32 +946,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Path = Path.Substring(Path.IndexOf("/",   StringComparison.Ordinal));
             }
 
-            if (Path == "" || Path == null)
+            if (Path == "")
                 Path = HTTPPath.Parse("/");
 
+            #endregion
+
+            #region Parse QueryString (optional)
+
             // Parse QueryString after '?'
-            if (RawUrl.IndexOf('?') > -1 && _ParsedURL[1].IsNeitherNullNorEmpty())
-                this.QueryString = QueryString.Parse(_ParsedURL[1]);
+            if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
+                this.QueryString = QueryString.Parse(parsedURL[1]);
             else
                 this.QueryString = QueryString.New;
 
             #endregion
 
-            #region Parse protocol name and -version (first line of the http request)
 
-            var _ProtocolArray  = _HTTPMethodHeader[2].Split(_SlashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-            this.ProtocolName   = _ProtocolArray[0].ToUpper();
-
-            if (!String.Equals(ProtocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
-                throw new Exception("Bad request");
-
-            if (HTTPVersion.TryParse(_ProtocolArray[1], out HTTPVersion _HTTPVersion))
-                this.ProtocolVersion  = _HTTPVersion;
-
-            if (ProtocolVersion != HTTPVersion.HTTP_1_0 && ProtocolVersion != HTTPVersion.HTTP_1_1)
-                throw new Exception("HTTP version not supported");
-
-            #endregion
+            // 2nd line of the request
 
             #region Check Host header
 
@@ -969,24 +980,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    Host header field, the host is determined by the Host header field value.
             // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
             //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
-            if (!headerFields.ContainsKey(HTTPRequestHeaderField.Host.Name))
+            if (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
+                hostHeaderRAW is not String hostHeaderString)
+            {
                 throw new Exception("The HTTP request must have have a valid HOST header!");
+            }
 
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
-            var HostHeader  = headerFields[HTTPRequestHeaderField.Host.Name].ToString().
-                                     Replace(":*", "").
-                                     Split(_ColonSeparator, StringSplitOptions.RemoveEmptyEntries).
-                                     Select(v => v.Trim()).
-                                     ToArray();
+            var hostHeader   = hostHeaderString.
+                                   Replace(":*", "").
+                                   Split  (colonSeparator, StringSplitOptions.RemoveEmptyEntries).
+                                   Select (v => v.Trim()).
+                                   ToArray();
 
-            UInt16 HostPort    = 80;
+            UInt16 hostPort  = 80;
 
-            if (HostHeader.Length == 1)
-                headerFields[HTTPRequestHeaderField.Host.Name] = headerFields[HTTPRequestHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
+            //if (hostHeader.Length == 1)
+            //    headerFields[HTTPRequestHeaderField.Host.Name] = headerFields[HTTPRequestHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
 
-            else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort)) || HostHeader.Length > 2)
-                throw new Exception("Bad request");
+            if (hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out hostPort))
+                throw new Exception("Invalid HTTP port in host header!");
+
+            if (hostHeader.Length  > 2)
+                throw new Exception("Invalid HTTP host header!");
 
             #endregion
 

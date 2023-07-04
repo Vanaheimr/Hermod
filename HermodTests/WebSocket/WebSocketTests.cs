@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
 {
 
     /// <summary>
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP            = true;
-                return null;
+                return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -137,6 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
+            Assert.IsTrue  (validatedTCP);
             Assert.IsTrue  (newTCPConnection);
             Assert.IsTrue  (validatedWebSocket);
             Assert.IsTrue  (newWebSocketConnection);
@@ -197,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP            = true;
-                return null;
+                return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {

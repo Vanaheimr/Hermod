@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,22 +17,15 @@
 
 #region Usings
 
-using System;
-using System.Threading;
 using System.Net.Sockets;
-using System.Collections.Generic;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod;
 
 using NUnit.Framework;
-using System.IO;
-using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
+
+using org.GraphDefined.Vanaheimr.Hermod.Modbus;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Modbus.Tests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.Modbus
 {
 
     public class ModbusTests

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +17,11 @@
 
 #region Usings
 
-using System;
-
-using org.GraphDefined.Vanaheimr.Hermod;
-
 using NUnit.Framework;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 {
 
     /// <summary>
@@ -44,11 +40,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void ParseIPv4String_001()
         {
 
-            var _IPv4Address = IPAddressHelper.Parse("141.24.12.2");
+            var ipv4Address = IPAddressHelper.Parse("141.24.12.2");
 
-            Assert.IsTrue (_IPv4Address is IIPAddress);
-            Assert.IsTrue (_IPv4Address is IPv4Address);
-            Assert.IsFalse(_IPv4Address is IPv6Address);
+            Assert.IsTrue (ipv4Address is IIPAddress);
+            Assert.IsTrue (ipv4Address is IPv4Address);
+            Assert.IsFalse(ipv4Address is IPv6Address);
 
         }
 
@@ -61,10 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         /// IPAddressFactory byte array parsing test.
         /// </summary>
         [Test]
-        //[ExpectedException(typeof(FormatException))]
         public void ParseTooShortByteArray()
         {
-            IPAddressHelper.Build(new Byte[] { 10, 0, 0 });
+            Assert.Throws<FormatException>(() => IPAddressHelper.Build(new Byte[] { 10, 0, 0 }));
         }
 
         #endregion
@@ -78,11 +73,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void ParseIPv4ByteArray()
         {
 
-            var _IPv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0 });
+            var ipv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0 });
 
-            Assert.IsTrue (_IPv4Address is IIPAddress);
-            Assert.IsTrue (_IPv4Address is IPv4Address);
-            Assert.IsFalse(_IPv4Address is IPv6Address);
+            Assert.IsTrue (ipv4Address is IIPAddress);
+            Assert.IsTrue (ipv4Address is IPv4Address);
+            Assert.IsFalse(ipv4Address is IPv6Address);
 
         }
 
@@ -97,11 +92,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void ParseIPv6ByteArray()
         {
 
-            var _IPv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 });
+            var ipv6Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 });
 
-            Assert.IsTrue (_IPv4Address is IIPAddress);
-            Assert.IsFalse(_IPv4Address is IPv4Address);
-            Assert.IsTrue (_IPv4Address is IPv6Address);
+            Assert.IsTrue (ipv6Address is IIPAddress);
+            Assert.IsFalse(ipv6Address is IPv4Address);
+            Assert.IsTrue (ipv6Address is IPv6Address);
 
         }
 

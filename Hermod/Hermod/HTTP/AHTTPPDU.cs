@@ -50,12 +50,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected readonly Dictionary<String, Object?>  headerFields;
         protected readonly Dictionary<String, Object>   headerFieldsParsed;
 
-        protected readonly static String[] _LineSeparator   = new[] { "\n", "\r\n" };
-        protected readonly static Char[]   _ColonSeparator  = new[] { ':' };
-        protected readonly static Char[]   _SlashSeparator  = new[] { '/' };
-        protected readonly static Char[]   _SpaceSeparator  = new[] { ' ' };
-        protected readonly static Char[]   _URLSeparator    = new[] { '?', '!' };
-        protected readonly static Char[]   _HashSeparator   = new[] { '#' };
+        protected readonly static String[]  lineSeparator    = new[] { "\n", "\r\n" };
+        protected readonly static Char[]    colonSeparator   = new[] { ':' };
+        protected readonly static Char[]    slashSeparator   = new[] { '/' };
+        protected readonly static Char[]    spaceSeparator   = new[] { ' ' };
+        protected readonly static Char[]    urlSeparator     = new[] { '?', '!' };
+        protected readonly static Char[]    hashSeparator    = new[] { '#' };
 
         /// <summary>
         /// The default size of the HTTP body receive buffer (==8 KByte).
@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new HTTP header.
         /// </summary>
         /// <param name="HTTPPDU">Another HTTP PDU.</param>
-        protected AHTTPPDU(AHTTPPDU  HTTPPDU)
+        protected AHTTPPDU(AHTTPPDU HTTPPDU)
 
             : this()
 
@@ -625,9 +625,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Process first line...
 
-            var AllLines = HTTPHeader.Trim().Split(_LineSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var allLines = this.RawHTTPHeader.Split(lineSeparator,
+                                                    StringSplitOptions.RemoveEmptyEntries);
 
-            FirstPDULine = AllLines.FirstOrDefault();
+            if (allLines is null || allLines.Length < 2)
+                throw new Exception("Bad request");
+
+            FirstPDULine = allLines.First();
+
             if (FirstPDULine is null)
                 throw new Exception("Bad request");
 
@@ -635,13 +640,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region ...process all other header lines
 
-            foreach (var Line in AllLines.Skip(1))
+            foreach (var headerLine in allLines.Skip(1))
             {
 
-                if (Line.IsNullOrEmpty())
+                if (headerLine.IsNullOrEmpty())
                     break;
 
-                var keyValuePair = Line.Split(_ColonSeparator, 2);
+                var keyValuePair = headerLine.Split(colonSeparator, 2);
 
                 // Not valid for every HTTP header... but at least for most...
                 if (keyValuePair.Length == 1)

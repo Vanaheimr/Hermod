@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2023, Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 {
 
     /// <summary>
@@ -91,10 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
 
         #region NewTCPClientRequest()
 
-        private TCPClientRequest NewTCPClientRequest()
-        {
-            return new TCPClientRequest("localhost", 81);
-        }
+        private static TCPClientRequest NewTCPClientRequest()
+
+            => new ("localhost", 81);
 
         #endregion
 
@@ -105,13 +104,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_001()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GET / HTTP/1.1\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains("200 OK"),       Response);
-            Assert.IsTrue(Response.Contains("Hello World!"), Response);
+            Assert.IsTrue(response.Contains("200 OK"),       response);
+            Assert.IsTrue(response.Contains("Hello World!"), response);
 
         }
 
@@ -123,12 +122,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_002()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GET / HTTP/2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains(_505_HTTPVersionNotSupported), Response);
+            Assert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
 
         }
 
@@ -140,12 +139,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_003()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GET / HTTP 2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains(_400_BadRequest), Response);
+            Assert.IsTrue(response.Contains(_400_BadRequest), response);
 
         }
 
@@ -157,12 +156,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_004()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GET / HTTP/1\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
-            
-            Assert.IsTrue(Response.Contains(_505_HTTPVersionNotSupported), Response);
+
+            Assert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
 
         }
 
@@ -174,12 +173,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_005()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GET / HTTo/2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains(_500_InternalServerError), Response);
+            Assert.IsTrue(response.Contains(_400_BadRequest), response);
 
         }
 
@@ -191,14 +190,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_006()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GE").
                            Wait(100).
                            Send("T / HTTo/2.0\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains(_500_InternalServerError), Response);
+            Assert.IsTrue(response.Contains(_400_BadRequest), response);
 
         }
 
@@ -210,12 +209,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
         public void HTTPClientTests_007()
         {
 
-            var Response = NewTCPClientRequest().
+            var response = NewTCPClientRequest().
                            Send("GETTT / HTTP/1.1\r\nHost: localhost").
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(Response.Contains(_405_MethodNotAllowed), Response);
+            Assert.IsTrue(response.Contains(_405_MethodNotAllowed), response);
 
         }
 

@@ -637,16 +637,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Call the best matching method handler for the given HTTP request.
         /// </summary>
-        protected HTTPServer.HTTPRequestHandle
+        protected HTTPServer.HTTPRequestHandle?
 
             GetHandlers(HTTPHostname                               Host,
                         HTTPPath                                   URL,
+                        out String?                                ErrorResponse,
                         HTTPMethod?                                HTTPMethod                    = null,
                         Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
                         Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
 
             => httpServer.GetRequestHandle(Host,
                                            URL,
+                                           out ErrorResponse,
                                            HTTPMethod,
                                            HTTPContentTypeSelector,
                                            ParsedURLParametersDelegate);
@@ -1261,11 +1263,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   TCPConnection   TCPConnection,
                                   DateTime        Timestamp,
                                   HTTPStatusCode  HTTPStatusCode,
-                                  HTTPRequest     Request          = null,
-                                  HTTPResponse    Response         = null,
-                                  String          Error            = null,
-                                  Exception       LastException    = null,
-                                  Boolean         CloseConnection  = true)
+                                  //HTTPRequest?    Request           = null,
+                                  HTTPResponse?   Response          = null,
+                                  String?         Error             = null,
+                                  Exception?      LastException     = null,
+                                  Boolean         CloseConnection   = true)
         {
 
             #region Call OnError delegates
@@ -1282,19 +1284,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var Content = String.Empty;
 
-            if (Error != null)
+            if (Error is not null)
                 Content += Error + Environment.NewLine;
 
-            if (LastException != null)
+            if (LastException is not null)
                 Content += LastException.Message + Environment.NewLine;
 
-            var _HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
-                                    HTTPStatusCode  = HTTPStatusCode,
-                                    Date            = Timestamp,
-                                    Content         = Content.ToUTF8Bytes()
-                                };
+            var httpStatusCode = HTTPStatusCode;
 
-            TCPConnection.WriteLineToResponseStream(_HTTPResponse.AsImmutable.EntirePDU);
+            if (Content == "Invalid HTTP header!\r\nHTTP version not supported!\r\n")
+                httpStatusCode = HTTPStatusCode.HTTPVersionNotSupported;
+
+            var httpResponse = new HTTPResponse.Builder(HTTPRequest) {
+                                   HTTPStatusCode  = httpStatusCode,
+                                   Date            = Timestamp,
+                                   Content         = Content.ToUTF8Bytes()
+                               };
+
+            TCPConnection.WriteLineToResponseStream(httpResponse.AsImmutable.EntirePDU);
 
             if (CloseConnection)
                 TCPConnection.Close();
@@ -2311,23 +2318,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        internal HTTPRequestHandle? GetRequestHandle(HTTPRequest Request)
+        internal HTTPRequestHandle? GetRequestHandle(HTTPRequest Request,
+                                                     out String? ErrorResponse)
 
             => GetRequestHandle(Request.Host,
                                 Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
+                                out ErrorResponse,
                                 Request.HTTPMethod,
                                 AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),// ?? AvailableContentTypes.First(),
                                 ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
 
         #endregion
 
-        #region (internal) GetRequestHandle(Host = "*", Path = "/", HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
+        #region (internal) GetRequestHandle(Host = "*", Path = "/", ErrorResponse, HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
         internal HTTPRequestHandle? GetRequestHandle(HTTPHostname                               Host,
                                                      HTTPPath                                   Path,
+                                                     out String?                                ErrorResponse,
                                                      HTTPMethod?                                HTTPMethod                    = null,
                                                      Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
                                                      Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
@@ -2338,53 +2348,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              : Path;
             HTTPMethod               ??= HTTP.HTTPMethod.GET;
             HTTPContentTypeSelector  ??= (v => HTTPContentType.HTML_UTF8);
+            ErrorResponse              = null;
 
             lock (hostnameNodes)
             {
 
                 #region Get HostNode or "*" or fail
 
-                if (!hostnameNodes.TryGetValue(Host, out var hostnameNode))
-                    if (!hostnameNodes.TryGetValue(HTTPHostname.Any, out hostnameNode))
-                        return null;
-                        //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
+                if (!hostnameNodes.TryGetValue(Host,             out var hostnameNode) &&
+                    !hostnameNodes.TryGetValue(HTTPHostname.Any, out     hostnameNode))
+                {
+                    ErrorResponse = "Could not find a matching hostnode!";
+                    return null;
+                }
 
                 #endregion
 
                 #region Try to find the best matching URLNode...
 
-                var regexList     = from   urlNode
-                                    in     hostnameNode.URLNodes
-                                    select new {
-                                        URLNode = urlNode,
-                                        Regex   = urlNode.URLRegex
-                                    };
+                var regexList      = from   urlNode
+                                     in     hostnameNode.URLNodes
+                                     select new {
+                                         URLNode = urlNode,
+                                         Regex   = urlNode.URLRegex
+                                     };
 
-                var allTemplates  = from   regexTupel
-                                    in     regexList
-                                    select new {
-                                        URLNode = regexTupel.URLNode,
-                                        Match   = regexTupel.Regex.Match(Path.ToString())
-                                    };
+                var allTemplates   = from   regexTupel
+                                     in     regexList
+                                     select new {
+                                         URLNode = regexTupel.URLNode,
+                                         Match   = regexTupel.Regex.Match(Path.ToString())
+                                     };
 
-                var matches       = from    match
-                                    in      allTemplates
-                                    where   match.Match.Success
-                                    where   match.URLNode.Contains(HTTPMethod.Value)
-                                    orderby 100*match.URLNode.SortLength +
-                                                match.URLNode.ParameterCount
-                                            descending
-                                    select  new {
-                                        URLNode = match.URLNode,
-                                        Match   = match.Match
-                                    };
+                var matches        = from    match
+                                     in      allTemplates
+                                     where   match.Match.Success
+                                     orderby 100*match.URLNode.SortLength +
+                                                 match.URLNode.ParameterCount
+                                             descending
+                                     select  new {
+                                         match.URLNode,
+                                         match.Match
+                                     };
+
+                var matchesMethod  = from    match
+                                     in      matches
+                                     where   match.URLNode.Contains(HTTPMethod.Value)
+                                     orderby 100*match.URLNode.SortLength +
+                                                 match.URLNode.ParameterCount
+                                             descending
+                                     select  new {
+                                         match.URLNode,
+                                         match.Match
+                                     };
 
                 #endregion
 
-                #region ...or return HostNode
+                #region ...or fail!
 
-                if (!matches.Any())
+                if (!matchesMethod.Any())
                 {
+
+                    ErrorResponse = matches.Any()
+                                        ? "This HTTP method is not allowed!"
+                                        : "No matching URL template found!";
 
                     //if (_HostNode.RequestHandler != null)
                     //    return _HostNode.RequestHandler;
@@ -2565,7 +2592,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            var httpRequestHandle = GetRequestHandle(Request);
+            var httpRequestHandle = GetRequestHandle(Request,
+                                                     out var errorResponse);
 
             if (httpRequestHandle is not null)
             {
@@ -2675,12 +2703,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
+
+            if (errorResponse == "This HTTP method is not allowed!")
+                httpResponse = new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
+                                   Server          = Request.Host.ToString(),
+                                   Date            = Timestamp.Now,
+                                   ContentType     = HTTPContentType.TEXT_UTF8,
+                                   Content         = errorResponse.ToUTF8Bytes(),
+                                   Connection      = "close"
+                               };
+
             return httpResponse ?? new HTTPResponse.Builder(Request) {
                                        HTTPStatusCode  = HTTPStatusCode.NotFound,
                                        Server          = Request.Host.ToString(),
                                        Date            = Timestamp.Now,
                                        ContentType     = HTTPContentType.TEXT_UTF8,
-                                       Content         = "Error 404 - No HTTP handler found!".ToUTF8Bytes(),
+                                       Content         = (errorResponse ?? "Error 404 - No HTTP handler found!").ToUTF8Bytes(),
                                        Connection      = "close"
                                    };
 
