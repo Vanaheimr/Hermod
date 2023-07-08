@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        
+        private readonly CryptoWallet cryptoWallet = new();
 
         #endregion
 
@@ -45,29 +45,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The unique identification of this network service node.
         /// </summary>
-        public NetworkServiceNode_Id  Id                { get; }
+        public NetworkServiceNode_Id       Id                { get; }
 
         /// <summary>
         /// The multi-language name of this network service node.
         /// </summary>
-        public I18NString             Name              { get; }
+        public I18NString                  Name              { get; }
 
         /// <summary>
         /// The multi-language description of this network service node.
         /// </summary>
-        public I18NString             Description       { get; }
+        public I18NString                  Description       { get; }
+
+
+
+        public CryptoKeyInfo?              Identity
+            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.Identity).
+                            MinBy     (cryptoKey => cryptoKey.Priority);
+
+        public IEnumerable<CryptoKeyInfo>  Identities
+            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.Identity);
+
+
+        public CryptoKeyInfo?              IdentityGroup
+            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.IdentityGroup).
+                            MinBy     (cryptoKey => cryptoKey.Priority);
+
+        public IEnumerable<CryptoKeyInfo>  IdentityGroups
+            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.IdentityGroup);
+
 
 
         /// <summary>
         /// The optional default HTTP API.
         /// </summary>
-        public HTTPAPI?               DefaultHTTPAPI    { get; }
+        public HTTPAPI?                    DefaultHTTPAPI    { get; }
 
 
         /// <summary>
         /// The DNS client used by the network service node.
         /// </summary>
-        public DNSClient              DNSClient         { get; }
+        public DNSClient                   DNSClient         { get; }
 
         #endregion
 
@@ -83,13 +101,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="DefaultHTTPAPI">An optional default HTTP API.</param>
         /// 
         /// <param name="DNSClient">The DNS client used by the network service node.</param>
-        public NetworkServiceNode(NetworkServiceNode_Id?  Id               = null,
-                                  I18NString?             Name             = null,
-                                  I18NString?             Description      = null,
+        public NetworkServiceNode(NetworkServiceNode_Id?       Id               = null,
+                                  I18NString?                  Name             = null,
+                                  I18NString?                  Description      = null,
 
-                                  HTTPAPI?                DefaultHTTPAPI   = null,
+                                  CryptoKeyInfo?               Identity         = null,
+                                  IEnumerable<CryptoKeyInfo>?  Identities       = null,
 
-                                  DNSClient?              DNSClient        = null)
+                                  CryptoKeyInfo?               IdentityGroup    = null,
+                                  IEnumerable<CryptoKeyInfo>?  IdentityGroups   = null,
+
+                                  HTTPAPI?                     DefaultHTTPAPI   = null,
+
+                                  DNSClient?                   DNSClient        = null)
         {
 
             #region Initial checks
@@ -102,6 +126,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.Id               = Id          ?? NetworkServiceNode_Id.NewRandom();
             this.Name             = Name        ?? I18NString.Empty;
             this.Description      = Description ?? I18NString.Empty;
+
+            if (Identity is not null && Identity.KeyUsages.Contains(CryptoKeyUsage_Id.Identity))
+                AddCryptoKey(CryptoKeyUsage_Id.Identity,
+                             Identity);
+
+            if (Identities is not null)
+                foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage_Id.Identity)))
+                    AddCryptoKey(CryptoKeyUsage_Id.Identity,
+                                 identity);
+
+            if (IdentityGroup is not null && IdentityGroup.KeyUsages.Contains(CryptoKeyUsage_Id.IdentityGroup))
+                AddCryptoKey(CryptoKeyUsage_Id.IdentityGroup,
+                             IdentityGroup);
+
+            if (IdentityGroups is not null)
+                foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage_Id.IdentityGroup)))
+                    AddCryptoKey(CryptoKeyUsage_Id.IdentityGroup,
+                                 identityGroup);
 
             this.DefaultHTTPAPI   = DefaultHTTPAPI;
 
@@ -124,6 +166,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
+        #region Crypto Wallet
+
+        public Boolean AddCryptoKey(CryptoKeyUsage_Id  CryptoKeyUsageId,
+                                    CryptoKeyInfo      CryptoKeyInfo)
+
+            => cryptoWallet.AddCryptoKey(CryptoKeyUsageId,
+                                         CryptoKeyInfo);
+
+        #endregion
 
         #region HTTP APIs
 
