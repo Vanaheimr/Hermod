@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean AddCryptoKey(CryptoKeyUsage_Id  CryptoKeyUsageId,
                                     CryptoKeyInfo      CryptoKeyInfo)
 
-            => cryptoWallet.AddCryptoKey(CryptoKeyUsageId,
+            => cryptoWallet.Add(CryptoKeyUsageId,
                                          CryptoKeyInfo);
 
         #endregion

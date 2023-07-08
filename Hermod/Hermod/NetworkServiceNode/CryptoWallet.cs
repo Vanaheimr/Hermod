@@ -17,11 +17,11 @@
 
 #region Usings
 
-
-#endregion
+using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Concurrent;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
@@ -29,10 +29,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public class CryptoWallet
     {
 
-        private ConcurrentDictionary<CryptoKeyUsage_Id, List<CryptoKeyInfo>> cryptoKeys = new();
+        #region Data
 
-        public UInt32  Priority          { get; }
+        private readonly ConcurrentDictionary<CryptoKeyUsage_Id, List<CryptoKeyInfo>> cryptoKeys = new();
 
+        #endregion
+
+        #region Properties
+
+        public UInt32  Priority    { get; }
+
+        #endregion
+
+        #region Constructor(s)
 
         public CryptoWallet(IEnumerable<CryptoKeyInfo>? CryptoKeys = null)
         {
@@ -54,10 +63,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
+        #endregion
 
 
-        public Boolean AddCryptoKey(CryptoKeyUsage_Id  CryptoKeyUsageId,
-                                    CryptoKeyInfo      CryptoKeyInfo)
+        #region Add(CryptoKeyUsageId, CryptoKeyInfo)
+
+        public Boolean Add(CryptoKeyUsage_Id  CryptoKeyUsageId,
+                           CryptoKeyInfo      CryptoKeyInfo)
         {
 
             if (cryptoKeys.TryGetValue(CryptoKeyUsageId, out var cryptoKeyInfo)) {
@@ -69,9 +81,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         }
 
+        #endregion
 
-        public IEnumerable<CryptoKeyInfo> GetKeysFor(CryptoKeyUsage_Id CryptoKeyUsageId)
+
+        #region GetKeys           (KeyFilter)
+
+        public IEnumerable<CryptoKeyInfo> GetKeys(Func<CryptoKeyInfo, Boolean> KeyFilter)
+        {
+
+            var cryptoKeyUsageIdSet = new HashSet<CryptoKeyInfo>();
+
+            foreach (var kvp in cryptoKeys)
+            {
+                foreach (var cryptoKeyInfo in kvp.Value)
+                {
+                    if (KeyFilter(cryptoKeyInfo))
+                        cryptoKeyUsageIdSet.Add(cryptoKeyInfo);
+                }
+            }
+
+            return cryptoKeyUsageIdSet;
+
+        }
+
+        #endregion
+
+
+        #region GetKeysForUsageId (CryptoKeyUsageId)
+
+        public IEnumerable<CryptoKeyInfo> GetKeysForUsageId(CryptoKeyUsage_Id CryptoKeyUsageId)
             => cryptoKeys[CryptoKeyUsageId];
+
+        #endregion
+
+        #region GetKeysForUsageIds(CryptoKeyUsageIds)
+
+        public IEnumerable<CryptoKeyInfo> GetKeysForUsageIds(params CryptoKeyUsage_Id[] CryptoKeyUsageIds)
+            => GetKeysForUsageIds(CryptoKeyUsageIds);
+
+        #endregion
+
+        #region GetKeysForUsageIds(CryptoKeyUsageIds)
+
+        public IEnumerable<CryptoKeyInfo> GetKeysForUsageIds(IEnumerable<CryptoKeyUsage_Id> CryptoKeyUsageIds)
+        {
+
+            var cryptoKeyUsageIdSet = new HashSet<CryptoKeyInfo>();
+
+            foreach (var cryptoKeyUsageId in CryptoKeyUsageIds)
+            {
+                foreach (var keyUsage in cryptoKeys[cryptoKeyUsageId])
+                {
+                    cryptoKeyUsageIdSet.Add(keyUsage);
+                }
+            }
+
+            return cryptoKeyUsageIdSet;
+
+        }
+
+        #endregion
+
 
 
     }
