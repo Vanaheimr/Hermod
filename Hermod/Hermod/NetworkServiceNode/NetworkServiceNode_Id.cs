@@ -25,22 +25,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// Extension methods for service node identifications.
+    /// Extension methods for network service node identifications.
     /// </summary>
     public static class ServiceNodeIdExtensions
     {
 
         /// <summary>
-        /// Indicates whether this service node identification is null or empty.
+        /// Indicates whether this network service node identification is null or empty.
         /// </summary>
-        /// <param name="NodeId">A service node identification.</param>
+        /// <param name="NodeId">A network service node identification.</param>
         public static Boolean IsNullOrEmpty(this NetworkServiceNode_Id? NodeId)
             => !NodeId.HasValue || NodeId.Value.IsNullOrEmpty;
 
         /// <summary>
-        /// Indicates whether this service node identification is null or empty.
+        /// Indicates whether this network service node identification is null or empty.
         /// </summary>
-        /// <param name="NodeId">A service node identification.</param>
+        /// <param name="NodeId">A network service node identification.</param>
         public static Boolean IsNotNullOrEmpty(this NetworkServiceNode_Id? NodeId)
             => NodeId.HasValue && NodeId.Value.IsNotNullOrEmpty;
 
