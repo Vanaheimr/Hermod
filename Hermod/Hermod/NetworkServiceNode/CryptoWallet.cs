@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        private readonly ConcurrentDictionary<CryptoKeyUsage_Id, List<CryptoKeyInfo>> cryptoKeys = new();
+        private readonly ConcurrentDictionary<CryptoKeyUsage, List<CryptoKeyInfo>> cryptoKeys = new();
 
         #endregion
 
@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public CryptoWallet(IEnumerable<CryptoKeyInfo>? CryptoKeys = null)
         {
 
-            this.cryptoKeys = new ConcurrentDictionary<CryptoKeyUsage_Id, List<CryptoKeyInfo>>();
+            this.cryptoKeys = new ConcurrentDictionary<CryptoKeyUsage, List<CryptoKeyInfo>>();
 
             if (CryptoKeys is not null)
             {
@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Add(CryptoKeyUsageId, CryptoKeyInfo)
 
-        public Boolean Add(CryptoKeyUsage_Id  CryptoKeyUsageId,
+        public Boolean Add(CryptoKeyUsage  CryptoKeyUsageId,
                            CryptoKeyInfo      CryptoKeyInfo)
         {
 
@@ -107,23 +107,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region GetKeysForUsageId (CryptoKeyUsageId)
+        #region GetKeysForUsage (CryptoKeyUsageId)
 
-        public IEnumerable<CryptoKeyInfo> GetKeysForUsageId(CryptoKeyUsage_Id CryptoKeyUsageId)
+        public IEnumerable<CryptoKeyInfo> GetKeysForUsage(CryptoKeyUsage CryptoKeyUsageId)
             => cryptoKeys[CryptoKeyUsageId];
 
         #endregion
 
-        #region GetKeysForUsageIds(CryptoKeyUsageIds)
+        #region GetKeysForUsages(CryptoKeyUsageIds)
 
-        public IEnumerable<CryptoKeyInfo> GetKeysForUsageIds(params CryptoKeyUsage_Id[] CryptoKeyUsageIds)
-            => GetKeysForUsageIds(CryptoKeyUsageIds);
+        public IEnumerable<CryptoKeyInfo> GetKeysForUsages(params CryptoKeyUsage[] CryptoKeyUsageIds)
+            => GetKeysForUsages(CryptoKeyUsageIds);
 
         #endregion
 
-        #region GetKeysForUsageIds(CryptoKeyUsageIds)
+        #region GetKeysForUsages(CryptoKeyUsageIds)
 
-        public IEnumerable<CryptoKeyInfo> GetKeysForUsageIds(IEnumerable<CryptoKeyUsage_Id> CryptoKeyUsageIds)
+        public IEnumerable<CryptoKeyInfo> GetKeysForUsages(IEnumerable<CryptoKeyUsage> CryptoKeyUsageIds)
         {
 
             var cryptoKeyUsageIdSet = new HashSet<CryptoKeyInfo>();
@@ -141,7 +141,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
-
 
 
     }

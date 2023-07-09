@@ -26,51 +26,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public class CryptoKeyInfo
     {
 
-        public String                      PublicKeyText       { get; }
+        public String                   PublicKeyText        { get; }
 
-        public String                      PrivateKeyText      { get; }
+        public String                   PrivateKeyText       { get; }
 
-        public IEnumerable<String>         CertificatesText    { get; }
+        public IEnumerable<String>      CertificatesText     { get; }
 
         /// <summary>
         /// Crypto key usages.
         /// Best for security is to use an individual key per key usage!
         /// </summary>
-        public HashSet<CryptoKeyUsage_Id>  KeyUsages           { get; }
+        public HashSet<CryptoKeyUsage>  KeyUsages            { get; }
+
+        /// <summary>
+        /// The type of the crypto keys.
+        /// </summary>
+        public CryptoKeyType            CryptoKeyType        { get; }
+
+        /// <summary>
+        /// The encoding of the crypto keys.
+        /// </summary>
+        public CryptoKeyEncoding        CryptoKeyEncoding    { get; }
 
         /// <summary>
         /// The priority of this key among all they keys of a key usage.
         /// </summary>
-        public UInt32                      Priority            { get; }
+        public UInt32                   Priority             { get; }
 
 
-        public CryptoKeyInfo(String                          PublicKeyText,
-                             String                          PrivateKeyText,
-                             IEnumerable<String>             CertificatesText,
-                             IEnumerable<CryptoKeyUsage_Id>  KeyUsages,
-                             UInt32?                         Priority) //ToDo: Perhaps "Priority per key usage"?
+        public CryptoKeyInfo(String                       PublicKeyText,
+                             String                       PrivateKeyText,
+                             IEnumerable<String>          CertificatesText,
+                             IEnumerable<CryptoKeyUsage>  KeyUsages,
+                             UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
         {
 
             this.PublicKeyText     = PublicKeyText;
             this.PrivateKeyText    = PrivateKeyText;
             this.CertificatesText  = CertificatesText ?? Array.Empty<String>();
             this.KeyUsages         = KeyUsages.Any()
-                                         ? new HashSet<CryptoKeyUsage_Id>(KeyUsages)
-                                         : new HashSet<CryptoKeyUsage_Id>();
+                                         ? new HashSet<CryptoKeyUsage>(KeyUsages)
+                                         : new HashSet<CryptoKeyUsage>();
             this.Priority          = Priority ?? 0;
 
         }
 
-        public CryptoKeyInfo(String             PublicKeyText,
-                             String             PrivateKeyText,
-                             CryptoKeyUsage_Id  KeyUsage)
+        public CryptoKeyInfo(String              PublicKeyText,
+                             String              PrivateKeyText,
+                             CryptoKeyUsage      KeyUsage,
+                             CryptoKeyType?      CryptoKeyType       = null,
+                             CryptoKeyEncoding?  CryptoKeyEncoding   = null)
         {
 
-            this.PublicKeyText     = PublicKeyText;
-            this.PrivateKeyText    = PrivateKeyText;
-            this.CertificatesText  = CertificatesText ?? Array.Empty<String>();
-            this.KeyUsages         = new HashSet<CryptoKeyUsage_Id>() { KeyUsage };
-            this.Priority          = 0;
+            this.PublicKeyText      = PublicKeyText;
+            this.PrivateKeyText     = PrivateKeyText;
+            this.CertificatesText   = CertificatesText  ?? Array.Empty<String>();
+            this.KeyUsages          = new HashSet<CryptoKeyUsage>() { KeyUsage };
+            this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP256r1;
+            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.CryptoKeyEncoding.BASE64;
+            this.Priority           = 0;
 
         }
 

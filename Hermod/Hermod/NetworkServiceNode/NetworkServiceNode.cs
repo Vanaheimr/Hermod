@@ -60,19 +60,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         public CryptoKeyInfo?              Identity
-            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.Identity).
-                            MinBy     (cryptoKey => cryptoKey.Priority);
+            => cryptoWallet.GetKeysForUsage(CryptoKeyUsage.Identity).
+                            MinBy            (cryptoKey => cryptoKey.Priority);
 
         public IEnumerable<CryptoKeyInfo>  Identities
-            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.Identity);
+            => cryptoWallet.GetKeysForUsage(CryptoKeyUsage.Identity);
 
 
         public CryptoKeyInfo?              IdentityGroup
-            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.IdentityGroup).
-                            MinBy     (cryptoKey => cryptoKey.Priority);
+            => cryptoWallet.GetKeysForUsage(CryptoKeyUsage.IdentityGroup).
+                            MinBy            (cryptoKey => cryptoKey.Priority);
 
         public IEnumerable<CryptoKeyInfo>  IdentityGroups
-            => cryptoWallet.GetKeysFor(CryptoKeyUsage_Id.IdentityGroup);
+            => cryptoWallet.GetKeysForUsage(CryptoKeyUsage.IdentityGroup);
 
 
 
@@ -127,22 +127,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.Name             = Name        ?? I18NString.Empty;
             this.Description      = Description ?? I18NString.Empty;
 
-            if (Identity is not null && Identity.KeyUsages.Contains(CryptoKeyUsage_Id.Identity))
-                AddCryptoKey(CryptoKeyUsage_Id.Identity,
+            if (Identity is not null && Identity.KeyUsages.Contains(CryptoKeyUsage.Identity))
+                AddCryptoKey(CryptoKeyUsage.Identity,
                              Identity);
 
             if (Identities is not null)
-                foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage_Id.Identity)))
-                    AddCryptoKey(CryptoKeyUsage_Id.Identity,
+                foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.Identity)))
+                    AddCryptoKey(CryptoKeyUsage.Identity,
                                  identity);
 
-            if (IdentityGroup is not null && IdentityGroup.KeyUsages.Contains(CryptoKeyUsage_Id.IdentityGroup))
-                AddCryptoKey(CryptoKeyUsage_Id.IdentityGroup,
+            if (IdentityGroup is not null && IdentityGroup.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup))
+                AddCryptoKey(CryptoKeyUsage.IdentityGroup,
                              IdentityGroup);
 
             if (IdentityGroups is not null)
-                foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage_Id.IdentityGroup)))
-                    AddCryptoKey(CryptoKeyUsage_Id.IdentityGroup,
+                foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup)))
+                    AddCryptoKey(CryptoKeyUsage.IdentityGroup,
                                  identityGroup);
 
             this.DefaultHTTPAPI   = DefaultHTTPAPI;
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Crypto Wallet
 
-        public Boolean AddCryptoKey(CryptoKeyUsage_Id  CryptoKeyUsageId,
+        public Boolean AddCryptoKey(CryptoKeyUsage  CryptoKeyUsageId,
                                     CryptoKeyInfo      CryptoKeyInfo)
 
             => cryptoWallet.Add(CryptoKeyUsageId,
