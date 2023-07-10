@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.PrivateKeyText     = PrivateKeyText;
             this.CertificatesText   = CertificatesText  ?? Array.Empty<String>();
             this.KeyUsages          = new HashSet<CryptoKeyUsage>() { KeyUsage };
-            this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP256r1;
+            this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP521r1;
             this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.CryptoKeyEncoding.BASE64;
             this.Priority           = 0;
 
