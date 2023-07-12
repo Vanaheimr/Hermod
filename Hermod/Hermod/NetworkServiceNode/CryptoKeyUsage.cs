@@ -240,6 +240,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static CryptoKeyUsage Signature
             => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/signature");
 
+
+
+        /// <summary>
+        /// Signature for the Measuring Instruments Directive (MID)
+        /// </summary>
+        public static CryptoKeyUsage MeasuringInstrumentsDirective
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/MeasuringInstrumentsDirective/signature");
+
+        /// <summary>
+        /// Signature for the German Calibration Law: Type Approval (Module B)
+        /// </summary>
+        public static CryptoKeyUsage GermanCalibrationLaw_TypeApproval
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/GermanCalibrationLaw/TypeApproval/signature");
+
+        /// <summary>
+        /// Signature for the German Calibration Law: Quality Assurance (Module D)
+        /// </summary>
+        public static CryptoKeyUsage GermanCalibrationLaw_QualityAssurance
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/GermanCalibrationLaw/QualityAssurance/signature");
+
+        /// <summary>
+        /// Signature for the Office of Weights and Measures (Eichamt)
+        /// </summary>
+        public static CryptoKeyUsage Eichamt
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/WeightsAndMeasuresOffice/signature");
+
         #endregion
 
 
