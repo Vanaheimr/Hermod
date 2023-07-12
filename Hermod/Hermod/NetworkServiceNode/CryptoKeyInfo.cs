@@ -58,16 +58,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              String                       PrivateKeyText,
                              IEnumerable<String>          CertificatesText,
                              IEnumerable<CryptoKeyUsage>  KeyUsages,
+                             CryptoKeyType?               CryptoKeyType,
+                             CryptoKeyEncoding?           CryptoKeyEncoding,
                              UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
         {
 
-            this.PublicKeyText     = PublicKeyText;
-            this.PrivateKeyText    = PrivateKeyText;
-            this.CertificatesText  = CertificatesText ?? Array.Empty<String>();
-            this.KeyUsages         = KeyUsages.Any()
-                                         ? new HashSet<CryptoKeyUsage>(KeyUsages)
-                                         : new HashSet<CryptoKeyUsage>();
-            this.Priority          = Priority ?? 0;
+            this.PublicKeyText      = PublicKeyText;
+            this.PrivateKeyText     = PrivateKeyText;
+            this.CertificatesText   = CertificatesText ?? Array.Empty<String>();
+            this.KeyUsages          = KeyUsages.Any()
+                                          ? new HashSet<CryptoKeyUsage>(KeyUsages)
+                                          : new HashSet<CryptoKeyUsage>();
+            this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP521r1;
+            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.CryptoKeyEncoding.BASE64;
+            this.Priority           = Priority ?? 0;
 
         }
 
@@ -87,6 +91,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.Priority           = 0;
 
         }
+
+
+
+        #region Clone()
+
+        /// <summary>
+        /// Clone this crypto key information.
+        /// </summary>
+        public CryptoKeyInfo Clone()
+
+            => new (PublicKeyText,
+                    PrivateKeyText,
+                    CertificatesText,
+                    KeyUsages,
+                    CryptoKeyType,
+                    CryptoKeyEncoding,
+                    Priority);
+
+        #endregion
 
     }
 

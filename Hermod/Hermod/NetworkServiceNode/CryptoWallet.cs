@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Collections;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -26,7 +27,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    public class CryptoWallet
+    public class CryptoWallet : IEnumerable<CryptoKeyInfo>
     {
 
         #region Data
@@ -62,6 +63,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
         }
+
+        #endregion
+
+
+        #region Clone()
+
+        /// <summary>
+        /// Clone this crypto wallet.
+        /// </summary>
+        public CryptoWallet Clone()
+
+            => new (cryptoKeys.Values.SelectMany(cryptoKeyInfoList => cryptoKeyInfoList).
+                                      Select    (cryptoKeyInfo     => cryptoKeyInfo.
+                                      Clone     ()));
 
         #endregion
 
@@ -139,6 +154,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             return cryptoKeyUsageIdSet;
 
         }
+
+        #endregion
+
+
+
+        #region GetEnumerator()
+
+        public IEnumerator<CryptoKeyInfo> GetEnumerator()
+
+            => cryptoKeys.Values.SelectMany(cryptoKeyInfo => cryptoKeyInfo).ToList().GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator()
+
+            => cryptoKeys.Values.SelectMany(cryptoKeyInfo => cryptoKeyInfo).ToList().GetEnumerator();
 
         #endregion
 
