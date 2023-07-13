@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 ECPrivateKeyParameters? privateKey  = null;
                 ECPublicKeyParameters?  publicKey   = null;
 
-                if      (keyPair.CryptoKeyType == CryptoKeyType.SecP256r1)
+                if      (keyPair.KeyType == CryptoKeyType.SecP256r1)
                 {
 
                     privateKey   = new ECPrivateKeyParameters(
@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 }
 
-                else if (keyPair.CryptoKeyType == CryptoKeyType.SecP384r1)
+                else if (keyPair.KeyType == CryptoKeyType.SecP384r1)
                 {
 
                     privateKey   = new ECPrivateKeyParameters(
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 }
 
-                else if (keyPair.CryptoKeyType == CryptoKeyType.SecP521r1)
+                else if (keyPair.KeyType == CryptoKeyType.SecP521r1)
                 {
 
                     privateKey   = new ECPrivateKeyParameters(

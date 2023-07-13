@@ -26,6 +26,101 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    #region (class) SecP256r1Keys
+
+    public class SecP256r1Keys : CryptoKeyInfo
+    {
+
+        public SecP256r1Keys(String                       PublicKeyText,
+                             String                       PrivateKeyText,
+                             IEnumerable<String>          CertificatesText,
+                             IEnumerable<CryptoKeyUsage>  KeyUsages,
+                             DateTime?                    NotBefore,
+                             DateTime?                    NotAfter,
+                             DataEncoding?                KeyEncoding,
+                             UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
+
+            : base(PublicKeyText,
+                   PrivateKeyText,
+                   CertificatesText,
+                   KeyUsages,
+                   NotBefore,
+                   NotAfter,
+                   CryptoKeyType.SecP256r1,
+                   KeyEncoding,
+                   Priority)
+
+        { }
+
+        public SecP256r1Keys(String          PublicKeyText,
+                             String          PrivateKeyText,
+                             CryptoKeyUsage  KeyUsages,
+                             DateTime?       NotBefore     = null,
+                             DateTime?       NotAfter      = null,
+                             DataEncoding?   KeyEncoding   = null)
+
+            : base(PublicKeyText,
+                   PrivateKeyText,
+                   KeyUsages,
+                   NotBefore,
+                   NotAfter,
+                   CryptoKeyType.SecP256r1,
+                   KeyEncoding)
+
+        { }
+
+    }
+
+    #endregion
+
+    #region (class) SecP521r1Keys
+
+    public class SecP521r1Keys : CryptoKeyInfo
+    {
+
+        public SecP521r1Keys(String                       PublicKeyText,
+                             String                       PrivateKeyText,
+                             IEnumerable<String>          CertificatesText,
+                             IEnumerable<CryptoKeyUsage>  KeyUsages,
+                             DateTime?                    NotBefore,
+                             DateTime?                    NotAfter,
+                             DataEncoding?                KeyEncoding,
+                             UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
+
+            : base(PublicKeyText,
+                   PrivateKeyText,
+                   CertificatesText,
+                   KeyUsages,
+                   NotBefore,
+                   NotAfter,
+                   CryptoKeyType.SecP521r1,
+                   KeyEncoding,
+                   Priority)
+
+        { }
+
+        public SecP521r1Keys(String          PublicKeyText,
+                             String          PrivateKeyText,
+                             CryptoKeyUsage  KeyUsages,
+                             DateTime?       NotBefore     = null,
+                             DateTime?       NotAfter      = null,
+                             DataEncoding?   KeyEncoding   = null)
+
+            : base(PublicKeyText,
+                   PrivateKeyText,
+                   KeyUsages,
+                   NotBefore,
+                   NotAfter,
+                   CryptoKeyType.SecP521r1,
+                   KeyEncoding)
+
+        { }
+
+    }
+
+    #endregion
+
+
     public class CryptoKeyInfo
     {
 
@@ -52,15 +147,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public HashSet<CryptoKeyUsage>  KeyUsages            { get; }
 
+        public DateTime?                NotBefore            { get; }
+        public DateTime?                NotAfter             { get; }
+
         /// <summary>
         /// The type of the crypto keys.
         /// </summary>
-        public CryptoKeyType            CryptoKeyType        { get; }
+        public CryptoKeyType            KeyType              { get; }
 
         /// <summary>
         /// The encoding of the crypto keys.
         /// </summary>
-        public DataEncoding        CryptoKeyEncoding    { get; }
+        public DataEncoding             KeyEncoding          { get; }
 
         /// <summary>
         /// The priority of this key among all they keys of a key usage.
@@ -75,37 +173,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              String                       PrivateKeyText,
                              IEnumerable<String>          CertificatesText,
                              IEnumerable<CryptoKeyUsage>  KeyUsages,
-                             CryptoKeyType?               CryptoKeyType,
-                             DataEncoding?           CryptoKeyEncoding,
+                             DateTime?                    NotBefore,
+                             DateTime?                    NotAfter,
+                             CryptoKeyType?               KeyType,
+                             DataEncoding?                KeyEncoding,
                              UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
         {
 
-            this.PublicKeyText      = PublicKeyText;
-            this.PrivateKeyText     = PrivateKeyText;
-            this.CertificatesText   = CertificatesText ?? Array.Empty<String>();
-            this.KeyUsages          = KeyUsages.Any()
-                                          ? new HashSet<CryptoKeyUsage>(KeyUsages)
-                                          : new HashSet<CryptoKeyUsage>();
-            this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP521r1;
-            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.DataEncoding.BASE64;
-            this.Priority           = Priority ?? 0;
+            this.PublicKeyText     = PublicKeyText;
+            this.PrivateKeyText    = PrivateKeyText;
+            this.CertificatesText  = CertificatesText ?? Array.Empty<String>();
+            this.KeyUsages         = KeyUsages.Any()
+                                         ? new HashSet<CryptoKeyUsage>(KeyUsages)
+                                         : new HashSet<CryptoKeyUsage>();
+            this.NotBefore         = NotBefore;
+            this.NotAfter          = NotAfter;
+            this.KeyType           = KeyType     ?? CryptoKeyType.SecP521r1;
+            this.KeyEncoding       = KeyEncoding ?? DataEncoding.BASE64;
+            this.Priority          = Priority ?? 0;
 
         }
 
-        public CryptoKeyInfo(String              PublicKeyText,
-                             String              PrivateKeyText,
-                             CryptoKeyUsage      KeyUsage,
-                             CryptoKeyType?      CryptoKeyType       = null,
-                             DataEncoding?  CryptoKeyEncoding   = null)
+        public CryptoKeyInfo(String          PublicKeyText,
+                             String          PrivateKeyText,
+                             CryptoKeyUsage  KeyUsage,
+                             DateTime?       NotBefore     = null,
+                             DateTime?       NotAfter      = null,
+                             CryptoKeyType?  KeyType       = null,
+                             DataEncoding?   KeyEncoding   = null)
         {
 
-            this.PublicKeyText      = PublicKeyText;
-            this.PrivateKeyText     = PrivateKeyText;
-            this.CertificatesText   = CertificatesText  ?? Array.Empty<String>();
-            this.KeyUsages          = new HashSet<CryptoKeyUsage>() { KeyUsage };
-            this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP521r1;
-            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.DataEncoding.BASE64;
-            this.Priority           = 0;
+            this.PublicKeyText     = PublicKeyText;
+            this.PrivateKeyText    = PrivateKeyText;
+            this.CertificatesText  = CertificatesText  ?? Array.Empty<String>();
+            this.KeyUsages         = new HashSet<CryptoKeyUsage>() { KeyUsage };
+            this.NotBefore         = NotBefore;
+            this.NotAfter          = NotAfter;
+            this.KeyType           = KeyType     ?? CryptoKeyType.SecP521r1;
+            this.KeyEncoding       = KeyEncoding ?? DataEncoding.BASE64;
+            this.Priority          = 0;
 
         }
 
@@ -126,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var json = JSONObject.Create(
 
                            !Embedded
-                               ? new JProperty("@context",       CryptoKeyType.ToString())
+                               ? new JProperty("@context",       KeyType.ToString())
                                : null,
 
                            PublicKeyText    is not null && PublicKeyText.   IsNotNullOrEmpty()
@@ -145,8 +251,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                ? new JProperty("keyUsages",      new JArray(KeyUsages.Select(keyUsage => keyUsage.ToString())))
                                : null,
 
-                           CryptoKeyEncoding.IsNotNullOrEmpty
-                               ? new JProperty("keyEncoding",    CryptoKeyEncoding.ToString())
+                           KeyEncoding.IsNotNullOrEmpty
+                               ? new JProperty("keyEncoding",    KeyEncoding.ToString())
                                : null
 
                        );
@@ -171,8 +277,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     PrivateKeyText,
                     CertificatesText,
                     KeyUsages,
-                    CryptoKeyType,
-                    CryptoKeyEncoding,
+                    NotBefore,
+                    NotAfter,
+                    KeyType,
+                    KeyEncoding,
                     Priority);
 
         #endregion

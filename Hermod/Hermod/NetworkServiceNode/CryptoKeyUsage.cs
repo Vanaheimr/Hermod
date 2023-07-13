@@ -256,6 +256,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         /// <summary>
+        /// Register Metering Calibration Law Agencies
+        /// </summary>
+        public static CryptoKeyUsage RegisterMeteringCalibrationLawAgencies
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/MeteringCalibrationLawAgencies/register");
+
+        /// <summary>
+        /// Revoke Metering Calibration Law Agencies
+        /// </summary>
+        public static CryptoKeyUsage RevokeMeteringCalibrationLawAgencies
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/MeteringCalibrationLawAgencies/revoke");
+
+
+
+        /// <summary>
         /// Register Smart Meter Manufacturers
         /// </summary>
         public static CryptoKeyUsage RegisterSmartMeterManufacturers
