@@ -62,6 +62,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         private readonly String InternalId;
 
+        /// <summary>
+        /// The JSON-LD context of the object.
+        /// </summary>
+        public const String JSONLDContext = "https://open.charging.cloud/contexts/encoding";
+
         #endregion
 
         #region Properties
@@ -187,13 +192,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// HEX
         /// </summary>
         public static DataEncoding HEX
-            => new ("https://open.charging.cloud/contexts/encoding/HEX");
+            => new ($"{JSONLDContext}/HEX");
 
         /// <summary>
         /// BASE64
         /// </summary>
         public static DataEncoding BASE64
-            => new("https://open.charging.cloud/contexts/encoding/BASE64");
+            => new($"{JSONLDContext}/BASE64");
 
         #endregion
 

@@ -31,18 +31,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public class SecP256r1Keys : CryptoKeyInfo
     {
 
-        public SecP256r1Keys(String                       PublicKeyText,
-                             String                       PrivateKeyText,
-                             IEnumerable<String>          CertificatesText,
-                             IEnumerable<CryptoKeyUsage>  KeyUsages,
-                             DateTime?                    NotBefore,
-                             DateTime?                    NotAfter,
-                             DataEncoding?                KeyEncoding,
-                             UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
+        public SecP256r1Keys(String                        PublicKey,
+                             String                        PrivateKey,
+                             IEnumerable<CryptoSignature>  Signatures,
+                             IEnumerable<CryptoKeyUsage>   KeyUsages,
+                             DateTime?                     NotBefore,
+                             DateTime?                     NotAfter,
+                             DataEncoding?                 KeyEncoding,
+                             UInt32?                       Priority) //ToDo: Perhaps "Priority per key usage"?
 
-            : base(PublicKeyText,
-                   PrivateKeyText,
-                   CertificatesText,
+            : base(PublicKey,
+                   PrivateKey,
+                   Signatures,
                    KeyUsages,
                    NotBefore,
                    NotAfter,
@@ -52,16 +52,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         { }
 
-        public SecP256r1Keys(String          PublicKeyText,
-                             String          PrivateKeyText,
-                             CryptoKeyUsage  KeyUsages,
+        public SecP256r1Keys(String          PublicKey,
+                             String          PrivateKey,
+                             CryptoKeyUsage  KeyUsage,
                              DateTime?       NotBefore     = null,
                              DateTime?       NotAfter      = null,
                              DataEncoding?   KeyEncoding   = null)
 
-            : base(PublicKeyText,
-                   PrivateKeyText,
-                   KeyUsages,
+            : base(PublicKey,
+                   PrivateKey,
+                   KeyUsage,
                    NotBefore,
                    NotAfter,
                    CryptoKeyType.SecP256r1,
@@ -78,18 +78,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public class SecP521r1Keys : CryptoKeyInfo
     {
 
-        public SecP521r1Keys(String                       PublicKeyText,
-                             String                       PrivateKeyText,
-                             IEnumerable<String>          CertificatesText,
-                             IEnumerable<CryptoKeyUsage>  KeyUsages,
-                             DateTime?                    NotBefore,
-                             DateTime?                    NotAfter,
-                             DataEncoding?                KeyEncoding,
-                             UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
+        public SecP521r1Keys(String                        PublicKey,
+                             String                        PrivateKey,
+                             IEnumerable<CryptoSignature>  Signatures,
+                             IEnumerable<CryptoKeyUsage>   KeyUsages,
+                             DateTime?                     NotBefore,
+                             DateTime?                     NotAfter,
+                             DataEncoding?                 KeyEncoding,
+                             UInt32?                       Priority) //ToDo: Perhaps "Priority per key usage"?
 
-            : base(PublicKeyText,
-                   PrivateKeyText,
-                   CertificatesText,
+            : base(PublicKey,
+                   PrivateKey,
+                   Signatures,
                    KeyUsages,
                    NotBefore,
                    NotAfter,
@@ -99,16 +99,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         { }
 
-        public SecP521r1Keys(String          PublicKeyText,
-                             String          PrivateKeyText,
-                             CryptoKeyUsage  KeyUsages,
+        public SecP521r1Keys(String          PublicKey,
+                             String          PrivateKey,
+                             CryptoKeyUsage  KeyUsage,
                              DateTime?       NotBefore     = null,
                              DateTime?       NotAfter      = null,
                              DataEncoding?   KeyEncoding   = null)
 
-            : base(PublicKeyText,
-                   PrivateKeyText,
-                   KeyUsages,
+            : base(PublicKey,
+                   PrivateKey,
+                   KeyUsage,
                    NotBefore,
                    NotAfter,
                    CryptoKeyType.SecP521r1,
@@ -135,67 +135,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
-        public String                   PublicKeyText        { get; }
+        public String                        PublicKey        { get; }
 
-        public String                   PrivateKeyText       { get; }
+        public String                        PrivateKey       { get; }
 
-        public IEnumerable<String>      CertificatesText     { get; }
+        public IEnumerable<CryptoSignature>  Signatures       { get; }
 
         /// <summary>
         /// Crypto key usages.
         /// Best for security is to use an individual key per key usage!
         /// </summary>
-        public HashSet<CryptoKeyUsage>  KeyUsages            { get; }
+        public HashSet<CryptoKeyUsage>       KeyUsages        { get; }
 
-        public DateTime?                NotBefore            { get; }
-        public DateTime?                NotAfter             { get; }
+        public DateTime?                     NotBefore        { get; }
+        public DateTime?                     NotAfter         { get; }
 
         /// <summary>
         /// The type of the crypto keys.
         /// </summary>
-        public CryptoKeyType            KeyType              { get; }
+        public CryptoKeyType                 KeyType          { get; }
 
         /// <summary>
         /// The encoding of the crypto keys.
         /// </summary>
-        public DataEncoding             KeyEncoding          { get; }
+        public DataEncoding                  KeyEncoding      { get; }
 
         /// <summary>
         /// The priority of this key among all they keys of a key usage.
         /// </summary>
-        public UInt32                   Priority             { get; }
+        public UInt32                        Priority         { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        public CryptoKeyInfo(String                       PublicKeyText,
-                             String                       PrivateKeyText,
-                             IEnumerable<String>          CertificatesText,
-                             IEnumerable<CryptoKeyUsage>  KeyUsages,
-                             DateTime?                    NotBefore,
-                             DateTime?                    NotAfter,
-                             CryptoKeyType?               KeyType,
-                             DataEncoding?                KeyEncoding,
-                             UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
+        public CryptoKeyInfo(String                        PublicKey,
+                             String                        PrivateKey,
+                             IEnumerable<CryptoSignature>  Signatures,
+                             IEnumerable<CryptoKeyUsage>   KeyUsages,
+                             DateTime?                     NotBefore,
+                             DateTime?                     NotAfter,
+                             CryptoKeyType?                KeyType,
+                             DataEncoding?                 KeyEncoding,
+                             UInt32?                       Priority) //ToDo: Perhaps "Priority per key usage"?
         {
 
-            this.PublicKeyText     = PublicKeyText;
-            this.PrivateKeyText    = PrivateKeyText;
-            this.CertificatesText  = CertificatesText ?? Array.Empty<String>();
-            this.KeyUsages         = KeyUsages.Any()
-                                         ? new HashSet<CryptoKeyUsage>(KeyUsages)
-                                         : new HashSet<CryptoKeyUsage>();
-            this.NotBefore         = NotBefore;
-            this.NotAfter          = NotAfter;
-            this.KeyType           = KeyType     ?? CryptoKeyType.SecP521r1;
-            this.KeyEncoding       = KeyEncoding ?? DataEncoding.BASE64;
-            this.Priority          = Priority ?? 0;
+            this.PublicKey    = PublicKey;
+            this.PrivateKey   = PrivateKey;
+            this.Signatures   = Signatures ?? Array.Empty<CryptoSignature>();
+            this.KeyUsages    = KeyUsages.Any()
+                                    ? new HashSet<CryptoKeyUsage>(KeyUsages)
+                                    : new HashSet<CryptoKeyUsage>();
+            this.NotBefore    = NotBefore;
+            this.NotAfter     = NotAfter;
+            this.KeyType      = KeyType     ?? CryptoKeyType.SecP521r1;
+            this.KeyEncoding  = KeyEncoding ?? DataEncoding.BASE64;
+            this.Priority     = Priority ?? 0;
 
         }
 
-        public CryptoKeyInfo(String          PublicKeyText,
-                             String          PrivateKeyText,
+        public CryptoKeyInfo(String          PublicKey,
+                             String          PrivateKey,
                              CryptoKeyUsage  KeyUsage,
                              DateTime?       NotBefore     = null,
                              DateTime?       NotAfter      = null,
@@ -203,15 +203,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              DataEncoding?   KeyEncoding   = null)
         {
 
-            this.PublicKeyText     = PublicKeyText;
-            this.PrivateKeyText    = PrivateKeyText;
-            this.CertificatesText  = CertificatesText  ?? Array.Empty<String>();
-            this.KeyUsages         = new HashSet<CryptoKeyUsage>() { KeyUsage };
-            this.NotBefore         = NotBefore;
-            this.NotAfter          = NotAfter;
-            this.KeyType           = KeyType     ?? CryptoKeyType.SecP521r1;
-            this.KeyEncoding       = KeyEncoding ?? DataEncoding.BASE64;
-            this.Priority          = 0;
+            this.PublicKey    = PublicKey;
+            this.PrivateKey   = PrivateKey;
+            this.Signatures   = Signatures  ?? Array.Empty<CryptoSignature>();
+            this.KeyUsages    = new HashSet<CryptoKeyUsage>() { KeyUsage };
+            this.NotBefore    = NotBefore;
+            this.NotAfter     = NotAfter;
+            this.KeyType      = KeyType     ?? CryptoKeyType.SecP521r1;
+            this.KeyEncoding  = KeyEncoding ?? DataEncoding.BASE64;
+            this.Priority     = 0;
 
         }
 
@@ -225,37 +225,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
         /// <param name="CustomCryptoKeyInfoSerializer">A delegate to serialize custom crypto key information JSON elements.</param>
-        public JObject ToJSON(Boolean                                          Embedded                        = false,
-                              CustomJObjectSerializerDelegate<CryptoKeyInfo>?  CustomCryptoKeyInfoSerializer   = null)
+        public JObject ToJSON(Boolean                                            Embedded                          = false,
+                              UInt16?                                            MaxSignaturePublicKeyLength       = null,
+                              CustomJObjectSerializerDelegate<CryptoSignature>?  CustomCryptoSignatureSerializer   = null,
+                              CustomJObjectSerializerDelegate<CryptoKeyInfo>?    CustomCryptoKeyInfoSerializer     = null)
         {
 
-            var json = JSONObject.Create(
+            var keyEncoding  = KeyEncoding.ToString();
 
-                           !Embedded
-                               ? new JProperty("@context",       KeyType.ToString())
-                               : null,
+            var json         = JSONObject.Create(
 
-                           PublicKeyText    is not null && PublicKeyText.   IsNotNullOrEmpty()
-                               ? new JProperty("publicKey",      PublicKeyText)
-                               : null,
+                                   !Embedded
+                                       ? new JProperty("@context",       KeyType.ToString())
+                                       : null,
 
-                           PrivateKeyText   is not null && PrivateKeyText.  IsNotNullOrEmpty()
-                               ? new JProperty("privateKey",     PrivateKeyText)
-                               : null,
+                                   PublicKey  is not null && PublicKey. IsNotNullOrEmpty()
+                                       ? new JProperty("publicKey",      PublicKey)
+                                       : null,
 
-                           CertificatesText.Any()
-                               ? new JProperty("certificates",   new JArray(CertificatesText))
-                               : null,
+                                   PrivateKey is not null && PrivateKey.IsNotNullOrEmpty()
+                                       ? new JProperty("privateKey",     PrivateKey)
+                                       : null,
 
-                           KeyUsages.Any()
-                               ? new JProperty("keyUsages",      new JArray(KeyUsages.Select(keyUsage => keyUsage.ToString())))
-                               : null,
+                                   Signatures.Any()
+                                       ? new JProperty("certificates",   new JArray(Signatures.Select(signature => signature.ToJSON(Embedded:                         true,
+                                                                                                                                    MaxPublicKeyLength:               MaxSignaturePublicKeyLength,
+                                                                                                                                    CustomCryptoSignatureSerializer:  CustomCryptoSignatureSerializer))))
+                                       : null,
 
-                           KeyEncoding.IsNotNullOrEmpty
-                               ? new JProperty("keyEncoding",    KeyEncoding.ToString())
-                               : null
+                                   KeyUsages.Any()
+                                       ? new JProperty("keyUsages",      new JArray(KeyUsages. Select(keyUsage  => keyUsage. ToString())))
+                                       : null,
 
-                       );
+                                   KeyEncoding.IsNotNullOrEmpty
+                                       ? new JProperty("keyEncoding",    keyEncoding.StartsWith(DataEncoding.JSONLDContext)
+                                                                             ? keyEncoding[(DataEncoding.JSONLDContext.Length + 1)..]
+                                                                             : keyEncoding)
+                                       : null
+
+                               );
 
             return CustomCryptoKeyInfoSerializer is not null
                        ? CustomCryptoKeyInfoSerializer(this, json)
@@ -273,9 +281,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public CryptoKeyInfo Clone()
 
-            => new (PublicKeyText,
-                    PrivateKeyText,
-                    CertificatesText,
+            => new (PublicKey,
+                    PrivateKey,
+                    Signatures,
                     KeyUsages,
                     NotBefore,
                     NotAfter,

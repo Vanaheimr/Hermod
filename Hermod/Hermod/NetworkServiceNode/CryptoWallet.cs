@@ -216,6 +216,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
 
+            var signatures = new List<CryptoSignature>();
+
+
             foreach (var keyPair in KeyPairs)
             {
 
@@ -230,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     privateKey   = new ECPrivateKeyParameters(
                                        new BigInteger(
-                                           keyPair.PrivateKeyText.FromBase64()
+                                           keyPair.PrivateKey.FromBase64()
                                        ),
                                        new ECDomainParameters(
                                            SecP256r1.Curve,
@@ -244,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     publicKey    = new ECPublicKeyParameters(
                                        "ECDSA",
                                        SecP256r1.Curve.DecodePoint(
-                                           keyPair.PublicKeyText.FromBase64()
+                                           keyPair.PublicKey.FromBase64()
                                        ),
                                        new ECDomainParameters(
                                            SecP256r1.Curve,
@@ -266,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     privateKey   = new ECPrivateKeyParameters(
                                        new BigInteger(
-                                           keyPair.PrivateKeyText.FromBase64()
+                                           keyPair.PrivateKey.FromBase64()
                                        ),
                                        new ECDomainParameters(
                                            SecP384r1.Curve,
@@ -280,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     publicKey    = new ECPublicKeyParameters(
                                        "ECDSA",
                                        SecP384r1.Curve.DecodePoint(
-                                           keyPair.PublicKeyText.FromBase64()
+                                           keyPair.PublicKey.FromBase64()
                                        ),
                                        new ECDomainParameters(
                                            SecP384r1.Curve,
@@ -302,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     privateKey   = new ECPrivateKeyParameters(
                                        new BigInteger(
-                                           keyPair.PrivateKeyText.FromBase64()
+                                           keyPair.PrivateKey.FromBase64()
                                        ),
                                        new ECDomainParameters(
                                            SecP521r1.Curve,
@@ -316,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     publicKey    = new ECPublicKeyParameters(
                                        "ECDSA",
                                        SecP521r1.Curve.DecodePoint(
-                                           keyPair.PublicKeyText.FromBase64()
+                                           keyPair.PublicKey.FromBase64()
                                        ),
                                        new ECDomainParameters(
                                            SecP521r1.Curve,
@@ -340,18 +343,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 signaturesJSON.Add(signatureJSON);
 
                 //var publicKeyBytes  = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(publicKey).PublicKeyData.GetBytes();
-                signatureJSON.Add(new JProperty("publicKey", keyPair.PublicKeyText)); // Convert.ToBase64String(publicKeyBytes)));
+                signatureJSON.Add(new JProperty("publicKey", keyPair.PublicKey)); // Convert.ToBase64String(publicKeyBytes)));
 
                 var signer = SignerUtilities.GetSigner("NONEwithECDSA");
                 signer.Init(true, privateKey);
                 signer.BlockUpdate(shaHash, 0, blockSize);
-                var signature = signer.GenerateSignature();
-                signatureJSON.Add(new JProperty("signature", Convert.ToBase64String(signature)));
+                var signature        = signer.GenerateSignature();
+                var signatureBASE64  = Convert.ToBase64String(signature);
+                signatureJSON.Add(new JProperty("signature", signatureBASE64));
+
+                signatures.Add(new CryptoSignature(
+                                   keyPair.PublicKey,
+                                   signatureBASE64,
+                                   Status: CryptoSignatureStatus.Verified
+                               ));
 
             }
 
-
-            return CryptoKeyInfo;
+            return new CryptoKeyInfo(
+                       CryptoKeyInfo.PublicKey,
+                       CryptoKeyInfo.PrivateKey,
+                       signatures,
+                       CryptoKeyInfo.KeyUsages,
+                       CryptoKeyInfo.NotBefore,
+                       CryptoKeyInfo.NotAfter,
+                       CryptoKeyInfo.KeyType,
+                       CryptoKeyInfo.KeyEncoding,
+                       CryptoKeyInfo.Priority
+                   );
 
         }
 
