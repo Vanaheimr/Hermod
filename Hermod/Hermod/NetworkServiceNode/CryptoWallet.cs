@@ -53,7 +53,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public X9ECParameters  SecP384r1    { get; } = SecNamedCurves.GetByName("secp384r1");
         public X9ECParameters  SecP521r1    { get; } = SecNamedCurves.GetByName("secp521r1");
 
-
         #endregion
 
         #region Constructor(s)
@@ -194,6 +193,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                      params CryptoKeyInfo[]  KeyPairs)
         {
 
+            #region Data
+
             var cc = new Newtonsoft.Json.Converters.IsoDateTimeConverter {
                          DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.fffZ"
                      };
@@ -215,9 +216,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 json.Add("signatures", signaturesJSON);
             }
 
-
             var signatures = new List<CryptoSignature>();
 
+            #endregion
 
             foreach (var keyPair in KeyPairs)
             {
@@ -360,17 +361,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             }
 
-            return new CryptoKeyInfo(
-                       CryptoKeyInfo.PublicKey,
-                       CryptoKeyInfo.PrivateKey,
-                       signatures,
-                       CryptoKeyInfo.KeyUsages,
-                       CryptoKeyInfo.NotBefore,
-                       CryptoKeyInfo.NotAfter,
-                       CryptoKeyInfo.KeyType,
-                       CryptoKeyInfo.KeyEncoding,
-                       CryptoKeyInfo.Priority
-                   );
+            var newKey = new CryptoKeyInfo(
+                             CryptoKeyInfo.PublicKey,
+                             CryptoKeyInfo.PrivateKey,
+                             signatures,
+                             CryptoKeyInfo.KeyUsages,
+                             CryptoKeyInfo.NotBefore,
+                             CryptoKeyInfo.NotAfter,
+                             CryptoKeyInfo.KeyType,
+                             CryptoKeyInfo.KeyEncoding,
+                             CryptoKeyInfo.Priority
+                         );
+
+            foreach (var cryptoKeyList in cryptoKeys.Values)
+            {
+                foreach (var cryptoKey in cryptoKeyList.ToArray())
+                {
+                    if (cryptoKey.PublicKey == newKey.PublicKey)
+                    {
+                        cryptoKeyList.Remove(cryptoKey);
+                        cryptoKeyList.Add   (newKey);
+                    }
+                }
+            }
+
+            return newKey;
 
         }
 
