@@ -23,13 +23,13 @@ using System.Security.Cryptography;
 
 using Newtonsoft.Json.Linq;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.X509;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Asn1.Sec;
 using Org.BouncyCastle.Math;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -94,20 +94,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region Add(CryptoKeyUsageId, CryptoKeyInfo)
+        #region Add   (CryptoKeyInfo)
 
-        public Boolean Add(CryptoKeyUsage  CryptoKeyUsageId,
-                           CryptoKeyInfo   CryptoKeyInfo)
+        public Boolean Add(CryptoKeyInfo CryptoKeyInfo)
         {
 
-            if (cryptoKeys.TryGetValue(CryptoKeyUsageId, out var cryptoKeyInfos))
-                cryptoKeyInfos.Add(CryptoKeyInfo);
+            foreach (var keyUsage in CryptoKeyInfo.KeyUsages)
+            {
 
-            else
-                cryptoKeys.TryAdd(CryptoKeyUsageId,
-                                  new List<CryptoKeyInfo> {
-                                      CryptoKeyInfo
-                                  });
+                if (cryptoKeys.TryGetValue(keyUsage, out var cryptoKeyInfos))
+                    cryptoKeyInfos.Add(CryptoKeyInfo);
+
+                else
+                    cryptoKeys.TryAdd(keyUsage,
+                                      new List<CryptoKeyInfo> {
+                                          CryptoKeyInfo
+                                      });
+
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region Add   (CryptoKeyInfos)
+
+        public Boolean Add(IEnumerable<CryptoKeyInfo> CryptoKeyInfos)
+        {
+
+            foreach (var cryptoKeyInfo in CryptoKeyInfos)
+                Add(cryptoKeyInfo);
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region Remove(CryptoKeyInfo)
+
+        public Boolean Remove(CryptoKeyInfo CryptoKeyInfo)
+        {
+
+            foreach (var keyUsage in CryptoKeyInfo.KeyUsages)
+            {
+                if (cryptoKeys.TryGetValue(keyUsage, out var cryptoKeyInfos))
+                {
+                    foreach (var cryptoKey in cryptoKeyInfos.ToArray())
+                    {
+                        if (cryptoKey.PublicKey == CryptoKeyInfo.PublicKey)
+                            cryptoKeyInfos.Remove(cryptoKey);
+                    }
+                }
+            }
 
             return true;
 
@@ -116,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region GetKeys           (KeyFilter)
+        #region GetKeys         (KeyFilter)
 
         public IEnumerable<CryptoKeyInfo> GetKeys(Func<CryptoKeyInfo, Boolean> KeyFilter)
         {
@@ -188,6 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region SignKey(CryptoKeyInfo, params KeyPairs)
 
         public CryptoKeyInfo SignKey(CryptoKeyInfo           CryptoKeyInfo,
                                      params CryptoKeyInfo[]  KeyPairs)
@@ -373,21 +415,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              CryptoKeyInfo.Priority
                          );
 
-            foreach (var cryptoKeyList in cryptoKeys.Values)
-            {
-                foreach (var cryptoKey in cryptoKeyList.ToArray())
-                {
-                    if (cryptoKey.PublicKey == newKey.PublicKey)
-                    {
-                        cryptoKeyList.Remove(cryptoKey);
-                        cryptoKeyList.Add   (newKey);
-                    }
-                }
-            }
+            Remove(newKey);
+            Add   (newKey);
 
             return newKey;
 
         }
+
+        #endregion
 
 
     }

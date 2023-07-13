@@ -117,13 +117,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             if (Identities is not null)
                 foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.Identity)))
-                    AddCryptoKey(CryptoKeyUsage.Identity,
-                                 identity);
+                    AddCryptoKey(identity);
 
             if (IdentityGroups is not null)
                 foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup)))
-                    AddCryptoKey(CryptoKeyUsage.IdentityGroup,
-                                 identityGroup);
+                    AddCryptoKey(identityGroup);
 
             this.DefaultHTTPAPI   = DefaultHTTPAPI;
 
@@ -149,11 +147,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Crypto Wallet
 
-        public Boolean AddCryptoKey(CryptoKeyUsage  CryptoKeyUsageId,
-                                    CryptoKeyInfo   CryptoKeyInfo)
+        public Boolean AddCryptoKey(CryptoKeyInfo CryptoKeyInfo)
 
-            => cryptoWallet.Add(CryptoKeyUsageId,
-                                         CryptoKeyInfo);
+            => cryptoWallet.Add(CryptoKeyInfo);
 
         #endregion
 
