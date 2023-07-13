@@ -241,6 +241,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/signature");
 
 
+        /// <summary>
+        /// Register Networking Nodes
+        /// </summary>
+        public static CryptoKeyUsage RegisterNetworkingNodes
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/networking/nodes/register");
+
+        /// <summary>
+        /// Revoke Networking Nodes
+        /// </summary>
+        public static CryptoKeyUsage RevokeNetworkingNodes
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/networking/nodes/revoke");
+
+
+
+        /// <summary>
+        /// Register Smart Meter Manufacturers
+        /// </summary>
+        public static CryptoKeyUsage RegisterSmartMeterManufacturers
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/smartMeters/manufacturers/register");
+
+        /// <summary>
+        /// Revoke Smart Meter Manufacturers
+        /// </summary>
+        public static CryptoKeyUsage RevokeSmartMeterManufacturers
+            => Lookup("https://open.charging.cloud/contexts/crypto/keyUsages/smartMeters/manufacturers/revoke");
+
+
+
 
         /// <summary>
         /// Signature for the Measuring Instruments Directive (MID)

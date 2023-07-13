@@ -17,6 +17,9 @@
 
 #region Usings
 
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -25,6 +28,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
     public class CryptoKeyInfo
     {
+
+        #region Data
+
+        /// <summary>
+        /// The JSON-LD context of the object.
+        /// </summary>
+        public const String JSONLDContext = "https://open.charging.cloud/contexts/crypto/keyInfo";
+
+        #endregion
+
+        #region Properties
 
         public String                   PublicKeyText        { get; }
 
@@ -46,20 +60,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The encoding of the crypto keys.
         /// </summary>
-        public CryptoKeyEncoding        CryptoKeyEncoding    { get; }
+        public DataEncoding        CryptoKeyEncoding    { get; }
 
         /// <summary>
         /// The priority of this key among all they keys of a key usage.
         /// </summary>
         public UInt32                   Priority             { get; }
 
+        #endregion
+
+        #region Constructor(s)
 
         public CryptoKeyInfo(String                       PublicKeyText,
                              String                       PrivateKeyText,
                              IEnumerable<String>          CertificatesText,
                              IEnumerable<CryptoKeyUsage>  KeyUsages,
                              CryptoKeyType?               CryptoKeyType,
-                             CryptoKeyEncoding?           CryptoKeyEncoding,
+                             DataEncoding?           CryptoKeyEncoding,
                              UInt32?                      Priority) //ToDo: Perhaps "Priority per key usage"?
         {
 
@@ -70,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                           ? new HashSet<CryptoKeyUsage>(KeyUsages)
                                           : new HashSet<CryptoKeyUsage>();
             this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP521r1;
-            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.CryptoKeyEncoding.BASE64;
+            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.DataEncoding.BASE64;
             this.Priority           = Priority ?? 0;
 
         }
@@ -79,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              String              PrivateKeyText,
                              CryptoKeyUsage      KeyUsage,
                              CryptoKeyType?      CryptoKeyType       = null,
-                             CryptoKeyEncoding?  CryptoKeyEncoding   = null)
+                             DataEncoding?  CryptoKeyEncoding   = null)
         {
 
             this.PublicKeyText      = PublicKeyText;
@@ -87,11 +104,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.CertificatesText   = CertificatesText  ?? Array.Empty<String>();
             this.KeyUsages          = new HashSet<CryptoKeyUsage>() { KeyUsage };
             this.CryptoKeyType      = CryptoKeyType     ?? Hermod.CryptoKeyType.SecP521r1;
-            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.CryptoKeyEncoding.BASE64;
+            this.CryptoKeyEncoding  = CryptoKeyEncoding ?? Hermod.DataEncoding.BASE64;
             this.Priority           = 0;
 
         }
 
+        #endregion
+
+
+        #region ToJSON(this Embedded = false, CustomCryptoKeyInfoSerializer = null)
+
+        /// <summary>
+        /// Return a JSON representation of the given crypto key information.
+        /// </summary>
+        /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
+        /// <param name="CustomCryptoKeyInfoSerializer">A delegate to serialize custom crypto key information JSON elements.</param>
+        public JObject ToJSON(Boolean                                          Embedded                        = false,
+                              CustomJObjectSerializerDelegate<CryptoKeyInfo>?  CustomCryptoKeyInfoSerializer   = null)
+        {
+
+            var json = JSONObject.Create(
+
+                           !Embedded
+                               ? new JProperty("@context",       CryptoKeyType.ToString())
+                               : null,
+
+                           PublicKeyText    is not null && PublicKeyText.   IsNotNullOrEmpty()
+                               ? new JProperty("publicKey",      PublicKeyText)
+                               : null,
+
+                           PrivateKeyText   is not null && PrivateKeyText.  IsNotNullOrEmpty()
+                               ? new JProperty("privateKey",     PrivateKeyText)
+                               : null,
+
+                           CertificatesText.Any()
+                               ? new JProperty("certificates",   new JArray(CertificatesText))
+                               : null,
+
+                           KeyUsages.Any()
+                               ? new JProperty("keyUsages",      new JArray(KeyUsages.Select(keyUsage => keyUsage.ToString())))
+                               : null,
+
+                           CryptoKeyEncoding.IsNotNullOrEmpty
+                               ? new JProperty("keyEncoding",    CryptoKeyEncoding.ToString())
+                               : null
+
+                       );
+
+            return CustomCryptoKeyInfoSerializer is not null
+                       ? CustomCryptoKeyInfoSerializer(this, json)
+                       : json;
+
+        }
+
+        #endregion
 
 
         #region Clone()

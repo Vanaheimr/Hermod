@@ -187,19 +187,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// secp256r1 / P‐256 (OID: 1.2.840.10045.3.1.7)
         /// </summary>
         public static CryptoKeyType SecP256r1
-            => new ("https://open.charging.cloud/contexts/crypto/type/secp256r1");
+            => new ("https://open.charging.cloud/contexts/crypto/keyTypes/secp256r1");
 
         /// <summary>
         /// secp384r1 / P‐384 (OID: 1.3.132.0.34)
         /// </summary>
         public static CryptoKeyType SecP384r1
-            => new("https://open.charging.cloud/contexts/crypto/type/secp384r1");
+            => new("https://open.charging.cloud/contexts/crypto/keyTypes/secp384r1");
 
         /// <summary>
         /// secp521r1 / P‐521 (OID: 1.3.132.0.35)
         /// </summary>
         public static CryptoKeyType SecP521r1
-            => new("https://open.charging.cloud/contexts/crypto/type/secp521r1");
+            => new("https://open.charging.cloud/contexts/crypto/keyTypes/secp521r1");
 
         #endregion
 

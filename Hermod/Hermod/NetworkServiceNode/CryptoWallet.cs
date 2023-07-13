@@ -19,8 +19,17 @@
 
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.X509;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Asn1.Sec;
+using Org.BouncyCastle.Math;
 
 #endregion
 
@@ -38,7 +47,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
-        public UInt32  Priority    { get; }
+        public UInt32          Priority     { get; }
+
+        public X9ECParameters  SecP256r1    { get; } = SecNamedCurves.GetByName("secp256r1");
+        public X9ECParameters  SecP384r1    { get; } = SecNamedCurves.GetByName("secp384r1");
+        public X9ECParameters  SecP521r1    { get; } = SecNamedCurves.GetByName("secp521r1");
+
 
         #endregion
 
@@ -84,15 +98,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Add(CryptoKeyUsageId, CryptoKeyInfo)
 
         public Boolean Add(CryptoKeyUsage  CryptoKeyUsageId,
-                           CryptoKeyInfo      CryptoKeyInfo)
+                           CryptoKeyInfo   CryptoKeyInfo)
         {
 
-            if (cryptoKeys.TryGetValue(CryptoKeyUsageId, out var cryptoKeyInfo)) {
-                cryptoKeyInfo.Add(CryptoKeyInfo);
-                return true;
-            }
+            if (cryptoKeys.TryGetValue(CryptoKeyUsageId, out var cryptoKeyInfos))
+                cryptoKeyInfos.Add(CryptoKeyInfo);
 
-            return false;
+            else
+                cryptoKeys.TryAdd(CryptoKeyUsageId,
+                                  new List<CryptoKeyInfo> {
+                                      CryptoKeyInfo
+                                  });
+
+            return true;
 
         }
 
@@ -158,7 +176,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-
         #region GetEnumerator()
 
         public IEnumerator<CryptoKeyInfo> GetEnumerator()
@@ -170,6 +187,173 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => cryptoKeys.Values.SelectMany(cryptoKeyInfo => cryptoKeyInfo).ToList().GetEnumerator();
 
         #endregion
+
+
+
+        public CryptoKeyInfo SignKey(CryptoKeyInfo           CryptoKeyInfo,
+                                     params CryptoKeyInfo[]  KeyPairs)
+        {
+
+            var cc = new Newtonsoft.Json.Converters.IsoDateTimeConverter {
+                         DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.fffZ"
+                     };
+
+            var json        = CryptoKeyInfo.ToJSON();
+            var text        = json.ToString(Newtonsoft.Json.Formatting.None, cc);
+            var json2       = JObject.Parse(text);
+            json2.Remove("signatures");
+            var plainText   = json2.ToString(Newtonsoft.Json.Formatting.None, cc);
+            var blockSize   = 0;
+
+            Byte[]? sha256Hash  = null;
+            Byte[]? sha512Hash  = null;
+            Byte[]? shaHash     = null;
+
+            if (json["signatures"] is not JArray signaturesJSON)
+            {
+                signaturesJSON = new JArray();
+                json.Add("signatures", signaturesJSON);
+            }
+
+
+            foreach (var keyPair in KeyPairs)
+            {
+
+                if (keyPair is null)
+                    continue;
+
+                ECPrivateKeyParameters? privateKey  = null;
+                ECPublicKeyParameters?  publicKey   = null;
+
+                if      (keyPair.CryptoKeyType == CryptoKeyType.SecP256r1)
+                {
+
+                    privateKey   = new ECPrivateKeyParameters(
+                                       new BigInteger(
+                                           keyPair.PrivateKeyText.FromBase64()
+                                       ),
+                                       new ECDomainParameters(
+                                           SecP256r1.Curve,
+                                           SecP256r1.G,
+                                           SecP256r1.N,
+                                           SecP256r1.H,
+                                           SecP256r1.GetSeed()
+                                       )
+                                   );
+
+                    publicKey    = new ECPublicKeyParameters(
+                                       "ECDSA",
+                                       SecP256r1.Curve.DecodePoint(
+                                           keyPair.PublicKeyText.FromBase64()
+                                       ),
+                                       new ECDomainParameters(
+                                           SecP256r1.Curve,
+                                           SecP256r1.G,
+                                           SecP256r1.N,
+                                           SecP256r1.H,
+                                           SecP256r1.GetSeed()
+                                       )
+                                   );
+
+                    sha256Hash ??= SHA256.HashData(plainText.ToUTF8Bytes());
+                    shaHash      = sha256Hash;
+                    blockSize    = sha256Hash.Length;
+
+                }
+
+                else if (keyPair.CryptoKeyType == CryptoKeyType.SecP384r1)
+                {
+
+                    privateKey   = new ECPrivateKeyParameters(
+                                       new BigInteger(
+                                           keyPair.PrivateKeyText.FromBase64()
+                                       ),
+                                       new ECDomainParameters(
+                                           SecP384r1.Curve,
+                                           SecP384r1.G,
+                                           SecP384r1.N,
+                                           SecP384r1.H,
+                                           SecP384r1.GetSeed()
+                                       )
+                                   );
+
+                    publicKey    = new ECPublicKeyParameters(
+                                       "ECDSA",
+                                       SecP384r1.Curve.DecodePoint(
+                                           keyPair.PublicKeyText.FromBase64()
+                                       ),
+                                       new ECDomainParameters(
+                                           SecP384r1.Curve,
+                                           SecP384r1.G,
+                                           SecP384r1.N,
+                                           SecP384r1.H,
+                                           SecP384r1.GetSeed()
+                                       )
+                                   );
+
+                    sha512Hash ??= SHA512.HashData(plainText.ToUTF8Bytes());
+                    shaHash      = sha512Hash;
+                    blockSize    = sha512Hash.Length;
+
+                }
+
+                else if (keyPair.CryptoKeyType == CryptoKeyType.SecP521r1)
+                {
+
+                    privateKey   = new ECPrivateKeyParameters(
+                                       new BigInteger(
+                                           keyPair.PrivateKeyText.FromBase64()
+                                       ),
+                                       new ECDomainParameters(
+                                           SecP521r1.Curve,
+                                           SecP521r1.G,
+                                           SecP521r1.N,
+                                           SecP521r1.H,
+                                           SecP521r1.GetSeed()
+                                       )
+                                   );
+
+                    publicKey    = new ECPublicKeyParameters(
+                                       "ECDSA",
+                                       SecP521r1.Curve.DecodePoint(
+                                           keyPair.PublicKeyText.FromBase64()
+                                       ),
+                                       new ECDomainParameters(
+                                           SecP521r1.Curve,
+                                           SecP521r1.G,
+                                           SecP521r1.N,
+                                           SecP521r1.H,
+                                           SecP521r1.GetSeed()
+                                       )
+                                   );
+
+                    sha512Hash ??= SHA512.HashData(plainText.ToUTF8Bytes());
+                    shaHash      = sha512Hash;
+                    blockSize    = sha512Hash.Length;
+
+                }
+
+                if (privateKey is null || publicKey is null)
+                    continue;
+
+                var signatureJSON   = new JObject();
+                signaturesJSON.Add(signatureJSON);
+
+                //var publicKeyBytes  = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(publicKey).PublicKeyData.GetBytes();
+                signatureJSON.Add(new JProperty("publicKey", keyPair.PublicKeyText)); // Convert.ToBase64String(publicKeyBytes)));
+
+                var signer = SignerUtilities.GetSigner("NONEwithECDSA");
+                signer.Init(true, privateKey);
+                signer.BlockUpdate(shaHash, 0, blockSize);
+                var signature = signer.GenerateSignature();
+                signatureJSON.Add(new JProperty("signature", Convert.ToBase64String(signature)));
+
+            }
+
+
+            return CryptoKeyInfo;
+
+        }
 
 
     }
