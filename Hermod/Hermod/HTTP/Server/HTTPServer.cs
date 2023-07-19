@@ -72,59 +72,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
-        /// The default HTTP servername, used whenever
-        /// no HTTP Host-header had been given.
+        /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
         /// </summary>
-        public String DefaultServerName
+        public String                                DefaultServerName
             => httpServer.DefaultServerName;
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        public HTTPSecurity HTTPSecurity
+        public HTTPSecurity?                         HTTPSecurity
             => httpServer.HTTPSecurity;
-
-        /// <summary>
-        /// The DNS defines which DNS servers to use.
-        /// </summary>
-        public DNSClient DNSClient
-            => httpServer.DNSClient;
 
         /// <summary>
         /// The optional delegate to select a SSL/TLS server certificate.
         /// </summary>
-        public ServerCertificateSelectorDelegate ServerCertificateSelector
+        public ServerCertificateSelectorDelegate?    ServerCertificateSelector
             => httpServer.ServerCertificateSelector;
 
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback ClientCertificateValidator
+        public RemoteCertificateValidationCallback?  ClientCertificateValidator
             => httpServer.ClientCertificateValidator;
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionCallback ClientCertificateSelector
+        public LocalCertificateSelectionCallback?    ClientCertificateSelector
             => httpServer.ClientCertificateSelector;
 
         /// <summary>
         /// The SSL/TLS protocol(s) allowed for this connection.
         /// </summary>
-        public SslProtocols AllowedTLSProtocols
+        public SslProtocols                          AllowedTLSProtocols
             => httpServer.AllowedTLSProtocols;
 
         /// <summary>
         /// Is the server already started?
         /// </summary>
-        public Boolean IsStarted
+        public Boolean                               IsStarted
             => httpServer.IsStarted;
 
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
-        public UInt64 NumberOfClients
+        public UInt64                                NumberOfClients
             => httpServer.NumberOfClients;
+
+        /// <summary>
+        /// The DNS defines which DNS servers to use.
+        /// </summary>
+        public DNSClient                             DNSClient
+            => httpServer.DNSClient;
 
         #endregion
 
@@ -1322,14 +1321,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Start
 
-            //TCPConnection.WriteLineToResponseStream(ServiceBanner);
-            TCPConnection.NoDelay = true;
+            TCPConnection.NoDelay  = true;
 
             Byte Byte;
-            var MemoryStream     = new MemoryStream();
-            var EndOfHTTPHeader  = EOLSearch.NotYet;
-            var ClientClose      = false;
-            var ServerClose      = false;
+            var MemoryStream       = new MemoryStream();
+            var EndOfHTTPHeader    = EOLSearch.NotYet;
+            var ClientClose        = false;
+            var ServerClose        = false;
 
             #endregion
 

@@ -128,10 +128,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public interface IHTTPServer : IDisposable
     {
 
-        String                                DefaultServerName             { get; }
-        HTTPSecurity                          HTTPSecurity                  { get; }
+        /// <summary>
+        /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
+        /// </summary>
+        String DefaultServerName             { get; }
 
-        DNSClient                             DNSClient                     { get; }
+        /// <summary>
+        /// An associated HTTP security object.
+        /// </summary>
+        HTTPSecurity?                         HTTPSecurity                  { get; }
 
         /// <summary>
         /// The optional delegate to select a SSL/TLS server certificate.
@@ -162,6 +167,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The current number of attached TCP clients.
         /// </summary>
         UInt64                                NumberOfClients               { get; }
+
+        DNSClient                             DNSClient                     { get; }
+
 
 
         void AddMethodCallback(HTTPAPI                       HTTPAPI,

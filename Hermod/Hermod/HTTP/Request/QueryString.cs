@@ -374,10 +374,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetString    (ParameterName, DefaultValue = null)
+        #region GetString    (ParameterName)
 
-        public String? GetString(String  ParameterName,
-                                 String? DefaultValue = null)
+        public String? GetString(String ParameterName)
         {
 
             if (internalDictionary.TryGetValue(ParameterName, out var values) &&
@@ -387,9 +386,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return values.Last();
             }
 
-            return DefaultValue;
+            return null;
 
         }
+
+        #endregion
+
+        #region GetString    (ParameterName, DefaultValue)
+
+        public String GetString(String ParameterName,
+                                String DefaultValue)
+
+            => GetString(ParameterName) ?? DefaultValue;
 
         #endregion
 
