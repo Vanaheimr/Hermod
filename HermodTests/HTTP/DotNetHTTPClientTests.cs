@@ -22,6 +22,7 @@ using NUnit.Framework;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Net;
+using System.Text;
 
 #endregion
 
@@ -32,53 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
     /// Tests between .NET HTTP clients and Hermod HTTP servers.
     /// </summary>
     [TestFixture]
-    public class DotNetHTTPClientTests
+    public class DotNetHTTPClientTests : AHTTPServerTests
     {
-
-        #region Start/Stop HTTPServer
-
-        private HTTPServer? httpServer;
-
-        [OneTimeSetUp]
-        public void Init_HTTPServer()
-        {
-
-            httpServer = new HTTPServer(
-                             IPPort.Parse(82),
-                             Autostart: true
-                         );
-
-            #region /
-
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root,
-                                         HTTPDelegate: Request => Task.FromResult(
-                                                                       new HTTPResponse.Builder(Request) {
-                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
-                                                                           Date                       = Timestamp.Now,
-                                                                           AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = new[] { "GET" },
-                                                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
-                                                                           Content                    = "Hello World!".ToUTF8Bytes(),
-                                                                           Connection                 = "close"
-                                                                       }.AsImmutable));
-
-            #endregion
-
-        }
-
-        [OneTimeTearDown]
-        public void Shutdown_HTTPServer()
-        {
-            httpServer?.Shutdown();
-        }
-
-        #endregion
-
 
         #region DotNetHTTPClientTest_001()
 
@@ -90,10 +46,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             var httpResponse  = await httpClient.GetAsync("http://127.0.0.1:82");
             var responseBody  = await httpResponse.Content.ReadAsStringAsync();
 
-            var ss = 23;
-
             Assert.AreEqual(HttpStatusCode.OK,  httpResponse.StatusCode);
             Assert.AreEqual("Hello World!",     responseBody);
+
+        }
+
+        #endregion
+
+
+        #region DotNetHTTPClientTest_002()
+
+        [Test]
+        public async Task DotNetHTTPClientTest_002()
+        {
+
+            var httpClient    = new HttpClient();
+            var httpResponse  = await httpClient.PostAsync("http://127.0.0.1:82/mirror/queryString?q=abcdefgh", null);
+            var responseBody  = await httpResponse.Content.ReadAsStringAsync();
+
+            Assert.AreEqual(HttpStatusCode.OK,  httpResponse.StatusCode);
+            Assert.AreEqual("hgfedcba",         responseBody);
+
+        }
+
+        #endregion
+
+        #region DotNetHTTPClientTest_003()
+
+        [Test]
+        public async Task DotNetHTTPClientTest_003()
+        {
+
+            var httpClient    = new HttpClient();
+            var httpResponse  = await httpClient.PostAsync("http://127.0.0.1:82/mirror/httpBody",
+                                                           new StringContent(
+                                                               "123456789",
+                                                               Encoding.UTF8,
+                                                               "text/plain"
+                                                           ));
+            var responseBody  = await httpResponse.Content.ReadAsStringAsync();
+
+            Assert.AreEqual(HttpStatusCode.OK,  httpResponse.StatusCode);
+            Assert.AreEqual("987654321",        responseBody);
 
         }
 

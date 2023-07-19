@@ -31,119 +31,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
     /// Tests between Hermod HTTP clients and Hermod HTTP servers.
     /// </summary>
     [TestFixture]
-    public class HTTPClientTests
+    public class HTTPClientTests : AHTTPServerTests
     {
-
-        #region Start/Stop HTTPServer
-
-        private HTTPServer? httpServer;
-
-        [OneTimeSetUp]
-        public void Init_HTTPServer()
-        {
-
-            httpServer = new HTTPServer(
-                             IPPort.Parse(82),
-                             Autostart: true
-                         );
-
-            #region GET   /
-
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Root,
-                                         HTTPDelegate: request => Task.FromResult(
-                                                                       new HTTPResponse.Builder(request) {
-                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
-                                                                           Date                       = Timestamp.Now,
-                                                                           AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = new[] { "GET" },
-                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
-                                                                           Content                    = "Hello World!".ToUTF8Bytes(),
-                                                                           Connection                 = "close"
-                                                                       }.AsImmutable));
-
-            #endregion
-
-            #region POST  /mirror/queryString
-
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
-                                         HTTPMethod.POST,
-                                         HTTPPath.Root + "mirror" + "queryString",
-                                         HTTPDelegate: request => Task.FromResult(
-                                                                       new HTTPResponse.Builder(request) {
-                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
-                                                                           Date                       = Timestamp.Now,
-                                                                           AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = new[] { "GET" },
-                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
-                                                                           Content                    = request.QueryString.GetString("q", "").Reverse().ToUTF8Bytes(),
-                                                                           Connection                 = "close"
-                                                                       }.AsImmutable));
-
-            #endregion
-
-            #region POST  /mirror/httpBody
-
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
-                                         HTTPMethod.POST,
-                                         HTTPPath.Root + "mirror" + "httpBody",
-                                         HTTPDelegate: request => Task.FromResult(
-                                                                       new HTTPResponse.Builder(request) {
-                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
-                                                                           Date                       = Timestamp.Now,
-                                                                           AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = new[] { "GET" },
-                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
-                                                                           Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
-                                                                           Connection                 = "close"
-                                                                       }.AsImmutable));
-
-            #endregion
-
-
-            #region POST  /mirrorBody2
-
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
-                                         HTTPMethod.POST,
-                                         HTTPPath.Root + "mirrorBody2",
-                                         HTTPDelegate: async request => {
-
-                                             var queryParameter = request.HTTPBodyAsUTF8String ?? "";
-
-                                             return new HTTPResponse.Builder(request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = "Test Server",
-                                                        Date                       = Timestamp.Now,
-                                                        AccessControlAllowOrigin   = "*",
-                                                        AccessControlAllowMethods  = new[] { "GET" },
-                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        Content                    = queryParameter.Reverse().ToUTF8Bytes(),
-                                                        Connection                 = "close"
-                                                    }.AsImmutable;
-
-                                         });
-
-            #endregion
-
-        }
-
-        [OneTimeTearDown]
-        public void Shutdown_HTTPServer()
-        {
-            httpServer?.Shutdown();
-        }
-
-        #endregion
-
 
         #region HTTPClientTest_001()
 
@@ -289,12 +178,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             // 
             // hgfedcba
 
-            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),    response);
-            Assert.IsTrue  (response.Contains("hgfedcba"),          response);
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),  response);
+            Assert.IsTrue  (response.Contains("hgfedcba"),         response);
 
-            Assert.AreEqual("hgfedcba",                          httpBody);
+            Assert.AreEqual("hgfedcba",                            httpBody);
 
-            Assert.AreEqual("hgfedcba".Length,                   httpResponse.ContentLength);
+            Assert.AreEqual("hgfedcba".Length,                     httpResponse.ContentLength);
 
         }
 
