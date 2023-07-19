@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         //internal void CleanUp()
         //{
 
-        //    var Now       = DateTime.UtcNow;
+        //    var Now       = Timestamp.Now;
         //    var ToDelete  = new List<ADNSResourceRecord>();
 
         //    _Answers.           RemoveAll(RR => RR.EndOfLife > Now);

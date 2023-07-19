@@ -720,7 +720,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public Builder(HTTPRequest Request)
             {
 
-             //   this.HTTPStatusCode   = OtherHTTPRequest.HTTPStatusCode;
                 this.HTTPServer       = Request.HTTPServer;
                 this.HTTPMethod       = Request.HTTPMethod;
                 this.Path             = Request.Path;

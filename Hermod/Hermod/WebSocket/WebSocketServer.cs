@@ -814,11 +814,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         // Sec-WebSocket-Protocol:  ocpp1.6, ocpp1.5
                                         // Sec-WebSocket-Version:   13
                                         if (!HTTPRequest.TryParse(bytes, out var httpRequest))
-                                            httpResponse  = new HTTPResponse.Builder(HTTPStatusCode.BadRequest) {
-                                                                Server      = HTTPServiceName,
-                                                                Date        = Timestamp.Now,
-                                                                Connection  = "close"
-                                                            }.AsImmutable;
+                                            httpResponse = new HTTPResponse.Builder() {
+                                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                               Server          = HTTPServiceName,
+                                                               Date            = Timestamp.Now,
+                                                               Connection      = "close"
+                                                           }.AsImmutable;
 
                                         #endregion
 
@@ -876,7 +877,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
                                             // Sec-WebSocket-Protocol:  ocpp1.6
                                             // Sec-WebSocket-Version:   13
-                                            httpResponse ??= new HTTPResponse.Builder(HTTPStatusCode.SwitchingProtocols) {
+                                            httpResponse ??= new HTTPResponse.Builder(httpRequest) {
+                                                                 HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
                                                                  Server                = HTTPServiceName,
                                                                  Connection            = "Upgrade",
                                                                  Upgrade               = "websocket",

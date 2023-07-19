@@ -58,13 +58,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            var ResponseBodyString = Response.HTTPBody.ToUTF8String().Trim();
+            var responseBodyString = Response.HTTPBody?.ToUTF8String().Trim() ?? "";
 
-            return ResponseBodyString.IsNullOrEmpty()
+            return responseBodyString.IsNullOrEmpty()
                        ? AllowEmptyHTTPBody
                              ? ""
-                             : ResponseBodyString
-                       : ResponseBodyString;
+                             : responseBodyString
+                       : responseBodyString;
 
         }
 
@@ -1449,8 +1449,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPResponse<TContent> GatewayTimeout(TContent Content)
 
-            => new (new Builder(null,
-                                HTTPStatusCode.GatewayTimeout),
+            => new (new Builder() {
+                        HTTPStatusCode = HTTPStatusCode.GatewayTimeout
+                    },
                     Content);
 
         #endregion

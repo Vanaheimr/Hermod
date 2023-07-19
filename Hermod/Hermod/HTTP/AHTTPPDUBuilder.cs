@@ -149,6 +149,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 sb.Append($"{headerField.Key}: {number}\r\n");
                                 break;
 
+                            case DateTime dateTime:
+                                sb.Append($"{headerField.Key}: {dateTime.ToString("r")}\r\n");
+                                break;
+
                             //case String[] texts:
                             //    foreach (var text in texts)
                             //        HTTPHeader.Add(kvp.Key + ": " + text);
@@ -447,20 +451,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderField(HTTPHeaderField.Date);
+                return GetHeaderField<DateTime?>(HTTPHeaderField.Date);
             }
 
             set
             {
                 SetHeaderField(HTTPHeaderField.Date, value);
-
-                //if (value.HasValue)
-                //    SetHeaderField(HTTPHeaderField.Date,
-                //                   value.Value.ToUniversalTime().ToString("r"));
-
-                //else
-                //    RemoveHeaderField(HTTPHeaderField.Date);
-
             }
 
         }
@@ -734,8 +730,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AHTTPPDUBuilder()
         {
-            this.headerFields  = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
-            this.Date          = Timestamp.Now;
+            headerFields = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
         }
 
         #endregion

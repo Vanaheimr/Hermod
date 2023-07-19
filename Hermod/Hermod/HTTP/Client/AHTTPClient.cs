@@ -347,19 +347,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <returns>A new HTTPRequest object.</returns>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
                                                  HTTPPath                      HTTPPath,
-                                                 Action<HTTPRequest.Builder>?  BuilderAction  = null)
+                                                 Action<HTTPRequest.Builder>?  BuilderAction   = null)
         {
 
-            var Builder     = new HTTPRequest.Builder(this) {
+            var builder     = new HTTPRequest.Builder(this) {
                 Host        = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
                 HTTPMethod  = HTTPMethod,
                 Path        = HTTPPath
             };
 
             if (BuilderAction is not null)
-                BuilderAction?.Invoke(Builder);
+                BuilderAction?.Invoke(builder);
 
-            return Builder;
+            return builder;
 
         }
 
@@ -375,18 +375,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// 
-        /// <param name="CancellationToken">A cancellation token.</param>
-        /// <param name="EventTrackingId"></param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="RequestTimeout">An optional HTTP request timeout.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
         public Task<HTTPResponse> Execute(Func<AHTTPClient, HTTPRequest>  HTTPRequestDelegate,
                                           ClientRequestLogHandler?        RequestLogDelegate    = null,
                                           ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
-                                          CancellationToken               CancellationToken     = default,
                                           EventTracking_Id?               EventTrackingId       = null,
                                           TimeSpan?                       RequestTimeout        = null,
-                                          Byte                            NumberOfRetry         = 0)
+                                          Byte                            NumberOfRetry         = 0,
+                                          CancellationToken               CancellationToken     = default)
 
         {
 
@@ -401,10 +401,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            RequestLogDelegate,
                            ResponseLogDelegate,
 
-                           CancellationToken,
                            EventTrackingId,
                            RequestTimeout,
-                           NumberOfRetry);
+                           NumberOfRetry,
+                           CancellationToken);
 
         }
 
@@ -419,18 +419,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// 
-        /// <param name="CancellationToken">A cancellation token.</param>
-        /// <param name="EventTrackingId"></param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetry">The number of retransmissions of this request.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
         public async Task<HTTPResponse> Execute(HTTPRequest                Request,
                                                 ClientRequestLogHandler?   RequestLogDelegate    = null,
                                                 ClientResponseLogHandler?  ResponseLogDelegate   = null,
 
-                                                CancellationToken          CancellationToken     = default,
                                                 EventTracking_Id?          EventTrackingId       = null,
                                                 TimeSpan?                  RequestTimeout        = null,
-                                                Byte                       NumberOfRetry         = 0)
+                                                Byte                       NumberOfRetry         = 0,
+                                                CancellationToken          CancellationToken     = default)
 
         {
 
@@ -1144,17 +1144,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Create a HTTP response for the exception...
 
-                Response = new HTTPResponse.Builder(Request,
-                                                    HTTPStatusCode.RequestTimeout)
-                {
-
-                    ContentType  = HTTPContentType.JSON_UTF8,
-                    Content      = JSONObject.Create(new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
+                Response = new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
+                               ContentType     = HTTPContentType.JSON_UTF8,
+                               Content         = JSONObject.Create(
+                                                     new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
                                                      new JProperty("message",     e.Message),
-                                                     new JProperty("stackTrace",  e.StackTrace)).
-                                              ToUTF8Bytes()
+                                                     new JProperty("stackTrace",  e.StackTrace)
+                                                 ).ToUTF8Bytes()
 
-                };
+                           };
 
                 #endregion
 
@@ -1180,16 +1179,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 while (e.InnerException is not null)
                     e = e.InnerException;
 
-                Response = new HTTPResponse.Builder(Request,
-                                                    HTTPStatusCode.BadRequest)
-                {
-
-                    ContentType  = HTTPContentType.JSON_UTF8,
-                    Content      = JSONObject.Create(new JProperty("message",     e.Message),
-                                                     new JProperty("stackTrace",  e.StackTrace)).
-                                              ToUTF8Bytes()
-
-                };
+                Response = new HTTPResponse.Builder(Request) {
+                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                               ContentType     = HTTPContentType.JSON_UTF8,
+                               Content         = JSONObject.Create(
+                                                     new JProperty("message",     e.Message),
+                                                     new JProperty("stackTrace",  e.StackTrace)
+                                                 ).ToUTF8Bytes()
+                           };
 
                 #endregion
 

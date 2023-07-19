@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.acceptedTypes = new List<AcceptType>();
 
-            if (AcceptTypes != null && AcceptTypes.Any())
+            if (AcceptTypes is not null && AcceptTypes.Any())
                 this.acceptedTypes.AddRange(AcceptTypes);
 
         }

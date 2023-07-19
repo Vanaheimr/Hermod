@@ -381,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 throw new ArgumentNullException("The IP address and port must be defined before sending an UDP packet!");
 
 
-            Byte[] UDPPacketData = null;
+            Byte[]? UDPPacketData = null;
 
             try
             {
@@ -389,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, DateTime.UtcNow, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -399,12 +399,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
 
                 if (SocketErrorCode != SocketError.Success)
-                    ProcessExceptionOccured(this, DateTime.UtcNow, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
+                    ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
 
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, DateTime.UtcNow, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -441,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, DateTime.UtcNow, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -455,7 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, DateTime.UtcNow, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }

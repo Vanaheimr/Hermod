@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.BouncyCastle
 
                 using (var _LiteralOutputPipe = LiteralOutputPipe(Filename,
                                                                   Length,
-                                                                  LastModificationTime != null ? LastModificationTime.Value : DateTime.UtcNow,
+                                                                  LastModificationTime ?? Illias.Timestamp.Now,
                                                                   CompressAndEncryptPipe))
                 {
 

@@ -200,8 +200,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
                                                                                                            context is not null ? context + "_" : "",
                                                                                                            logfileName, "_",
-                                                                                                           DateTime.UtcNow.Year, "-",
-                                                                                                           DateTime.UtcNow.Month.ToString("D2"),
+                                                                                                           Timestamp.Now.Year, "-",
+                                                                                                           Timestamp.Now.Month.ToString("D2"),
                                                                                                            ".log"));
 
             #endregion

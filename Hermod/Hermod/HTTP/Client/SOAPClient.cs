@@ -171,10 +171,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                      HTTPContentType?                                                 ContentType           = null,
                      XNamespace?                                                      Namespace             = null,
 
-                     CancellationToken?                                               CancellationToken     = null,
                      EventTracking_Id?                                                EventTrackingId       = null,
                      TimeSpan?                                                        RequestTimeout        = null,
-                     Byte                                                             NumberOfRetry         = 0)
+                     Byte                                                             NumberOfRetry         = 0,
+                     CancellationToken                                                CancellationToken     = default)
 
         {
 
@@ -219,25 +219,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             HTTPRequestBuilder?.Invoke(requestBuilder);
 
-            var HttpResponse = await Execute(requestBuilder,
+            var httpResponse = await Execute(requestBuilder,
                                              RequestLogDelegate,
                                              ResponseLogDelegate,
-                                             CancellationToken ?? new CancellationTokenSource().Token,
+
                                              EventTrackingId,
                                              RequestTimeout ?? DefaultRequestTimeout,
-                                             NumberOfRetry);
+                                             NumberOfRetry,
+                                             CancellationToken);
 
 
-            if (HttpResponse                 != null              &&
-                HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
-                HttpResponse.HTTPBody        != null              &&
-                HttpResponse.HTTPBody.Length > 0)
+            if (httpResponse                is not null          &&
+                httpResponse.HTTPStatusCode == HTTPStatusCode.OK &&
+                httpResponse.HTTPBody       is not null          &&
+                httpResponse.HTTPBody.Length > 0)
             {
 
                 try
                 {
 
-                    var SOAPXML = XDocument.Parse(HttpResponse.HTTPBody.ToUTF8String()).
+                    var SOAPXML = XDocument.Parse(httpResponse.HTTPBody.ToUTF8String()).
                                             Root.
                                             Element((Namespace ?? NS.SOAPEnvelope) + "Body").
                                             Descendants().
@@ -264,15 +265,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
                         var OnSuccessLocal = OnSuccess;
                         if (OnSuccessLocal != null)
-                            return OnSuccessLocal(new HTTPResponse<XElement>(HttpResponse, SOAPXML));
+                            return OnSuccessLocal(new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
                     }
 
                     var OnSOAPFaultLocal = OnSOAPFault;
                     if (OnSOAPFaultLocal != null)
-                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponse, SOAPXML));
+                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
-                    return HTTPResponse<XElement>.IsFault(HttpResponse,
+                    return HTTPResponse<XElement>.IsFault(httpResponse,
                                                           new XElement("SOAPFault")) as HTTPResponse<T>;
 
 
@@ -285,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     //if (OnFaultLocal != null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<XElement>.IsFault(HttpResponse,
+                    return HTTPResponse<XElement>.IsFault(httpResponse,
                                                           new XElement("exception", e.Message)) as HTTPResponse<T>;
 
                 }
@@ -297,9 +298,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
                 var OnHTTPErrorLocal = OnHTTPError;
                 if (OnHTTPErrorLocal != null)
-                    return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponse);
+                    return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
 
-                return HTTPResponse<XElement>.IsFault(HttpResponse,
+                return HTTPResponse<XElement>.IsFault(httpResponse,
                                                       new XElement("HTTPError")) as HTTPResponse<T>;
 
             }
@@ -455,10 +456,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                      HTTPContentType?                                                 ContentType           = null,
                      XNamespace?                                                      Namespace             = null,
 
-                     CancellationToken?                                               CancellationToken     = null,
                      EventTracking_Id?                                                EventTrackingId       = null,
                      TimeSpan?                                                        RequestTimeout        = null,
-                     Byte                                                             NumberOfRetry         = 0)
+                     Byte                                                             NumberOfRetry         = 0,
+                     CancellationToken                                                CancellationToken     = default)
 
         {
 
@@ -484,49 +485,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             #endregion
 
-            var _RequestBuilder = new HTTPRequest.Builder(this) {
-                                      HTTPMethod     = HTTPMethod.POST,
-                                      Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
-                                      Path           = URLPathPrefix + RemoteURL.Path,
-                                      Content        = QueryXML.ToUTF8Bytes(),
-                                      ContentType    = ContentType ?? HTTPContentType ?? new HTTPContentType("application",
-                                                                                                             "soap+xml",
-                                                                                                             "utf-8",
-                                                                                                             SOAPAction,
-                                                                                                             null),
-                                      Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? HTTPContentType ?? new HTTPContentType("application",
-                                                                                                                                              "soap+xml",
-                                                                                                                                              "utf-8",
-                                                                                                                                              null,
-                                                                                                                                              null)),
-                                      UserAgent      = HTTPUserAgent,
-                                      FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
-                                  };
+            var requestBuilder = new HTTPRequest.Builder(this) {
+                                     HTTPMethod     = HTTPMethod.POST,
+                                     Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
+                                     Path           = URLPathPrefix + RemoteURL.Path,
+                                     Content        = QueryXML.ToUTF8Bytes(),
+                                     ContentType    = ContentType ?? HTTPContentType ?? new HTTPContentType("application",
+                                                                                                            "soap+xml",
+                                                                                                            "utf-8",
+                                                                                                            SOAPAction,
+                                                                                                            null),
+                                     Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? HTTPContentType ?? new HTTPContentType("application",
+                                                                                                                                             "soap+xml",
+                                                                                                                                             "utf-8",
+                                                                                                                                             null,
+                                                                                                                                             null)),
+                                     UserAgent      = HTTPUserAgent,
+                                     FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
+                                 };
 
             // Always send a Content-Length header, even when it's value is zero
-            _RequestBuilder.SetContentLength(0);
+            requestBuilder.SetContentLength(0);
 
-            HTTPRequestBuilder?.Invoke(_RequestBuilder);
+            HTTPRequestBuilder?.Invoke(requestBuilder);
 
-            var HttpResponse = await Execute(_RequestBuilder,
+            var httpResponse = await Execute(requestBuilder,
                                              RequestLogDelegate,
                                              ResponseLogDelegate,
-                                             CancellationToken ?? new CancellationTokenSource().Token,
+
                                              EventTrackingId,
                                              RequestTimeout ?? DefaultRequestTimeout,
-                                             NumberOfRetry);
+                                             NumberOfRetry,
+                                             CancellationToken);
 
 
-            if (HttpResponse                 != null              &&
-                HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
-                HttpResponse.HTTPBody        != null              &&
-                HttpResponse.HTTPBody.Length > 0)
+            if (httpResponse                is not null          &&
+                httpResponse.HTTPStatusCode == HTTPStatusCode.OK &&
+                httpResponse.HTTPBody       is not null          &&
+                httpResponse.HTTPBody.Length > 0)
             {
 
                 try
                 {
 
-                    var SOAPXML = XDocument.Parse(HttpResponse.HTTPBody.ToUTF8String()).
+                    var SOAPXML = XDocument.Parse(httpResponse.HTTPBody.ToUTF8String()).
                                             Root.
                                             Element((Namespace ?? NS.SOAPEnvelope) + "Body").
                                             Descendants().
@@ -552,16 +554,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     {
 
                         var OnSuccessLocal = OnSuccess;
-                        if (OnSuccessLocal != null)
-                            return OnSuccessLocal(new HTTPResponse<XElement>(HttpResponse, SOAPXML));
+                        if (OnSuccessLocal is not null)
+                            return OnSuccessLocal(new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
                     }
 
                     var OnSOAPFaultLocal = OnSOAPFault;
                     if (OnSOAPFaultLocal != null)
-                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponse, SOAPXML));
+                        return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
-                    return HTTPResponse<XElement>.IsFault(HttpResponse,
+                    return HTTPResponse<XElement>.IsFault(httpResponse,
                                                           new XElement("SOAPFault")) as HTTPResponse<T>;
 
 
@@ -574,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     //if (OnFaultLocal != null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<XElement>.IsFault(HttpResponse,
+                    return HTTPResponse<XElement>.IsFault(httpResponse,
                                                           new XElement("exception", e.Message)) as HTTPResponse<T>;
 
                 }
@@ -585,10 +587,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
             {
 
                 var OnHTTPErrorLocal = OnHTTPError;
-                if (OnHTTPErrorLocal != null)
-                    return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponse);
+                if (OnHTTPErrorLocal is not null)
+                    return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
 
-                return HTTPResponse<XElement>.IsFault(HttpResponse,
+                return HTTPResponse<XElement>.IsFault(httpResponse,
                                                       new XElement("HTTPError")) as HTTPResponse<T>;
 
             }

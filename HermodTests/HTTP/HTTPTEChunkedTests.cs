@@ -88,23 +88,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test01
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(null,
-                                             HTTPHostname.Any,
-                                             HTTPMethod.GET,
-                                             URLPathPrefix + "test01",
-                                             HTTPDelegate: Request =>
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
+                                  URLPathPrefix + "test01",
+                                  HTTPDelegate: Request =>
 
-                                                Task.FromResult(
-                                                    new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode  = HTTPStatusCode.OK,
-                                                        Server          = HTTPServer.DefaultServerName,
-                                                        Date            = Timestamp.Now,
-                                                        ContentType     = HTTPContentType.TEXT_UTF8,
-                                                        Content         = "MozillaDeveloperNetwork".ToUTF8Bytes(),
-                                                        Connection      = "close"
-                                                    }.AsImmutable),
+                                     Task.FromResult(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode  = HTTPStatusCode.OK,
+                                             Server          = HTTPServer.DefaultServerName,
+                                             Date            = Timestamp.Now,
+                                             ContentType     = HTTPContentType.TEXT_UTF8,
+                                             Content         = "MozillaDeveloperNetwork".ToUTF8Bytes(),
+                                             Connection      = "close"
+                                         }.AsImmutable),
 
-                                             AllowReplacement: URLReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
                 #endregion
 
@@ -113,24 +112,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test02
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(null,
-                                             HTTPHostname.Any,
-                                             HTTPMethod.GET,
-                                             URLPathPrefix + "test02",
-                                             HTTPDelegate: Request =>
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
+                                  URLPathPrefix + "test02",
+                                  HTTPDelegate: Request =>
 
-                                                Task.FromResult(
-                                                    new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode    = HTTPStatusCode.OK,
-                                                        Server            = HTTPServer.DefaultServerName,
-                                                        Date              = Timestamp.Now,
-                                                        TransferEncoding  = "chunked",
-                                                        ContentType       = HTTPContentType.TEXT_UTF8,
-                                                        Content           = "7\r\nMozilla\r\n9\r\nDeveloper\r\n7\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection        = "close"
-                                                    }.AsImmutable),
+                                     Task.FromResult(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode    = HTTPStatusCode.OK,
+                                             Server            = HTTPServer.DefaultServerName,
+                                             Date              = Timestamp.Now,
+                                             TransferEncoding  = "chunked",
+                                             ContentType       = HTTPContentType.TEXT_UTF8,
+                                             Content           = "7\r\nMozilla\r\n9\r\nDeveloper\r\n7\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
+                                             Connection        = "close"
+                                         }.AsImmutable),
 
-                                             AllowReplacement: URLReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
                 #endregion
 
@@ -139,24 +137,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test03
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(null,
-                                             HTTPHostname.Any,
-                                             HTTPMethod.GET,
-                                             URLPathPrefix + "test03",
-                                             HTTPDelegate: Request =>
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
+                                  URLPathPrefix + "test03",
+                                  HTTPDelegate: Request =>
 
-                                                Task.FromResult(
-                                                    new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode    = HTTPStatusCode.OK,
-                                                        Server            = HTTPServer.DefaultServerName,
-                                                        Date              = Timestamp.Now,
-                                                        TransferEncoding  = "chunked",
-                                                        ContentType       = HTTPContentType.TEXT_UTF8,
-                                                        Content           = "007\r\nMozilla\r\n009\r\nDeveloper\r\n007\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection        = "close"
-                                                    }.AsImmutable),
+                                     Task.FromResult(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode    = HTTPStatusCode.OK,
+                                             Server            = HTTPServer.DefaultServerName,
+                                             Date              = Timestamp.Now,
+                                             TransferEncoding  = "chunked",
+                                             ContentType       = HTTPContentType.TEXT_UTF8,
+                                             Content           = "007\r\nMozilla\r\n009\r\nDeveloper\r\n007\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
+                                             Connection        = "close"
+                                         }.AsImmutable),
 
-                                             AllowReplacement: URLReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
                 #endregion
 
@@ -165,24 +162,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test04
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(null,
-                                             HTTPHostname.Any,
-                                             HTTPMethod.GET,
-                                             URLPathPrefix + "test04",
-                                             HTTPDelegate: Request =>
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
+                                  URLPathPrefix + "test04",
+                                  HTTPDelegate: Request =>
 
-                                                Task.FromResult(
-                                                    new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode    = HTTPStatusCode.OK,
-                                                        Server            = HTTPServer.DefaultServerName,
-                                                        Date              = Timestamp.Now,
-                                                        TransferEncoding  = "chunked",
-                                                        ContentType       = HTTPContentType.TEXT_UTF8,
-                                                        Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection        = "close"
-                                                    }.AsImmutable),
+                                     Task.FromResult(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode    = HTTPStatusCode.OK,
+                                             Server            = HTTPServer.DefaultServerName,
+                                             Date              = Timestamp.Now,
+                                             TransferEncoding  = "chunked",
+                                             ContentType       = HTTPContentType.TEXT_UTF8,
+                                             Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
+                                             Connection        = "close"
+                                         }.AsImmutable),
 
-                                             AllowReplacement: URLReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
                 #endregion
 
@@ -191,24 +187,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test05
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(null,
-                                             HTTPHostname.Any,
-                                             HTTPMethod.GET,
-                                             URLPathPrefix + "test05",
-                                             HTTPDelegate: Request =>
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
+                                  URLPathPrefix + "test05",
+                                  HTTPDelegate: Request =>
 
-                                                Task.FromResult(
-                                                    new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode    = HTTPStatusCode.OK,
-                                                        Server            = HTTPServer.DefaultServerName,
-                                                        Date              = Timestamp.Now,
-                                                        TransferEncoding  = "chunked",
-                                                        ContentType       = HTTPContentType.TEXT_UTF8,
-                                                        Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\n\r\n".ToUTF8Bytes(),
-                                                        Connection        = "close"
-                                                    }.AsImmutable),
+                                     Task.FromResult(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode    = HTTPStatusCode.OK,
+                                             Server            = HTTPServer.DefaultServerName,
+                                             Date              = Timestamp.Now,
+                                             TransferEncoding  = "chunked",
+                                             ContentType       = HTTPContentType.TEXT_UTF8,
+                                             Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\n\r\n".ToUTF8Bytes(),
+                                             Connection        = "close"
+                                         }.AsImmutable),
 
-                                             AllowReplacement: URLReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
                 #endregion
 
@@ -217,25 +212,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // -------------------------------------------------------------
                 // curl -v -H "Accept: text/html" http://127.0.0.1:1234/test06
                 // -------------------------------------------------------------
-                HTTPServer.AddMethodCallback(null,
-                                             HTTPHostname.Any,
-                                             HTTPMethod.GET,
-                                             URLPathPrefix + "test06",
-                                             HTTPDelegate: Request =>
+                AddMethodCallback(HTTPHostname.Any,
+                                  HTTPMethod.GET,
+                                  URLPathPrefix + "test06",
+                                  HTTPDelegate: Request =>
 
-                                                Task.FromResult(
-                                                    new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode    = HTTPStatusCode.OK,
-                                                        Server            = HTTPServer.DefaultServerName,
-                                                        Date              = Timestamp.Now,
-                                                        TransferEncoding  = "chunked",
-                                                        ContentType       = HTTPContentType.TEXT_UTF8,
-                                                        Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\nTrailingHeader: yes\r\nTrailingHeader2: yes\r\n\r\n".ToUTF8Bytes(),
-                                                        Trailer           = "Cache-Control",
-                                                        Connection        = "close"
-                                                    }.AsImmutable),
+                                     Task.FromResult(
+                                         new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode    = HTTPStatusCode.OK,
+                                             Server            = HTTPServer.DefaultServerName,
+                                             Date              = Timestamp.Now,
+                                             TransferEncoding  = "chunked",
+                                             ContentType       = HTTPContentType.TEXT_UTF8,
+                                             Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\nTrailingHeader: yes\r\nTrailingHeader2: yes\r\n\r\n".ToUTF8Bytes(),
+                                             Trailer           = "Cache-Control",
+                                             Connection        = "close"
+                                         }.AsImmutable),
 
-                                             AllowReplacement: URLReplacement.Allow);
+                                  AllowReplacement: URLReplacement.Allow);
 
                 #endregion
 
@@ -246,22 +240,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         }
 
 
-        #region Start/Stop HTTPServer
+        #region Start/Stop TEChunkedAPI
 
-        private TEChunkedAPI _HTTPServer;
+        private TEChunkedAPI chunkedAPI;
 
         [OneTimeSetUp]
-        public void Init_HTTPServer()
+        public void Init_TEChunkedAPI()
         {
 
-            _HTTPServer = new TEChunkedAPI();
+            chunkedAPI = new TEChunkedAPI();
 
         }
 
         [OneTimeTearDown]
-        public void Shutdown_HTTPServer()
+        public void Shutdown_TEChunkedAPI()
         {
-            _HTTPServer.Shutdown();
+            chunkedAPI.Shutdown();
         }
 
         #endregion
@@ -273,16 +267,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public void ChunkedTest_01()
         {
 
-            var response = HTTPClientFactory.Create(URL.Parse("http://127.0.0.1:1234")).
+            var response = HTTPClientFactory.Create (URL.Parse("http://127.0.0.1:1234")).
+                                             Execute(client => client.GETRequest(HTTPPath.Parse("/test01"),
+                                                                                 requestbuilder => {
+                                                                                     requestbuilder.Host        = HTTPHostname.Localhost;
+                                                                                     requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
+                                                                                     requestbuilder.Connection  = "close";
+                                                                                 })).
 
-                                        Execute(client => client.GETRequest(HTTPPath.Parse("/test01"),
-                                                                            requestbuilder => {
-                                                                                requestbuilder.Host        = HTTPHostname.Localhost;
-                                                                                requestbuilder.Accept.Add(HTTPContentType.TEXT_UTF8);
-                                                                                requestbuilder.Connection  = "close";
-                                                                            })).
-
-                                        Result;
+                                             Result;
 
 
             Assert.AreEqual(200,                       response?.HTTPStatusCode.Code);

@@ -674,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                     Thread.Sleep(10);
 
             OnCompleted?.Invoke(this,
-                                DateTime.UtcNow,
+                                Timestamp.Now,
                                 Message);
 
             return true;

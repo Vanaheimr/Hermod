@@ -146,14 +146,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                      Func<DateTime, Object, HTTPResponse<JObject>, HTTPResponse<T>>  OnJSONFault,
                      Func<DateTime, Object, HTTPResponse,          HTTPResponse<T>>  OnHTTPError,
                      Func<DateTime, Object, Exception,             HTTPResponse<T>>  OnException,
-                     Action<HTTPRequest.Builder>                                     HTTPRequestBuilder    = null,
-                     ClientRequestLogHandler                                         RequestLogDelegate    = null,
-                     ClientResponseLogHandler                                        ResponseLogDelegate   = null,
+                     Action<HTTPRequest.Builder>?                                    HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler?                                        RequestLogDelegate    = null,
+                     ClientResponseLogHandler?                                       ResponseLogDelegate   = null,
 
-                     CancellationToken?                                              CancellationToken     = null,
-                     EventTracking_Id                                                EventTrackingId       = null,
+                     EventTracking_Id?                                               EventTrackingId       = null,
                      TimeSpan?                                                       RequestTimeout        = null,
-                     Byte                                                            NumberOfRetry         = 0)
+                     Byte                                                            NumberOfRetry         = 0,
+                     CancellationToken                                               CancellationToken     = default)
 
         {
 
@@ -176,29 +176,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            var _RequestBuilder = CreateRequest(HTTPMethod.POST, RemoteURL.Path);
-            _RequestBuilder.Host               = VirtualHostname ?? RemoteURL.Hostname;
-            _RequestBuilder.Content            = JSONRequest.ToUTF8Bytes();
-            _RequestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
-            _RequestBuilder.UserAgent          = HTTPUserAgent;
+            var requestBuilder = CreateRequest(HTTPMethod.POST, RemoteURL.Path);
+            requestBuilder.Host               = VirtualHostname ?? RemoteURL.Hostname;
+            requestBuilder.Content            = JSONRequest.ToUTF8Bytes();
+            requestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
+            requestBuilder.UserAgent          = HTTPUserAgent;
             //_RequestBuilder.FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname);
-            _RequestBuilder.Accept.Add(HTTPContentType.JSON_UTF8);
+            requestBuilder.Accept.Add(HTTPContentType.JSON_UTF8);
 
-            HTTPRequestBuilder?.Invoke(_RequestBuilder);
+            HTTPRequestBuilder?.Invoke(requestBuilder);
 
-            var HttpResponse = await Execute(_RequestBuilder,
+            var httpResponse = await Execute(requestBuilder,
                                              RequestLogDelegate,
                                              ResponseLogDelegate,
-                                             CancellationToken.HasValue  ? CancellationToken.Value : new CancellationTokenSource().Token,
+
                                              EventTrackingId,
                                              RequestTimeout ?? DefaultRequestTimeout,
-                                             NumberOfRetry);
+                                             NumberOfRetry,
+                                             CancellationToken);
 
 
-            if (HttpResponse                 != null              &&
-                HttpResponse.HTTPStatusCode  == HTTPStatusCode.OK &&
-                HttpResponse.HTTPBody        != null              &&
-                HttpResponse.HTTPBody.Length > 0)
+            if (httpResponse                is not null          &&
+                httpResponse.HTTPStatusCode == HTTPStatusCode.OK &&
+                httpResponse.HTTPBody       is not null          &&
+                httpResponse.HTTPBody.Length > 0)
             {
 
                 try
@@ -217,17 +218,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //try
             //{
 
-                    var JSON = JObject.Parse(HttpResponse.HTTPBody.ToUTF8String());
+                    var JSON = JObject.Parse(httpResponse.HTTPBody.ToUTF8String());
 
                     var OnSuccessLocal = OnSuccess;
-                    if (OnSuccessLocal != null)
-                        return OnSuccessLocal(new HTTPResponse<JObject>(HttpResponse, JSON));
+                    if (OnSuccessLocal is not null)
+                        return OnSuccessLocal(new HTTPResponse<JObject>(httpResponse, JSON));
 
                     //var OnSOAPFaultLocal = OnSOAPFault;
                     //if (OnSOAPFaultLocal != null)
                     //    return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
 
-                    return HTTPResponse<JObject>.IsFault(HttpResponse,
+                    return HTTPResponse<JObject>.IsFault(httpResponse,
                                                          new JObject(new JProperty("fault", ""))) as HTTPResponse<T>;
 
 
@@ -240,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //if (OnFaultLocal != null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
-                    return HTTPResponse<JObject>.IsFault(HttpResponse,
+                    return HTTPResponse<JObject>.IsFault(httpResponse,
                                                          new JObject(new JProperty("exception", e.Message))) as HTTPResponse<T>;
 
                 }
@@ -250,13 +251,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
             {
 
-                DebugX.LogT("HTTPRespose is null! (" + _RequestBuilder.Path.ToString() + ")");
+                DebugX.LogT("HTTPRespose is null! (" + requestBuilder.Path.ToString() + ")");
 
                 var OnHTTPErrorLocal = OnHTTPError;
-                if (OnHTTPErrorLocal != null)
-                    return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponse);
+                if (OnHTTPErrorLocal is not null)
+                    return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
 
-                return HTTPResponse<JObject>.IsFault(HttpResponse,
+                return HTTPResponse<JObject>.IsFault(httpResponse,
                                                      new JObject(
                                                          new JProperty("HTTPError", true)
                                                      )) as HTTPResponse<T>;

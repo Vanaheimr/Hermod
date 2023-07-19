@@ -954,17 +954,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             #region Create a HTTP response for the exception...
 
-                            httpResponse = new HTTPResponse.Builder(httpRequest,
-                                                                    HTTPStatusCode.RequestTimeout)
-                            {
-
-                                ContentType  = HTTPContentType.JSON_UTF8,
-                                Content      = JSONObject.Create(new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
-                                                                 new JProperty("message",     hte.Message),
-                                                                 new JProperty("stackTrace",  hte.StackTrace)).
-                                                          ToUTF8Bytes()
-
-                            };
+                            httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                               HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
+                                               ContentType     = HTTPContentType.JSON_UTF8,
+                                               Content         = JSONObject.Create(
+                                                                     new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
+                                                                     new JProperty("message",     hte.Message),
+                                                                     new JProperty("stackTrace",  hte.StackTrace)
+                                                                 ).ToUTF8Bytes()
+                                           };
 
                             #endregion
 
@@ -990,16 +988,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             while (e.InnerException is not null)
                                 e = e.InnerException;
 
-                            httpResponse = new HTTPResponse.Builder(httpRequest,
-                                                                    HTTPStatusCode.BadRequest)
-                            {
-
-                                ContentType  = HTTPContentType.JSON_UTF8,
-                                Content      = JSONObject.Create(new JProperty("message",     e.Message),
-                                                                 new JProperty("stackTrace",  e.StackTrace)).
-                                                          ToUTF8Bytes()
-
-                            };
+                            httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                               ContentType     = HTTPContentType.JSON_UTF8,
+                                               Content         = JSONObject.Create(
+                                                                     new JProperty("message",     e.Message),
+                                                                     new JProperty("stackTrace",  e.StackTrace)
+                                                                 ).ToUTF8Bytes()
+                                           };
 
                             #endregion
 

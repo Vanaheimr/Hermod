@@ -570,10 +570,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 foreach (var field in HTTPPDU.headerFields)
                     headerFields.Add(field.Key, field.Value);
 
-            //if (HTTPPDU._HeaderFields2 is not null)
-            //    foreach (var field in HTTPPDU._HeaderFields2)
-            //        _HeaderFields2.Add(field.Key, field.Value);
-
         }
 
         #endregion

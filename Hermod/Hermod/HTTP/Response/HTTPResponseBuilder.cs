@@ -48,12 +48,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The correlated HTTP request.
             /// </summary>
-            public HTTPRequest        HTTPRequest            { get; }
+            public HTTPRequest?       HTTPRequest            { get; set; }
 
             /// <summary>
             /// The timestamp of the HTTP response.
             /// </summary>
-            public DateTime           Timestamp              { get; }
+            public DateTime?          Timestamp              { get; set; }
 
             /// <summary>
             /// The cancellation token.
@@ -63,16 +63,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The runtime of the HTTP request/response pair.
             /// </summary>
-            public TimeSpan?          Runtime                { get; }
+            public TimeSpan?          Runtime                { get; set; }
 
             /// <summary>
             /// The entire HTTP header.
             /// </summary>
             public String             HTTPHeader
 
-                => HTTPStatusCode.HTTPResponseString + Environment.NewLine +
-                         ConstructedHTTPHeader       + Environment.NewLine +
-                         Environment.NewLine;
+                => String.Concat(
+                      (HTTPStatusCode ?? HTTPStatusCode.BadRequest).HTTPResponseString,
+                       Environment.NewLine,
+                       ConstructedHTTPHeader,
+                       Environment.NewLine,
+                       Environment.NewLine
+                   );
 
             #endregion
 
@@ -462,52 +466,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
-            #region Builder(             HTTPStatusCode = null)
-
             /// <summary>
             /// Create a new HTTP response.
             /// </summary>
-            /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPStatusCode?  HTTPStatusCode   = null)
-            {
-
-                this.HTTPStatusCode     = HTTPStatusCode ?? HTTPStatusCode.OK;
-                this.Timestamp          = Illias.Timestamp.Now;
-                this.ProtocolName       = "HTTP";
-                this.ProtocolVersion    = new HTTPVersion(1, 1);
-                this.CancellationToken  = new CancellationTokenSource().Token;
-                base.EventTrackingId    = EventTracking_Id.New;
-                this.Runtime            = TimeSpan.Zero;
-
-            }
-
-            #endregion
-
-            #region Builder(HTTPRequest, HTTPStatusCode = null)
-
-            /// <summary>
-            /// Create a new HTTP response.
-            /// </summary>
-            /// <param name="HTTPRequest">The HTTP request for this response.</param>
-            /// <param name="HTTPStatusCode">A HTTP status code</param>
-            public Builder(HTTPRequest      HTTPRequest,
-                           HTTPStatusCode?  HTTPStatusCode   = null)
+            /// <param name="HTTPRequest">An optional HTTP request for this response.</param>
+            public Builder(HTTPRequest? HTTPRequest = null)
             {
 
                 this.HTTPRequest        = HTTPRequest;
-                this.HTTPStatusCode     = HTTPStatusCode ?? HTTPStatusCode.OK;
                 this.Timestamp          = Illias.Timestamp.Now;
+                this.Date               = Illias.Timestamp.Now;
                 this.ProtocolName       = "HTTP";
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
-                this.CancellationToken  = HTTPRequest?.CancellationToken ?? new CancellationTokenSource().Token;
+                this.CancellationToken  = HTTPRequest?.CancellationToken ?? CancellationToken.None;
                 base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
                 this.Runtime            = HTTPRequest is not null
                                               ? Illias.Timestamp.Now - HTTPRequest.Timestamp
                                               : TimeSpan.Zero;
 
             }
-
-            #endregion
 
             #endregion
 
@@ -817,11 +794,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder ClientError(HTTPRequest      Request,
-                                              Action<Builder>  Configurator = null)
+            public static Builder ClientError(HTTPRequest       Request,
+                                              Action<Builder>?  Configurator = null)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.ClientError);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.ClientError
+                               };
 
                 Configurator?.Invoke(response);
 
@@ -838,11 +817,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Func<Builder, Builder>  Configurator)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.ClientError);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.ClientError
+                               };
 
-                Configurator?.Invoke(response);
-
-                return response;
+                return Configurator is not null
+                           ? Configurator(response)
+                           : response;
 
             }
 
@@ -856,11 +837,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder OK(HTTPRequest      Request,
-                                     Action<Builder>  Configurator = null)
+            public static Builder OK(HTTPRequest       Request,
+                                     Action<Builder>?  Configurator = null)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.OK);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.OK
+                               };
 
                 Configurator?.Invoke(response);
 
@@ -877,12 +860,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      Func<Builder, Builder>  Configurator)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.OK);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.OK
+                               };
 
-                if (Configurator != null)
-                    return Configurator(response);
-
-                return response;
+                return Configurator is not null
+                           ? Configurator(response)
+                           : response;
 
             }
 
@@ -895,11 +879,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder BadRequest(HTTPRequest      Request,
-                                             Action<Builder>  Configurator = null)
+            public static Builder BadRequest(HTTPRequest       Request,
+                                             Action<Builder>?  Configurator = null)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.BadRequest);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.BadRequest
+                               };
 
                 Configurator?.Invoke(response);
 
@@ -916,11 +902,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Func<Builder, Builder>  Configurator)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.BadRequest);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.BadRequest
+                               };
 
-                Configurator?.Invoke(response);
-
-                return response;
+                return Configurator is not null
+                           ? Configurator(response)
+                           : response;
 
             }
 
@@ -933,11 +921,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder ServiceUnavailable(HTTPRequest      Request,
-                                                     Action<Builder>  Configurator = null)
+            public static Builder ServiceUnavailable(HTTPRequest       Request,
+                                                     Action<Builder>?  Configurator = null)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.ServiceUnavailable
+                               };
 
                 Configurator?.Invoke(response);
 
@@ -954,11 +944,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      Func<Builder, Builder>  Configurator)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.ServiceUnavailable);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.ServiceUnavailable
+                               };
 
-                Configurator?.Invoke(response);
-
-                return response;
+                return Configurator is not null
+                           ? Configurator(response)
+                           : response;
 
             }
 
@@ -971,11 +963,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder FailedDependency(HTTPRequest      Request,
-                                                   Action<Builder>  Configurator = null)
+            public static Builder FailedDependency(HTTPRequest       Request,
+                                                   Action<Builder>?  Configurator = null)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.FailedDependency);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.FailedDependency
+                               };
 
                 Configurator?.Invoke(response);
 
@@ -992,11 +986,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Func<Builder, Builder>  Configurator)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.FailedDependency);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.FailedDependency
+                               };
 
-                Configurator?.Invoke(response);
-
-                return response;
+                return Configurator is not null
+                           ? Configurator(response)
+                           : response;
 
             }
 
@@ -1009,11 +1005,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-            public static Builder GatewayTimeout(HTTPRequest      Request,
-                                                 Action<Builder>  Configurator = null)
+            public static Builder GatewayTimeout(HTTPRequest       Request,
+                                                 Action<Builder>?  Configurator = null)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.GatewayTimeout);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.GatewayTimeout
+                               };
 
                 Configurator?.Invoke(response);
 
@@ -1030,11 +1028,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Func<Builder, Builder>  Configurator)
             {
 
-                var response = new Builder(Request, HTTPStatusCode.GatewayTimeout);
+                var response = new Builder(Request) {
+                                   HTTPStatusCode = HTTPStatusCode.GatewayTimeout
+                               };
 
-                Configurator?.Invoke(response);
-
-                return response;
+                return Configurator is not null
+                           ? Configurator(response)
+                           : response;
 
             }
 

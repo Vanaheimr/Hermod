@@ -431,8 +431,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse.Builder Reply(this HTTPRequest  HTTPRequest,
                                                  HTTPStatusCode?   HTTPStatusCode = null)
 
-            => new (HTTPRequest,
-                    HTTPStatusCode);
+            => new (HTTPRequest) {
+                       HTTPStatusCode = HTTPStatusCode
+                   };
 
         #endregion
 

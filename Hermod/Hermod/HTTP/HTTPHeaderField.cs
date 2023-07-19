@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -508,11 +509,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Date: Tue, 15 Nov 1994 08:12:31 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField<DateTime> Date = new ("Date",
-                                                                     HeaderFieldType.General,
-                                                                     RequestPathSemantic.EndToEnd,
-                                                                     DateTime.TryParse,
-                                                                     dt => dt.ToUniversalTime().ToString("r"));
+        public static readonly HTTPHeaderField<DateTime?> Date = new ("Date",
+                                                                      HeaderFieldType.General,
+                                                                      RequestPathSemantic.EndToEnd,
+                                                                      (String text, out DateTime? dt) => { if (DateTime.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
+                                                                      dateTime => dateTime.HasValue
+                                                                                      ? dateTime.Value.ToUniversalTime().ToString("r")
+                                                                                      : null);
 
         #endregion
 
@@ -769,12 +772,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A delegate definition to parse the value of the header field from a string.
         /// </summary>
-        public delegate Boolean StringParserDelegate(String arg1, out Object? arg2);
+        public delegate Boolean  StringParserDelegate(String arg1, out Object? arg2);
 
         /// <summary>
         /// A delegate definition to serialize the value of the header field to a string.
         /// </summary>
-        public delegate String ValueSerializerDelegate<T>(T arg1);
+        public delegate String?  ValueSerializerDelegate<T2>(T2 arg1);
 
         #endregion
 

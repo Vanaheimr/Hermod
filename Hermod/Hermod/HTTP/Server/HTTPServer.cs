@@ -1153,8 +1153,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.DefaultServerName  = DefaultServerName ?? DefaultHTTPServerName;
-            this.hostnameNodes     = new Dictionary<HTTPHostname,       HostnameNode>();
-            this.eventSources      = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
+            this.hostnameNodes      = new Dictionary<HTTPHostname,       HostnameNode>();
+            this.eventSources       = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
             this.AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
                                                ? IPPort.HTTP

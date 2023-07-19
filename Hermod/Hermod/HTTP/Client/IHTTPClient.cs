@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -132,19 +131,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    ClientRequestLogHandler?        RequestLogDelegate    = null,
                                    ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
-                                   CancellationToken               CancellationToken     = default,
                                    EventTracking_Id?               EventTrackingId       = null,
                                    TimeSpan?                       RequestTimeout        = null,
-                                   Byte                            NumberOfRetry         = 0);
+                                   Byte                            NumberOfRetry         = 0,
+                                   CancellationToken               CancellationToken     = default);
 
         Task<HTTPResponse> Execute(HTTPRequest                     Request,
                                    ClientRequestLogHandler?        RequestLogDelegate    = null,
                                    ClientResponseLogHandler?       ResponseLogDelegate   = null,
 
-                                   CancellationToken               CancellationToken     = default,
                                    EventTracking_Id?               EventTrackingId       = null,
                                    TimeSpan?                       RequestTimeout        = null,
-                                   Byte                            NumberOfRetry         = 0);
+                                   Byte                            NumberOfRetry         = 0,
+                                   CancellationToken               CancellationToken     = default);
 
     }
 

@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             break;
 
                         case "gettime":
-                            _StringBuilder.AppendLine(DateTime.UtcNow.ToString("o"));
+                            _StringBuilder.AppendLine(Illias.Timestamp.Now.ToString("o"));
                             break;
 
                         case "getconnectionid":

@@ -28,22 +28,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 {
 
     /// <summary>
-    /// HTTPClientTests test.
+    /// Tests between Hermod HTTP clients and Hermod HTTP servers.
     /// </summary>
     [TestFixture]
     public class HTTPClientTests
     {
-
-        #region Constants
-
-        private const String _400_BadRequest               = "400 Bad Request";
-        private const String _404_NotFound                 = "404 Not Found";
-        private const String _405_MethodNotAllowed         = "405 Method Not Allowed";
-
-        private const String _500_InternalServerError      = "500 Internal Server Error";
-        private const String _505_HTTPVersionNotSupported  = "505 HTTP Version Not Supported";
-
-        #endregion
 
         #region Start/Stop HTTPServer
 
@@ -54,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         {
 
             httpServer = new HTTPServer(
-                             IPPort.Parse(81),
+                             IPPort.Parse(82),
                              Autostart: true
                          );
 
@@ -89,136 +78,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         #endregion
 
-        #region NewTCPClientRequest()
 
-        private static TCPClientRequest NewTCPClientRequest()
-
-            => new ("localhost", 81);
-
-        #endregion
-
-
-        #region HTTPClientTests_001()
+        #region HTTPClientTest_001()
 
         [Test]
-        public void HTTPClientTests_001()
+        public async Task HTTPClientTest_001()
         {
 
-            var response = NewTCPClientRequest().
-                           Send("GET / HTTP/1.1\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
+            var httpClient    = new HTTPClient(URL.Parse("http://127.0.0.1:82"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root).
+                                                 ConfigureAwait(false);
 
-            Assert.IsTrue(response.Contains("200 OK"),       response);
-            Assert.IsTrue(response.Contains("Hello World!"), response);
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),               request);
+            Assert.IsTrue (request.Contains("GET / HTTP/1.1"),      request);
+            Assert.IsTrue (request.Contains("Host: 127.0.0.1:82"),  request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
+            // Server:                        Test Server
+            // Access-Control-Allow-Origin:   *
+            // Access-Control-Allow-Methods:  GET
+            // Access-Control-Allow-Headers:  Content-Type, Accept, Authorization
+            // Content-Type:                  text/plain; charset=utf-8
+            // Content-Length:                12
+            // Connection:                    close
+            // 
+            // Hello World!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),    response);
+            Assert.IsTrue  (response.Contains("Hello World!"),       response);
+
+            Assert.AreEqual("Hello World!",                          httpBody);
+
+            Assert.AreEqual("Hello World!".Length,                   httpResponse.ContentLength);
 
         }
 
         #endregion
 
-        #region HTTPClientTests_002()
+        #region HTTPClientTest_002()
 
         [Test]
-        public void HTTPClientTests_002()
+        public async Task HTTPClientTest_002()
         {
 
-            var response = NewTCPClientRequest().
-                           Send("GET / HTTP/2.0\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
+            var httpClient    = new HTTPClient(URL.Parse("http://127.0.0.1:82"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root,
+                                                     requestbuilder => {
+                                                         requestbuilder.Host = HTTPHostname.Localhost;
+                                                     }).
+                                                 ConfigureAwait(false);
 
-            Assert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
+
+
+            var request   = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: localhost
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),            request);
+            Assert.IsTrue (request.Contains("GET / HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains("Host: localhost"),  request);
+
+
+
+            var response  = httpResponse.EntirePDU;
+            var httpBody  = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
+            // Server:                        Test Server
+            // Access-Control-Allow-Origin:   *
+            // Access-Control-Allow-Methods:  GET
+            // Access-Control-Allow-Headers:  Content-Type, Accept, Authorization
+            // Content-Type:                  text/plain; charset=utf-8
+            // Content-Length:                12
+            // Connection:                    close
+            // 
+            // Hello World!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),  response);
+            Assert.IsTrue  (response.Contains("Hello World!"),     response);
+
+            Assert.AreEqual("Hello World!",                        httpBody);
+
+            Assert.AreEqual("Hello World!".Length,                 httpResponse.ContentLength);
 
         }
 
         #endregion
 
-        #region HTTPClientTests_003()
-
-        [Test]
-        public void HTTPClientTests_003()
-        {
-
-            var response = NewTCPClientRequest().
-                           Send("GET / HTTP 2.0\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
-
-            Assert.IsTrue(response.Contains(_400_BadRequest), response);
-
-        }
-
-        #endregion
-
-        #region HTTPClientTests_004()
-
-        [Test]
-        public void HTTPClientTests_004()
-        {
-
-            var response = NewTCPClientRequest().
-                           Send("GET / HTTP/1\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
-
-            Assert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
-
-        }
-
-        #endregion
-
-        #region HTTPClientTests_005()
-
-        [Test]
-        public void HTTPClientTests_005()
-        {
-
-            var response = NewTCPClientRequest().
-                           Send("GET / HTTo/2.0\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
-
-            Assert.IsTrue(response.Contains(_400_BadRequest), response);
-
-        }
-
-        #endregion
-
-        #region HTTPClientTests_006()
-
-        [Test]
-        public void HTTPClientTests_006()
-        {
-
-            var response = NewTCPClientRequest().
-                           Send("GE").
-                           Wait(100).
-                           Send("T / HTTo/2.0\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
-
-            Assert.IsTrue(response.Contains(_400_BadRequest), response);
-
-        }
-
-        #endregion
-
-        #region HTTPClientTests_007()
-
-        [Test]
-        public void HTTPClientTests_007()
-        {
-
-            var response = NewTCPClientRequest().
-                           Send("GETTT / HTTP/1.1\r\nHost: localhost").
-                           FinishCurrentRequest().
-                           Response;
-
-            Assert.IsTrue(response.Contains(_405_MethodNotAllowed), response);
-
-        }
-
-        #endregion
 
     }
 

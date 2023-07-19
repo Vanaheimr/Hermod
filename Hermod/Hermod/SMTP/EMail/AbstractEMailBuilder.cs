@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             this._Cc                    = EMailAddressListBuilder.Empty;
             this._Bcc                   = EMailAddressListBuilder.Empty;
             this._Subject               = "";
-            this. Date                  = DateTime.UtcNow;
+            this. Date                  = Timestamp.Now;
             this._References            = new List<Message_Id>();
             this._Attachments           = new List<EMailBodypart>();
 
@@ -651,7 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                           CompressionAlgorithm:   CompressionAlgorithm,
                                           ArmoredOutput:          true,
                                           Filename:               "encrypted.asc",
-                                          LastModificationTime:   DateTime.UtcNow);
+                                          LastModificationTime:   Timestamp.Now);
 
                 // MIME Security with OpenPGP (rfc3156, https://tools.ietf.org/html/rfc3156)
                 // OpenPGP Message Format     (rfc4880, https://tools.ietf.org/html/rfc4880)
