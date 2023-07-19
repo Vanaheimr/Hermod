@@ -310,41 +310,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Similar to SEARCH, searches for matching items, but might filter or sort those items differently.
         /// </summary>
-        public static readonly HTTPMethod SEARCH        = new ("SEARCH",   IsIdempotent: true, IsSafe: true);
+        public static readonly HTTPMethod SEARCH          = new ("SEARCH",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Similar to GET, checks wether a resource exists, but only returns 'true' or 'false'.
         /// </summary>
-        public static readonly HTTPMethod EXISTS        = new ("EXISTS",   IsIdempotent: true, IsSafe: true);
+        public static readonly HTTPMethod EXISTS          = new ("EXISTS",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Counts the number of elements in a resource collection.
         /// </summary>
-        public static readonly HTTPMethod COUNT         = new ("COUNT",    IsIdempotent: true, IsSafe: true);
+        public static readonly HTTPMethod COUNT           = new ("COUNT",    IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Similar to GET, but with an additional filter methods within the http body.
         /// </summary>
-        public static readonly HTTPMethod FILTER        = new ("FILTER",   IsIdempotent: true, IsSafe: true);
+        public static readonly HTTPMethod FILTER          = new ("FILTER",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Returns dynamic status information on a single resource or an entire resource collection.
         /// </summary>
-        public static readonly HTTPMethod STATUS        = new ("STATUS",   IsIdempotent: true, IsSafe: true);
+        public static readonly HTTPMethod STATUS          = new ("STATUS",   IsIdempotent: true, IsSafe: true);
 
 
         /// <summary>
         /// Creates a new resource. Within a resource collection the unique
         /// identification of the new resource will be chosen by the server.
         /// </summary>
-        public static readonly HTTPMethod CREATE        = new ("CREATE");
+        public static readonly HTTPMethod CREATE          = new ("CREATE");
 
         /// <summary>
         /// Adds a new resource to a resource collection. It will fail when
         /// a unique identification of the resource is missing or already
         /// exists on the server.
         /// </summary>
-        public static readonly HTTPMethod ADD           = new ("ADD");
+        public static readonly HTTPMethod ADD             = new ("ADD");
 
         /// <summary>
         /// Adds a new resource to a resource collection. The request will be silently
@@ -358,108 +358,113 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Patch the given resource.
         /// </summary>
-        public static readonly HTTPMethod PATCH         = new ("PATCH");
+        public static readonly HTTPMethod PATCH           = new ("PATCH");
 
         /// <summary>
         /// Announce the given resource.
         /// </summary>
-        public static readonly HTTPMethod ANNOUNCE      = new ("ANNOUNCE", IsIdempotent: true, IsSafe: true);
+        public static readonly HTTPMethod ANNOUNCE        = new ("ANNOUNCE", IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Traverse the given resource.
         /// </summary>
-        public static readonly HTTPMethod TRAVERSE      = new ("TRAVERSE");
+        public static readonly HTTPMethod TRAVERSE        = new ("TRAVERSE");
 
         /// <summary>
         /// Query a resource.
         /// </summary>
-        public static readonly HTTPMethod QUERY         = new ("QUERY");
+        public static readonly HTTPMethod QUERY           = new ("QUERY");
 
         /// <summary>
         /// Composes a new resource (e.g. send a html form to compose a new resource)
         /// </summary>
-        public static readonly HTTPMethod COMPOSE       = new ("COMPOSE");
+        public static readonly HTTPMethod COMPOSE         = new ("COMPOSE");
 
         /// <summary>
         /// SET the value of a resource (a replacement for PUT and POST)
         /// </summary>
-        public static readonly HTTPMethod SET           = new ("SET");
+        public static readonly HTTPMethod SET             = new ("SET");
 
         /// <summary>
         /// Change the owner of a resource
         /// </summary>
-        public static readonly HTTPMethod CHOWN         = new ("CHOWN");
+        public static readonly HTTPMethod CHOWN           = new ("CHOWN");
 
         /// <summary>
         /// Authenticate the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod AUTH          = new ("AUTH");
+        public static readonly HTTPMethod AUTH            = new ("AUTH");
 
         /// <summary>
         /// Deauthenticate the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod DEAUTH        = new ("DEAUTH");
+        public static readonly HTTPMethod DEAUTH          = new ("DEAUTH");
 
         /// <summary>
         /// Impersonate (become/switch to) the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod IMPERSONATE   = new ("IMPERSONATE");
+        public static readonly HTTPMethod IMPERSONATE     = new ("IMPERSONATE");
 
         /// <summary>
         /// Depersonate (switch back) from the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod DEPERSONATE   = new ("DEPERSONATE");
+        public static readonly HTTPMethod DEPERSONATE     = new ("DEPERSONATE");
 
         /// <summary>
         /// Update a resource (a replacement for PUT)
         /// </summary>
-        public static readonly HTTPMethod UPDATE        = new ("UPDATE");
+        public static readonly HTTPMethod UPDATE          = new ("UPDATE");
 
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
-        public static readonly HTTPMethod EDIT          = new ("EDIT");
+        public static readonly HTTPMethod EDIT            = new ("EDIT");
 
         /// <summary>
         /// Monitors a resource or collection resource for modifications using an eventstream.
         /// </summary>
-        public static readonly HTTPMethod MONITOR       = new ("MONITOR");
+        public static readonly HTTPMethod MONITOR         = new ("MONITOR");
 
         /// <summary>
         /// Maps all elements of a collection resource and may reduce this to a second data structure.
         /// This can be implemented via two JavaScript functions within the HTTP body.
         /// </summary>
-        public static readonly HTTPMethod MAPREDUCE     = new ("MAPREDUCE");
+        public static readonly HTTPMethod MAPREDUCE       = new ("MAPREDUCE");
 
         /// <summary>
         /// Subscribe an URI to receive notifications from this resource.
         /// </summary>
-        public static readonly HTTPMethod SUBSCRIBE     = new ("SUBSCRIBE");
+        public static readonly HTTPMethod SUBSCRIBE       = new ("SUBSCRIBE");
 
         /// <summary>
         /// Unsubscribe an URI to receive notifications from this resource.
         /// </summary>
-        public static readonly HTTPMethod UNSUBSCRIBE   = new ("UNSUBSCRIBE");
+        public static readonly HTTPMethod UNSUBSCRIBE     = new ("UNSUBSCRIBE");
 
         /// <summary>
         /// Notify a subscriber of an URI about notifications from a resource.
         /// </summary>
-        public static readonly HTTPMethod NOTIFY        = new ("NOTIFY");
+        public static readonly HTTPMethod NOTIFY          = new ("NOTIFY");
 
         /// <summary>
         /// Check a resource.
         /// </summary>
-        public static readonly HTTPMethod CHECK         = new ("CHECK");
+        public static readonly HTTPMethod CHECK           = new ("CHECK");
+
+        /// <summary>
+        /// Clear a (collection) resource.
+        /// </summary>
+        public static readonly HTTPMethod CLEAR           = new ("CLEAR");
 
         /// <summary>
         /// Signup a resource.
         /// </summary>
-        public static readonly HTTPMethod SIGNUP        = new ("SIGNUP");
+        public static readonly HTTPMethod SIGNUP          = new ("SIGNUP");
 
         /// <summary>
         /// Validate a resource.
         /// </summary>
-        public static readonly HTTPMethod VALIDATE      = new ("VALIDATE");
+        public static readonly HTTPMethod VALIDATE        = new ("VALIDATE");
 
         #endregion
 
