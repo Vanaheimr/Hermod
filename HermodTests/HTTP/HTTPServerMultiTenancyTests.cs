@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace eu.Vanaheimr.Hermod.UnitTests
 {
-    class HTTPServerTests
+    class HTTPServerMultiTenancyTests
     {
 
 

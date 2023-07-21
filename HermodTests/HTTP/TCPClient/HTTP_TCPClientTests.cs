@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 {
 
     /// <summary>
-    /// HTTP via TCPClient tests.
+    /// Hermod HTTP server via TCP client tests, to simulate strange network behaviors.
     /// </summary>
     [TestFixture]
     public class HTTP_TCPClientTests

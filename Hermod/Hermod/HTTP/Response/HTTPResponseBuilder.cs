@@ -1041,6 +1041,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
+
+            #region SetHeaderField(FieldName,   Value)
+
+            /// <summary>
+            /// Set a HTTP header field.
+            /// A field value of NULL will remove the field from the header.
+            /// </summary>
+            /// <param name="FieldName">The name of the header field.</param>
+            /// <param name="Value">The value. NULL will remove the field from the header.</param>
+            public new Builder SetHeaderField(String   FieldName,
+                                              Object?  Value)
+            {
+
+                base.SetHeaderField(FieldName,
+                                    Value);
+
+                return this;
+
+            }
+
+            #endregion
+
+            #region SetHeaderField(HeaderField, Value)
+
+            /// <summary>
+            /// Set a HTTP header field.
+            /// A field value of NULL will remove the field from the header.
+            /// </summary>
+            /// <param name="HeaderField">The header field.</param>
+            /// <param name="Value">The value. NULL will remove the field from the header.</param>
+            public new Builder SetHeaderField(HTTPHeaderField  HeaderField,
+                                              Object?          Value)
+            {
+
+                base.SetHeaderField(HeaderField,
+                                    Value);
+
+                return this;
+
+            }
+
+
+            /// <summary>
+            /// Set a HTTP header field.
+            /// A field value of NULL will remove the field from the header.
+            /// </summary>
+            /// <param name="HeaderField">The header field.</param>
+            /// <param name="Value">The value. NULL will remove the field from the header.</param>
+            public new Builder SetHeaderField<T>(HTTPHeaderField<T> HeaderField, Object? Value)
+            {
+
+                base.SetHeaderField(HeaderField,
+                                    Value);
+
+                return this;
+
+            }
+
+            #endregion
+
+
+            #region RemoveHeaderField(FieldName)
+
+            /// <summary>
+            /// Remove a HTTP header field.
+            /// </summary>
+            /// <param name="FieldName">The name of the header field.</param>
+            public new Builder RemoveHeaderField(String FieldName)
+            {
+
+                base.RemoveHeaderField(FieldName);
+
+                return this;
+
+            }
+
+            #endregion
+
+            #region RemoveHeaderField(FieldName)
+
+            /// <summary>
+            /// Remove a HTTP header field.
+            /// </summary>
+            /// <param name="HeaderField">The header field.</param>
+            public new Builder RemoveHeaderField(HTTPHeaderField HeaderField)
+            {
+
+                base.RemoveHeaderField(HeaderField);
+
+                return this;
+
+            }
+
+            #endregion
+
+
             #region PrepareImmutability()
 
             /// <summary>
@@ -1079,6 +1175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             #endregion
+
 
         }
 

@@ -1096,7 +1096,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HeaderField">The header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        public void SetHeaderField<T>(HTTPHeaderField<T> HeaderField, Object? Value)
+        public AHTTPPDUBuilder SetHeaderField<T>(HTTPHeaderField<T> HeaderField, Object? Value)
         {
 
             if (Value is not null)
@@ -1109,6 +1109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             else
                 headerFields.Remove(HeaderField.Name);
+
+            return this;
 
         }
 

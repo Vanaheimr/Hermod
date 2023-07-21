@@ -21,6 +21,7 @@ using System.Net;
 using System.Text;
 
 using NUnit.Framework;
+using org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -41,12 +42,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public async Task DotNetHTTPClientTest_001()
         {
 
-            var httpClient    = new HttpClient();
-            var httpResponse  = await httpClient.GetAsync("http://127.0.0.1:82");
-            var responseBody  = await httpResponse.Content.ReadAsStringAsync();
+            var httpClient = new HttpClient();
+            var httpResponse = await httpClient.GetAsync("http://127.0.0.1:82");
+            var responseBody = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,  httpResponse.StatusCode);
-            Assert.AreEqual("Hello World!",     responseBody);
+            Assert.AreEqual(HttpStatusCode.OK, httpResponse.StatusCode);
+            Assert.AreEqual("Hello World!", responseBody);
 
         }
 
@@ -59,12 +60,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public async Task DotNetHTTPClientTest_002()
         {
 
-            var httpClient    = new HttpClient();
-            var httpResponse  = await httpClient.PostAsync("http://127.0.0.1:82/mirror/queryString?q=abcdefgh", null);
-            var responseBody  = await httpResponse.Content.ReadAsStringAsync();
+            var httpClient = new HttpClient();
+            var httpResponse = await httpClient.PostAsync("http://127.0.0.1:82/mirror/queryString?q=abcdefgh", null);
+            var responseBody = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,  httpResponse.StatusCode);
-            Assert.AreEqual("hgfedcba",         responseBody);
+            Assert.AreEqual(HttpStatusCode.OK, httpResponse.StatusCode);
+            Assert.AreEqual("hgfedcba", responseBody);
 
         }
 
@@ -76,17 +77,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public async Task DotNetHTTPClientTest_003()
         {
 
-            var httpClient    = new HttpClient();
-            var httpResponse  = await httpClient.PostAsync("http://127.0.0.1:82/mirror/httpBody",
+            var httpClient = new HttpClient();
+            var httpResponse = await httpClient.PostAsync("http://127.0.0.1:82/mirror/httpBody",
                                                            new StringContent(
                                                                "123456789",
                                                                Encoding.UTF8,
                                                                "text/plain"
                                                            ));
-            var responseBody  = await httpResponse.Content.ReadAsStringAsync();
+            var responseBody = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,  httpResponse.StatusCode);
-            Assert.AreEqual("987654321",        responseBody);
+            Assert.AreEqual(HttpStatusCode.OK, httpResponse.StatusCode);
+            Assert.AreEqual("987654321", responseBody);
 
         }
 
@@ -94,23 +95,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
 
 
-        private async Task<Tuple<HttpResponseMessage?, TimeSpan>> POST_Timestamped(String  URL,
-                                                                                   String  HTTPBody)
+        private async Task<Tuple<HttpResponseMessage?, TimeSpan>> POST_Timestamped(string URL,
+                                                                                   string HTTPBody)
         {
 
-            var startTime  = Timestamp.Now;
+            var startTime = Timestamp.Now;
 
             try
             {
 
-                var response   = await new HttpClient().PostAsync(URL,
+                var response = await new HttpClient().PostAsync(URL,
                                                                   new StringContent(
                                                                       HTTPBody,
                                                                       Encoding.UTF8,
                                                                       "text/plain"
                                                                   ));
 
-                var runtime    = Timestamp.Now - startTime;
+                var runtime = Timestamp.Now - startTime;
 
                 return new Tuple<HttpResponseMessage?, TimeSpan>(response,
                                                                  runtime);
@@ -167,32 +168,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public async Task HTTPClientTest_Concurrent_001()
         {
 
-            var startTime     = Timestamp.Now;
-            var httpRequests  = new List<Task<Tuple<HttpResponseMessage?, TimeSpan>>>();
+            var startTime = Timestamp.Now;
+            var httpRequests = new List<Task<Tuple<HttpResponseMessage?, TimeSpan>>>();
 
             for (var i = 0; i < 1000; i++)
                 httpRequests.Add(POST_Timestamped("http://127.0.0.1:82/mirror/httpBody", i.ToString()));
 
-            var responeses      = await Task.WhenAll(httpRequests.ToArray());
+            var responeses = await Task.WhenAll(httpRequests.ToArray());
 
-            var runtime1        = (Timestamp.Now - startTime).TotalSeconds;
+            var runtime1 = (Timestamp.Now - startTime).TotalSeconds;
 
-            var responseTuples  = responeses.    Where  (response => response.Item1 is not null).
-                                                 Select (response => new Tuple<String, String, TimeSpan>(
-                                                                         response.Item1!.                Content. ReadAsStringAsync().GetAwaiter().GetResult(),
+            var responseTuples = responeses.Where(response => response.Item1 is not null).
+                                                 Select(response => new Tuple<string, string, TimeSpan>(
+                                                                         response.Item1!.Content.ReadAsStringAsync().GetAwaiter().GetResult(),
                                                                          response.Item1!.RequestMessage!.Content!.ReadAsStringAsync().GetAwaiter().GetResult(),
                                                                          response.Item2!
                                                                      )).
                                                  ToArray();
 
-            var responseErrors  = responseTuples.Where  (tuple    => tuple.Item1 != tuple.Item2.Reverse()).
+            var responseErrors = responseTuples.Where(tuple => tuple.Item1 != tuple.Item2.Reverse()).
                                                  ToArray();
 
-            var minRuntime      = responseTuples.Min    (tuple   => tuple.Item3.TotalMilliseconds);
-            var maxRuntime      = responseTuples.Max    (tuple   => tuple.Item3.TotalMilliseconds);
-            var avgRuntime      = responseTuples.Average(tuple   => tuple.Item3.TotalMilliseconds);
+            var minRuntime = responseTuples.Min(tuple => tuple.Item3.TotalMilliseconds);
+            var maxRuntime = responseTuples.Max(tuple => tuple.Item3.TotalMilliseconds);
+            var avgRuntime = responseTuples.Average(tuple => tuple.Item3.TotalMilliseconds);
 
-            var runtime2        = (Timestamp.Now - startTime).TotalSeconds;
+            var runtime2 = (Timestamp.Now - startTime).TotalSeconds;
 
         }
 
