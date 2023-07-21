@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
     /// Tests between .NET HTTP clients and Hermod HTTP servers.
     /// </summary>
     [TestFixture]
-    public class DotNetHTTPClientTests : AHTTPServerTests
+    public class DotNetHTTPClientTests_MinimalAPI : AMinimalDotNetWebAPI
     {
 
         #region DotNetHTTPClientTest_001()
@@ -93,7 +93,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         #endregion
 
 
-        #region (private) POST_Timestamped(URL, HTTPBody)
 
         private async Task<Tuple<HttpResponseMessage?, TimeSpan>> POST_Timestamped(String  URL,
                                                                                    String  HTTPBody)
@@ -160,7 +159,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         }
 
-        #endregion
 
 
         #region HTTPClientTest_Concurrent_001()

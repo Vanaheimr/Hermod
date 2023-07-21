@@ -1027,7 +1027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region SetHeaderField   (FieldName,   Value)
+        #region SetHeaderField(FieldName,   Value)
 
         /// <summary>
         /// Set a HTTP header field.
@@ -1035,7 +1035,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        public void SetHeaderField(String FieldName, Object? Value)
+        public AHTTPPDUBuilder SetHeaderField(String   FieldName,
+                                              Object?  Value)
         {
 
             FieldName = FieldName.Trim();
@@ -1055,11 +1056,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
+            return this;
+
         }
 
         #endregion
 
-        #region SetHeaderField   (HeaderField, Value)
+        #region SetHeaderField(HeaderField, Value)
 
         /// <summary>
         /// Set a HTTP header field.
@@ -1067,7 +1070,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HeaderField">The header field.</param>
         /// <param name="Value">The value. NULL will remove the field from the header.</param>
-        public void SetHeaderField(HTTPHeaderField HeaderField, Object? Value)
+        public AHTTPPDUBuilder SetHeaderField(HTTPHeaderField  HeaderField,
+                                              Object?          Value)
         {
 
             if (Value is not null)
@@ -1080,6 +1084,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             else
                 headerFields.Remove(HeaderField.Name);
+
+            return this;
 
         }
 
@@ -1108,19 +1114,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
         #region RemoveHeaderField(FieldName)
 
         /// <summary>
         /// Remove a HTTP header field.
         /// </summary>
         /// <param name="FieldName">The name of the header field.</param>
-        public void RemoveHeaderField(String FieldName)
+        public AHTTPPDUBuilder RemoveHeaderField(String FieldName)
         {
 
             FieldName = FieldName.Trim();
 
             if (FieldName.IsNotNullOrEmpty())
                 headerFields.Remove(FieldName);
+
+            return this;
 
         }
 
@@ -1132,9 +1141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Remove a HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The header field.</param>
-        public void RemoveHeaderField(HTTPHeaderField HeaderField)
+        public AHTTPPDUBuilder RemoveHeaderField(HTTPHeaderField HeaderField)
         {
+
             headerFields.Remove(HeaderField.Name);
+
+            return this;
+
         }
 
         #endregion

@@ -33,6 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
     public abstract class AHTTPServerTests
     {
 
+        #region Data
+
         protected readonly HTTPServer httpServer;
 
         public AHTTPServerTests()
@@ -45,6 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         }
 
+        #endregion
 
         #region Start/Stop HTTPServer
 
@@ -68,7 +71,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                                                            ContentType                = HTTPContentType.TEXT_UTF8,
                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
                                                                            Connection                 = "close"
-                                                                       }.AsImmutable));
+                                                                       }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                                         AsImmutable));
 
             #endregion
 
