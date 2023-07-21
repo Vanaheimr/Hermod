@@ -134,6 +134,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region TryParseUTF8StringRequestBody(this Request, out Text, out HTTPResponseBuilder, AllowEmptyHTTPBody = false)
+
+        /// <summary>
+        /// Return the HTTP request body as JSON object.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Text">The HTTP request body as a string.</param>
+        /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
+        /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
+        public static Boolean TryParseUTF8StringRequestBody(this HTTPRequest           Request,
+                                                            out String?                Text,
+                                                            out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                            Boolean                    AllowEmptyHTTPBody   = false)
+        {
+
+            #region AllowEmptyHTTPBody
+
+            Text                 = String.Empty;
+            HTTPResponseBuilder  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.TEXT_UTF8,
+                                                                       AllowEmptyHTTPBody);
+
+            if (requestBodyString.HasErrors)
+            {
+                HTTPResponseBuilder = requestBodyString.Error;
+                return false;
+            }
+
+            #endregion
+
+            Text = requestBodyString.Data;
+
+            return true;
+
+        }
+
+        #endregion
+
         #region TryParseJObjectRequestBody   (this Request, out JSON, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
         /// <summary>

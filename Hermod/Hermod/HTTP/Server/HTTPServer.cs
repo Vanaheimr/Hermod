@@ -1136,16 +1136,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         : "HTTPS Server :" + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))),
                    ServerThreadPriority,
                    ServerThreadIsBackground,
-
                    ConnectionIdBuilder,
-                   //ConnectionThreadsNameBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ServerCertificateSelector is null
-                   //                                                                                         ? "HTTP server ["  + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS)) + "] " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port
-                   //                                                                                         : "HTTPS server [" + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS)) + "] " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port),
-                   //ConnectionThreadsPriorityBuilder,
-                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
-
                    MaxClientConnections,
+
                    DNSClient,
                    false)
 
@@ -1155,9 +1149,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.hostnameNodes      = new Dictionary<HTTPHostname,       HostnameNode>();
             this.eventSources       = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
-            this.AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
-                                               ? IPPort.HTTP
-                                               : IPPort.HTTPS));
+            AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
+                                          ? IPPort.HTTP
+                                          : IPPort.HTTPS));
 
             if (Autostart)
                 Start();
@@ -1169,12 +1163,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Manage the underlying TCP sockets...
 
-        #region AttachTCPPort(Port)
+        #region AttachTCPPort   (TCPPort)
 
-        public IHTTPServer AttachTCPPort(IPPort Port)
+        public IHTTPServer AttachTCPPort(IPPort TCPPort)
         {
 
-            this.AttachTCPPorts(Port);
+            AttachTCPPorts(TCPPort);
 
             return this;
 
@@ -1182,12 +1176,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AttachTCPPorts(params Ports)
+        #region AttachTCPPorts  (params TCPPorts)
 
-        public IHTTPServer AttachTCPPorts(params IPPort[] Ports)
+        public IHTTPServer AttachTCPPorts(params IPPort[] TCPPorts)
         {
 
-            AttachTCPPorts(tcpServer => tcpServer.SendTo(this), Ports);
+            AttachTCPPorts(tcpServer => tcpServer.SendTo(this), TCPPorts);
 
             return this;
 
@@ -1195,12 +1189,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AttachTCPSocket(Socket)
+        #region AttachTCPSocket (Socket)
 
         public IHTTPServer AttachTCPSocket(IPSocket Socket)
         {
 
-            this.AttachTCPSockets(Socket);
+            AttachTCPSockets(Socket);
 
             return this;
 
@@ -1222,12 +1216,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region DetachTCPPort(Port)
+        #region DetachTCPPort (TCPPort)
 
-        public IHTTPServer DetachTCPPort(IPPort Port)
+        public IHTTPServer DetachTCPPort(IPPort TCPPort)
         {
 
-            DetachTCPPorts(Port);
+            DetachTCPPorts(TCPPort);
 
             return this;
 
@@ -1241,9 +1235,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             DetachTCPPorts(tcpServer => {
-                               tcpServer.OnNotification      -= this.ProcessArrow;
-                               tcpServer.OnExceptionOccured  -= this.ProcessExceptionOccured;
-                               tcpServer.OnCompleted         -= this.ProcessCompleted;
+                               tcpServer.OnNotification      -= ProcessArrow;
+                               tcpServer.OnExceptionOccured  -= ProcessExceptionOccured;
+                               tcpServer.OnCompleted         -= ProcessCompleted;
                            },
                            Ports);
 
@@ -1703,8 +1697,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             catch (IOException ioe)
             {
 
-                if      (ioe.Message.StartsWith("Unable to read data from the transport connection")) { }
-                else if (ioe.Message.StartsWith("Unable to write data to the transport connection")) { }
+                if      (ioe.Message.StartsWith("Unable to read data from the transport connection")) {
+                }
+
+                else if (ioe.Message.StartsWith("Unable to write data to the transport connection")) {
+                }
 
                 else
                 {
@@ -1772,9 +1769,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region ProcessCompleted(Sender, Timestamp, Message = null)
 
-        public void ProcessCompleted(Object Sender,
-                                     DateTime Timestamp,
-                                     String Message = null)
+        public void ProcessCompleted(Object    Sender,
+                                     DateTime  Timestamp,
+                                     String?   Message   = null)
         {
 
             //var OnCompletedLocal = OnCompleted;
