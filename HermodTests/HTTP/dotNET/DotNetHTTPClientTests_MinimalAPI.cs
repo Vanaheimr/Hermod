@@ -21,7 +21,7 @@ using System.Net;
 using System.Text;
 
 using NUnit.Framework;
-using org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -36,164 +36,120 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
     public class DotNetHTTPClientTests_MinimalAPI : AMinimalDotNetWebAPI
     {
 
-        #region DotNetHTTPClientTest_001()
+        #region Data
+
+        public static readonly IPPort HTTPPort = IPPort.Parse(85);
+
+        #endregion
+
+        #region Constructor(s)
+
+        public DotNetHTTPClientTests_MinimalAPI()
+            : base(HTTPPort)
+        { }
+
+        #endregion
+
+
+        #region Test_001()
 
         [Test]
-        public async Task DotNetHTTPClientTest_001()
+        public async Task Test_001()
         {
 
-            var httpClient = new HttpClient();
-            var httpResponse = await httpClient.GetAsync("http://127.0.0.1:82");
-            var responseBody = await httpResponse.Content.ReadAsStringAsync();
+            var httpClient    = new HttpClient();
+            var httpResponse  = await httpClient.GetAsync($"http://127.0.0.1:{HTTPPort}");
+            var responseBody  = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK, httpResponse.StatusCode);
-            Assert.AreEqual("Hello World!", responseBody);
+            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+
+            Assert.AreEqual("Hello World!",          responseBody);
+
 
         }
 
         #endregion
 
 
-        #region DotNetHTTPClientTest_002()
+        #region POST_MirrorRandomString_in_QueryString()
 
         [Test]
-        public async Task DotNetHTTPClientTest_002()
+        public async Task POST_MirrorRandomString_in_QueryString()
         {
 
-            var httpClient = new HttpClient();
-            var httpResponse = await httpClient.PostAsync("http://127.0.0.1:82/mirror/queryString?q=abcdefgh", null);
-            var responseBody = await httpResponse.Content.ReadAsStringAsync();
+            var randomString    = RandomExtensions.RandomString(50);
+            var httpClient      = new HttpClient();
+            var httpResponse    = await httpClient.PostAsync($"http://127.0.0.1:{HTTPPort}/mirror/queryString?q={randomString}", null);
+            var responseBody    = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK, httpResponse.StatusCode);
-            Assert.AreEqual("hgfedcba", responseBody);
+            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+
+
+            var mirroredString  = randomString.Reverse();
+
+            Assert.AreEqual(mirroredString,          responseBody);
 
         }
 
         #endregion
 
-        #region DotNetHTTPClientTest_003()
+        #region POST_MirrorRandomString_in_HTTPBody()
 
         [Test]
-        public async Task DotNetHTTPClientTest_003()
+        public async Task POST_MirrorRandomString_in_HTTPBody()
         {
 
-            var httpClient = new HttpClient();
-            var httpResponse = await httpClient.PostAsync("http://127.0.0.1:82/mirror/httpBody",
-                                                           new StringContent(
-                                                               "123456789",
-                                                               Encoding.UTF8,
-                                                               "text/plain"
-                                                           ));
-            var responseBody = await httpResponse.Content.ReadAsStringAsync();
+            var randomString    = RandomExtensions.RandomString(50);
+            var httpClient      = new HttpClient();
+            var httpResponse    = await httpClient.PostAsync($"http://127.0.0.1:{HTTPPort}/mirror/httpBody",
+                                                             new StringContent(
+                                                                 randomString,
+                                                                 Encoding.UTF8,
+                                                                 "text/plain"
+                                                             ));
+            var responseBody    = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK, httpResponse.StatusCode);
-            Assert.AreEqual("987654321", responseBody);
+            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+
+
+            var mirroredString  = randomString.Reverse();
+
+            Assert.AreEqual(mirroredString,          responseBody);
 
         }
 
         #endregion
 
-
-
-        private async Task<Tuple<HttpResponseMessage?, TimeSpan>> POST_Timestamped(string URL,
-                                                                                   string HTTPBody)
-        {
-
-            var startTime = Timestamp.Now;
-
-            try
-            {
-
-                var response = await new HttpClient().PostAsync(URL,
-                                                                  new StringContent(
-                                                                      HTTPBody,
-                                                                      Encoding.UTF8,
-                                                                      "text/plain"
-                                                                  ));
-
-                var runtime = Timestamp.Now - startTime;
-
-                return new Tuple<HttpResponseMessage?, TimeSpan>(response,
-                                                                 runtime);
-
-            }
-            catch
-            {
-                return new Tuple<HttpResponseMessage?, TimeSpan>(null,
-                                                                 Timestamp.Now - startTime);
-            }
-
-
-            //     System.Net.Http.HttpRequestException : Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte. (127.0.0.1:82)
-            //   ----> System.Net.Sockets.SocketException : Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte.
-            // 
-            //   Stack Trace: 
-            // HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
-            // HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-            // HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-            // HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
-            // TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
-            // HttpConnectionWaiter`1.WaitForConnectionAsync(Boolean async, CancellationToken requestCancellationToken)
-            // HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
-            // RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
-            // HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-            // DotNetHTTPClientTests.POST_Timestamped(String URL, String HTTPBody) line 103
-            // DotNetHTTPClientTests.HTTPClientTest_Concurrent_001() line 131
-            // GenericAdapter`1.BlockUntilCompleted()
-            // NoMessagePumpStrategy.WaitForCompletion(AwaitAdapter awaiter)
-            // AsyncToSyncAdapter.Await(Func`1 invoke)
-            // TestMethodCommand.RunTestMethod(TestExecutionContext context)
-            // TestMethodCommand.Execute(TestExecutionContext context)
-            // <>c__DisplayClass4_0.<PerformWork>b__0()
-            // <>c__DisplayClass1_0`1.<DoIsolated>b__0(Object _)
-            // ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
-            // --- End of stack trace from previous location ---
-            // ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
-            // ContextUtils.DoIsolated(ContextCallback callback, Object state)
-            // ContextUtils.DoIsolated[T](Func`1 func)
-            // SimpleWorkItem.PerformWork()
-            // --SocketException
-            // AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
-            // IValueTaskSource.GetResult(Int16 token)
-            // Socket.<ConnectAsync>g__WaitForConnectWithCancellation|281_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
-            // HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
-
-        }
-
-
-
-        #region HTTPClientTest_Concurrent_001()
+        #region MIRROR_RandomString_in_HTTPBody()
 
         [Test]
-        public async Task HTTPClientTest_Concurrent_001()
+        public async Task MIRROR_RandomString_in_HTTPBody()
         {
 
-            var startTime = Timestamp.Now;
-            var httpRequests = new List<Task<Tuple<HttpResponseMessage?, TimeSpan>>>();
+            var randomString        = RandomExtensions.RandomString(50);
+            var httpClient          = new HttpClient();
+            var httpRequest         = new HttpRequestMessage {
+                                          Method      = new HttpMethod("MIRROR"),
+                                          RequestUri  = new Uri       ($"http://127.0.0.1:{HTTPPort}/mirror/httpBody"),
+                                          Content     = new StringContent(
+                                                            randomString,
+                                                            Encoding.UTF8,
+                                                            "text/plain"
+                                                        )
+                                      };
+            var httpResponse        = await httpClient.SendAsync(httpRequest);
+            var responseBody        = await httpResponse.Content.ReadAsStringAsync();
 
-            for (var i = 0; i < 1000; i++)
-                httpRequests.Add(POST_Timestamped("http://127.0.0.1:82/mirror/httpBody", i.ToString()));
+            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
 
-            var responeses = await Task.WhenAll(httpRequests.ToArray());
 
-            var runtime1 = (Timestamp.Now - startTime).TotalSeconds;
+            var mirroredString  = randomString.Reverse();
 
-            var responseTuples = responeses.Where(response => response.Item1 is not null).
-                                                 Select(response => new Tuple<string, string, TimeSpan>(
-                                                                         response.Item1!.Content.ReadAsStringAsync().GetAwaiter().GetResult(),
-                                                                         response.Item1!.RequestMessage!.Content!.ReadAsStringAsync().GetAwaiter().GetResult(),
-                                                                         response.Item2!
-                                                                     )).
-                                                 ToArray();
-
-            var responseErrors = responseTuples.Where(tuple => tuple.Item1 != tuple.Item2.Reverse()).
-                                                 ToArray();
-
-            var minRuntime = responseTuples.Min(tuple => tuple.Item3.TotalMilliseconds);
-            var maxRuntime = responseTuples.Max(tuple => tuple.Item3.TotalMilliseconds);
-            var avgRuntime = responseTuples.Average(tuple => tuple.Item3.TotalMilliseconds);
-
-            var runtime2 = (Timestamp.Now - startTime).TotalSeconds;
+            Assert.AreEqual(mirroredString,          responseBody);
 
         }
 

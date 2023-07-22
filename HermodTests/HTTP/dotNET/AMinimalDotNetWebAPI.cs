@@ -46,14 +46,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         #region Constructor(s)
 
-        public AMinimalDotNetWebAPI()
+        public AMinimalDotNetWebAPI(IPPort HTTPPort)
         {
 
             builder  = WebApplication.CreateBuilder();
-            builder.WebHost.UseUrls("http://localhost:82");
+            builder.WebHost.UseUrls($"http://localhost:{HTTPPort}");
             app      = builder.Build();
 
-            #region GET   /
+            #region GET     /
 
             app.MapGet("/",
                         async (HttpRequest   httpRequest,
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
                 httpResponse.ContentLength      = Encoding.UTF8.GetByteCount(responseString);
                 httpResponse.ContentType        = "text/plain; charset=utf-8";
-                httpResponse.Headers["Server"]  = "Test Server";
+                httpResponse.Headers["Server"]  = "Kestrel Test Server";
 
                 await httpResponse.WriteAsync(responseString);
 
@@ -72,27 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             #endregion
 
-            #region POST  /mirror/httpBody
-
-            app.MapPost("/mirror/httpBody",
-                        async (HttpRequest   httpRequest,
-                               HttpResponse  httpResponse) => {
-
-                var requestBody   = await new StreamReader(httpRequest.Body).ReadToEndAsync();
-                var reversedBody  = requestBody.Reverse();
-
-                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                httpResponse.ContentLength      = Encoding.UTF8.GetByteCount(reversedBody);
-                httpResponse.ContentType        = "text/plain; charset=utf-8";
-                httpResponse.Headers["Server"]  = "Test Server";
-
-                await httpResponse.WriteAsync(reversedBody);
-
-            });
-
-            #endregion
-
-            #region POST  /mirror/queryString
+            #region POST    /mirror/queryString
 
             app.MapPost("/mirror/queryString",
                         async (HttpRequest   httpRequest,
@@ -104,7 +84,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
                 httpResponse.ContentLength      = Encoding.UTF8.GetByteCount(reversedBody);
                 httpResponse.ContentType        = "text/plain; charset=utf-8";
-                httpResponse.Headers["Server"]  = "Test Server";
+                httpResponse.Headers["Server"]  = "Kestrel Test Server";
+
+                await httpResponse.WriteAsync(reversedBody);
+
+            });
+
+            #endregion
+
+            #region POST    /mirror/httpBody
+
+            app.MapPost("/mirror/httpBody",
+                        async (HttpRequest   httpRequest,
+                               HttpResponse  httpResponse) => {
+
+                var requestBody   = await new StreamReader(httpRequest.Body).ReadToEndAsync();
+                var reversedBody  = requestBody.Reverse();
+
+                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
+                httpResponse.ContentLength      = Encoding.UTF8.GetByteCount(reversedBody);
+                httpResponse.ContentType        = "text/plain; charset=utf-8";
+                httpResponse.Headers["Server"]  = "Kestrel Test Server";
+
+                await httpResponse.WriteAsync(reversedBody);
+
+            });
+
+            #endregion
+
+            #region MIRROR  /mirror/httpBody
+
+            app.MapMethods("/mirror/httpBody",
+                           new[] { "MIRROR" },
+                           async (HttpRequest   httpRequest,
+                                  HttpResponse  httpResponse) => {
+
+                var requestBody   = await new StreamReader(httpRequest.Body).ReadToEndAsync();
+                var reversedBody  = requestBody.Reverse();
+
+                // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
+                httpResponse.ContentLength      = Encoding.UTF8.GetByteCount(reversedBody);
+                httpResponse.ContentType        = "text/plain; charset=utf-8";
+                httpResponse.Headers["Server"]  = "Kestrel Test Server";
 
                 await httpResponse.WriteAsync(reversedBody);
 

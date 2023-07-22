@@ -35,13 +35,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
     public class HTTPClientTests_MinimalAPI : AMinimalDotNetWebAPI
     {
 
-        #region HTTPClientTest_001()
+        #region Data
+
+        public static readonly IPPort HTTPPort = IPPort.Parse(84);
+
+        #endregion
+
+        #region Constructor(s)
+
+        public HTTPClientTests_MinimalAPI()
+            : base(HTTPPort)
+        { }
+
+        #endregion
+
+
+        #region Test_001()
 
         [Test]
-        public async Task HTTPClientTest_001()
+        public async Task Test_001()
         {
 
-            var httpClient = new HTTPClient(URL.Parse("http://127.0.0.1:82"));
+            var httpClient = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
             var httpResponse = await httpClient.GET(HTTPPath.Root).
                                                  ConfigureAwait(false);
 
@@ -50,12 +65,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             var request = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
-            // Host: 127.0.0.1:82
+            // Host: 127.0.0.1:{HTTPPort}
 
             // HTTP requests should not have a "Date"-header!
-            Assert.IsFalse(request.Contains("Date:"), request);
-            Assert.IsTrue(request.Contains("GET / HTTP/1.1"), request);
-            Assert.IsTrue(request.Contains("Host: 127.0.0.1:82"), request);
+            Assert.IsFalse(request.Contains("Date:"),                         request);
+            Assert.IsTrue (request.Contains("GET / HTTP/1.1"),                request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
 
 
 
@@ -64,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
+            // Server:                        Kestrel Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
             // Content-Type:                  text/plain; charset=utf-8
@@ -73,27 +88,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             // 
             // Hello World!
 
-            Assert.IsTrue(response.Contains("HTTP/1.1 200 OK"), response);
-            Assert.IsTrue(response.Contains("Hello World!"), response);
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains("Hello World!"),      response);
 
-            Assert.AreEqual("Hello World!", httpBody);
+            Assert.AreEqual("Hello World!",                         httpBody);
 
-            Assert.AreEqual("Hello World!".Length, httpResponse.ContentLength);
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+            Assert.AreEqual("Hello World!".Length,                  httpResponse.ContentLength);
 
         }
 
         #endregion
 
-        #region HTTPClientTest_002()
+        #region Test_002()
 
         [Test]
-        public async Task HTTPClientTest_002()
+        public async Task Test_002()
         {
 
-            var httpClient = new HTTPClient(URL.Parse("http://127.0.0.1:82"));
-            var httpResponse = await httpClient.GET(HTTPPath.Root,
-                                                     requestbuilder =>
-                                                     {
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root,
+                                                     requestbuilder => {
                                                          requestbuilder.Host = HTTPHostname.Localhost;
                                                      }).
                                                  ConfigureAwait(false);
@@ -118,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             // HTTP/1.1 200 OK
             // Content-Length:  12
             // Date:            Thu, 20 Jul 2023 00:24:09 GMT
-            // Server:          Kestrel
+            // Server:          Kestrel Test Server
             // 
             // Hello World!
 
@@ -134,12 +149,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             // 
             // Hello World!
 
-            Assert.IsTrue(response.Contains("HTTP/1.1 200 OK"), response);
-            Assert.IsTrue(response.Contains("Hello World!"), response);
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains("Hello World!"),      response);
 
-            Assert.AreEqual("Hello World!", httpBody);
+            Assert.AreEqual("Hello World!",                         httpBody);
 
-            Assert.AreEqual("Hello World!".Length, httpResponse.ContentLength);
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+            Assert.AreEqual("Hello World!".Length,                  httpResponse.ContentLength);
 
         }
 
@@ -147,150 +163,176 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
 
 
-        #region HTTPClientTest_003()
+        #region POST_MirrorRandomString_in_QueryString()
 
         [Test]
-        public async Task HTTPClientTest_003()
+        public async Task POST_MirrorRandomString_in_QueryString()
         {
 
-            var httpClient = new HTTPClient(URL.Parse("http://127.0.0.1:82"));
-            var httpResponse = await httpClient.POST(HTTPPath.Root + "mirror" + "queryString?q=abcdefgh").
+            var randomString  = RandomExtensions.RandomString(50);
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.POST(HTTPPath.Root + "mirror" + ("queryString?q=" + randomString)).
                                                  ConfigureAwait(false);
 
 
 
-            var request = httpResponse.HTTPRequest?.EntirePDU ?? "";
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // POST /mirror/queryString?q=abcdefgh HTTP/1.1
-            // Host:            127.0.0.1:82
+            // Host:            127.0.0.1:{HTTPPort}
             // Content-Length:  0
 
             // HTTP requests should not have a "Date"-header!
-            Assert.IsFalse(request.Contains("Date:"), request);
-            Assert.IsTrue(request.Contains("POST /mirror/queryString?q=abcdefgh HTTP/1.1"), request);
-            Assert.IsTrue(request.Contains("Host: 127.0.0.1:82"), request);
+            Assert.IsFalse(request.Contains("Date:"),                                                 request);
+            Assert.IsTrue (request.Contains($"POST /mirror/queryString?q={randomString} HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),                           request);
             // 'Content-Length: 0' is a recommended header for HTTP/1.1 POST requests without a body!
-            Assert.IsTrue(request.Contains("Content-Length: 0"), request);
+            Assert.IsTrue (request.Contains("Content-Length: 0"),                                     request);
 
 
 
-            var response = httpResponse.EntirePDU;
-            var httpBody = httpResponse.HTTPBodyAsUTF8String;
+            var mirroredString  = randomString.Reverse();
+            var response        = httpResponse.EntirePDU;
+            var httpBody        = httpResponse.HTTPBodyAsUTF8String;
 
             // HTTP/1.1 200 OK
             // Content-Length:  8
             // Date:            Thu, 20 Jul 2023 00:20:32 GMT
-            // Server:          Kestrel
+            // Server:          Kestrel Test Server
             // 
             // hgfedcba
 
-            Assert.IsTrue(response.Contains("HTTP/1.1 200 OK"), response);
-            Assert.IsTrue(response.Contains("hgfedcba"), response);
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains(mirroredString),      response);
 
-            Assert.AreEqual("hgfedcba", httpBody);
+            Assert.AreEqual(mirroredString,                         httpBody);
 
-            Assert.AreEqual("hgfedcba".Length, httpResponse.ContentLength);
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+            Assert.AreEqual(mirroredString.Length,                  httpResponse.ContentLength);
 
         }
 
         #endregion
 
-        #region HTTPClientTest_004()
+        #region POST_MirrorRandomString_in_HTTPBody()
 
         [Test]
-        public async Task HTTPClientTest_004()
+        public async Task POST_MirrorRandomString_in_HTTPBody()
         {
 
-            var httpClient = new HTTPClient(URL.Parse("http://127.0.0.1:82"));
-            var httpResponse = await httpClient.POST(HTTPPath.Root + "mirror" + "httpBody",
-                                                      request =>
-                                                      {
-                                                          request.ContentType = HTTPContentType.TEXT_UTF8;
-                                                          request.Content = "123456789".ToUTF8Bytes();
+            var randomString  = RandomExtensions.RandomString(50);
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.POST(HTTPPath.Root + "mirror" + "httpBody",
+                                                      request => {
+                                                          request.ContentType  = HTTPContentType.TEXT_UTF8;
+                                                          request.Content      = randomString.ToUTF8Bytes();
                                                       }).
                                                  ConfigureAwait(false);
 
 
 
-            var request = httpResponse.HTTPRequest?.EntirePDU ?? "";
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // POST /mirror/httpBody HTTP/1.1
-            // Host:            127.0.0.1:82
+            // Host:            127.0.0.1:{HTTPPort}
             // Content-Type:    text/plain; charset=utf-8
             // Content-Length:  9
             //
             // 123456789
 
-
             // HTTP requests should not have a "Date"-header!
-            Assert.IsFalse(request.Contains("Date:"), request);
-            Assert.IsTrue(request.Contains("POST /mirror/httpBody HTTP/1.1"), request);
-            Assert.IsTrue(request.Contains("Host: 127.0.0.1:82"), request);
-            Assert.IsTrue(request.Contains("Content-Length: 9"), request);
+            Assert.IsFalse(request.Contains("Date:"),                                    request);
+            Assert.IsTrue (request.Contains("POST /mirror/httpBody HTTP/1.1"),           request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),              request);
+            Assert.IsTrue (request.Contains($"Content-Length: {randomString.Length}"),   request);
 
 
 
-            var response = httpResponse.EntirePDU;
-            var httpBody = httpResponse.HTTPBodyAsUTF8String;
+            var mirroredString  = randomString.Reverse();
+            var response        = httpResponse.EntirePDU;
+            var httpBody        = httpResponse.HTTPBodyAsUTF8String;
 
             // HTTP/1.1 200 OK
             // Content-Length:  9
             // Date:            Thu, 20 Jul 2023 00:13:17 GMT
-            // Server:          Kestrel
+            // Server:          Kestrel Test Server
             // 
             // 987654321
 
-            Assert.IsTrue(response.Contains("HTTP/1.1 200 OK"), response);
-            Assert.IsTrue(response.Contains("987654321"), response);
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains(mirroredString),      response);
 
-            Assert.AreEqual("987654321", httpBody);
+            Assert.AreEqual(mirroredString,                         httpBody);
 
-            Assert.AreEqual("987654321".Length, httpResponse.ContentLength);
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+            Assert.AreEqual(mirroredString.Length,                  httpResponse.ContentLength);
 
         }
 
         #endregion
 
-
-        #region HTTPClientTest_Concurrent_001()
+        #region MIRROR_RandomString_in_HTTPBody()
 
         [Test]
-        public async Task HTTPClientTest_Concurrent_001()
+        public async Task MIRROR_RandomString_in_HTTPBody()
         {
 
-            var startTime = Timestamp.Now;
-            var httpRequests = new List<Task<HTTPResponse>>();
+            var randomString  = RandomExtensions.RandomString(50);
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.MIRROR(HTTPPath.Root + "mirror" + "httpBody",
+                                                        request => {
+                                                            request.ContentType  = HTTPContentType.TEXT_UTF8;
+                                                            request.Content      = randomString.ToUTF8Bytes();
+                                                        }).
+                                                 ConfigureAwait(false);
 
-            for (var i = 0; i < 100; i++)
-            {
-                httpRequests.Add(new HTTPClient(URL.Parse("http://127.0.0.1:82")).
-                                         POST(HTTPPath.Root + "mirror" + "httpBody",
-                                              request =>
-                                              {
-                                                  request.ContentType = HTTPContentType.TEXT_UTF8;
-                                                  request.Content = i.ToString().ToUTF8Bytes();//.PadLeft(4, '0').ToUTF8Bytes();
-                                              }));
-            }
 
-            var responeses = await Task.WhenAll(httpRequests.ToArray());
 
-            var runtime = Timestamp.Now - startTime;
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
-            var responseTuples = responeses.Select(response => new Tuple<string, string, TimeSpan>(response.HTTPRequest?.HTTPBodyAsUTF8String ?? "xxxx",
-                                                                                                         response.HTTPBodyAsUTF8String ?? "yyyy",
-                                                                                                         response.Runtime)).
-                                                 ToArray();
+            // POST /mirror/httpBody HTTP/1.1
+            // Host:            127.0.0.1:{HTTPPort}
+            // Content-Type:    text/plain; charset=utf-8
+            // Content-Length:  9
+            //
+            // 123456789
 
-            var responseErrors = responseTuples.Where(tuple => tuple.Item1 != tuple.Item2.Reverse()).
-                                                 ToArray();
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                                    request);
+            Assert.IsTrue (request.Contains("MIRROR /mirror/httpBody HTTP/1.1"),         request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),              request);
+            Assert.IsTrue (request.Contains($"Content-Length: {randomString.Length}"),   request);
 
-            var minRuntime = responseTuples.Min(tuple => tuple.Item3.TotalMicroseconds);
-            var maxRuntime = responseTuples.Max(tuple => tuple.Item3.TotalMicroseconds);
-            var avgRuntime = responseTuples.Average(tuple => tuple.Item3.TotalMicroseconds);
+
+
+            var mirroredString  = randomString.Reverse();
+            var response        = httpResponse.EntirePDU;
+            var httpBody        = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
+            // Server:                        Kestrel Test Server
+            // Access-Control-Allow-Origin:   *
+            // Access-Control-Allow-Methods:  GET
+            // Content-Type:                  text/plain; charset=utf-8
+            // Content-Length:                9
+            // Connection:                    close
+            // 
+            // 987654321
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains(mirroredString),      response);
+
+            Assert.AreEqual(mirroredString,                         httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+            Assert.AreEqual(mirroredString.Length,                  httpResponse.ContentLength);
 
         }
 
         #endregion
+
+
 
 
     }

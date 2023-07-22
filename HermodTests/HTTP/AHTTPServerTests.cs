@@ -37,11 +37,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         protected readonly HTTPServer httpServer;
 
-        public AHTTPServerTests()
+        public AHTTPServerTests(IPPort HTTPPort)
         {
 
             httpServer = new HTTPServer(
-                             IPPort.Parse(82),
+                             HTTPPort,
                              Autostart: true
                          );
 
@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public void Init_HTTPServer()
         {
 
-            #region GET   /
+            #region GET     /
 
             httpServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                          HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
+                                                                           Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
                                                                            AccessControlAllowMethods  = new[] { "GET" },
@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             #endregion
 
-            #region POST  /mirror/queryString
+            #region POST    /mirror/queryString
 
             httpServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                          HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
+                                                                           Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
                                                                            AccessControlAllowMethods  = new[] { "GET" },
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             #endregion
 
-            #region POST  /mirror/httpBody
+            #region POST    /mirror/httpBody
 
             httpServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
@@ -105,7 +105,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                          HTTPDelegate: request => Task.FromResult(
                                                                        new HTTPResponse.Builder(request) {
                                                                            HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                           Server                     = "Test Server",
+                                                                           Server                     = "Hermod Test Server",
+                                                                           Date                       = Timestamp.Now,
+                                                                           AccessControlAllowOrigin   = "*",
+                                                                           AccessControlAllowMethods  = new[] { "GET" },
+                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                           Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
+                                                                           Connection                 = "close"
+                                                                       }.AsImmutable));
+
+            #endregion
+
+            #region MIRROR  /mirror/httpBody
+
+            httpServer.AddMethodCallback(null,
+                                         HTTPHostname.Any,
+                                         HTTPMethod.MIRROR,
+                                         HTTPPath.Root + "mirror" + "httpBody",
+                                         HTTPDelegate: request => Task.FromResult(
+                                                                       new HTTPResponse.Builder(request) {
+                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                           Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
                                                                            AccessControlAllowMethods  = new[] { "GET" },
@@ -117,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             #endregion
 
 
-            #region POST  /mirrorBody2
+            #region POST    /mirrorBody2
 
             httpServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
@@ -129,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
                                              return new HTTPResponse.Builder(request) {
                                                         HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = "Test Server",
+                                                        Server                     = "Hermod Test Server",
                                                         Date                       = Timestamp.Now,
                                                         AccessControlAllowOrigin   = "*",
                                                         AccessControlAllowMethods  = new[] { "GET" },

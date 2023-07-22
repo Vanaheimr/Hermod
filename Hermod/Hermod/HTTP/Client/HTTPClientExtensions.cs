@@ -503,7 +503,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static Task<HTTPResponse> PATCH(this AHTTPClient              HTTPClient,
                                                HTTPPath                      Path,
                                                Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -519,7 +518,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder PATCHRequest(this AHTTPClient              HTTPClient,
                                                        HTTPPath                      Path,
                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -538,7 +536,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static Task<HTTPResponse> TRAVERSE(this AHTTPClient              HTTPClient,
                                                   HTTPPath                      Path,
                                                   Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -554,12 +551,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder TRAVERSERequest(this AHTTPClient              HTTPClient,
                                                           HTTPPath                      Path,
                                                           Action<HTTPRequest.Builder>?  BuilderAction = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.TRAVERSE,
+                                        Path,
+                                        BuilderAction);
+
+        #endregion
+
+        #region MIRROR   (this AHTTPClient, Path = "/", BuilderAction = null)
+
+        /// <summary>
+        /// Create a new HTTP MIRROR request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        public static Task<HTTPResponse> MIRROR(this AHTTPClient              HTTPClient,
+                                                HTTPPath                      Path,
+                                                Action<HTTPRequest.Builder>?  BuilderAction = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.MIRROR,
+                                                                 Path,
+                                                                 BuilderAction));
+
+
+        /// <summary>
+        /// Create a new HTTP MIRROR request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        public static HTTPRequest.Builder MIRRORRequest(this AHTTPClient              HTTPClient,
+                                                        HTTPPath                      Path,
+                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.MIRROR,
                                         Path,
                                         BuilderAction);
 
