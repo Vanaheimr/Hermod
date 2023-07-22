@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             var request = httpResponse.HTTPRequest?.EntirePDU ?? "";
 
             // GET / HTTP/1.1
-            // Host: 127.0.0.1:{HTTPPort}
+            // Host: 127.0.0.1:84
 
             // HTTP requests should not have a "Date"-header!
             Assert.IsFalse(request.Contains("Date:"),                         request);
@@ -132,22 +132,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Content-Length:  12
-            // Date:            Thu, 20 Jul 2023 00:24:09 GMT
+            // Content-Type:    text/plain; charset=utf-8
+            // Date:            Sat, 22 Jul 2023 16:53:59 GMT
             // Server:          Kestrel Test Server
             // 
             // Hello World!
 
 
-            // HTTP/1.1 200 OK
-            // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
-            // Content-Type:                  text/plain; charset=utf-8
-            // Content-Length:                12
             // Connection:                    close
-            // 
-            // Hello World!
 
             Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
             Assert.IsTrue  (response.Contains("Hello World!"),      response);
@@ -156,6 +150,148 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
             Assert.AreEqual("Hello World!".Length,                  httpResponse.ContentLength);
+
+        }
+
+        #endregion
+
+
+        #region Test_NotForEveryone_MissingBasicAuth()
+
+        [Test]
+        public async Task Test_NotForEveryone_MissingBasicAuth()
+        {
+
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone").
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:84
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                          request);
+            Assert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 401 Unauthorized
+            // Date:                          Sat, 22 Jul 2023 14:26:49 GMT
+            // Server:                        Kestrel Test Server
+            // Access-Control-Allow-Origin:   *
+            // Access-Control-Allow-Methods:  GET
+            // Access-Control-Allow-Headers:  Authorization
+            // Connection:                    close
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 401 Unauthorized"),                      response);
+
+            Assert.AreEqual(String.Empty,                                                        httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                                               httpResponse.Server);
+            Assert.AreEqual(@"Basic realm=""Access to the staging site"", charset =""UTF-8""",   httpResponse.WWWAuthenticate);
+            Assert.IsNull  (httpResponse.ContentLength);
+
+        }
+
+        #endregion
+
+        #region Test_NotForEveryone_ValidBasicAuth()
+
+        [Test]
+        public async Task Test_NotForEveryone_ValidBasicAuth()
+        {
+
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
+                                                     Authentication:  HTTPBasicAuthentication.Create("testUser1", "testPassword1")).
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                          request);
+            Assert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Content-Length:  18
+            // Content-Type:    text/plain; charset=utf-8
+            // Date:            Sat, 22 Jul 2023 17:32:30 GMT
+            // Server:          Kestrel Test Server
+            // 
+            // Hello 'testUser1'!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+
+            Assert.AreEqual("Hello 'testUser1'!",                   httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+            Assert.AreEqual("Hello 'testUser1'!".Length,            httpResponse.ContentLength);
+
+        }
+
+        #endregion
+
+        #region Test_NotForEveryone_ValidBasicAuth_MissingAuthorization()
+
+        [Test]
+        public async Task Test_NotForEveryone_ValidBasicAuth_MissingAuthorization()
+        {
+
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
+                                                     Authentication:  HTTPBasicAuthentication.Create("testUser2", "testPassword2")).
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                          request);
+            Assert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 403 Forbidden
+            // Content-Length:  52
+            // Content-Type:    text/plain; charset=utf-8
+            // Date:            Sat, 22 Jul 2023 17:41:50 GMT
+            // Server:          Kestrel Test Server
+            // 
+            // Sorry 'testUser2' please contact your administrator!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 403 Forbidden"),                     response);
+
+            Assert.AreEqual("Sorry 'testUser2' please contact your administrator!",          httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                                           httpResponse.Server);
+            Assert.AreEqual("Sorry 'testUser2' please contact your administrator!".Length,   httpResponse.ContentLength);
 
         }
 
@@ -331,8 +467,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         }
 
         #endregion
-
-
 
 
     }

@@ -336,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region CreateRequest(HTTPMethod, HTTPPath, BuilderAction = null)
+        #region CreateRequest(HTTPMethod, HTTPPath, BuilderAction = null, Authentication = null)
 
         /// <summary>
         /// Create a new HTTP request.
@@ -344,10 +344,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">A HTTP method.</param>
         /// <param name="HTTPPath">An URL.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A new HTTPRequest object.</returns>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
         public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
                                                  HTTPPath                      HTTPPath,
-                                                 Action<HTTPRequest.Builder>?  BuilderAction   = null)
+                                                 Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                 IHTTPAuthentication?          Authentication   = null)
         {
 
             var builder     = new HTTPRequest.Builder(this) {
@@ -358,6 +359,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (BuilderAction is not null)
                 BuilderAction?.Invoke(builder);
+
+            if (Authentication is not null)
+                builder.Authorization ??= Authentication;
 
             return builder;
 

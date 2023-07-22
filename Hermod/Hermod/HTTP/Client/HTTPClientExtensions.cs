@@ -15,13 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Threading.Tasks;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -33,42 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // RFC 2616 - HTTP/1.1
 
-        #region DELETE (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP DELETE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> DELETE(this AHTTPClient              HTTPClient,
-                                                HTTPPath                      Path,
-                                                Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            =>  HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.DELETE,
-                                                                  Path,
-                                                                  BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP DELETE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder DELETERequest(this AHTTPClient              HTTPClient,
-                                                        HTTPPath                      Path,
-                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.DELETE,
-                                        Path,
-                                        BuilderAction);
-
-        #endregion
-
-        #region GET    (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region GET    (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
 
         /// <summary>
         /// Create a new HTTP GET request.
@@ -76,14 +34,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
         public static Task<HTTPResponse> GET(this AHTTPClient              HTTPClient,
                                              HTTPPath                      Path,
-                                             Action<HTTPRequest.Builder>?  BuilderAction   = null)
+                                             Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                             IHTTPAuthentication?          Authentication   = null)
 
             => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.GET,
                                                                  Path,
-                                                                 BuilderAction));
+                                                                 BuilderAction,
+                                                                 Authentication));
 
 
         /// <summary>
@@ -92,16 +52,257 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPClient">A HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
         public static HTTPRequest.Builder GETRequest(this AHTTPClient              HTTPClient,
                                                      HTTPPath                      Path,
-                                                     Action<HTTPRequest.Builder>?  BuilderAction   = null)
+                                                     Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                     IHTTPAuthentication?          Authentication   = null)
 
             => HTTPClient.CreateRequest(HTTPMethod.GET,
                                         Path,
-                                        BuilderAction);
+                                        BuilderAction,
+                                        Authentication);
 
         #endregion
+
+        #region HEAD   (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP HEAD request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static Task<HTTPResponse> HEAD(this AHTTPClient              HTTPClient,
+                                              HTTPPath                      Path,
+                                              Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                              IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.HEAD,
+                                                                 Path,
+                                                                 BuilderAction,
+                                                                 Authentication));
+
+
+        /// <summary>
+        /// Create a new HTTP HEAD request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static HTTPRequest.Builder HEADRequest(this AHTTPClient              HTTPClient,
+                                                      HTTPPath                      Path,
+                                                      Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                      IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.HEAD,
+                                        Path,
+                                        BuilderAction,
+                                        Authentication);
+
+        #endregion
+
+        #region POST   (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static Task<HTTPResponse> POST(this AHTTPClient              HTTPClient,
+                                              HTTPPath                      Path,
+                                              Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                              IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.POST,
+                                                                 Path,
+                                                                 BuilderAction,
+                                                                 Authentication).
+                                                   // Always send a Content-Length header, even when it's value is zero!
+                                                   SetContentLength(0));
+
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static HTTPRequest.Builder POSTRequest(this AHTTPClient              HTTPClient,
+                                                      HTTPPath                      Path,
+                                                      Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                      IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.POST,
+                                        Path,
+                                        BuilderAction,
+                                        Authentication).
+                          // Always send a Content-Length header, even when it's value is zero!
+                          SetContentLength(0);
+
+        #endregion
+
+        #region PUT    (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP PUT request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static Task<HTTPResponse> PUT(this AHTTPClient              HTTPClient,
+                                             HTTPPath                      Path,
+                                             Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                             IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PUT,
+                                                                 Path,
+                                                                 BuilderAction,
+                                                                 Authentication));
+
+
+        /// <summary>
+        /// Create a new HTTP PUT request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static HTTPRequest.Builder PUTRequest(this AHTTPClient              HTTPClient,
+                                                     HTTPPath                      Path,
+                                                     Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                     IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.PUT,
+                                        Path,
+                                        BuilderAction,
+                                        Authentication);
+
+        #endregion
+
+        #region PATCH  (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP PATCH request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static Task<HTTPResponse> PATCH(this AHTTPClient              HTTPClient,
+                                               HTTPPath                      Path,
+                                               Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                               IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PATCH,
+                                                                 Path,
+                                                                 BuilderAction,
+                                                                 Authentication));
+
+
+        /// <summary>
+        /// Create a new HTTP PATCH request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static HTTPRequest.Builder PATCHRequest(this AHTTPClient              HTTPClient,
+                                                       HTTPPath                      Path,
+                                                       Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                       IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.PATCH,
+                                        Path,
+                                        BuilderAction,
+                                        Authentication);
+
+        #endregion
+
+        #region DELETE (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP DELETE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static Task<HTTPResponse> DELETE(this AHTTPClient              HTTPClient,
+                                                HTTPPath                      Path,
+                                                Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                IHTTPAuthentication?          Authentication   = null)
+
+            =>  HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.DELETE,
+                                                                  Path,
+                                                                  BuilderAction,
+                                                                  Authentication));
+
+
+        /// <summary>
+        /// Create a new HTTP DELETE request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static HTTPRequest.Builder DELETERequest(this AHTTPClient              HTTPClient,
+                                                        HTTPPath                      Path,
+                                                        Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                        IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.DELETE,
+                                        Path,
+                                        BuilderAction,
+                                        Authentication);
+
+        #endregion
+
+        #region OPTIONS(this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP OPTIONS request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static Task<HTTPResponse> OPTIONS(this AHTTPClient              HTTPClient,
+                                                 HTTPPath                      Path,
+                                                 Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                 IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.OPTIONS,
+                                                                 Path,
+                                                                 BuilderAction,
+                                                                 Authentication));
+
+
+        /// <summary>
+        /// Create a new HTTP OPTIONS request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="Path">An URL path.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public static HTTPRequest.Builder OPTIONSRequest(this AHTTPClient              HTTPClient,
+                                                         HTTPPath                      Path,
+                                                         Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                         IHTTPAuthentication?          Authentication   = null)
+
+            => HTTPClient.CreateRequest(HTTPMethod.OPTIONS,
+                                        Path,
+                                        BuilderAction,
+                                        Authentication);
+
+        #endregion
+
 
         #region CHECK  (this AHTTPClient, Path = "/", BuilderAction = null)
 
@@ -313,150 +514,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HEAD   (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP HEAD request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> HEAD(this AHTTPClient              HTTPClient,
-                                              HTTPPath                      Path,
-                                              Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.HEAD,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP HEAD request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder HEADRequest(this AHTTPClient              HTTPClient,
-                                                      HTTPPath                      Path,
-                                                      Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.HEAD,
-                                        Path,
-                                        BuilderAction);
-
-        #endregion
-
-        #region OPTIONS(this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP OPTIONS request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> OPTIONS(this AHTTPClient              HTTPClient,
-                                                 HTTPPath                      Path,
-                                                 Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.OPTIONS,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP OPTIONS request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder OPTIONSRequest(this AHTTPClient              HTTPClient,
-                                                         HTTPPath                      Path,
-                                                         Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.OPTIONS,
-                                        Path,
-                                        BuilderAction);
-
-        #endregion
-
-        #region POST   (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP POST request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> POST(this AHTTPClient              HTTPClient,
-                                              HTTPPath                      Path,
-                                              Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.POST,
-                                                                 Path,
-                                                                 BuilderAction).
-                                                   // Always send a Content-Length header, even when it's value is zero!
-                                                   SetContentLength(0));
-
-
-        /// <summary>
-        /// Create a new HTTP POST request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder POSTRequest(this AHTTPClient              HTTPClient,
-                                                      HTTPPath                      Path,
-                                                      Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.POST,
-                                        Path,
-                                        BuilderAction).
-                          // Always send a Content-Length header, even when it's value is zero!
-                          SetContentLength(0);
-
-        #endregion
-
-        #region PUT    (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP PUT request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> PUT(this AHTTPClient              HTTPClient,
-                                             HTTPPath                      Path,
-                                             Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PUT,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP PUT request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static HTTPRequest.Builder PUTRequest(this AHTTPClient              HTTPClient,
-                                                     HTTPPath                      Path,
-                                                     Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.PUT,
-                                        Path,
-                                        BuilderAction);
-
-        #endregion
-
         #region TRACE  (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
@@ -492,76 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        // Additional methods
-
-        #region PATCH   (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP PATCH request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        public static Task<HTTPResponse> PATCH(this AHTTPClient              HTTPClient,
-                                               HTTPPath                      Path,
-                                               Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PATCH,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP PATCH request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        public static HTTPRequest.Builder PATCHRequest(this AHTTPClient              HTTPClient,
-                                                       HTTPPath                      Path,
-                                                       Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.PATCH,
-                                        Path,
-                                        BuilderAction);
-
-        #endregion
-
-        #region TRAVERSE(this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP TRAVERSE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        public static Task<HTTPResponse> TRAVERSE(this AHTTPClient              HTTPClient,
-                                                  HTTPPath                      Path,
-                                                  Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.TRAVERSE,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP TRAVERSE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        public static HTTPRequest.Builder TRAVERSERequest(this AHTTPClient              HTTPClient,
-                                                          HTTPPath                      Path,
-                                                          Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.CreateRequest(HTTPMethod.TRAVERSE,
-                                        Path,
-                                        BuilderAction);
-
-        #endregion
-
-        #region MIRROR   (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region MIRROR (this AHTTPClient, Path = "/", BuilderAction = null)
 
         /// <summary>
         /// Create a new HTTP MIRROR request.

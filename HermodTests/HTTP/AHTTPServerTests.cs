@@ -76,6 +76,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             #endregion
 
+            #region GET     /NotForEveryone
+
+            httpServer.AddMethodCallback(null,
+                                         HTTPHostname.Any,
+                                         HTTPMethod.GET,
+                                         HTTPPath.Root + "NotForEveryone",
+                                         HTTPDelegate: async request => {
+
+                                             if (request.Authorization is HTTPBasicAuthentication httpBasicAuthentication)
+                                             {
+
+                                                 //return new HTTPResponse.Builder(request) {
+                                                 //           HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                                 //           Server                     = "Hermod Test Server",
+                                                 //           Date                       = Timestamp.Now,
+                                                 //           AccessControlAllowOrigin   = "*",
+                                                 //           AccessControlAllowMethods  = new[] { "GET" },
+                                                 //           AccessControlAllowHeaders  = new[] { "Authorization" },
+                                                 //           WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                 //           Connection                 = "close"
+                                                 //       }.AsImmutable;
+
+                                                 if (httpBasicAuthentication.Username == "testUser1" ||
+                                                     httpBasicAuthentication.Password == "testPassword1")
+                                                 {
+                                                     return new HTTPResponse.Builder(request) {
+                                                            HTTPStatusCode             = HTTPStatusCode.OK,
+                                                            Server                     = "Hermod Test Server",
+                                                            Date                       = Timestamp.Now,
+                                                            AccessControlAllowOrigin   = "*",
+                                                            AccessControlAllowMethods  = new[] { "GET" },
+                                                            AccessControlAllowHeaders  = new[] { "Authorization" },
+                                                            ContentType                = HTTPContentType.TEXT_UTF8,
+                                                            Content                    = $"Hello '{httpBasicAuthentication.Username}'!".ToUTF8Bytes(),
+                                                            Connection                 = "close"
+                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                          AsImmutable;
+                                                 }
+
+                                                 // HTTP 403 Forbidden for authentication is ok, but authorization is still not given!
+                                                 if (httpBasicAuthentication.Username == "testUser2" ||
+                                                     httpBasicAuthentication.Password == "testPassword2")
+                                                 {
+                                                     return new HTTPResponse.Builder(request) {
+                                                            HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                                            Server                     = "Hermod Test Server",
+                                                            Date                       = Timestamp.Now,
+                                                            AccessControlAllowOrigin   = "*",
+                                                            AccessControlAllowMethods  = new[] { "GET" },
+                                                            AccessControlAllowHeaders  = new[] { "Authorization" },
+                                                            ContentType                = HTTPContentType.TEXT_UTF8,
+                                                            Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
+                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                            Connection                 = "close"
+                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                          AsImmutable;
+                                                 }
+
+                                             }
+
+                                             return new HTTPResponse.Builder(request) {
+                                                            HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                                            Server                     = "Hermod Test Server",
+                                                            Date                       = Timestamp.Now,
+                                                            AccessControlAllowOrigin   = "*",
+                                                            AccessControlAllowMethods  = new[] { "GET" },
+                                                            AccessControlAllowHeaders  = new[] { "Authorization" },
+                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                            Connection                 = "close"
+                                                        }.AsImmutable;
+
+
+                                         });
+
+            #endregion
+
+
             #region POST    /mirror/queryString
 
             httpServer.AddMethodCallback(null,

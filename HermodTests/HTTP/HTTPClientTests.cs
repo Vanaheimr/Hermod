@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
+            // Server:                        Hermod Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
             // Content-Type:                  text/plain; charset=utf-8
@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
+            // Server:                        Hermod Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
             // Content-Type:                  text/plain; charset=utf-8
@@ -147,6 +147,159 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             Assert.AreEqual("Hermod Test Server",                   httpResponse.Server);
             Assert.AreEqual("Hello World!".Length,                  httpResponse.ContentLength);
+
+        }
+
+        #endregion
+
+
+
+        #region Test_NotForEveryone_MissingBasicAuth()
+
+        [Test]
+        public async Task Test_NotForEveryone_MissingBasicAuth()
+        {
+
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone").
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                          request);
+            Assert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 401 Unauthorized
+            // Date:                          Sat, 22 Jul 2023 14:26:49 GMT
+            // Server:                        Hermod Test Server
+            // Access-Control-Allow-Origin:   *
+            // Access-Control-Allow-Methods:  GET
+            // Access-Control-Allow-Headers:  Authorization
+            // WWWAuthenticate:               Basic realm="Access to the staging site"
+            // Connection:                    close
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 401 Unauthorized"),                      response);
+
+            Assert.AreEqual(String.Empty,                                                        httpBody);
+
+            Assert.AreEqual("Hermod Test Server",                                                httpResponse.Server);
+            Assert.AreEqual(@"Basic realm=""Access to the staging site"", charset =""UTF-8""",   httpResponse.WWWAuthenticate);
+            Assert.IsNull  (httpResponse.ContentLength);
+
+        }
+
+        #endregion
+
+        #region Test_NotForEveryone_ValidBasicAuth()
+
+        [Test]
+        public async Task Test_NotForEveryone_ValidBasicAuth()
+        {
+
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
+                                                     Authentication:  HTTPBasicAuthentication.Create("testUser1", "testPassword1")).
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                          request);
+            Assert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Date:                           Sat, 22 Jul 2023 15:13:54 GMT
+            // Server:                         Hermod Test Server
+            // Access-Control-Allow-Origin:    *
+            // Access-Control-Allow-Methods:   GET
+            // Access-Control-Allow-Headers:   Authorization
+            // Content-Type:                   text/plain; charset=utf-8
+            // Content-Length:                 16
+            // Connection:                     close
+            // X-Environment-ManagedThreadId:  10
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+
+            Assert.AreEqual("Hello 'testUser1'!",                   httpBody);
+
+            Assert.AreEqual("Hermod Test Server",                   httpResponse.Server);
+            Assert.AreEqual("Hello 'testUser1'!".Length,            httpResponse.ContentLength);
+
+        }
+
+        #endregion
+
+        #region Test_NotForEveryone_ValidBasicAuth_MissingAuthorization()
+
+        [Test]
+        public async Task Test_NotForEveryone_ValidBasicAuth_MissingAuthorization()
+        {
+
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "NotForEveryone",
+                                                     Authentication:  HTTPBasicAuthentication.Create("testUser2", "testPassword2")).
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                          request);
+            Assert.IsTrue (request.Contains("GET /NotForEveryone HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),    request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 403 Forbidden
+            // Date:                           Sat, 22 Jul 2023 15:16:42 GMT
+            // Server:                         Hermod Test Server
+            // Access-Control-Allow-Origin:    *
+            // Access-Control-Allow-Methods:   GET
+            // Access-Control-Allow-Headers:   Authorization
+            // Content-Type:                   text/plain; charset=utf-8
+            // Content-Length:                 52
+            // Connection:                     close
+            // X-Environment-ManagedThreadId:  11
+            // 
+            // Sorry 'testUser2' please contact your administrator!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 403 Forbidden"),                         response);
+
+            Assert.AreEqual("Sorry 'testUser2' please contact your administrator!",              httpBody);
+
+            Assert.AreEqual("Hermod Test Server",                                                httpResponse.Server);
+            Assert.AreEqual(@"Basic realm=""Access to the staging site"", charset =""UTF-8""",   httpResponse.WWWAuthenticate);
+            Assert.AreEqual("Sorry 'testUser2' please contact your administrator!".Length,       httpResponse.ContentLength);
 
         }
 
@@ -188,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
+            // Server:                        Hermod Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
             // Content-Type:                  text/plain; charset=utf-8
@@ -249,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
+            // Server:                        Hermod Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
             // Content-Type:                  text/plain; charset=utf-8
@@ -310,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             // HTTP/1.1 200 OK
             // Date:                          Wed, 19 Jul 2023 14:54:44 GMT
-            // Server:                        Test Server
+            // Server:                        Hermod Test Server
             // Access-Control-Allow-Origin:   *
             // Access-Control-Allow-Methods:  GET
             // Content-Type:                  text/plain; charset=utf-8
