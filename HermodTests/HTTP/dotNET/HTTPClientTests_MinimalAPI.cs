@@ -184,12 +184,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             var httpBody      = httpResponse.HTTPBodyAsUTF8String;
 
             // HTTP/1.1 401 Unauthorized
-            // Date:                          Sat, 22 Jul 2023 14:26:49 GMT
-            // Server:                        Kestrel Test Server
-            // Access-Control-Allow-Origin:   *
-            // Access-Control-Allow-Methods:  GET
-            // Access-Control-Allow-Headers:  Authorization
-            // Connection:                    close
+            // Content-Length:    0
+            // Date:              Sat, 22 Jul 2023 19:17:46 GMT
+            // Server:            Kestrel Test Server
+            // WWW-Authenticate:  Basic realm="Access to the staging site", charset ="UTF-8"
 
             Assert.IsTrue  (response.Contains("HTTP/1.1 401 Unauthorized"),                      response);
 
@@ -197,7 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
             Assert.AreEqual("Kestrel Test Server",                                               httpResponse.Server);
             Assert.AreEqual(@"Basic realm=""Access to the staging site"", charset =""UTF-8""",   httpResponse.WWWAuthenticate);
-            Assert.IsNull  (httpResponse.ContentLength);
+            // Unclear why Kestrel sets the Content-Length HTTP response header!
+            Assert.AreEqual(0,                                                                   httpResponse.ContentLength);
 
         }
 

@@ -44,6 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
     public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
+
         public BasicAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions>  Options,
                                           ILoggerFactory                                Logger,
                                           UrlEncoder                                    Encoder,
@@ -101,6 +102,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         }
 
+        protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+        {
+
+            // This method will be called whenever HandleAuthenticateAsync() failed to authenticate a user.
+
+            Response.Headers["WWW-Authenticate"] = @"Basic realm=""Access to the staging site"", charset =""UTF-8""";
+
+            return base.HandleChallengeAsync(properties);
+
+        }
+
     }
 
     #endregion
@@ -135,9 +147,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 return next.Invoke();
             });
             app.UseAuthentication();
-            //app.Use((context, next) => {
-            //    return next.Invoke();
-            //});
             app.UseAuthorization();
 
 
@@ -172,11 +181,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
                     var responseString = $"Sorry '{username}' please contact your administrator!";
 
-                    context.Response.StatusCode                   = 403;
+                    context.Response.StatusCode     = 403;
                     // Without Kestrel will send everything as: "Transfer-Encoding: chunked"
-                    context.Response.ContentLength                = Encoding.UTF8.GetByteCount(responseString);
-                    context.Response.ContentType                  = "text/plain; charset=utf-8";
-                    context.Response.Headers["WWW-Authenticate"]  = @"Basic realm=""Access to the staging site"", charset =""UTF-8""";
+                    context.Response.ContentLength  = Encoding.UTF8.GetByteCount(responseString);
+                    context.Response.ContentType    = "text/plain; charset=utf-8";
 
                     await context.Response.WriteAsync(responseString);
 
