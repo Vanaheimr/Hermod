@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -28,10 +26,10 @@ namespace social.OpenData.UsersAPI
 {
 
     /// <summary>
-    /// An URL with its API key identification.
+    /// An URL with an API key, e.g. for accessing remote APIs.
     /// </summary>
-    public readonly struct URLWith_APIKeyId : IEquatable<URLWith_APIKeyId>,
-                                              IComparable<URLWith_APIKeyId>
+    public readonly struct URLWithAPIKey : IEquatable<URLWithAPIKey>,
+                                           IComparable<URLWithAPIKey>
     {
 
         #region Data
@@ -51,7 +49,7 @@ namespace social.OpenData.UsersAPI
         public URL        URL         { get; }
 
         /// <summary>
-        /// The API key identification.
+        /// The API key.
         /// </summary>
         public APIKey_Id  APIKeyId    { get; }
 
@@ -60,11 +58,11 @@ namespace social.OpenData.UsersAPI
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new API keyrmation.
+        /// Create a new URL with an API key.
         /// </summary>
         /// <param name="URL">An URL.</param>
-        /// <param name="APIKeyId">An API key identification.</param>
-        public URLWith_APIKeyId(URL        URL,
+        /// <param name="APIKeyId">An API key.</param>
+        public URLWithAPIKey(URL        URL,
                                 APIKey_Id  APIKeyId)
         {
             this.URL       = URL;
@@ -79,10 +77,10 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Clone this object.
         /// </summary>
-        public URLWith_APIKeyId Clone()
+        public URLWithAPIKey Clone()
 
-            => new URLWith_APIKeyId(URL,
-                                    APIKeyId);
+            => new (URL,
+                    APIKeyId);
 
         #endregion
 
@@ -94,11 +92,11 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="URLWithAPIKeyId1">An URL with API key identification.</param>
-        /// <param name="URLWithAPIKeyId2">Another URL with API key identification.</param>
+        /// <param name="URLWithAPIKeyId1">An URL with an API key.</param>
+        /// <param name="URLWithAPIKeyId2">Another URL with an API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (URLWith_APIKeyId URLWithAPIKeyId1,
-                                           URLWith_APIKeyId URLWithAPIKeyId2)
+        public static Boolean operator == (URLWithAPIKey URLWithAPIKeyId1,
+                                           URLWithAPIKey URLWithAPIKeyId2)
 
             => URLWithAPIKeyId1.Equals(URLWithAPIKeyId2);
 
@@ -109,11 +107,11 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="URLWithAPIKeyId1">An URL with API key identification.</param>
-        /// <param name="URLWithAPIKeyId2">Another URL with API key identification.</param>
+        /// <param name="URLWithAPIKeyId1">An URL with an API key.</param>
+        /// <param name="URLWithAPIKeyId2">Another URL with an API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (URLWith_APIKeyId URLWithAPIKeyId1,
-                                           URLWith_APIKeyId URLWithAPIKeyId2)
+        public static Boolean operator != (URLWithAPIKey URLWithAPIKeyId1,
+                                           URLWithAPIKey URLWithAPIKeyId2)
 
             => !URLWithAPIKeyId1.Equals(URLWithAPIKeyId2);
 
@@ -124,11 +122,11 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="URLWithAPIKeyId1">An URL with API key identification.</param>
-        /// <param name="URLWithAPIKeyId2">Another URL with API key identification.</param>
+        /// <param name="URLWithAPIKeyId1">An URL with an API key.</param>
+        /// <param name="URLWithAPIKeyId2">Another URL with an API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (URLWith_APIKeyId URLWithAPIKeyId1,
-                                          URLWith_APIKeyId URLWithAPIKeyId2)
+        public static Boolean operator < (URLWithAPIKey URLWithAPIKeyId1,
+                                          URLWithAPIKey URLWithAPIKeyId2)
 
             => URLWithAPIKeyId1.CompareTo(URLWithAPIKeyId2) < 0;
 
@@ -139,11 +137,11 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="URLWithAPIKeyId1">An URL with API key identification.</param>
-        /// <param name="URLWithAPIKeyId2">Another URL with API key identification.</param>
+        /// <param name="URLWithAPIKeyId1">An URL with an API key.</param>
+        /// <param name="URLWithAPIKeyId2">Another URL with an API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (URLWith_APIKeyId URLWithAPIKeyId1,
-                                           URLWith_APIKeyId URLWithAPIKeyId2)
+        public static Boolean operator <= (URLWithAPIKey URLWithAPIKeyId1,
+                                           URLWithAPIKey URLWithAPIKeyId2)
 
             => URLWithAPIKeyId1.CompareTo(URLWithAPIKeyId2) <= 0;
 
@@ -154,11 +152,11 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="URLWithAPIKeyId1">An URL with API key identification.</param>
-        /// <param name="URLWithAPIKeyId2">Another URL with API key identification.</param>
+        /// <param name="URLWithAPIKeyId1">An URL with an API key.</param>
+        /// <param name="URLWithAPIKeyId2">Another URL with an API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (URLWith_APIKeyId URLWithAPIKeyId1,
-                                          URLWith_APIKeyId URLWithAPIKeyId2)
+        public static Boolean operator > (URLWithAPIKey URLWithAPIKeyId1,
+                                          URLWithAPIKey URLWithAPIKeyId2)
 
             => URLWithAPIKeyId1.CompareTo(URLWithAPIKeyId2) > 0;
 
@@ -169,11 +167,11 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="URLWithAPIKeyId1">An URL with API key identification.</param>
-        /// <param name="URLWithAPIKeyId2">Another URL with API key identification.</param>
+        /// <param name="URLWithAPIKeyId1">An URL with an API key.</param>
+        /// <param name="URLWithAPIKeyId2">Another URL with an API key.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (URLWith_APIKeyId URLWithAPIKeyId1,
-                                           URLWith_APIKeyId URLWithAPIKeyId2)
+        public static Boolean operator >= (URLWithAPIKey URLWithAPIKeyId1,
+                                           URLWithAPIKey URLWithAPIKeyId2)
 
             => URLWithAPIKeyId1.CompareTo(URLWithAPIKeyId2) >= 0;
 
@@ -191,9 +189,9 @@ namespace social.OpenData.UsersAPI
         /// <param name="Object">An object to compare with.</param>
         public Int32 CompareTo(Object Object)
 
-            => Object is URLWith_APIKeyId urlWithAPIKeyId
-                   ? CompareTo(urlWithAPIKeyId)
-                   : throw new ArgumentException("The given object is not an URL with API key information!", nameof(Object));
+            => Object is URLWithAPIKey urlWithAPIKey
+                   ? CompareTo(urlWithAPIKey)
+                   : throw new ArgumentException("The given object is not an URL with an API key!", nameof(Object));
 
         #endregion
 
@@ -203,7 +201,7 @@ namespace social.OpenData.UsersAPI
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="URLWithAPIKeyId">An object to compare with.</param>
-        public Int32 CompareTo(URLWith_APIKeyId URLWithAPIKeyId)
+        public Int32 CompareTo(URLWithAPIKey URLWithAPIKeyId)
         {
 
             var c = URL.CompareTo(URLWithAPIKeyId.URL);
@@ -230,8 +228,8 @@ namespace social.OpenData.UsersAPI
         /// <returns>true|false</returns>
         public override Boolean Equals(Object? Object)
 
-            => Object is URLWith_APIKeyId urlWithAPIKeyId &&
-                   Equals(urlWithAPIKeyId);
+            => Object is URLWithAPIKey urlWithAPIKey &&
+                   Equals(urlWithAPIKey);
 
         #endregion
 
@@ -242,7 +240,7 @@ namespace social.OpenData.UsersAPI
         /// </summary>
         /// <param name="URLWithAPIKeyId">An API keyrmation to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(URLWith_APIKeyId URLWithAPIKeyId)
+        public Boolean Equals(URLWithAPIKey URLWithAPIKeyId)
 
             => URL.     Equals(URLWithAPIKeyId.URL) &&
                APIKeyId.Equals(URLWithAPIKeyId.APIKeyId);
@@ -271,7 +269,7 @@ namespace social.OpenData.UsersAPI
         /// </summary>
         public override String ToString()
 
-            => String.Concat(URL, " using '", APIKeyId, "'");
+            => $"{URL} using '{APIKeyId}'";
 
         #endregion
 

@@ -28,135 +28,135 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// Supported HTTP methods, but only used for HTTP mapping attributes!
     /// Internally the HTTPMethod class is used.
     /// </summary>
-    public enum HTTPMethods
-    {
+    //public enum HTTPMethods
+    //{
 
-        UNKNOWN,
+    //    UNKNOWN,
 
-        #region RFC 2616 - HTTP/1.1
+    //    #region RFC 2616 - HTTP/1.1
 
-        CONNECT,
+    //    CONNECT,
 
-        /// <summary>
-        /// Delete the given resource.
-        /// </summary>
-        DELETE,
+    //    /// <summary>
+    //    /// Delete the given resource.
+    //    /// </summary>
+    //    DELETE,
 
-        /// <summary>
-        /// Return the given resource.
-        /// </summary>
-        GET,
+    //    /// <summary>
+    //    /// Return the given resource.
+    //    /// </summary>
+    //    GET,
 
-        /// <summary>
-        /// Return only the headers (not including the body) of the given resource.
-        /// </summary>
-        HEAD,
+    //    /// <summary>
+    //    /// Return only the headers (not including the body) of the given resource.
+    //    /// </summary>
+    //    HEAD,
 
-        /// <summary>
-        /// Return a list of valid HTTP verbs for the given resource.
-        /// </summary>
-        OPTIONS,
+    //    /// <summary>
+    //    /// Return a list of valid HTTP verbs for the given resource.
+    //    /// </summary>
+    //    OPTIONS,
 
-        POST,
-        PUT,
-        TRACE,
+    //    POST,
+    //    PUT,
+    //    TRACE,
 
-        #endregion
+    //    #endregion
 
-        #region RFC 4918 - WebDAV
+    //    #region RFC 4918 - WebDAV
 
-        COPY,
-        LOCK,
-        MKCOL,     
-        MOVE,
-        PROPFIND,
-        PROPPATCH,
-        UNLOCK,
+    //    COPY,
+    //    LOCK,
+    //    MKCOL,     
+    //    MOVE,
+    //    PROPFIND,
+    //    PROPPATCH,
+    //    UNLOCK,
 
-        #endregion
+    //    #endregion
 
-        #region Additional methods
+    //    #region Additional methods
 
-        /// <summary>
-        /// Patch the given resource.
-        /// </summary>
-        PATCH,
+    //    /// <summary>
+    //    /// Patch the given resource.
+    //    /// </summary>
+    //    PATCH,
 
-        /// <summary>
-        /// Traverse the given resource.
-        /// </summary>
-        TRAVERSE,
+    //    /// <summary>
+    //    /// Traverse the given resource.
+    //    /// </summary>
+    //    TRAVERSE,
         
-        /// <summary>
-        /// Similar to a GET request, but with an additional filter methods within the http body.
-        /// This can be implemented via a JavaScript function within the HTTP body.
-        /// </summary>
-        FILTER,
+    //    /// <summary>
+    //    /// Similar to a GET request, but with an additional filter methods within the http body.
+    //    /// This can be implemented via a JavaScript function within the HTTP body.
+    //    /// </summary>
+    //    FILTER,
 
-        /// <summary>
-        /// Counts the number of elements which would be returned by a GET or FILTER request.
-        /// </summary>
-        COUNT,
+    //    /// <summary>
+    //    /// Counts the number of elements which would be returned by a GET or FILTER request.
+    //    /// </summary>
+    //    COUNT,
 
-        /// <summary>
-        /// Composes a new resource (e.g. send a html form to compose a new resource).
-        /// </summary>
-        COMPOSE,
+    //    /// <summary>
+    //    /// Composes a new resource (e.g. send a html form to compose a new resource).
+    //    /// </summary>
+    //    COMPOSE,
 
-        /// <summary>
-        /// Creates a new resource (a replacement for PUT and POST).
-        /// </summary>
-        CREATE,
+    //    /// <summary>
+    //    /// Creates a new resource (a replacement for PUT and POST).
+    //    /// </summary>
+    //    CREATE,
 
-        /// <summary>
-        /// Add a new resource to a collection of resources (a replacement for PUT and POST).
-        /// </summary>
-        ADD,
+    //    /// <summary>
+    //    /// Add a new resource to a collection of resources (a replacement for PUT and POST).
+    //    /// </summary>
+    //    ADD,
 
-        /// <summary>
-        /// Update a resource (a replacement for PUT).
-        /// </summary>
-        UPDATE,
+    //    /// <summary>
+    //    /// Update a resource (a replacement for PUT).
+    //    /// </summary>
+    //    UPDATE,
 
-        /// <summary>
-        /// Edits a resource, e.g. return a HTML page for editing.
-        /// </summary>
-        EDIT,
+    //    /// <summary>
+    //    /// Edits a resource, e.g. return a HTML page for editing.
+    //    /// </summary>
+    //    EDIT,
 
-        /// <summary>
-        /// Monitors a resource or collection resource for modifications using an eventstream.
-        /// </summary>
-        MONITOR,
+    //    /// <summary>
+    //    /// Monitors a resource or collection resource for modifications using an eventstream.
+    //    /// </summary>
+    //    MONITOR,
 
-        /// <summary>
-        /// Maps all elements of a collection resource and may reduce this to a second data structure.
-        /// This can be implemented via two JavaScript functions within the HTTP body.
-        /// </summary>
-        MAPREDUCE,
+    //    /// <summary>
+    //    /// Maps all elements of a collection resource and may reduce this to a second data structure.
+    //    /// This can be implemented via two JavaScript functions within the HTTP body.
+    //    /// </summary>
+    //    MAPREDUCE,
 
-        /// <summary>
-        /// Subscribe an URI to receive notifications from this resource.
-        /// </summary>
-        SUBSCRIBE,
+    //    /// <summary>
+    //    /// Subscribe an URI to receive notifications from this resource.
+    //    /// </summary>
+    //    SUBSCRIBE,
 
-        /// <summary>
-        /// Unsubscribe an URI to receive notifications from this resource.
-        /// </summary>
-        UNSUBSCRIBE,
+    //    /// <summary>
+    //    /// Unsubscribe an URI to receive notifications from this resource.
+    //    /// </summary>
+    //    UNSUBSCRIBE,
 
-        /// <summary>
-        /// Notify a subscriber of an URI about notifications from a resource.
-        /// </summary>
-        NOTIFY,
+    //    /// <summary>
+    //    /// Notify a subscriber of an URI about notifications from a resource.
+    //    /// </summary>
+    //    NOTIFY,
 
-        /// <summary>
-        /// Check a resource.
-        /// </summary>
-        CHECK
+    //    /// <summary>
+    //    /// Check a resource.
+    //    /// </summary>
+    //    CHECK
 
-        #endregion
+    //    #endregion
 
-    }
+    //}
 
 /*
  * Currently this will not work really great with method attributes :(!
@@ -488,17 +488,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Parse   (HTTPMethodEnum)
 
-        /// <summary>
-        /// Tries to find the appropriate HTTP method for the given HTTP methods.
-        /// </summary>
-        /// <param name="HTTPMethodEnum">A HTTP method code as string</param>
-        /// <returns>A HTTP method</returns>
-        public static HTTPMethod Parse(HTTPMethods HTTPMethodEnum)
+        ///// <summary>
+        ///// Tries to find the appropriate HTTP method for the given HTTP methods.
+        ///// </summary>
+        ///// <param name="HTTPMethodEnum">A HTTP method code as string</param>
+        ///// <returns>A HTTP method</returns>
+        //public static HTTPMethod Parse(HTTPMethods HTTPMethodEnum)
 
-            => (from   fieldInfo in typeof(HTTPMethod).GetFields()
-                let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
-                where  httpMethod.MethodName == HTTPMethodEnum.ToString()
-                select httpMethod).FirstOrDefault();
+        //    => (from   fieldInfo in typeof(HTTPMethod).GetFields()
+        //        let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
+        //        where  httpMethod.MethodName == HTTPMethodEnum.ToString()
+        //        select httpMethod).FirstOrDefault();
 
         #endregion
 
@@ -522,19 +522,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParse(HTTPMethodEnum)
 
-        /// <summary>
-        /// Try to parse the given text as a HTTP method.
-        /// </summary>
-        /// <param name="HTTPMethodEnum">A HTTP method.</param>
-        public static HTTPMethod? TryParse(HTTPMethods HTTPMethodEnum)
-        {
+        ///// <summary>
+        ///// Try to parse the given text as a HTTP method.
+        ///// </summary>
+        ///// <param name="HTTPMethodEnum">A HTTP method.</param>
+        //public static HTTPMethod? TryParse(HTTPMethods HTTPMethodEnum)
+        //{
 
-            if (TryParse(HTTPMethodEnum, out var httpMethod))
-                return httpMethod!;
+        //    if (TryParse(HTTPMethodEnum, out var httpMethod))
+        //        return httpMethod!;
 
-            return null;
+        //    return null;
 
-        }
+        //}
 
         #endregion
 
@@ -565,26 +565,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParse(HTTPMethodEnum, out HTTPMethod)
 
-        /// <summary>
-        /// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
-        /// </summary>
-        /// <param name="HTTPMethodEnum">A HTTP method.</param>
-        /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        /// <returns>true or false</returns>
-        public static Boolean TryParse(HTTPMethods HTTPMethodEnum, out HTTPMethod HTTPMethod)
-        {
+        ///// <summary>
+        ///// Tries to find the appropriate HTTPMethod for the given HTTPMethods.
+        ///// </summary>
+        ///// <param name="HTTPMethodEnum">A HTTP method.</param>
+        ///// <param name="HTTPMethod">The parsed HTTP method.</param>
+        ///// <returns>true or false</returns>
+        //public static Boolean TryParse(HTTPMethods HTTPMethodEnum, out HTTPMethod HTTPMethod)
+        //{
 
-            HTTPMethod = (from   fieldInfo in typeof(HTTPMethod).GetFields()
-                          let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
-                          where  httpMethod.MethodName == HTTPMethodEnum.ToString()
-                          select httpMethod).FirstOrDefault();
+        //    HTTPMethod = (from   fieldInfo in typeof(HTTPMethod).GetFields()
+        //                  let    httpMethod = (HTTPMethod) fieldInfo.GetValue(null)
+        //                  where  httpMethod.MethodName == HTTPMethodEnum.ToString()
+        //                  select httpMethod).FirstOrDefault();
 
-            if (HTTPMethod.MethodName.IsNullOrEmpty())
-                HTTPMethod = new HTTPMethod(HTTPMethodEnum.ToString());
+        //    if (HTTPMethod.MethodName.IsNullOrEmpty())
+        //        HTTPMethod = new HTTPMethod(HTTPMethodEnum.ToString());
 
-            return true;
+        //    return true;
 
-        }
+        //}
 
         #endregion
 
@@ -691,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Compares two instances of this object.
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
+        public Int32 CompareTo(Object? Object)
 
             => Object is HTTPMethod httpMethod
                    ? CompareTo(httpMethod)
@@ -725,7 +725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Object">An object to compare with.</param>
         /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
+        public override Boolean Equals(Object? Object)
 
             => Object is HTTPMethod httpMethod &&
                    Equals(httpMethod);
@@ -771,6 +771,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => MethodName;
 
         #endregion
+
 
     }
 

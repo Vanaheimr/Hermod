@@ -1,98 +1,98 @@
-﻿/*
- * Copyright (c) 2010-2023 GraphDefined GmbH
- * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+﻿///*
+// * Copyright (c) 2010-2023 GraphDefined GmbH
+// * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
+// *
+// * Licensed under the Apache License, Version 2.0 (the "License");
+// * you may not use this file except in compliance with the License.
+// * You may obtain a copy of the License at
+// *
+// *     http://www.apache.org/licenses/LICENSE-2.0
+// *
+// * Unless required by applicable law or agreed to in writing, software
+// * distributed under the License is distributed on an "AS IS" BASIS,
+// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// * See the License for the specific language governing permissions and
+// * limitations under the License.
+// */
 
-#region Usings
+//#region Usings
 
-using System;
-using System.Collections.Generic;
+//using System;
+//using System.Collections.Generic;
 
-#endregion
+//#endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
-{
+//namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
+//{
 
-    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class HTTPErrorAttribute : Attribute
-    {
+//    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+//    public class HTTPErrorAttribute : Attribute
+//    {
 
-        #region Properties
+//        #region Properties
 
-        public HTTPMethod     HTTPMethod     { get; private set; }
+//        public HTTPMethod     HTTPMethod     { get; private set; }
 
-        public String         UriTemplate    { get; private set; }
+//        public String         UriTemplate    { get; private set; }
 
-        public HTTPStatusCode HTTPStatusCode { get; private set; }
+//        public HTTPStatusCode HTTPStatusCode { get; private set; }
 
-        #endregion
+//        #endregion
 
-        #region Constructor(s)
+//        #region Constructor(s)
 
-        #region HTTPErrorAttribute(UriTemplate)
+//        #region HTTPErrorAttribute(UriTemplate)
 
-        public HTTPErrorAttribute(String UriTemplate)
-        {
-            this.HTTPMethod      = HTTPMethod.GET;
-            this.UriTemplate     = UriTemplate;
-            this.HTTPStatusCode  = null;
-        }
+//        public HTTPErrorAttribute(String UriTemplate)
+//        {
+//            this.HTTPMethod      = HTTPMethod.GET;
+//            this.UriTemplate     = UriTemplate;
+//            this.HTTPStatusCode  = null;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region HTTPErrorAttribute(UriTemplate, myHTTPStatusCode)
+//        #region HTTPErrorAttribute(UriTemplate, myHTTPStatusCode)
 
-        public HTTPErrorAttribute(String UriTemplate, HTTPStatusCode myHTTPStatusCode)
-        {
-            this.HTTPMethod      = HTTPMethod.GET;
-            this.UriTemplate     = UriTemplate;
-            this.HTTPStatusCode  = myHTTPStatusCode;
-        }
+//        public HTTPErrorAttribute(String UriTemplate, HTTPStatusCode myHTTPStatusCode)
+//        {
+//            this.HTTPMethod      = HTTPMethod.GET;
+//            this.UriTemplate     = UriTemplate;
+//            this.HTTPStatusCode  = myHTTPStatusCode;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region HTTPErrorAttribute(HTTPMethod, UriTemplate, myHTTPStatusCode)
+//        #region HTTPErrorAttribute(HTTPMethod, UriTemplate, myHTTPStatusCode)
 
-        public HTTPErrorAttribute(HTTPMethod HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
-        {
-            this.HTTPMethod     = HTTPMethod;
-            this.UriTemplate    = UriTemplate;
-            this.HTTPStatusCode = myHTTPStatusCode;
-        }
+//        public HTTPErrorAttribute(HTTPMethod HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
+//        {
+//            this.HTTPMethod     = HTTPMethod;
+//            this.UriTemplate    = UriTemplate;
+//            this.HTTPStatusCode = myHTTPStatusCode;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region HTTPErrorAttribute(HTTPMethod, UriTemplate, myHTTPStatusCode)
+//        #region HTTPErrorAttribute(HTTPMethod, UriTemplate, myHTTPStatusCode)
 
-        public HTTPErrorAttribute(HTTPMethods HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
-        {
+//        public HTTPErrorAttribute(HTTPMethods HTTPMethod, String UriTemplate, HTTPStatusCode myHTTPStatusCode)
+//        {
             
-            this.HTTPMethod     = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.Parse(HTTPMethod);
+//            this.HTTPMethod     = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.Parse(HTTPMethod);
 
-            if (this.HTTPMethod == null)
-                throw new ArgumentNullException("Invalid HTTPMethod!");
+//            if (this.HTTPMethod == null)
+//                throw new ArgumentNullException("Invalid HTTPMethod!");
 
-            this.UriTemplate    = UriTemplate;
-            this.HTTPStatusCode = myHTTPStatusCode;
+//            this.UriTemplate    = UriTemplate;
+//            this.HTTPStatusCode = myHTTPStatusCode;
 
-        }
+//        }
 
-        #endregion
+//        #endregion
 
-        #endregion
+//        #endregion
 
-    }
+//    }
 
-}
+//}

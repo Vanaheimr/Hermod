@@ -2428,7 +2428,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod.Value)).
                                                 Select(match      => match.URLNode.Get     (HTTPMethod.Value)).
-                                                Select(methodnode => HTTPContentTypeSelector(methodnode.ContentTypes.ToArray())).
+                                                Where (methodnode => methodnode is not null).
+                                                Select(methodnode => HTTPContentTypeSelector(methodnode!.ContentTypes.ToArray())).
                                                 ToArray();
 
                 //foreach (var aa in FilteredByMethod)

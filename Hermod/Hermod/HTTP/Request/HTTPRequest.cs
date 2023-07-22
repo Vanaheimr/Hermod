@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of this request.
         /// </summary>
-        public HTTPServer         HTTPServer                { get; }
+        public HTTPServer?        HTTPServer                { get; }
 
 
         public X509Certificate2?  ServerCertificate         { get; }
@@ -510,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Add this prefix to the URL before sending the request.
         /// </summary>
-        public String             FakeURLPrefix             { get; internal set; }
+        public String?            FakeURLPrefix             { get; internal set; }
 
         /// <summary>
         /// The best matching accept type.
@@ -519,7 +519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPContentType    BestMatchingAcceptType    { get; internal set; }
 
 
-        public Object             SubprotocolRequest        { get; set; }
+        public Object?            SubprotocolRequest        { get; set; }
 
         #endregion
 
@@ -1004,9 +1004,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse QueryString after '?'
             if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
-                this.QueryString = QueryString.Parse(parsedURL[1]);
+                QueryString = QueryString.Parse(parsedURL[1]);
             else
-                this.QueryString = QueryString.New;
+                QueryString = QueryString.New;
 
             #endregion
 
@@ -1043,12 +1043,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Select (v => v.Trim()).
                                    ToArray();
 
-            UInt16 hostPort  = 80;
 
             //if (hostHeader.Length == 1)
             //    headerFields[HTTPRequestHeaderField.Host.Name] = headerFields[HTTPRequestHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
 
-            if (hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out hostPort))
+            if (hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out var hostPort))
                 throw new Exception("Invalid HTTP port in host header!");
 
             if (hostHeader.Length  > 2)
@@ -1071,7 +1070,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             : base(Request)
 
-        { }
+        {
+
+            ProtocolName            = Request.ProtocolName;
+            ParsedURLParameters     = Request.ParsedURLParameters;
+            QueryString             = Request.QueryString;
+            BestMatchingAcceptType  = Request.BestMatchingAcceptType;
+
+        }
 
         #endregion
 
