@@ -34,6 +34,7 @@ using Microsoft.Extensions.Options;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Diagnostics;
 
 #endregion
 
@@ -117,6 +118,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
     #endregion
 
+    #region StatisticsMiddleware
+
+    public class StatisticsMiddleware
+    {
+
+        private readonly RequestDelegate _next;
+
+        public StatisticsMiddleware(RequestDelegate Next)
+        {
+
+            this._next = Next;
+
+        }
+
+        public async Task InvokeAsync(HttpContext HTTPContext)
+        {
+
+            // Before calling the next middleware, you can add pre-processing logic here.
+            var watch = Stopwatch.StartNew();
+
+            // Calls the next middleware in the pipeline,
+            // or terminates the request at once!
+            await _next(HTTPContext);
+
+            // After calling the next middleware, you can add post-processing logic here.
+            watch.Stop();
+            var elapsedMs = watch.ElapsedMilliseconds;
+
+        }
+
+    }
+
+    #endregion
+
 
     /// <summary>
     /// .NET Kestrel HTTP server tests endpoints.
@@ -142,6 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             builder.Services.AddAuthorization();
 
             app      = builder.Build();
+            app.UseMiddleware<StatisticsMiddleware>();
             app.Use((context, next) => {
                 context.Response.Headers["Server"] = "Kestrel Test Server";
                 return next.Invoke();
