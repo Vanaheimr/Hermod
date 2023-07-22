@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Security.Claims;
 using System.Net.Http.Headers;
 
 using Microsoft.AspNetCore.Builder;
@@ -32,7 +33,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Security.Claims;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -135,9 +135,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                 return next.Invoke();
             });
             app.UseAuthentication();
-            app.Use((context, next) => {
-                return next.Invoke();
-            });
+            //app.Use((context, next) => {
+            //    return next.Invoke();
+            //});
             app.UseAuthorization();
 
 
