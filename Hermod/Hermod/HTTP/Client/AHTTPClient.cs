@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System;
 
 #endregion
 
@@ -38,6 +39,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     /// <param name="RetryCount">The retry counter.</param>
     public delegate TimeSpan TransmissionRetryDelayDelegate(UInt32 RetryCount);
+
+
+    #region (class) HTTPClientTimings
+
+    public class HTTPClientTimings
+    {
+
+        public DateTime                       Start                   { get; }
+
+        public TimeSpan                       Elapsed
+            => Timestamp.Now - Start;
+
+        public List<Tuple<TimeSpan, String>>  Errors                  { get; }
+
+        public TimeSpan?                      RequestLogging1         { get; internal set; }
+        public TimeSpan?                      RequestLogging2         { get; internal set; }
+        public TimeSpan?                      DNSLookup               { get; internal set; }
+        public TimeSpan?                      Connected               { get; internal set; }
+        public TimeSpan?                      TLSHandshake            { get; internal set; }
+        public Byte                           RestartCounter          { get; internal set; }
+        public UInt64?                        RequestHeaderLength     { get; internal set; }
+        public TimeSpan?                      WriteRequestHeader      { get; internal set; }
+        public UInt64?                        RequestBodyLength       { get; internal set; }
+        public TimeSpan?                      WriteRequestBody        { get; internal set; }
+        public List<Tuple<TimeSpan, UInt64>>  DataReceived            { get; }
+        public TimeSpan?                      ResponseHeaderParsed    { get; internal set; }
+        public TimeSpan?                      ResponseLogging1        { get; internal set; }
+        public TimeSpan?                      ResponseLogging2        { get; internal set; }
+
+
+
+        public HTTPClientTimings()
+        {
+            this.Start         = Timestamp.Now;
+            this.DataReceived  = new List<Tuple<TimeSpan, UInt64>>();
+            this.Errors        = new List<Tuple<TimeSpan, String>>();
+        }
+
+
+        public void AddError(String Error)
+        {
+            Errors.Add(new Tuple<TimeSpan, String>(Timestamp.Now - Start, Error));
+        }
+
+
+        public override String ToString()
+
+            => String.Concat(
+                    "RequestLogging1: ",      RequestLogging1?.     TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "RequestLogging2: ",      RequestLogging2?.     TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "DNSLookup: ",            DNSLookup?.           TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "Connected: ",            Connected?.           TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "TLSHandshake: ",         TLSHandshake?.        TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "RestartCounter: ",       RestartCounter,                                                " > ",
+                    "WriteRequestHeader: ",   WriteRequestHeader?.  TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestHeaderLength} bytes) > ",
+                    "WriteRequestBody: ",     WriteRequestBody?.    TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestBodyLength} bytes) > ",
+                    DataReceived.Select(dr => $"DataReceived: {dr.Item1.TotalMilliseconds:F2} ({dr.Item2} bytes)").AggregateWith(" > "), " > ",
+                    "ResponseHeaderParsed: ", ResponseHeaderParsed?.TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "ResponseLogging1: ",     ResponseLogging1?.    TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "ResponseLogging2: ",     ResponseLogging2?.    TotalMilliseconds.ToString("F2") ?? "-"
+                );
+
+    }
+
+    #endregion
 
 
     /// <summary>
@@ -75,6 +141,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly TimeSpan  DefaultTransmissionRetryDelay   = TimeSpan.FromSeconds(2);
 
         /// <summary>
+        /// The default size of the internal buffers.
+        /// </summary>
+        public const           UInt32    DefaultInternalBufferSize       = 65536;
+
+        /// <summary>
         /// The default number of maximum transmission retries.
         /// </summary>
         public const           UInt16    DefaultMaxNumberOfRetries       = 3;
@@ -89,14 +160,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public URL                                   RemoteURL                     { get; }
 
         /// <summary>
+        /// The IP Address to connect to.
+        /// </summary>
+        public IIPAddress?                           RemoteIPAddress               { get; private set; }
+
+        /// <summary>
+        /// The HTTP/TCP port to connect to.
+        /// </summary>
+        public IPPort?                               RemotePort                    { get; }
+
+        /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
         public HTTPHostname?                         VirtualHostname               { get; }
-
-        /// <summary>
-        /// An optional description of this HTTP client.
-        /// </summary>
-        public String?                               Description                   { get; set; }
 
         /// <summary>
         /// The remote SSL/TLS certificate validator.
@@ -139,6 +215,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
 
         /// <summary>
+        /// The size of the internal buffers.
+        /// </summary>
+        public UInt32                                InternalBufferSize            { get; }
+
+        /// <summary>
         /// The maximum number of retries when communicationg with the remote HTTP service.
         /// </summary>
         public UInt16                                MaxNumberOfRetries            { get; }
@@ -147,6 +228,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
         /// </summary>
         public Boolean                               UseHTTPPipelining             { get; }
+
+        /// <summary>
+        /// An optional description of this HTTP client.
+        /// </summary>
+        public String?                               Description                   { get; set; }
 
         /// <summary>
         /// Disable any logging.
@@ -164,66 +250,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public DNSClient                             DNSClient                     { get; }
 
 
-        ///// <summary>
-        ///// The Hostname to which the HTTPClient connects.
-        ///// </summary>
-        //public HTTPHostname     Hostname            { get; }
-
-
-        /// <summary>
-        /// The IP Address to connect to.
-        /// </summary>
-        public IIPAddress?                           RemoteIPAddress               { get; private set; }
-
-        /// <summary>
-        /// The HTTP/TCP port to connect to.
-        /// </summary>
-        public IPPort?                               RemotePort                    { get; }
-
-
-
         public Int32 Available
-                    => tcpSocket.Available;
+            => tcpSocket?.Available ?? 0;
 
         public Boolean Connected
-            => tcpSocket.Connected;
+            => tcpSocket?.Connected ?? false;
 
+        #region LingerState
         public LingerOption? LingerState
         {
             get
             {
-                return tcpSocket.LingerState;
+
+                if (tcpSocket is not null)
+                    return tcpSocket.LingerState;
+
+                return null;
+
             }
             set
             {
-                tcpSocket.LingerState = value;
+                if (tcpSocket is not null && value is not null)
+                    tcpSocket.LingerState = value;
             }
         }
 
-        public Boolean NoDelay
+        #endregion
+
+        #region NoDelay
+
+        public Boolean? NoDelay
         {
             get
             {
-                return tcpSocket.NoDelay;
+
+                if (tcpSocket is not null)
+                    return tcpSocket.NoDelay;
+
+                return null;
+
             }
             set
             {
-                tcpSocket.NoDelay = value;
+                if (tcpSocket is not null && value.HasValue)
+                    tcpSocket.NoDelay = value.Value;
             }
         }
 
-        public Byte TTL
+        #endregion
+
+        #region TTL
+
+        public Byte? TTL
         {
             get
             {
-                return (Byte) tcpSocket.Ttl;
+
+                if (tcpSocket is not null)
+                    return (Byte) tcpSocket.Ttl;
+
+                return null;
+
             }
             set
             {
-                tcpSocket.Ttl = value;
+
+                if (tcpSocket is not null && value.HasValue)
+                    tcpSocket.Ttl = value.Value;
+
             }
         }
 
+        #endregion
 
         #endregion
 
@@ -276,32 +374,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteURL">The remote URL of the HTTP endpoint to connect to.</param>
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this HTTP client.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
-        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
-        /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries for HTTP request.</param>
+        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         protected AHTTPClient(URL                                   RemoteURL,
                               HTTPHostname?                         VirtualHostname              = null,
                               String?                               Description                  = null,
+                              Boolean?                              PreferIPv4                   = null,
                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                               X509Certificate?                      ClientCert                   = null,
                               SslProtocols?                         TLSProtocol                  = null,
-                              Boolean?                              PreferIPv4                   = null,
-                              String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                              String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
                               TimeSpan?                             RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              UInt32?                               InternalBufferSize           = DefaultInternalBufferSize,
                               Boolean?                              UseHTTPPipelining            = null,
-
                               Boolean?                              DisableLogging               = false,
                               HTTPClientLogger?                     HTTPLogger                   = null,
                               DNSClient?                            DNSClient                    = null)
@@ -310,15 +410,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteURL                   = RemoteURL;
             this.VirtualHostname             = VirtualHostname;
             this.Description                 = Description;
+            this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.ClientCertificateSelector   = ClientCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
-            this.PreferIPv4                  = PreferIPv4             ?? false;
+            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
+            this.InternalBufferSize          = InternalBufferSize     ?? DefaultInternalBufferSize;
             this.UseHTTPPipelining           = UseHTTPPipelining      ?? false;
             this.DisableLogging              = DisableLogging         ?? false;
             this.HTTPLogger                  = HTTPLogger;
@@ -438,45 +539,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
+            #region Data
+
+            var timings          = new HTTPClientTimings();
+            var restart          = false;
+            var httpHeaderBytes  = Array.Empty<Byte>();
+            var httpBodyBytes    = Array.Empty<Byte>();
+            var clientClose      = false;
+
+            RequestTimeout     ??= Request.Timeout ?? this.RequestTimeout;
+
             HTTPResponse? Response = null;
+
+            #endregion
+
+            #region Call the optional HTTP request log delegate
+
+            timings.RequestLogging1 = timings.Elapsed;
 
             try
             {
 
-                //Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+                if (RequestLogDelegate is not null)
+                    await Task.WhenAll(RequestLogDelegate.GetInvocationList().
+                                       Cast<ClientRequestLogHandler>().
+                                       Select(async e => {
+                                           await e(timings.Start + timings.RequestLogging1.Value,
+                                                   this,
+                                                   Request);
+                                       })).
+                                       ConfigureAwait(false);
 
-                #region Data
+            }
+            catch (Exception e)
+            {
+                timings.AddError($"{nameof(RequestLogDelegate)}: {e.Message}");
+            }
 
-                var HTTPHeaderBytes  = Array.Empty<Byte>();
-                var HTTPBodyBytes    = Array.Empty<Byte>();
-                var sw               = new Stopwatch();
-                var clientClose      = false;
+            timings.RequestLogging2 = timings.Elapsed;
 
-                if (!RequestTimeout.HasValue)
-                    RequestTimeout = Request.Timeout ?? this.RequestTimeout;
+            #endregion
 
-                #endregion
 
-                #region Create TCP connection (possibly also do DNS lookups)
-
-                Boolean restart;
+            try
+            {
 
                 do
                 {
 
+                    if (timings.RestartCounter > 0)
+                        timings.AddError($"{timings.RestartCounter}. restart!");
+
+                    timings.RestartCounter++;
                     restart = false;
+
+                    #region Create TCP connection (maybe also some DNS lookups)
 
                     if (tcpSocket is null)
                     {
 
-                        System.Net.IPEndPoint? _FinalIPEndPoint = null;
+                        System.Net.IPEndPoint? remoteIPEndPoint = null;
 
                         if (RemoteIPAddress is null)
                         {
 
                             #region Localhost
 
-                            if (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
+                            if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
                                 RemoteIPAddress = IPv4Address.Localhost;
 
                             else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
@@ -496,8 +625,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 var IPv4AddressLookupTask = DNSClient.
-                                                                Query<A>(RemoteURL.Hostname.Name).
-                                                                ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
+                                                                Query<A>   (RemoteURL.Hostname.Name).
+                                                                ContinueWith(query => query.Result.Select(ARecord    => ARecord.   IPv4Address));
 
                                 var IPv6AddressLookupTask = DNSClient.
                                                                 Query<AAAA>(RemoteURL.Hostname.Name).
@@ -524,41 +653,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         RemoteIPAddress = IPv6AddressLookupTask.Result.First();
                                 }
 
+                                timings.DNSLookup = timings.Elapsed;
+
                             }
 
                             #endregion
 
                         }
 
-                        if (RemoteIPAddress is not null && RemotePort is not null)
-                            _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                         RemotePort.Value.ToInt32());
-                        else
-                            throw new Exception("DNS lookup failed!");
-
-
-                        sw.Start();
-
-                        //TCPClient = new TcpClient();
-                        //TCPClient.Connect(_FinalIPEndPoint);
-                        //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                        if (RemoteIPAddress.IsIPv4)
-                            tcpSocket = new Socket(AddressFamily.InterNetwork,
-                                                   SocketType.Stream,
-                                                   ProtocolType.Tcp);
-
-                        if (RemoteIPAddress.IsIPv6)
-                            tcpSocket = new Socket(AddressFamily.InterNetworkV6,
-                                                   SocketType.Stream,
-                                                   ProtocolType.Tcp);
-
-                        if (tcpSocket is not null)
+                        if (RemoteIPAddress is not null &&
+                            RemotePort      is not null)
                         {
-                            tcpSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                            tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                            tcpSocket.Connect(_FinalIPEndPoint);
-                            tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+                            remoteIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                                                         RemotePort.Value.ToInt32());
+
+                            if (RemoteIPAddress.IsIPv4)
+                                tcpSocket = new Socket(AddressFamily.InterNetwork,
+                                                       SocketType.Stream,
+                                                       ProtocolType.Tcp);
+
+                            if (RemoteIPAddress.IsIPv6)
+                                tcpSocket = new Socket(AddressFamily.InterNetworkV6,
+                                                       SocketType.Stream,
+                                                       ProtocolType.Tcp);
+
+                            if (tcpSocket is not null)
+                            {
+                                try
+                                {
+                                    tcpSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                                    tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                                    tcpSocket.Connect(remoteIPEndPoint);
+                                    tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                                }
+                                catch (Exception e)
+                                {
+                                    timings.AddError($"TCP.Connect: {e.Message}");
+                                    tcpSocket  = null;
+                                    restart    = true;
+                                }
+                            }
+
+                            timings.Connected = timings.Elapsed;
+
+                        }
+                        else
+                        {
+                            tcpSocket  = null;
+                            restart    = true;
                         }
 
                     }
@@ -569,9 +712,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       }
                                     : null;
 
-                #endregion
+                    #endregion
 
-                #region Create (Crypto-)Stream
+                    #region Create (Crypto-)Stream
 
                     if (RemoteURL.Protocol == URLProtocols.https &&
                         RemoteCertificateValidator is not null   &&
@@ -581,15 +724,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (tlsStream is null)
                         {
 
-                            tlsStream = new SslStream(tcpStream,
-                                                      false,
-                                                      RemoteCertificateValidator,
-                                                      ClientCertificateSelector,
-                                                      EncryptionPolicy.RequireEncryption)
+                            tlsStream = new SslStream(
+                                            innerStream:                        tcpStream,
+                                            leaveInnerStreamOpen:               false,
+                                            userCertificateValidationCallback:  RemoteCertificateValidator,
+                                            userCertificateSelectionCallback:   ClientCertificateSelector,
+                                            encryptionPolicy:                   EncryptionPolicy.RequireEncryption
+                                        )
                             {
-
                                 ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-
                             };
 
                             httpStream = tlsStream;
@@ -597,552 +740,548 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                await tlsStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
-                                                                          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                                                                          this.TLSProtocol,
-                                                                          false);// true);
-
-                            }
-                            catch
-                            {
-                                tcpSocket = null;
-                                restart   = true;
-                            }
-
-                        }
-
-                    }
-
-                    else
-                    {
-                        tlsStream  = null;
-                        httpStream = tcpStream;
-                    }
-
-                    httpStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                }
-                while (restart);
-
-                #endregion
-
-                Request.LocalSocket   = IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint)                ?? IPSocket.Zero;
-                Request.HTTPSource    = new HTTPSource(IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint) ?? IPSocket.Zero);
-                Request.RemoteSocket  = IPSocket.FromIPEndPoint(tcpStream.Socket.RemoteEndPoint)               ?? IPSocket.Zero;
-
-                #region Call the optional HTTP request log delegate
-
-                try
-                {
-
-                    if (RequestLogDelegate is not null)
-                        await Task.WhenAll(RequestLogDelegate.GetInvocationList().
-                                           Cast<ClientRequestLogHandler>().
-                                           Select(e => e(Timestamp.Now,
-                                                         this,
-                                                         Request))).
-                                           ConfigureAwait(false);
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log(e, nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
-                }
-
-                #endregion
-
-                #region Send Request
-
-                // To avoid confusions, better send the entire header incl. separator lines as one block
-             //   await httpStream.WriteAsync($"{Request.EntireRequestHeader}\r\n\r\n".ToUTF8Bytes(), CancellationToken);
-
-                //await Task.Delay(200);
-
-                var requestBodyLength = Request.HTTPBody is null
-                                            ? Request.ContentLength.HasValue
-                                                  ? (Int32) Request.ContentLength.Value
-                                                  : 0
-                                            : Request.ContentLength.HasValue
-                                                  ? Math.Min((Int32) Request.ContentLength.Value,
-                                                             Request.HTTPBody.Length)
-                                                  : Request.HTTPBody.Length;
-
-                var array1        = $"{Request.EntireRequestHeader}\r\n\r\n".ToUTF8Bytes();
-                var combinedArray = new Byte[array1.Length + requestBodyLength];
-                Buffer.BlockCopy(array1,           0, combinedArray,             0, array1.Length);
-
-                if (requestBodyLength > 0)
-                    Buffer.BlockCopy(Request.HTTPBody, 0, combinedArray, array1.Length, requestBodyLength);
-
-                await httpStream.WriteAsync(combinedArray, CancellationToken);
-
-                //DebugX.LogT("RequestBodyLength: " + RequestBodyLength + " bytes, socket: " + TCPStream.Socket.LocalEndPoint?.ToString() + " => " + TCPStream.Socket.RemoteEndPoint?.ToString());
-
-                //if (Request.HTTPBody is not null && requestBodyLength > 0)
-                //    await httpStream.WriteAsync(Request.HTTPBody, 0, requestBodyLength, CancellationToken);
-
-                await httpStream.FlushAsync(CancellationToken);
-
-                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URL + ") sent request of " + Request.EntirePDU.Length + " bytes at " + sw.ElapsedMilliseconds + "ms!");
-
-                var internalHTTPStream  = new MemoryStream();
-
-                #endregion
-
-                #region Wait timeout for the server to react!
-
-
-                //while (!TCPStream.DataAvailable)
-                //{
-
-                //    if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                //        throw new HTTPTimeoutException(sw.Elapsed);
-
-                //    Thread.Sleep(1);
-
-                //}
-
-                //DebugX.LogT("HTTPClient (" + Request.HTTPMethod + " " + Request.URL + ") got first response after " + sw.ElapsedMilliseconds + "ms!");
-
-                #endregion
-
-
-                #region Read the HTTP header
-
-                var currentDataLength    = 0;
-                var currentHeaderLength  = 0;
-                var httpHeaderEndsAt     = 0;
-
-                var receiveBuffer = new Byte[65536];
-
-                do
-                {
-
-                    currentDataLength = await httpStream.ReadAsync(receiveBuffer, CancellationToken);
-
-                    if (currentDataLength > 0)
-                    {
-
-                        if (currentDataLength > 3 || currentHeaderLength > 3)
-                        {
-
-                            for (var pos = 3; pos < receiveBuffer.Length; pos++)
-                            {
-                                if (receiveBuffer[pos    ] == 0x0a &&
-                                    receiveBuffer[pos - 1] == 0x0d &&
-                                    receiveBuffer[pos - 2] == 0x0a &&
-                                    receiveBuffer[pos - 3] == 0x0d)
-                                {
-                                    httpHeaderEndsAt = pos - 3;
-                                    break;
-                                }
-                            }
-
-                            if (httpHeaderEndsAt > 0)
-                            {
-
-                                Array.Resize(ref HTTPHeaderBytes, currentHeaderLength + httpHeaderEndsAt);
-                                Array.Copy(receiveBuffer, 0, HTTPHeaderBytes, currentHeaderLength, httpHeaderEndsAt);
-                                currentHeaderLength += httpHeaderEndsAt;
-
-                                // We already read a bit of the HTTP body!
-                                if (httpHeaderEndsAt + 4 < currentDataLength)
-                                {
-                                    Array.Resize(ref HTTPBodyBytes, currentDataLength - 4 - httpHeaderEndsAt);
-                                    Array.Copy(receiveBuffer, httpHeaderEndsAt + 4, HTTPBodyBytes, 0, HTTPBodyBytes.Length);
-                                }
-
-                            }
-
-                            else
-                            {
-                                Array.Resize(ref HTTPHeaderBytes, currentHeaderLength + receiveBuffer.Length);
-                                Array.Copy(receiveBuffer, 0, HTTPHeaderBytes, currentHeaderLength, receiveBuffer.Length);
-                                currentHeaderLength += receiveBuffer.Length;
-                                Thread.Sleep(1);
-                            }
-
-                        }
-
-                    }
-
-                } while (httpHeaderEndsAt == 0 &&
-                         sw.ElapsedMilliseconds < httpStream.ReadTimeout);
-
-                if (HTTPHeaderBytes.Length == 0)
-                    throw new ApplicationException("[" + Timestamp.Now.ToString() + "] Could not find the end of the HTTP protocol header!");
-
-                Response = HTTPResponse.Parse(HTTPHeaderBytes.ToUTF8String(),
-                                              HTTPBodyBytes,
-                                              Request,
-                                              NumberOfRetries: NumberOfRetry);
-
-                #endregion
-
-
-                receiveBuffer = new Byte[50 * 1024 * 1024];
-
-                #region A single fixed-lenght HTTP request -> read '$Content-Length' bytes...
-
-                // Copy only the number of bytes given within
-                // the HTTP header element 'Content-Length'!
-                if (Response.ContentLength.HasValue && Response.ContentLength.Value > 0)
-                {
-
-                    // Test via:
-                    // var aaa = new HTTPClient("www.networksorcery.com").GET("/enp/rfc/rfc1000.txt").ExecuteReturnResult().Result;
-
-                    var stillToRead  = (Int32) Response.ContentLength.Value - Response.HTTPBody.Length;
-                    var isError      = false;
-
-                    do
-                    {
-
-                        while (//TCPStream.DataAvailable &&  <= Does not work as expected!
-                               stillToRead > 0)
-                        {
-
-                            try
-                            {
-
-                                currentDataLength = await httpStream.ReadAsync(receiveBuffer, 0, Math.Min(receiveBuffer.Length, stillToRead), CancellationToken);
-
-                                if (currentDataLength > 0)
-                                {
-                                    var oldSize = Response.HTTPBody.Length;
-                                    Response.ResizeBody(oldSize + currentDataLength);
-                                    Array.Copy(receiveBuffer, 0, Response.HTTPBody, oldSize, currentDataLength);
-                                    stillToRead -= currentDataLength;
-                                }
+                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
+                                                                          clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
+                                                                          enabledSslProtocols:         this.TLSProtocol,
+                                                                          checkCertificateRevocation:  false);// true);
+
+                                timings.TLSHandshake = timings.Elapsed;
 
                             }
                             catch (Exception e)
                             {
-                                DebugX.Log($"StillToRead: {receiveBuffer.Length}, {stillToRead}: {e.Message}!");
-                                isError = true;
-                                break;
+                                timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
+                                tcpSocket  = null;
+                                restart    = true;
                             }
 
                         }
 
-                        OnDataRead?.Invoke(sw.Elapsed,
-                                           Response.ContentLength.Value - (UInt64) stillToRead,
-                                           Response.ContentLength.Value);
-
-                        if (stillToRead <= 0)
-                            break;
-
-                        Thread.Sleep(1);
-
                     }
-                    while (sw.ElapsedMilliseconds < httpStream.ReadTimeout && !isError);
+                    else
+                    {
+                        tlsStream   = null;
+                        httpStream  = tcpStream;
+                        restart     = true;
+                    }
 
-                    // Do a friendly close of the TCP connection to avoid TCP RST packets!
-                    clientClose = true;
+                    #endregion
+
+                    if (httpStream is not null)
+                        httpStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
                 }
+                while (restart && timings.RestartCounter < MaxNumberOfRetries);
 
-                #endregion
+                if (tcpStream is not null)
+                {
+                    Request.LocalSocket   =                IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint)  ?? IPSocket.Zero;
+                    Request.HTTPSource    = new HTTPSource(IPSocket.FromIPEndPoint(tcpStream.Socket.LocalEndPoint)  ?? IPSocket.Zero);
+                    Request.RemoteSocket  =                IPSocket.FromIPEndPoint(tcpStream.Socket.RemoteEndPoint) ?? IPSocket.Zero;
+                }
 
-                //ToDo: HTTP/1.1 100 Continue
-
-                #region ...or chunked transport...
-
-                else if (Response.TransferEncoding == "chunked")
+                if (httpStream is not null)
                 {
 
-                    //DebugX.Log("HTTP Client: Chunked Transport detected...");
+                    #region Send request header
 
-                    try
+                    timings.RequestHeaderLength = (UInt64) Request.EntireRequestHeader.Length + 4;
+
+                    await httpStream.WriteAsync($"{Request.EntireRequestHeader}\r\n\r\n".ToUTF8Bytes(), CancellationToken);
+
+                    timings.WriteRequestHeader = timings.Elapsed;
+
+                    #endregion
+
+                    #region Send (optional) request body
+
+                    var requestBodyLength = Request.HTTPBody is null
+                                                ? Request.ContentLength.HasValue
+                                                      ? (Int32) Request.ContentLength.Value
+                                                      : 0
+                                                : Request.ContentLength.HasValue
+                                                      ? Math.Min((Int32) Request.ContentLength.Value,
+                                                                 Request.HTTPBody.Length)
+                                                      : Request.HTTPBody.Length;
+
+                    if (Request.HTTPBody is not null && requestBodyLength > 0)
+                    {
+                        timings.RequestBodyLength = (UInt64) requestBodyLength;
+                        await httpStream.WriteAsync(Request.HTTPBody, 0, requestBodyLength, CancellationToken);
+                    }
+
+                    await httpStream.FlushAsync(CancellationToken);
+
+                    timings.WriteRequestBody = timings.Elapsed;
+
+                    #endregion
+
+
+                    #region Read at least the HTTP header
+
+                    var currentDataLength    = 0;
+                    var currentHeaderLength  = 0;
+                    var httpHeaderEndsAt     = 0;
+
+                    var receiveBuffer = new Byte[65536];
+
+                    do
                     {
 
-                        Response.NewContentStream();
-                        var chunkedStream            = new MemoryStream();
+                        currentDataLength = await httpStream.ReadAsync(receiveBuffer, CancellationToken);
 
-                        // Write the first buffer (without the HTTP header) to the chunked stream...
-                        chunkedStream.Write(HTTPBodyBytes, 0, HTTPBodyBytes.Length);
+                        if (currentDataLength > 0)
+                        {
 
-                        var chunkedArray             = chunkedStream.ToArray();
-                        var decodedStream            = new MemoryStream();
-                        var currentPosition          = 2U;
-                        var lastPosition             = 0U;
-                        var currentBlockNumber       = 0U;
-                        var chunkedDecodingFinished  = 0;
-                        var trailingHeaders          = new Dictionary<String, String?>();
+                            timings.DataReceived.Add(new Tuple<TimeSpan, UInt64>(timings.Elapsed, (UInt64) currentDataLength));
+
+                            if (currentDataLength > 3 || currentHeaderLength > 3)
+                            {
+
+                                #region Find the \r\n\r\n separator between HTTP header and HTTP body
+
+                                for (var pos = 3; pos < receiveBuffer.Length; pos++)
+                                {
+                                    if (receiveBuffer[pos    ] == 0x0a &&
+                                        receiveBuffer[pos - 1] == 0x0d &&
+                                        receiveBuffer[pos - 2] == 0x0a &&
+                                        receiveBuffer[pos - 3] == 0x0d)
+                                    {
+                                        httpHeaderEndsAt = pos - 3;
+                                        break;
+                                    }
+                                }
+
+                                #endregion
+
+                                #region We found the \r\n\r\n separator...
+
+                                if (httpHeaderEndsAt > 0)
+                                {
+
+                                    Array.Resize(ref httpHeaderBytes, currentHeaderLength + httpHeaderEndsAt);
+                                    Array.Copy(receiveBuffer, 0, httpHeaderBytes, currentHeaderLength, httpHeaderEndsAt);
+                                    currentHeaderLength += httpHeaderEndsAt;
+
+                                    // We already read a bit of the HTTP body!
+                                    if (httpHeaderEndsAt + 4 < currentDataLength)
+                                    {
+                                        Array.Resize(ref httpBodyBytes, currentDataLength - 4 - httpHeaderEndsAt);
+                                        Array.Copy(receiveBuffer, httpHeaderEndsAt + 4, httpBodyBytes, 0, httpBodyBytes.Length);
+                                    }
+
+                                }
+
+                                #endregion
+
+                                #region We did not find the \r\n\r\n separator... try to read next fragment!
+
+                                else
+                                {
+                                    Array.Resize(ref httpHeaderBytes, currentHeaderLength + receiveBuffer.Length);
+                                    Array.Copy(receiveBuffer, 0, httpHeaderBytes, currentHeaderLength, receiveBuffer.Length);
+                                    currentHeaderLength += receiveBuffer.Length;
+                                    //Thread.Sleep(1);
+                                }
+
+                                #endregion
+
+                            }
+
+                        }
+
+                    } while (httpHeaderEndsAt == 0 &&
+                             timings.Elapsed.TotalMilliseconds < httpStream.ReadTimeout);
+
+                    if (httpHeaderBytes.Length == 0)
+                        throw new ApplicationException("[" + Timestamp.Now.ToString() + "] Could not find the end of the HTTP protocol header!");
+
+                    Response = HTTPResponse.Parse(ResponseHeader:       httpHeaderBytes.ToUTF8String(),
+                                                  ResponseBody:         httpBodyBytes,
+                                                  Request:              Request,
+                                                  SubprotocolResponse:  null,
+                                                  EventTrackingId:      EventTrackingId,
+                                                  Runtime:              timings.Elapsed,
+                                                  NumberOfRetries:      NumberOfRetry,
+                                                  CancellationToken:    CancellationToken);
+
+                    Response.ClientTimings   = timings;
+
+                    timings.ResponseHeaderParsed = timings.Elapsed;
+
+                    #endregion
+
+                    #region A single fixed-lenght HTTP request -> read '$Content-Length' bytes...
+
+                    //receiveBuffer = new Byte[50 * 1024 * 1024];
+
+                    // Copy only the number of bytes given within
+                    // the HTTP header element 'Content-Length'!
+                    if (Response.ContentLength.HasValue &&
+                        Response.ContentLength.Value > 0 &&
+                        Response.HTTPBody is not null)
+                    {
+
+                        // Test via:
+                        // var aaa = new HTTPClient("www.networksorcery.com").GET("/enp/rfc/rfc1000.txt").ExecuteReturnResult().Result;
+
+                        var stillToRead  = (Int32) Response.ContentLength.Value - Response.HTTPBody.Length;
+                        var isError      = false;
 
                         do
                         {
 
-                            #region Read more data from network
-
-                            if (tcpStream.DataAvailable)
+                            while (//TCPStream.DataAvailable &&  <= Does not work as expected!
+                                   stillToRead > 0)
                             {
 
-                                do
+                                try
                                 {
 
-                                    currentDataLength = httpStream.Read(receiveBuffer, 0, receiveBuffer.Length);
-
-                                    //DebugX.Log("ReadTEBlock read from network: " + currentDataLength);
+                                    currentDataLength = await httpStream.ReadAsync(receiveBuffer, 0, Math.Min(receiveBuffer.Length, stillToRead), CancellationToken);
 
                                     if (currentDataLength > 0)
-                                        chunkedStream.Write(receiveBuffer, 0, currentDataLength);
+                                    {
 
-                                    OnChunkDataRead?.Invoke(sw.Elapsed,
-                                                            (UInt32) currentDataLength,
-                                                            (UInt64) chunkedStream.Length);
+                                        timings.DataReceived.Add(new Tuple<TimeSpan, UInt64>(timings.Elapsed, (UInt64)currentDataLength));
 
-                                    if (sw.ElapsedMilliseconds > httpStream.ReadTimeout)
-                                        chunkedDecodingFinished = 3;
+                                        var oldSize = Response.HTTPBody.Length;
+                                        Response.ResizeBody(oldSize + currentDataLength);
+                                        Array.Copy(receiveBuffer, 0, Response.HTTPBody, oldSize, currentDataLength);
+                                        stillToRead -= currentDataLength;
 
-                                } while (tcpStream.DataAvailable && chunkedDecodingFinished == 0);
+                                    }
 
-                                chunkedArray = chunkedStream.ToArray();
+                                }
+                                catch (Exception e)
+                                {
+                                    timings.AddError($"StillToRead: {receiveBuffer.Length}, {stillToRead}: {e.Message}!");
+                                    isError = true;
+                                    break;
+                                }
 
                             }
 
-                            #endregion
+                            OnDataRead?.Invoke(timings.Elapsed,
+                                               Response.ContentLength.Value - (UInt64) stillToRead,
+                                               Response.ContentLength.Value);
 
-                            #region Process chunks
+                            if (stillToRead <= 0)
+                                break;
 
-                            // HTTP/1.1 200 OK\r\n
-                            // Server:             Apache/1.3.27\r\n
-                            // Transfer-Encoding:  chunked\r\n
-                            // Content-Type:       text/html; charset=iso-8859-1\r\n
-                            // Trailer:            Cache-Control\r\n
-                            // \r\n
-                            // ee1;XXX\r\n
-                            // [Die ersten 3809 Zeichen der Datei]
-                            // \r\n
-                            // ffb;XXX\r\n
-                            // [Weitere 4091 Zeichen der Datei]
-                            // \r\n
-                            // c40;XXX\r\n
-                            // [Die letzten 3136 Zeichen der Datei]
-                            // \r\n
-                            // 0\r\n
-                            // Cache-Control: no-cache\r\n
-                            // \r\n
-                            // [Ende]
+                            Thread.Sleep(1);
 
-                            // A process for decoding the chunked transfer coding can be represented
-                            //    in pseudo-code as:
-                            //
-                            //      length := 0
-                            //      read chunk-size, chunk-ext (if any), and CRLF
-                            //      while (chunk-size > 0) {
-                            //         read chunk-data and CRLF
-                            //         append chunk-data to decoded-body
-                            //         length := length + chunk-size
-                            //         read chunk-size, chunk-ext (if any), and CRLF
-                            //      }
-                            //      read trailer field
-                            //      while (trailer field is not empty) {
-                            //         if (trailer field is allowed to be sent in a trailer) {
-                            //             append trailer field to existing header fields
-                            //         }
-                            //         read trailer-field
-                            //      }
-                            //      Content-Length := length
-                            //      Remove "chunked" from Transfer-Encoding
-                            //      Remove Trailer from existing header fields
+                        }
+                        while (timings.Elapsed.TotalMilliseconds < httpStream.ReadTimeout && !isError);
 
+                        // Do a friendly close of the TCP connection to avoid TCP RST packets!
+                        clientClose = true;
 
+                    }
 
-                            if (chunkedArray.Length >= currentPosition)
+                    #endregion
+
+                    //ToDo: HTTP/1.1 100 Continue
+
+                    #region ...or chunked transport...
+
+                    else if (Response.TransferEncoding == "chunked")
+                    {
+
+                        //DebugX.Log("HTTP Client: Chunked Transport detected...");
+
+                        try
+                        {
+
+                            Response.NewContentStream();
+                            var chunkedStream            = new MemoryStream();
+
+                            // Write the first buffer (without the HTTP header) to the chunked stream...
+                            chunkedStream.Write(httpBodyBytes, 0, httpBodyBytes.Length);
+
+                            var chunkedArray             = chunkedStream.ToArray();
+                            var decodedStream            = new MemoryStream();
+                            var currentPosition          = 2U;
+                            var lastPosition             = 0U;
+                            var currentBlockNumber       = 0U;
+                            var chunkedDecodingFinished  = 0;
+                            var trailingHeaders          = new Dictionary<String, String?>();
+
+                            do
                             {
-                                if (chunkedArray[currentPosition - 1] == '\n' &&
-                                    chunkedArray[currentPosition - 2] == '\r')
+
+                                #region Read more data from network
+
+                                if (tcpStream.DataAvailable)
                                 {
 
-                                    if (chunkedDecodingFinished == 0)
+                                    do
                                     {
 
-                                        currentBlockNumber++;
+                                        currentDataLength = httpStream.Read(receiveBuffer, 0, receiveBuffer.Length);
 
-                                        var chunkInfo = ChunkInfos.Parse(chunkedArray,
-                                                                         lastPosition,
-                                                                         currentPosition - lastPosition - 2);
+                                        //DebugX.Log("ReadTEBlock read from network: " + currentDataLength);
 
-                                        // End of stream reached?
-                                        if (chunkInfo.Length == 0)
+                                        if (currentDataLength > 0)
+                                            chunkedStream.Write(receiveBuffer, 0, currentDataLength);
+
+                                        OnChunkDataRead?.Invoke(timings.Elapsed,
+                                                                (UInt32) currentDataLength,
+                                                                (UInt64) chunkedStream.Length);
+
+                                        if (timings.Elapsed.TotalMilliseconds > httpStream.ReadTimeout)
+                                            chunkedDecodingFinished = 3;
+
+                                    } while (tcpStream.DataAvailable && chunkedDecodingFinished == 0);
+
+                                    chunkedArray = chunkedStream.ToArray();
+
+                                }
+
+                                #endregion
+
+                                #region Process chunks
+
+                                // HTTP/1.1 200 OK\r\n
+                                // Server:             Apache/1.3.27\r\n
+                                // Transfer-Encoding:  chunked\r\n
+                                // Content-Type:       text/html; charset=iso-8859-1\r\n
+                                // Trailer:            Cache-Control\r\n
+                                // \r\n
+                                // ee1;XXX\r\n
+                                // [Die ersten 3809 Zeichen der Datei]
+                                // \r\n
+                                // ffb;XXX\r\n
+                                // [Weitere 4091 Zeichen der Datei]
+                                // \r\n
+                                // c40;XXX\r\n
+                                // [Die letzten 3136 Zeichen der Datei]
+                                // \r\n
+                                // 0\r\n
+                                // Cache-Control: no-cache\r\n
+                                // \r\n
+                                // [Ende]
+
+                                // A process for decoding the chunked transfer coding can be represented
+                                //    in pseudo-code as:
+                                //
+                                //      length := 0
+                                //      read chunk-size, chunk-ext (if any), and CRLF
+                                //      while (chunk-size > 0) {
+                                //         read chunk-data and CRLF
+                                //         append chunk-data to decoded-body
+                                //         length := length + chunk-size
+                                //         read chunk-size, chunk-ext (if any), and CRLF
+                                //      }
+                                //      read trailer field
+                                //      while (trailer field is not empty) {
+                                //         if (trailer field is allowed to be sent in a trailer) {
+                                //             append trailer field to existing header fields
+                                //         }
+                                //         read trailer-field
+                                //      }
+                                //      Content-Length := length
+                                //      Remove "chunked" from Transfer-Encoding
+                                //      Remove Trailer from existing header fields
+
+
+
+                                if (chunkedArray.Length >= currentPosition)
+                                {
+                                    if (chunkedArray[currentPosition - 1] == '\n' &&
+                                        chunkedArray[currentPosition - 2] == '\r')
+                                    {
+
+                                        if (chunkedDecodingFinished == 0)
                                         {
 
-                                            OnChunkBlockFound?.Invoke(sw.Elapsed,
-                                                                      currentBlockNumber,
-                                                                      0,
-                                                                      chunkInfo.Extensions,
-                                                                      Array.Empty<Byte>(),
-                                                                      (UInt64) decodedStream.Length);
+                                            currentBlockNumber++;
 
-                                            Response.ContentStreamToArray(decodedStream);
+                                            var chunkInfo = ChunkInfos.Parse(chunkedArray,
+                                                                             lastPosition,
+                                                                             currentPosition - lastPosition - 2);
 
-                                            chunkedDecodingFinished = 1;
-                                            //currentPosition += chunkInfo.Length + 2;
-                                            lastPosition     = currentPosition;
-                                            currentPosition += 1;
-
-                                        }
-
-                                        // Read a new block... and final "\r\n"
-                                        if (chunkedDecodingFinished == 0 &&
-                                            currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
-                                        {
-
-                                            if (OnChunkBlockFound != null)
+                                            // End of stream reached?
+                                            if (chunkInfo.Length == 0)
                                             {
 
-                                                var chunkData = new Byte[chunkInfo.Length];
-                                                Array.Copy(chunkedArray, currentPosition, chunkData, 0, chunkInfo.Length);
+                                                OnChunkBlockFound?.Invoke(timings.Elapsed,
+                                                                          currentBlockNumber,
+                                                                          0,
+                                                                          chunkInfo.Extensions,
+                                                                          Array.Empty<Byte>(),
+                                                                          (UInt64) decodedStream.Length);
 
-                                                await OnChunkBlockFound.Invoke(sw.Elapsed,
-                                                                               currentBlockNumber,
-                                                                               chunkInfo.Length,
-                                                                               chunkInfo.Extensions,
-                                                                               chunkData,
-                                                                               (UInt64) decodedStream.Length);
+                                                Response.ContentStreamToArray(decodedStream);
+
+                                                chunkedDecodingFinished = 1;
+                                                //currentPosition += chunkInfo.Length + 2;
+                                                lastPosition     = currentPosition;
+                                                currentPosition += 1;
 
                                             }
 
-                                            decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
+                                            // Read a new block... and final "\r\n"
+                                            if (chunkedDecodingFinished == 0 &&
+                                                currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
+                                            {
 
-                                            currentPosition += chunkInfo.Length + 2;
+                                                if (OnChunkBlockFound != null)
+                                                {
+
+                                                    var chunkData = new Byte[chunkInfo.Length];
+                                                    Array.Copy(chunkedArray, currentPosition, chunkData, 0, chunkInfo.Length);
+
+                                                    await OnChunkBlockFound.Invoke(timings.Elapsed,
+                                                                                   currentBlockNumber,
+                                                                                   chunkInfo.Length,
+                                                                                   chunkInfo.Extensions,
+                                                                                   chunkData,
+                                                                                   (UInt64) decodedStream.Length);
+
+                                                }
+
+                                                decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
+
+                                                currentPosition += chunkInfo.Length + 2;
+                                                lastPosition     = currentPosition;
+                                                currentPosition += 1;
+
+                                            }
+
+                                        }
+
+                                        else
+                                        {
+
+                                            if (currentPosition - lastPosition == 2)
+                                            {
+                                                chunkedDecodingFinished = 2;
+                                                break;
+                                            }
+
+                                            var trailingHeaderBuffer = new Byte[currentPosition - lastPosition - 2];
+                                            Array.Copy(chunkedArray, lastPosition, trailingHeaderBuffer, 0, currentPosition - lastPosition - 2);
+
+                                            var trailingHeader = trailingHeaderBuffer?.ToUTF8String()?.Trim()?.Split(':');
+
+                                            if (trailingHeader != null &&
+                                                trailingHeader?.Length > 1 &&
+                                                trailingHeader[0]?.Trim()?.IsNotNullOrEmpty() == true)
+                                            {
+                                                trailingHeaders.Add(trailingHeader[0]!,
+                                                                    trailingHeader?.Length > 1 ? trailingHeader[1]?.Trim() : null);
+                                            }
+
                                             lastPosition     = currentPosition;
                                             currentPosition += 1;
 
                                         }
 
                                     }
-
                                     else
-                                    {
-
-                                        if (currentPosition - lastPosition == 2)
-                                        {
-                                            chunkedDecodingFinished = 2;
-                                            break;
-                                        }
-
-                                        var trailingHeaderBuffer = new Byte[currentPosition - lastPosition - 2];
-                                        Array.Copy(chunkedArray, lastPosition, trailingHeaderBuffer, 0, currentPosition - lastPosition - 2);
-
-                                        var trailingHeader = trailingHeaderBuffer?.ToUTF8String()?.Trim()?.Split(':');
-
-                                        if (trailingHeader != null &&
-                                            trailingHeader?.Length > 1 &&
-                                            trailingHeader[0]?.Trim()?.IsNotNullOrEmpty() == true)
-                                        {
-                                            trailingHeaders.Add(trailingHeader[0]!,
-                                                                trailingHeader?.Length > 1 ? trailingHeader[1]?.Trim() : null);
-                                        }
-
-                                        lastPosition     = currentPosition;
-                                        currentPosition += 1;
-
-                                    }
-
+                                        currentPosition++;
                                 }
-                                else
-                                    currentPosition++;
+
+                                #endregion
+
+                                if (timings.Elapsed.TotalMilliseconds > httpStream.ReadTimeout)
+                                    chunkedDecodingFinished = 3;
+
+                            } while (chunkedDecodingFinished < 2);
+
+                            if (chunkedDecodingFinished == 3)
+                                DebugX.Log("HTTP Client: Chunked decoding timeout!");
+                            //else
+                            //    DebugX.Log("HTTP Client: Chunked decoding finished!");
+
+                            if (Response.TryGetHeaderField("Transfer-Encoding", out var transferEncoding))
+                            {
+                                if (transferEncoding is "chunked")
+                                    Response.RemoveHeaderField("Transfer-Encoding");
                             }
 
-                            #endregion
-
-                            if (sw.ElapsedMilliseconds > httpStream.ReadTimeout)
-                                chunkedDecodingFinished = 3;
-
-                        } while (chunkedDecodingFinished < 2);
-
-                        if (chunkedDecodingFinished == 3)
-                            DebugX.Log("HTTP Client: Chunked decoding timeout!");
-                        //else
-                        //    DebugX.Log("HTTP Client: Chunked decoding finished!");
-
-                        if (Response.TryGetHeaderField("Transfer-Encoding", out Object transferEncoding))
-                        {
-                            if (transferEncoding is "chunked")
-                                Response.RemoveHeaderField("Transfer-Encoding");
-                        }
-
-                        if (Response.TryGetHeaderField("Trailer", out Object trailer))
-                        {
-
-                            var allowedTrailingHeaderfields = new List<String>();
-
-                            if (trailer is String _trailer)
+                            if (Response.TryGetHeaderField("Trailer", out var trailer))
                             {
-                                trailer = _trailer.Split(';')?.Select(element => element?.Trim()).Where(element => element.IsNotNullOrEmpty()).ToList();
-                            }
 
-                            if (trailer is List<String> _trailerList)
-                            {
-                                foreach (var element in _trailerList)
+                                var allowedTrailingHeaderfields = new List<String>();
+
+                                if (trailer is String _trailer)
                                 {
-                                    if (element != "Transfer-Encoding" &&
-                                        element != "Content-Length" &&
-                                        element != "Trailer")
+                                    trailer = _trailer.Split(';')?.Select(element => element?.Trim()).Where(element => element.IsNotNullOrEmpty()).ToList();
+                                }
+
+                                if (trailer is List<String> _trailerList)
+                                {
+                                    foreach (var element in _trailerList)
                                     {
-                                        allowedTrailingHeaderfields.Add(element!);
+                                        if (element != "Transfer-Encoding" &&
+                                            element != "Content-Length" &&
+                                            element != "Trailer")
+                                        {
+                                            allowedTrailingHeaderfields.Add(element!);
+                                        }
                                     }
                                 }
-                            }
 
-                            foreach (var trailingHeader in trailingHeaders)
-                            {
-                                if (allowedTrailingHeaderfields.Contains(trailingHeader.Key))
-                                    Response.SetHeaderField(trailingHeader.Key,
-                                                            trailingHeader.Value);
+                                foreach (var trailingHeader in trailingHeaders)
+                                {
+                                    if (allowedTrailingHeaderfields.Contains(trailingHeader.Key))
+                                        Response.SetHeaderField(trailingHeader.Key,
+                                                                trailingHeader.Value);
+                                }
+
                             }
 
                         }
+                        catch (Exception e)
+                        {
+                            timings.AddError($"Chunked decoding failed: {e.Message}");
+                        }
 
                     }
-                    catch (Exception e)
+
+                    #endregion
+
+                    #region ...or just connect HTTP stream to network stream!
+
+                    else
+                        Response.ContentStreamToArray();
+
+                    #endregion
+
+                    #region Close connection if requested!
+
+                    if (Response.Connection is null ||
+                        Response.Connection == "close" ||
+                        clientClose)
                     {
-                        DebugX.Log("HTTP Client: Chunked decoding failed: " + e.Message);
-                        DebugX.Log(e.StackTrace);
+
+                        if (tlsStream is not null)
+                        {
+                            tlsStream.Close();
+                            tlsStream = null;
+                        }
+
+                        if (tcpSocket is not null)
+                        {
+                            tcpSocket.Close();
+                            //TCPClient.Dispose();
+                            tcpSocket = null;
+                        }
+
+                        httpStream = null;
+
                     }
+
+                    #endregion
 
                 }
-
-                #endregion
-
-                #region ...or just connect HTTP stream to network stream!
-
-                else
-                {
-                    Response.ContentStreamToArray();
-                }
-
-                #endregion
-
-                #region Close connection if requested!
-
-                if (Response.Connection is null ||
-                    Response.Connection == "close" ||
-                    clientClose)
-                {
-
-                    if (tlsStream is not null)
-                    {
-                        tlsStream.Close();
-                        tlsStream = null;
-                    }
-
-                    if (tcpSocket is not null)
-                    {
-                        tcpSocket.Close();
-                        //TCPClient.Dispose();
-                        tcpSocket = null;
-                    }
-
-                    httpStream = null;
-
-                }
-
-                #endregion
 
             }
+
+            #region HTTP timeout exception handling
+
             catch (HTTPTimeoutException e)
             {
 
@@ -1154,12 +1293,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Content         = JSONObject.Create(
                                                      new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
                                                      new JProperty("message",     e.Message),
-                                                     new JProperty("stackTrace",  e.StackTrace)
+                                                     new JProperty("stackTrace",  e.StackTrace),
+                                                     new JProperty("timings",     timings.ToString())
                                                  ).ToUTF8Bytes()
 
                            };
 
                 #endregion
+
+                timings.AddError($"HTTP Timeout Exception: {e.Message}");
 
                 if (tlsStream is not null)
                 {
@@ -1175,6 +1317,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
             }
+
+            #endregion
+
+            #region Exception handling
+
             catch (Exception e)
             {
 
@@ -1188,11 +1335,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                ContentType     = HTTPContentType.JSON_UTF8,
                                Content         = JSONObject.Create(
                                                      new JProperty("message",     e.Message),
-                                                     new JProperty("stackTrace",  e.StackTrace)
+                                                     new JProperty("stackTrace",  e.StackTrace),
+                                                     new JProperty("timings",     timings.ToString())
                                                  ).ToUTF8Bytes()
                            };
 
                 #endregion
+
+                timings.AddError($"Exception: {e.Message}");
 
                 if (tlsStream is not null)
                 {
@@ -1209,8 +1359,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
+            #endregion
+
+
+            if (Response is null)
+            {
+
+                Response = new HTTPResponse.Builder(Request) {
+                             HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                             ContentType     = HTTPContentType.JSON_UTF8,
+                             Content         = JSONObject.Create(
+                                                   new JProperty("message",  "Something wicked happened!"),
+                                                   new JProperty("timings",  timings.ToString())
+                                               ).ToUTF8Bytes()
+                         };
+
+                timings.AddError("Something wicked happened!");
+
+            }
+
 
             #region Call the optional HTTP response log delegate
+
+            timings.ResponseLogging1 = timings.Elapsed;
 
             try
             {
@@ -1218,7 +1389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (ResponseLogDelegate is not null)
                     await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
                                        Cast<ClientResponseLogHandler>().
-                                       Select(e => e(Timestamp.Now,
+                                       Select(e => e(timings.Start + timings.ResponseLogging1.Value,
                                                      this,
                                                      Request,
                                                      Response))).
@@ -1230,54 +1401,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DebugX.Log(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
             }
 
+            timings.ResponseLogging2 = timings.Elapsed;
+
             #endregion
 
-            //DebugX.LogT("HTTPClient closed!");
-
             return Response;
-
-        }
-
-        #endregion
-
-
-        #region (protected) SendHTTPError(Timestamp, Sender, HttpResponse)
-
-        /// <summary>
-        /// Notify that an HTTP error occured.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the error received.</param>
-        /// <param name="Sender">The sender of this error message.</param>
-        /// <param name="HttpResponse">The HTTP response related to this error message.</param>
-        protected void SendHTTPError(DateTime      Timestamp,
-                                     Object        Sender,
-                                     HTTPResponse  HttpResponse)
-        {
-
-            DebugX.Log("AHTTPClient => HTTP Status Code: " + HttpResponse != null ? HttpResponse.HTTPStatusCode.ToString() : "<null>");
-
-            OnHTTPError?.Invoke(Timestamp, Sender, HttpResponse);
-
-        }
-
-        #endregion
-
-        #region (protected) SendException(Timestamp, Sender, Exception)
-
-        /// <summary>
-        /// Notify that an exception occured.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp of the exception.</param>
-        /// <param name="Sender">The sender of this exception.</param>
-        /// <param name="Exception">The exception itself.</param>
-        protected void SendException(DateTime   Timestamp,
-                                     Object     Sender,
-                                     Exception  Exception)
-        {
-
-            DebugX.Log("AHTTPClient => Exception: " + Exception.Message);
-
-            OnException?.Invoke(Timestamp, Sender, Exception);
 
         }
 
@@ -1291,7 +1419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (httpStream != null)
+                if (httpStream is not null)
                 {
                     httpStream.Close();
                     httpStream.Dispose();
@@ -1302,7 +1430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (tlsStream != null)
+                if (tlsStream is not null)
                 {
                     tlsStream.Close();
                     tlsStream.Dispose();
@@ -1313,7 +1441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (tcpStream != null)
+                if (tcpStream is not null)
                 {
                     tcpStream.Close();
                     tcpStream.Dispose();
@@ -1324,7 +1452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             try
             {
-                if (tcpSocket != null)
+                if (tcpSocket is not null)
                 {
                     tcpSocket.Close();
                     //TCPClient.Dispose();
@@ -1354,11 +1482,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns a text representation of this object.
         /// </summary>
-        /// <returns>A string representation of this object.</returns>
         public override String ToString()
 
-            => String.Concat(GetType().Name, " ",
-                             RemoteIPAddress.ToString(), ":", RemotePort);
+            => String.Concat(
+                   GetType().Name,
+                   " ",
+                   RemoteIPAddress?.ToString() ?? "-",
+                   ":",
+                   RemotePort
+               );
 
         #endregion
 

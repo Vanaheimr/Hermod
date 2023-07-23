@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Xml.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -48,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default URL path prefix.
         /// </summary>
-        protected static readonly HTTPPath  DefaultURLPathPrefix  = HTTPPath.Parse("/");
+        protected static readonly HTTPPath  DefaultURLPathPrefix  = HTTPPath.Root;
 
         #endregion
 
@@ -86,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// An event fired whenever a SOAP error occured.
         /// </summary>
-        public event OnSOAPErrorDelegate OnSOAPError;
+        public event OnSOAPErrorDelegate? OnSOAPError;
 
         #endregion
 
@@ -116,18 +115,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         protected ASOAPClient(URL                                   RemoteURL,
                               HTTPHostname?                         VirtualHostname              = null,
                               String?                               Description                  = null,
+                              Boolean?                              PreferIPv4                   = null,
                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                               X509Certificate?                      ClientCert                   = null,
                               SslProtocols?                         TLSProtocol                  = null,
-                              Boolean?                              PreferIPv4                   = null,
                               String                                HTTPUserAgent                = DefaultHTTPUserAgent,
                               HTTPPath?                             URLPathPrefix                = null,
                               Tuple<String, String>?                WSSLoginPassword             = null,
                               HTTPContentType?                      HTTPContentType              = null,
                               TimeSpan?                             RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                              UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              UInt16?                               MaxNumberOfRetries           = null,
+                              UInt32?                               InternalBufferSize           = null,
                               Boolean                               UseHTTPPipelining            = false,
                               Boolean?                              DisableLogging               = false,
                               HTTPClientLogger?                     HTTPLogger                   = null,
@@ -136,15 +136,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
+                   PreferIPv4,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   PreferIPv4,
-                   HTTPUserAgent      ?? DefaultHTTPUserAgent,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
-                   MaxNumberOfRetries ?? DefaultMaxNumberOfRetries,
+                   MaxNumberOfRetries,
+                   InternalBufferSize,
                    UseHTTPPipelining,
                    DisableLogging,
                    HTTPLogger,

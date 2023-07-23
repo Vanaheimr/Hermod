@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -48,11 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default URL path prefix.
         /// </summary>
-        protected static readonly HTTPPath  DefaultURLPathPrefix      = HTTPPath.Parse("/");
-
-        #endregion
-
-        #region Properties
+        protected static readonly HTTPPath  DefaultURLPathPrefix  = HTTPPath.Parse("/");
 
         #endregion
 
@@ -63,12 +58,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A delegate called whenever a JSON error occured.
         /// </summary>
-        public delegate void OnSOAPErrorDelegate(DateTime Timestamp, Object Sender, JObject JSON);
+        public delegate void OnJSONErrorDelegate(DateTime Timestamp, Object Sender, JObject JSON);
 
         /// <summary>
         /// An event fired whenever a JSON error occured.
         /// </summary>
-        public event OnSOAPErrorDelegate OnJSONError;
+        public event OnJSONErrorDelegate? OnJSONError;
 
         #endregion
 
@@ -89,34 +84,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
+        /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         protected AJSONClient(URL                                   RemoteURL,
                               HTTPHostname?                         VirtualHostname              = null,
                               String?                               Description                  = null,
+                              Boolean?                              PreferIPv4                   = null,
                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                               X509Certificate?                      ClientCert                   = null,
                               SslProtocols?                         TLSProtocol                  = null,
-                              Boolean?                              PreferIPv4                   = null,
-                              String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                              String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
                               TimeSpan?                             RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                              UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              UInt16?                               MaxNumberOfRetries           = null,
+                              UInt32?                               InternalBufferSize           = null,
                               Boolean?                              DisableLogging               = false,
                               DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
+                   PreferIPv4,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   PreferIPv4,
-                   HTTPUserAgent      ?? DefaultHTTPUserAgent,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
-                   MaxNumberOfRetries ?? DefaultMaxNumberOfRetries,
+                   MaxNumberOfRetries,
+                   InternalBufferSize,
                    false,
                    DisableLogging,
                    null,

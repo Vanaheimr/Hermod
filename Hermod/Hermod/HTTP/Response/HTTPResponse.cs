@@ -484,17 +484,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The runtime of the HTTP request/response pair.
         /// </summary>
-        public TimeSpan  Runtime                { get; }
+        public TimeSpan            Runtime                { get; }
 
         /// <summary>
         /// The number of retransmissions of this request.
         /// </summary>
-        public Byte      NumberOfRetries        { get; }
+        public Byte                NumberOfRetries        { get; }
 
         /// <summary>
         /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
         /// </summary>
-        public Object?   SubprotocolResponse    { get; }
+        public Object?             SubprotocolResponse    { get; }
+
+        /// <summary>
+        /// HTTP client statistics.
+        /// </summary>
+        public HTTPClientTimings?  ClientTimings          { get; internal set; }
 
         #endregion
 
@@ -602,10 +607,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
 
-                                         CancellationToken   CancellationToken     = default,
                                          EventTracking_Id?   EventTrackingId       = null,
                                          TimeSpan?           Runtime               = null,
-                                         Byte                NumberOfRetries       = 0)
+                                         Byte                NumberOfRetries       = 0,
+                                         CancellationToken   CancellationToken     = default)
 
             => new (Illias.Timestamp.Now,
                     new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -639,10 +644,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
 
-                                         CancellationToken   CancellationToken     = default,
                                          EventTracking_Id?   EventTrackingId       = null,
                                          TimeSpan?           Runtime               = null,
-                                         Byte                NumberOfRetries       = 0)
+                                         Byte                NumberOfRetries       = 0,
+                                         CancellationToken   CancellationToken     = default)
 
             => new (Illias.Timestamp.Now,
                     new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -676,10 +681,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
 
-                                         CancellationToken   CancellationToken     = default,
                                          EventTracking_Id?   EventTrackingId       = null,
                                          TimeSpan?           Runtime               = null,
-                                         Byte                NumberOfRetries       = 0)
+                                         Byte                NumberOfRetries       = 0,
+                                         CancellationToken   CancellationToken     = default)
 
             => new (Illias.Timestamp.Now,
                     new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),

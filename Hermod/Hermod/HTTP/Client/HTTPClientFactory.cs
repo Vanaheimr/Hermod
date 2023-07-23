@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -41,6 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
@@ -49,20 +49,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
+        /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public static IHTTPClientCommands Create(URL                                   RemoteURL,
                                                  HTTPHostname?                         VirtualHostname              = null,
                                                  String?                               Description                  = null,
+                                                 Boolean?                              PreferIPv4                   = null,
                                                  RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                                  LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                                                  X509Certificate?                      ClientCert                   = null,
                                                  SslProtocols?                         TLSProtocol                  = null,
-                                                 Boolean?                              PreferIPv4                   = null,
-                                                 String                                HTTPUserAgent                = HTTPSClient.DefaultHTTPUserAgent,
+                                                 String?                               HTTPUserAgent                = null,
                                                  TimeSpan?                             RequestTimeout               = null,
                                                  TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                                                 UInt16?                               MaxNumberOfRetries           = HTTPSClient.DefaultMaxNumberOfRetries,
+                                                 UInt16?                               MaxNumberOfRetries           = null,
+                                                 UInt32?                               InternalBufferSize           = null,
                                                  Boolean                               UseHTTPPipelining            = false,
                                                  Boolean?                              DisableLogging               = false,
                                                  HTTPClientLogger?                     HTTPLogger                   = null,
@@ -78,6 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            RequestTimeout,
                                                            TransmissionRetryDelay,
                                                            MaxNumberOfRetries,
+                                                           InternalBufferSize,
                                                            UseHTTPPipelining,
                                                            DisableLogging,
                                                            HTTPLogger,
@@ -86,15 +89,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          : new HTTPSClient(RemoteURL,
                                                            VirtualHostname,
                                                            Description,
+                                                           PreferIPv4,
                                                            RemoteCertificateValidator,
                                                            ClientCertificateSelector,
                                                            ClientCert,
                                                            TLSProtocol,
-                                                           PreferIPv4,
                                                            HTTPUserAgent,
                                                            RequestTimeout,
                                                            TransmissionRetryDelay,
                                                            MaxNumberOfRetries,
+                                                           InternalBufferSize,
                                                            UseHTTPPipelining,
                                                            DisableLogging,
                                                            HTTPLogger,

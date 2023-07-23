@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -44,6 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
@@ -51,34 +51,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
+        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
+        /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public JSONClient(URL                                   RemoteURL,
                           HTTPHostname?                         VirtualHostname              = null,
                           String?                               Description                  = null,
+                          Boolean?                              PreferIPv4                   = null,
                           RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                           X509Certificate?                      ClientCert                   = null,
                           SslProtocols?                         TLSProtocol                  = null,
-                          Boolean?                              PreferIPv4                   = null,
                           String                                HTTPUserAgent                = DefaultHTTPUserAgent,
                           TimeSpan?                             RequestTimeout               = null,
                           TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                           UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          UInt32?                               InternalBufferSize           = null,
                           Boolean?                              DisableLogging               = false,
                           DNSClient?                            DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
+                   PreferIPv4,
                    RemoteCertificateValidator,
                    ClientCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   PreferIPv4,
                    HTTPUserAgent,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
+                   InternalBufferSize,
                    DisableLogging,
                    DNSClient)
 
