@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPLoggerExtensions
     {
 
-        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger, HTTPLogger)
+        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger,        HTTPLogger)
 
         /// <summary>
         /// Register the default console logger.
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterDefaultConsoleLogTarget(this HTTPResponseLogger, HTTPLogger)
+        #region RegisterDefaultConsoleLogTarget(this HTTPResponseLogger,       HTTPLogger)
 
         /// <summary>
         /// Register the default console logger.
@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterDefaultConsoleLogTarget(this HTTPClientRequestLogger, HTTPLogger)
+        #region RegisterDefaultConsoleLogTarget(this HTTPClientRequestLogger,  HTTPLogger)
 
         /// <summary>
         /// Register the default console logger.
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region RegisterDefaultDiscLogTarget(this HTTPRequestLogger,  HTTPLogger)
+        #region RegisterDefaultDiscLogTarget(this HTTPRequestLogger,        HTTPLogger)
 
         /// <summary>
         /// Register the default disc logger.
@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterDefaultDiscLogTarget(this HTTPResponseLogger, HTTPLogger)
+        #region RegisterDefaultDiscLogTarget(this HTTPResponseLogger,       HTTPLogger)
 
         /// <summary>
         /// Register the default disc logger.
@@ -156,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger, HTTPLogger)
+        #region RegisterDefaultConsoleLogTarget(this HTTPRequestLogger,  HTTPLogger)
 
         /// <summary>
         /// Register the default console logger.

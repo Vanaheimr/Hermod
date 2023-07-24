@@ -777,7 +777,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     {
                         tlsStream   = null;
                         httpStream  = tcpStream;
-                        restart     = true;
                     }
 
                     #endregion

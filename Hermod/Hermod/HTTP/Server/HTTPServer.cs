@@ -1310,6 +1310,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void ProcessArrow(TCPConnection TCPConnection)
         {
 
+            if (TCPConnection is null)
+                return;
+
             //lock (myLock)
             //{
 
