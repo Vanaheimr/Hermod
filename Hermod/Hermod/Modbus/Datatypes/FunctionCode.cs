@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                        Value.       GetHashCode() *  7 ^
                        AccessRight. GetHashCode() *  5 ^
                        AccessGroup. GetHashCode() *  3 ^
-                       Description?.GetHashCode() ?? 0;
+                      (Description?.GetHashCode() ?? 0);
 
             }
         }

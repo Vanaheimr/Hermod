@@ -246,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 return (Timeout?.            GetHashCode() ?? 0) * 3 ^
-                        MaxNumberOfRequests?.GetHashCode() ?? 0;
+                       (MaxNumberOfRequests?.GetHashCode() ?? 0);
 
             }
         }

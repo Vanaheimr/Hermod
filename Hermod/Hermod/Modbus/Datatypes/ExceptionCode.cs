@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                 return Info.        GetHashCode() * 5 ^
                        Value.       GetHashCode() * 3 ^
-                       Description?.GetHashCode() ?? 0;
+                      (Description?.GetHashCode() ?? 0);
 
             }
         }
