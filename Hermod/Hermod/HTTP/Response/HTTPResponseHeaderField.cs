@@ -474,8 +474,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>WWW-Authenticate: Basic</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPResponseHeaderField WWWAuthenticate = new ("WWW-Authenticate",
-                                                                              RequestPathSemantic.EndToEnd);
+        public static readonly HTTPResponseHeaderField<IEnumerable<String>> WWWAuthenticate = new ("WWW-Authenticate",
+                                                                                                   RequestPathSemantic.EndToEnd,
+                                                                                                   StringParsers.NullableHashSetOfStrings);
 
         #endregion
 

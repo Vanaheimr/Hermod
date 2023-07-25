@@ -400,9 +400,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// WWW-Authenticate
         /// </summary>
-        public String? WWWAuthenticate
+        public IEnumerable<String> WWWAuthenticate
 
-            => GetHeaderField(HTTPResponseHeaderField.WWWAuthenticate);
+            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.WWWAuthenticate);
 
         #endregion
 
@@ -440,6 +440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Access-Control-Allow-Origin
         /// </summary>
         public String? AccessControlAllowOrigin
+
             => GetHeaderField(HTTPResponseHeaderField.AccessControlAllowOrigin);
 
         #endregion
@@ -451,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerable<String> AccessControlAllowMethods
 
-            => GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods);
+            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.AccessControlAllowMethods);
 
         #endregion
 
@@ -462,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerable<String> AccessControlAllowHeaders
 
-            => GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowHeaders);
+            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.AccessControlAllowHeaders);
 
         #endregion
 

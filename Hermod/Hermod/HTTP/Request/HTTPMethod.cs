@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private) Constructor(s)
 
-        #region (static) HTTPMethod()
+        #region (static)  HTTPMethod()
 
         static HTTPMethod()
         {
@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPMethod(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
+        #region (private) HTTPMethod(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
 
         /// <summary>
         /// Creates a new HTTP method based on the given parameters.
@@ -140,10 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
         /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
-        public HTTPMethod(String   MethodName,
-                          Boolean  IsSafe         = false,
-                          Boolean  IsIdempotent   = false,
-                          String?  Description    = null)
+        private HTTPMethod(String   MethodName,
+                           Boolean  IsSafe         = false,
+                           Boolean  IsIdempotent   = false,
+                           String?  Description    = null)
         {
 
             this.MethodName    = MethodName;

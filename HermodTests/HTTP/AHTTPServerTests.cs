@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                                             AccessControlAllowHeaders  = new[] { "Authorization" },
                                                             ContentType                = HTTPContentType.TEXT_UTF8,
                                                             Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
-                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                            WWWAuthenticate            = new[] { @"Basic realm=""Access to the staging site"", charset =""UTF-8""" },
                                                             Connection                 = "close"
                                                         }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                           AsImmutable;
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = new[] { "GET" },
                                                             AccessControlAllowHeaders  = new[] { "Authorization" },
-                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                            WWWAuthenticate            = new[] { @"Basic realm=""Access to the staging site"", charset =""UTF-8""" },
                                                             Connection                 = "close"
                                                         }.AsImmutable;
 
