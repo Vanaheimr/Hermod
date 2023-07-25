@@ -72,8 +72,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Events
 
-        #region OnSOAPError
-
         /// <summary>
         /// A delegate called whenever a SOAP error occured.
         /// </summary>
@@ -87,7 +85,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public event OnSOAPErrorDelegate? OnSOAPError;
 
-        #endregion
+
+        /// <summary>
+        /// An event fired whenever an exception occured.
+        /// </summary>
+        public event OnExceptionDelegate? OnException;
+
+
+        /// <summary>
+        /// A delegate called whenever a HTTP error occured.
+        /// </summary>
+        public delegate void OnHTTPErrorDelegate(DateTime Timestamp, Object Sender, HTTPResponse HttpResponse);
+
+        /// <summary>
+        /// An event fired whenever a HTTP error occured.
+        /// </summary>
+        public event OnHTTPErrorDelegate? OnHTTPError;
 
         #endregion
 
@@ -178,6 +191,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             DebugX.Log("ASOAPClient => SOAP Fault: " + SOAPXML != null ? SOAPXML.ToString() : "<null>");
 
             OnSOAPError?.Invoke(Timestamp, Sender, SOAPXML);
+
+        }
+
+        #endregion
+
+        #region (protected) SendHTTPError(Timestamp, Sender, HTTPResponse)
+
+        /// <summary>
+        /// Notify that an HTTP error occured.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the error received.</param>
+        /// <param name="Sender">The sender of this error message.</param>
+        /// <param name="HTTPResponse">The HTTP response related to this error message.</param>
+        protected void SendHTTPError(DateTime      Timestamp,
+                                     Object        Sender,
+                                     HTTPResponse  HTTPResponse)
+        {
+
+            DebugX.Log("ASOAPClient => HTTP Status Code: " + HTTPResponse is not null
+                                                                 ? HTTPResponse.HTTPStatusCode.ToString()
+                                                                 : "<null>");
+
+            OnHTTPError?.Invoke(Timestamp, Sender, HTTPResponse);
+
+        }
+
+        #endregion
+
+        #region (protected) SendException(Timestamp, Sender, Exception)
+
+        /// <summary>
+        /// Notify that an exception occured.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the exception.</param>
+        /// <param name="Sender">The sender of this exception.</param>
+        /// <param name="Exception">The exception itself.</param>
+        protected void SendException(DateTime   Timestamp,
+                                     Object     Sender,
+                                     Exception  Exception)
+        {
+
+            DebugX.Log("ASOAPClient => Exception: " + Exception.Message);
+
+            OnException?.Invoke(Timestamp, Sender, Exception);
 
         }
 

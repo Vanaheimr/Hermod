@@ -53,8 +53,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        #region OnJSONError
-
         /// <summary>
         /// A delegate called whenever a JSON error occured.
         /// </summary>
@@ -65,7 +63,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public event OnJSONErrorDelegate? OnJSONError;
 
-        #endregion
+
+        /// <summary>
+        /// An event fired whenever an exception occured.
+        /// </summary>
+        public event OnExceptionDelegate? OnException;
+
+
+        /// <summary>
+        /// A delegate called whenever a HTTP error occured.
+        /// </summary>
+        public delegate void OnHTTPErrorDelegate(DateTime Timestamp, Object Sender, HTTPResponse HttpResponse);
+
+        /// <summary>
+        /// An event fired whenever a HTTP error occured.
+        /// </summary>
+        public event OnHTTPErrorDelegate? OnHTTPError;
 
         #endregion
 
@@ -77,9 +90,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteURL">The remote URL of the OICP HTTP endpoint to connect to.</param>
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
+        /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
@@ -281,13 +296,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                      JObject   JSON)
         {
 
-            DebugX.Log("AJSONClient => JSON Fault: " + JSON != null ? JSON.ToString() : "<null>");
+            DebugX.Log("AJSONClient => JSON Fault: " + JSON is not null
+                                                           ? JSON.ToString()
+                                                           : "<null>");
 
             OnJSONError?.Invoke(Timestamp, Sender, JSON);
 
         }
 
         #endregion
+
+        #region (protected) SendHTTPError(Timestamp, Sender, HTTPResponse)
+
+        /// <summary>
+        /// Notify that an HTTP error occured.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the error received.</param>
+        /// <param name="Sender">The sender of this error message.</param>
+        /// <param name="HTTPResponse">The HTTP response related to this error message.</param>
+        protected void SendHTTPError(DateTime      Timestamp,
+                                     Object        Sender,
+                                     HTTPResponse  HTTPResponse)
+        {
+
+            DebugX.Log("AJSONClient => HTTP Status Code: " + HTTPResponse is not null
+                                                                 ? HTTPResponse.HTTPStatusCode.ToString()
+                                                                 : "<null>");
+
+            OnHTTPError?.Invoke(Timestamp, Sender, HTTPResponse);
+
+        }
+
+        #endregion
+
+        #region (protected) SendException(Timestamp, Sender, Exception)
+
+        /// <summary>
+        /// Notify that an exception occured.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the exception.</param>
+        /// <param name="Sender">The sender of this exception.</param>
+        /// <param name="Exception">The exception itself.</param>
+        protected void SendException(DateTime   Timestamp,
+                                     Object     Sender,
+                                     Exception  Exception)
+        {
+
+            DebugX.Log("AJSONClient => Exception: " + Exception.Message);
+
+            OnException?.Invoke(Timestamp, Sender, Exception);
+
+        }
+
+        #endregion
+
 
     }
 

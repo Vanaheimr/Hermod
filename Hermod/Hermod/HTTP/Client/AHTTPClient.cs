@@ -363,22 +363,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public event OnChunkBlockFoundDelegate? OnChunkBlockFound;
 
-        /// <summary>
-        /// An event fired whenever an exception occured.
-        /// </summary>
-        public event OnExceptionDelegate? OnException;
-
-
-        /// <summary>
-        /// A delegate called whenever a HTTP error occured.
-        /// </summary>
-        public delegate void OnHTTPErrorDelegate(DateTime Timestamp, Object Sender, HTTPResponse HttpResponse);
-
-        /// <summary>
-        /// An event fired whenever a HTTP error occured.
-        /// </summary>
-        public event OnHTTPErrorDelegate? OnHTTPError;
-
         #endregion
 
         #region Constructor(s)
