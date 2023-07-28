@@ -335,7 +335,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             // TCP Socket
             this.IPAddress                          = IIPAddress;
             this.Port                               = Port;
-           // this.ServerCertificate                  = ServerCertificate;
             this.ClientCertificateRequired          = ClientCertificateRequired  ?? false;
             this.CheckCertificateRevocation         = CheckCertificateRevocation ?? false;
             this.IPSocket                           = new IPSocket   (this.IPAddress,
@@ -464,9 +463,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                             connectionAcceptTime2 = Timestamp.Now;
 
-                            var x = Task.Factory.StartNew(connection =>
-                            {
+                            var x = Task.Factory.StartNew(connection => {
                                 if (connection is TCPConnection newTCPConnection)
+
                                 {
 
                                     try
