@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2022, GraphDefined GmbH
+ * Copyright (c) 2010-2023, GraphDefined GmbH
  * Author: Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
