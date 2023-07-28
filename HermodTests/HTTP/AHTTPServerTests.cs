@@ -49,7 +49,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         #endregion
 
-        #region Start/Stop HTTPServer
+        #region Init_HTTPServer()
 
         [OneTimeSetUp]
         public void Init_HTTPServer()
@@ -214,6 +214,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             #endregion
 
 
+            #region GET     /chunked
+
+            httpServer.AddMethodCallback(null,
+                                         HTTPHostname.Any,
+                                         HTTPMethod.GET,
+                                         HTTPPath.Root + "chunked",
+                                         HTTPDelegate: request => Task.FromResult(
+                                                                       new HTTPResponse.Builder(request) {
+                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                           Server                     = "Hermod Test Server",
+                                                                           Date                       = Timestamp.Now,
+                                                                           AccessControlAllowOrigin   = "*",
+                                                                           AccessControlAllowMethods  = new[] { "GET" },
+                                                                           TransferEncoding           = "chunked",
+                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                           Content                    = (new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes(),
+                                                                           Connection                 = "close"
+                                                                       }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                                         AsImmutable));
+
+            #endregion
+
+            #region GET     /chunkedSlow
+
+            httpServer.AddMethodCallback(null,
+                                         HTTPHostname.Any,
+                                         HTTPMethod.GET,
+                                         HTTPPath.Root + "chunkedSlow",
+                                         HTTPDelegate: async request => {
+
+                                             var responseStream  = new MemoryStream();
+                                             responseStream.Write((new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes());
+
+                                             return new HTTPResponse.Builder(request) {
+                                                        HTTPStatusCode             = HTTPStatusCode.OK,
+                                                        Server                     = "Hermod Test Server",
+                                                        Date                       = Timestamp.Now,
+                                                        AccessControlAllowOrigin   = "*",
+                                                        AccessControlAllowMethods  = new[] { "GET" },
+                                                        TransferEncoding           = "chunked",
+                                                        ContentType                = HTTPContentType.TEXT_UTF8,
+                                                        ContentStream              = responseStream,
+                                                        Connection                 = "close"
+                                                    }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                      AsImmutable;
+
+                                         });
+
+            #endregion
+
+            #region GET     /chunkedTrailerHeaders
+
+            httpServer.AddMethodCallback(null,
+                                         HTTPHostname.Any,
+                                         HTTPMethod.GET,
+                                         HTTPPath.Root + "chunkedTrailerHeaders",
+                                         HTTPDelegate: request => Task.FromResult(
+                                                                       new HTTPResponse.Builder(request) {
+                                                                           HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                           Server                     = "Hermod Test Server",
+                                                                           Date                       = Timestamp.Now,
+                                                                           AccessControlAllowOrigin   = "*",
+                                                                           AccessControlAllowMethods  = new[] { "GET" },
+                                                                           TransferEncoding           = "chunked",
+                                                                           Trailer                    = "X-Message-Length, X-Protocol-Version",
+                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                           Content                    = (new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\nX-Message-Length: 13\r\nX-Protocol-Version: 1.0\r\n\r\n").ToUTF8Bytes(),
+                                                                           Connection                 = "close"
+                                                                       }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                                         AsImmutable));
+
+            #endregion
+
+
             #region POST    /mirrorBody2
 
             httpServer.AddMethodCallback(null,
@@ -242,6 +316,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
 
         }
 
+        #endregion
+
+        #region Shutdown_HTTPServer()
+
         [OneTimeTearDown]
         public void Shutdown_HTTPServer()
         {
@@ -249,6 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         }
 
         #endregion
+
 
     }
 

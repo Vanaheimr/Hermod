@@ -468,6 +468,248 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         #endregion
 
 
+
+        #region Test_ChunkedEncoding_chunked()
+
+        [Test]
+        public async Task Test_ChunkedEncoding_chunked()
+        {
+
+            var chunkData     = new List<String>();
+            var chunkBlocks   = new List<String>();
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+
+            httpClient.OnChunkDataRead += async (time,
+                                                 blockNumber,
+                                                 blockData,
+                                                 blockLength,
+                                                 currentTotalBytes) => {
+
+                chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+
+            };
+
+            httpClient.OnChunkBlockFound += async (timestamp,
+                                                   chunkNumber,
+                                                   chunkLength,
+                                                   chunkExtensions,
+                                                   chunkData,
+                                                   totalBytes) => {
+
+                chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+
+            };
+
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunked").
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                         request);
+            Assert.IsTrue (request.Contains("GET /chunked HTTP/1.1"),         request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Content-Type:        text/plain
+            // Date:                Fri, 28 Jul 2023 03:17:58 GMT
+            // Server:              Kestrel Test Server
+            // Transfer-Encoding:   chunked
+            // 
+            // Hello World!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains("Hello World!"),      response);
+
+            Assert.AreEqual("Hello World!",                         httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+
+            Assert.AreEqual(1,                                                                                      chunkData.Count,   "chunkData.Count");
+            Assert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
+
+            Assert.AreEqual(4,                                                                                      chunkBlocks.Count, "chunkBlocks.Count");
+            Assert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                                chunkBlocks.ElementAt(0));
+            Assert.AreEqual("2: ' ' 1 byte(s), 6 byte(s) total",                                                    chunkBlocks.ElementAt(1));
+            Assert.AreEqual("3: 'World!' 6 byte(s), 12 byte(s) total",                                              chunkBlocks.ElementAt(2));
+            Assert.AreEqual("4: '' 0 byte(s), 12 byte(s) total",                                                    chunkBlocks.ElementAt(3));
+
+        }
+
+        #endregion
+
+        #region Test_ChunkedEncoding_chunkedSlow()
+
+        [Test]
+        public async Task Test_ChunkedEncoding_chunkedSlow()
+        {
+
+            var chunkData     = new List<String>();
+            var chunkBlocks   = new List<String>();
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+
+            httpClient.OnChunkDataRead += async (time,
+                                                 blockNumber,
+                                                 blockData,
+                                                 blockLength,
+                                                 currentTotalBytes) => {
+
+                chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+
+            };
+
+            httpClient.OnChunkBlockFound += async (timestamp,
+                                                   chunkNumber,
+                                                   chunkLength,
+                                                   chunkExtensions,
+                                                   chunkData,
+                                                   totalBytes) => {
+
+                chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+
+            };
+
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedSlow").
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                         request);
+            Assert.IsTrue (request.Contains("GET /chunkedSlow HTTP/1.1"),     request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Content-Type:        text/plain
+            // Date:                Fri, 28 Jul 2023 03:16:43 GMT
+            // Server:              Kestrel Test Server
+            // Transfer-Encoding:   chunked
+            // 
+            // Hello World!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains("Hello World!"),      response);
+
+            Assert.AreEqual("Hello World!",                         httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+
+            Assert.AreEqual(4,                                                                                      chunkData.Count,   "chunkData.Count");
+            //Assert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
+
+            Assert.AreEqual(4,                                                                                      chunkBlocks.Count, "chunkBlocks.Count");
+            Assert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                                chunkBlocks.ElementAt(0));
+            Assert.AreEqual("2: ' ' 1 byte(s), 6 byte(s) total",                                                    chunkBlocks.ElementAt(1));
+            Assert.AreEqual("3: 'World!' 6 byte(s), 12 byte(s) total",                                              chunkBlocks.ElementAt(2));
+            Assert.AreEqual("4: '' 0 byte(s), 12 byte(s) total",                                                    chunkBlocks.ElementAt(3));
+
+        }
+
+        #endregion
+
+        #region Test_ChunkedEncoding_chunkedSlowTrailerHeaders()
+
+        [Test]
+        public async Task Test_ChunkedEncoding_chunkedSlowTrailerHeaders()
+        {
+
+            var chunkData     = new List<String>();
+            var chunkBlocks   = new List<String>();
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+
+            httpClient.OnChunkDataRead += async (time,
+                                                 blockNumber,
+                                                 blockData,
+                                                 blockLength,
+                                                 currentTotalBytes) => {
+
+                chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+
+            };
+
+            httpClient.OnChunkBlockFound += async (timestamp,
+                                                   chunkNumber,
+                                                   chunkLength,
+                                                   chunkExtensions,
+                                                   chunkData,
+                                                   totalBytes) => {
+
+                chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+
+            };
+
+            var httpResponse  = await httpClient.GET(HTTPPath.Root + "chunkedSlowTrailerHeaders").
+                                                     //request => {
+                                                     //    request.TE = "trailers";
+                                                     //}).
+                                                 ConfigureAwait(false);
+
+
+
+            var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+
+            // GET / HTTP/1.1
+            // Host: 127.0.0.1:82
+
+            // HTTP requests should not have a "Date"-header!
+            Assert.IsFalse(request.Contains("Date:"),                                     request);
+            Assert.IsTrue (request.Contains("GET /chunkedSlowTrailerHeaders HTTP/1.1"),   request);
+            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),               request);
+
+
+
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 200 OK
+            // Content-Type:        text/plain
+            // Date:                Fri, 28 Jul 2023 03:16:43 GMT
+            // Server:              Kestrel Test Server
+            // Transfer-Encoding:   chunked
+            // 
+            // Hello World!
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            Assert.IsTrue  (response.Contains("Hello World!"),      response);
+
+            Assert.AreEqual("Hello World!",                         httpBody);
+
+            Assert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
+
+            Assert.AreEqual(4,                                                                                      chunkData.Count,   "chunkData.Count");
+            //Assert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
+
+            Assert.AreEqual(4,                                                                                      chunkBlocks.Count, "chunkBlocks.Count");
+            Assert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                                chunkBlocks.ElementAt(0));
+            Assert.AreEqual("2: ' ' 1 byte(s), 6 byte(s) total",                                                    chunkBlocks.ElementAt(1));
+            Assert.AreEqual("3: 'World!' 6 byte(s), 12 byte(s) total",                                              chunkBlocks.ElementAt(2));
+            Assert.AreEqual("4: '' 0 byte(s), 12 byte(s) total",                                                    chunkBlocks.ElementAt(3));
+
+        }
+
+        #endregion
+
+
     }
 
 }

@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The RAW, unparsed and unverified HTTP header.
         /// </summary>
-        public String                   RawHTTPHeader        { get; }
+        public String                   RawHTTPHeader        { get; internal set; }
 
         /// <summary>
         /// The raw unparsed HTTP protocol data unit.
@@ -1180,8 +1180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             else
-                if (headerFields.ContainsKey(FieldName))
-                    headerFields.Remove(FieldName);
+                headerFields.Remove(FieldName);
 
         }
 
@@ -1264,7 +1263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                !ContentLength.HasValue ||
                 ContentLength.Value == 0)
             {
-                httpBody ??= Array.Empty<Byte>();
+                httpBody = Array.Empty<Byte>();
                 return true;
             }
 
@@ -1304,13 +1303,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                     catch (IOException ex)
                     {
-
                         // If the ReceiveTimeout is reached an IOException will be raised...
                         // with an InnerException of type SocketException and ErrorCode 10060
-                        var socketExept = ex.InnerException as SocketException;
 
                         // If it's not the "expected" exception, let's not hide the error
-                        if (socketExept is null || socketExept.ErrorCode != 10060)
+                        if (ex.InnerException is not SocketException socketException || socketException.ErrorCode != 10060)
                             throw;
 
                         // If it is the receive timeout, then reading ended
@@ -1339,11 +1336,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public MemoryStream NewContentStream()
         {
 
-            var _MemoryStream = new MemoryStream();
+            var memoryStream = new MemoryStream();
 
-            httpBodyStream = _MemoryStream;
+            httpBodyStream = memoryStream;
 
-            return _MemoryStream;
+            return memoryStream;
 
         }
 
@@ -1367,8 +1364,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Dispose()
+
+        /// <summary>
+        /// Release all resources, e.g. internal streams.
+        /// </summary>
         public void Dispose()
-        { }
+        {
+
+            httpBodyStream?.Dispose();
+            httpBodyStream = null;
+
+            GC.SuppressFinalize(this);
+
+        }
+
+        #endregion
 
     }
 

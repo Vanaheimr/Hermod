@@ -35,6 +35,8 @@ using Microsoft.Extensions.Options;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Diagnostics;
+using Org.BouncyCastle.Utilities;
+using System.Net.Http;
 
 #endregion
 
@@ -299,6 +301,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
             });
 
             #endregion
+
+
+            #region GET     /chunked
+
+            app.MapGet("/chunked", async (HttpContext http) => {
+
+                http.Response.StatusCode   = 200;
+                http.Response.ContentType  = "text/plain";
+
+                var httpStream = http.Response.Body;
+
+                await httpStream.WriteAsync("Hello".ToUTF8Bytes());
+                await httpStream.FlushAsync();
+                await httpStream.WriteAsync(" ".ToUTF8Bytes());
+                await httpStream.FlushAsync();
+                await httpStream.WriteAsync("World!".ToUTF8Bytes());
+                await httpStream.FlushAsync();
+
+            });
+
+            #endregion
+
+            #region GET     /chunkedSlow
+
+            app.MapGet("/chunkedSlow", async (HttpContext http) => {
+
+                http.Response.StatusCode   = 200;
+                http.Response.ContentType  = "text/plain";
+
+                var httpStream = http.Response.Body;
+
+                await httpStream.WriteAsync("Hello".ToUTF8Bytes());
+                await httpStream.FlushAsync();
+                await Task.Delay(100);
+                await httpStream.WriteAsync(" ".ToUTF8Bytes());
+                await httpStream.FlushAsync();
+                await Task.Delay(100);
+                await httpStream.WriteAsync("World!".ToUTF8Bytes());
+                await httpStream.FlushAsync();
+
+            });
+
+            #endregion
+
+            #region GET     /chunkedSlowTrailerHeaders
+
+            app.MapGet("/chunkedSlowTrailerHeaders", async (HttpContext http) => {
+
+                http.Response.StatusCode   = 200;
+                http.Response.ContentType  = "text/plain";
+                http.Response.DeclareTrailer("X-Message-Length");
+                //http.Response.Headers.TransferEncoding = "chunked";
+
+                var httpStream = http.Response.Body;
+
+                await http.Response.StartAsync();
+
+                await httpStream.WriteAsync("Hello World!".ToUTF8Bytes());
+                //await httpStream.FlushAsync();
+                //await Task.Delay(100);
+                //await httpStream.WriteAsync(" ".ToUTF8Bytes());
+                //await httpStream.FlushAsync();
+                //await Task.Delay(100);
+                //await httpStream.WriteAsync("World!".ToUTF8Bytes());
+                //await httpStream.FlushAsync();
+
+                if (http.Response.SupportsTrailers())
+                {
+                    http.Response.AppendTrailer("X-Message-Length",   "13");
+                    http.Response.AppendTrailer("X-Protocol-Version", "1.0");
+                }
+
+                await http.Response.CompleteAsync();
+                //await http.Response.Body.FlushAsync();
+
+            });
+
+            #endregion
+
 
             app.Start();
 

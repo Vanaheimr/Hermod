@@ -26,6 +26,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Illias.Geometry;
 
 #endregion
 
@@ -342,19 +343,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Events
 
-        public delegate Task OnDataReadDelegate(TimeSpan Timestamp, UInt64 BytesRead, UInt64? BytesExpected = null);
+        public delegate Task OnDataReadDelegate(TimeSpan Time, UInt64 BytesRead, UInt64? BytesExpected = null);
 
         public event OnDataReadDelegate? OnDataRead;
 
 
 
-        public delegate Task OnChunkDataReadDelegate(TimeSpan Timestamp, UInt32 BytesRead, UInt64 TotalBytes);
+        public delegate Task OnChunkDataReadDelegate(TimeSpan Time, UInt64 BlockNumber, Byte[] BlockData, UInt32 BlockLength, UInt64 CurrentTotalBytes);
 
         public event OnChunkDataReadDelegate? OnChunkDataRead;
 
 
 
-        public delegate Task OnChunkBlockFoundDelegate(TimeSpan                           Timestamp,
+        public delegate Task OnChunkBlockFoundDelegate(TimeSpan                           Time,
                                                        UInt32                             ChunkNumber,
                                                        UInt32                             ChunkLength,
                                                        Dictionary<String, List<String>>?  ChunkExtensions,
@@ -996,13 +997,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                Response.NewContentStream();
-                                var chunkedStream            = new MemoryStream();
-
-                                // Write the first buffer (without the HTTP header) to the chunked stream...
-                                chunkedStream.Write(httpBodyBytes, 0, httpBodyBytes.Length);
-
-                                var chunkedArray             = chunkedStream.ToArray();
+                                var blockNumber              = 1UL;
                                 var decodedStream            = new MemoryStream();
                                 var currentPosition          = 2U;
                                 var lastPosition             = 0U;
@@ -1010,40 +1005,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 var chunkedDecodingFinished  = 0;
                                 var trailingHeaders          = new Dictionary<String, String?>();
 
+                                Response.NewContentStream();
+                                var chunkedStream            = new MemoryStream();
+
+                                #region Maybe there is already some data
+
+                                if (httpBodyBytes.Length > 0)
+                                {
+
+                                    chunkedStream.Write(httpBodyBytes, 0, httpBodyBytes.Length);
+
+                                    OnChunkDataRead?.Invoke(timings.Elapsed,
+                                                            blockNumber++,
+                                                            httpBodyBytes,
+                                                            (UInt32) httpBodyBytes.Length,
+                                                            (UInt64) httpBodyBytes.Length);
+
+                                }
+
+                                #endregion
+
+                                var chunkedArray = chunkedStream.ToArray();
+
                                 do
                                 {
 
                                     #region Read more data from network
 
-                                    if (tcpStream.DataAvailable)
+                                    // Skip first read when we already have some HTTP body bytes!
+                                    if (chunkedStream.Length == 0 || currentPosition > 2)
                                     {
 
-                                        do
+                                        currentDataLength = httpStream.Read(receiveBuffer, 0, receiveBuffer.Length);
+
+                                        if (currentDataLength > 0)
                                         {
 
-                                            currentDataLength = httpStream.Read(receiveBuffer, 0, receiveBuffer.Length);
+                                            chunkedStream.Write(receiveBuffer, 0, currentDataLength);
 
-                                            //DebugX.Log("ReadTEBlock read from network: " + currentDataLength);
+                                            if (OnChunkDataRead is not null)
+                                            {
 
-                                            if (currentDataLength > 0)
-                                                chunkedStream.Write(receiveBuffer, 0, currentDataLength);
+                                                var blockData = new Byte[currentDataLength];
+                                                Array.Copy(receiveBuffer, 0, blockData, 0, currentDataLength);
 
-                                            OnChunkDataRead?.Invoke(timings.Elapsed,
-                                                                    (UInt32) currentDataLength,
-                                                                    (UInt64) chunkedStream.Length);
+                                                OnChunkDataRead?.Invoke(timings.Elapsed,
+                                                                        blockNumber++,
+                                                                        blockData,
+                                                                        (UInt32) currentDataLength,
+                                                                        (UInt64) chunkedStream.Length);
 
-                                            if (timings.Elapsed.TotalMilliseconds > httpStream.ReadTimeout)
-                                                chunkedDecodingFinished = 3;
+                                            }
 
-                                        } while (tcpStream.DataAvailable && chunkedDecodingFinished == 0);
-
-                                        chunkedArray = chunkedStream.ToArray();
+                                        }
 
                                     }
 
                                     #endregion
 
-                                    #region Process chunks
+                                    #region Documentation
+
+                                    // [size]n
+                                    // [data]n
+                                    // [size]n
+                                    // [data]n
+                                    // ...
+                                    // 0n
+                                    // n
+                                    // [trailer fields]n
+                                    // n
 
                                     // HTTP/1.1 200 OK\r\n
                                     // Server:             Apache/1.3.27\r\n
@@ -1087,13 +1117,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     //      Remove "chunked" from Transfer-Encoding
                                     //      Remove Trailer from existing header fields
 
+                                    #endregion
 
+                                    #region Process chunks
 
-                                    if (chunkedArray.Length >= currentPosition)
+                                    chunkedArray = chunkedStream.ToArray();
+
+                                    while (currentPosition <= chunkedArray.Length)
                                     {
+
                                         if (chunkedArray[currentPosition - 1] == '\n' &&
                                             chunkedArray[currentPosition - 2] == '\r')
                                         {
+
+                                            #region Read chunks
 
                                             if (chunkedDecodingFinished == 0)
                                             {
@@ -1104,7 +1141,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                  lastPosition,
                                                                                  currentPosition - lastPosition - 2);
 
-                                                // End of stream reached?
+                                                #region The final chunk was received
+
                                                 if (chunkInfo.Length == 0)
                                                 {
 
@@ -1118,18 +1156,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     Response.ContentStreamToArray(decodedStream);
 
                                                     chunkedDecodingFinished = 1;
-                                                    //currentPosition += chunkInfo.Length + 2;
-                                                    lastPosition     = currentPosition;
+                                                    lastPosition = currentPosition;
                                                     currentPosition += 1;
 
                                                 }
 
-                                                // Read a new block... and final "\r\n"
-                                                if (chunkedDecodingFinished == 0 &&
-                                                    currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
+                                                #endregion
+
+                                                #region Read a chunk...
+
+                                                //if (chunkedDecodingFinished == 0 &&
+                                                //    currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
+                                                else if (currentPosition + chunkInfo.Length + 2 <= chunkedArray.Length)
                                                 {
 
-                                                    if (OnChunkBlockFound != null)
+                                                    decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
+
+                                                    if (OnChunkBlockFound is not null)
                                                     {
 
                                                         var chunkData = new Byte[chunkInfo.Length];
@@ -1140,22 +1183,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                        chunkInfo.Length,
                                                                                        chunkInfo.Extensions,
                                                                                        chunkData,
-                                                                                       (UInt64) decodedStream.Length);
+                                                                                       (UInt64)decodedStream.Length);
 
                                                     }
 
-                                                    decodedStream.Write(chunkedArray, (Int32) currentPosition, (Int32) chunkInfo.Length);
-
                                                     currentPosition += chunkInfo.Length + 2;
-                                                    lastPosition     = currentPosition;
+                                                    lastPosition = currentPosition;
                                                     currentPosition += 1;
 
                                                 }
 
+                                                #endregion
+
+                                                else
+                                                    break;
+
                                             }
+
+                                            #endregion
 
                                             else
                                             {
+
+                                                // 1. Now, continue to read lines from the connection. If you read a line that is just a CRLF, this indicates the end of the HTTP message. If the line contains text, then it's a trailing header.
+                                                // 2. Continue reading trailing headers until you read an empty line.
 
                                                 if (currentPosition - lastPosition == 2)
                                                 {
@@ -1168,7 +1219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                 var trailingHeader = trailingHeaderBuffer?.ToUTF8String()?.Trim()?.Split(':');
 
-                                                if (trailingHeader != null &&
+                                                if (trailingHeader is not null &&
                                                     trailingHeader?.Length > 1 &&
                                                     trailingHeader[0]?.Trim()?.IsNotNullOrEmpty() == true)
                                                 {
@@ -1184,6 +1235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         }
                                         else
                                             currentPosition++;
+
                                     }
 
                                     #endregion
@@ -1204,34 +1256,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         Response.RemoveHeaderField("Transfer-Encoding");
                                 }
 
-                                if (Response.TryGetHeaderField("Trailer", out var trailer))
+                                if (Response.TryGetHeaderField(HTTPHeaderField.Trailer, out var trailerHeaders) &&
+                                    trailerHeaders is not null)
                                 {
 
-                                    var allowedTrailingHeaderfields = new List<String>();
+                                    // A sender MUST NOT generate a trailer that contains a field necessary for
+                                    //   - message framing (e.g., Transfer-Encoding and Content-Length)
+                                    //   - routing (e.g., Host)
+                                    //   - request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231])
+                                    //   - authentication (e.g., see [RFC7235] and [RFC6265])
+                                    //   - response control data (e.g., see Section 7.1 of [RFC7231])
+                                    //   - or determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+                                    var forbiddenTrailingHeaders  = new HashSet<String>(StringComparer.OrdinalIgnoreCase) {
+                                        "Transfer-Encoding", "Content-Length",
+                                        "Host",
+                                        "Content-Encoding", "Content-Type", "Content-Range", "Trailer"
+                                    };
 
-                                    if (trailer is String _trailer)
-                                    {
-                                        trailer = _trailer.Split(';')?.Select(element => element?.Trim()).Where(element => element.IsNotNullOrEmpty()).ToList();
-                                    }
+                                    var validTrailingHeaders      = new List<String>();
 
-                                    if (trailer is List<String> _trailerList)
+                                    foreach (var trailerHeader in trailerHeaders.Split(',').
+                                                                      Select(element => element?.Trim()).
+                                                                      Where (element => element is not null && element.IsNotNullOrEmpty()))
                                     {
-                                        foreach (var element in _trailerList)
+                                        if (trailerHeader is not null &&
+                                            !forbiddenTrailingHeaders.Contains(trailerHeader))
                                         {
-                                            if (element != "Transfer-Encoding" &&
-                                                element != "Content-Length" &&
-                                                element != "Trailer")
-                                            {
-                                                allowedTrailingHeaderfields.Add(element!);
-                                            }
-                                        }
-                                    }
 
-                                    foreach (var trailingHeader in trailingHeaders)
-                                    {
-                                        if (allowedTrailingHeaderfields.Contains(trailingHeader.Key))
-                                            Response.SetHeaderField(trailingHeader.Key,
-                                                                    trailingHeader.Value);
+                                            validTrailingHeaders.Add(trailerHeader!);
+
+                                            //ToDo: What to do with duplicate header fields?
+                                            Response.SetHeaderField(trailerHeader,
+                                                                    trailingHeaders[trailerHeader] ?? String.Empty);
+
+                                            Response.RawHTTPHeader += "\r\n" +
+                                                                      trailerHeader + ": " +
+                                                                      trailingHeaders[trailerHeader];
+
+                                        }
                                     }
 
                                 }
