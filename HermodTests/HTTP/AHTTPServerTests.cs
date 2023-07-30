@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                                                                            Server                     = "Hermod Test Server",
                                                                            Date                       = Timestamp.Now,
                                                                            AccessControlAllowOrigin   = "*",
-                                                                           AccessControlAllowMethods  = new[] { "GET" },
+                                                                           AccessControlAllowMethods  = new[] { "MIRROR" },
                                                                            ContentType                = HTTPContentType.TEXT_UTF8,
                                                                            Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
                                                                            Connection                 = "close"

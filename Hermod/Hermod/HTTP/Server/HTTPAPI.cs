@@ -1705,7 +1705,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplates">An enumeration of URL templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
