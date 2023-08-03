@@ -398,11 +398,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region WWW-Authenticate
 
         /// <summary>
-        /// WWW-Authenticate
+        /// WWW-Authenticate: Basic realm="Access to the web sockets server",
+        ///                   charset="UTF-8",
+        ///                   Digest realm="Access to the web sockets server",
+        ///                   domain="/",
+        ///                   nonce="n9ivb628MTAuMTY4LjEuODQ=",
+        ///                   algorithm=MD5,
+        ///                   qop="auth"
         /// </summary>
-        public IEnumerable<String> WWWAuthenticate
+        public String WWWAuthenticate
 
-            => GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.WWWAuthenticate);
+            => GetHeaderFields<String>(HTTPResponseHeaderField.WWWAuthenticate);
 
         #endregion
 

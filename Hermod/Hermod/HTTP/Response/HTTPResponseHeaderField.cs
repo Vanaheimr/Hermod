@@ -479,11 +479,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// field is provided, the contents of a challenge itself can
         /// contain a comma-separated list of authentication parameters. 
         /// </summary>
-        /// <example>WWW-Authenticate: Basic</example>
+        /// <example>
+        /// WWW-Authenticate: Basic realm="Access to the web sockets server",
+        ///                   charset="UTF-8",
+        ///                   Digest realm="Access to the web sockets server",
+        ///                   domain="/",
+        ///                   nonce="n9ivb628MTAuMTY4LjEuODQ=",
+        ///                   algorithm=MD5,
+        ///                   qop="auth"
+        /// </example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPResponseHeaderField<IEnumerable<String>> WWWAuthenticate = new ("WWW-Authenticate",
-                                                                                                   RequestPathSemantic.EndToEnd,
-                                                                                                   StringParser: StringParsers.NullableHashSetOfStrings);
+        public static readonly HTTPResponseHeaderField<String> WWWAuthenticate = new ("WWW-Authenticate",
+                                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 

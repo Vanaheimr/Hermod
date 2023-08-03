@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.     Add(requestFrame);
             };
 
@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
             };
 
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.     Add(requestFrame);
             };
 
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
             };
 

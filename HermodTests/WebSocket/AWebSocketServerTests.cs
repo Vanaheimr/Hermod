@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
         public void Init_WebSocketServer()
         {
 
-            webSocketServer = new WebSocketServer(
+            webSocketServer = new WebSocketServer2(
                                   HTTPPort:               HTTPPort,
                                   SecWebSocketProtocols:  SecWebSocketProtocols,
                                   Autostart:              true
@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
         [TearDown]
         public void Shutdown_WebSocketServer()
         {
-            webSocketServer?.Shutdown();
+            webSocketServer?.Shutdown(Wait: true);
             webSocketServer = null;
         }
 

@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Text;
+using System.Net;
 using System.Net.WebSockets;
 
 using NUnit.Framework;
@@ -47,35 +48,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
         #endregion
 
 
-        #region Test_001()
+        #region Test_AnonymousAccess()
 
         [Test]
-        public async Task Test_001()
+        public async Task Test_AnonymousAccess()
         {
+
+            #region Setup
 
             if (webSocketServer is null) {
                 Assert.Fail("WebSocketServer is null!");
                 return;
             }
 
-            var validatedTCP            = false;
-            var newTCPConnection        = false;
-            var validatedWebSocket      = false;
-            var newWebSocketConnection  = false;
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP            = true;
+                validatedTCP++;
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection        = true;
+                newTCPConnection++;
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -83,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket      = true;
+                validatedWebSocket++;
                 return null;
             };
 
@@ -92,49 +97,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection  = true;
+                newWebSocketConnection++;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
-                messageRequests.     Add(requestFrame);
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
             };
 
-            //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
-            //    messageResponses.    Add(responseFrame);
-            //};
-
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
-                textMessageRequests. Add(requestMessage);
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
             };
 
-            //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
-            //    textMessageResponses.Add(responseMessage ?? "-");
-            //};
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
 
 
             var clientWebSocket = new ClientWebSocket();
 
-            //clientWebSocket.Options.Credentials = CredentialCache.DefaultCredentials;
-
             try
             {
-                await clientWebSocket.ConnectAsync(new Uri($"ws://127.0.0.1:{HTTPPort}"), CancellationToken.None);
+                await clientWebSocket.ConnectAsync(new Uri($"ws://127.0.0.1:{HTTPPort}"),
+                                                   CancellationToken.None);
             }
             catch (Exception e)
             {
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
             }
-
-
-            Assert.IsTrue  (validatedTCP);
-            Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validatedWebSocket);
-            Assert.IsTrue  (newWebSocketConnection);
-
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
-            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
-
 
             var state                = clientWebSocket.State;
             var closeStatus          = clientWebSocket.CloseStatus;
@@ -142,6 +145,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var subProtocol          = clientWebSocket.SubProtocol;
             var httpStatusCode       = clientWebSocket.HttpStatusCode;
             var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection == 0)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(1, validatedTCP);
+            Assert.AreEqual(1, newTCPConnection);
+            Assert.AreEqual(1, validatedWebSocket);
+            Assert.AreEqual(1, newWebSocketConnection);
+
+            Assert.AreEqual(1, httpRequests. Count);
+            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
             var httpRequest          = httpRequests.First();
@@ -164,7 +183,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
 
+            #endregion
 
+            #region Check HTTP response
 
             var httpResponse  = httpResponses.First();
             var response      = httpResponse.EntirePDU;
@@ -184,15 +205,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
             Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
+            #endregion
 
 
-            // Send messages
+            #region Send messages
+
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
                                             messageType:        WebSocketMessageType.Text,
                                             endOfMessage:       true,
                                             cancellationToken:  CancellationToken.None);
 
-            while (textMessageRequests.Count == 0)
+            while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("ABCD")),
@@ -200,22 +223,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                                             endOfMessage:       true,
                                             cancellationToken:  CancellationToken.None);
 
-            while (textMessageRequests.Count == 1)
+            while (textMessageResponses.Count == 1)
                 Thread.Sleep(10);
 
+            #endregion
 
-            // Validate message delivery
-            Assert.AreEqual(2,      messageRequests. Count);
-            Assert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            Assert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            #region Validate message delivery
 
-            Assert.AreEqual(0,      messageResponses.Count);
+            Assert.AreEqual(2,       messageRequests. Count);
+            Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(2,      textMessageRequests.Count);
-            Assert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            Assert.AreEqual(2,       messageResponses.Count);
+            Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(0,      textMessageResponses.Count);
+
+            Assert.AreEqual(2,       textMessageRequests.Count);
+            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
+            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+
+            Assert.AreEqual(2,       textMessageResponses.Count);
+            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
+            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+
+            #endregion
 
 
             try
@@ -232,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 // System.Net.WebSockets.WebSocketException
                 // The remote party closed the WebSocket connection without completing the close handshake.
 
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
 
             }
 
@@ -241,35 +273,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
 
         #endregion
 
-        #region Test_002_UnknownSubprotocol()
+
+        #region Test_UnknownSubprotocol()
 
         [Test]
-        public async Task Test_002_UnknownSubprotocol()
+        public async Task Test_UnknownSubprotocol()
         {
+
+            #region Setup
 
             if (webSocketServer is null) {
                 Assert.Fail("WebSocketServer is null!");
                 return;
             }
 
-            var validatedTCP            = false;
-            var newTCPConnection        = false;
-            var validatedWebSocket      = false;
-            var newWebSocketConnection  = false;
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
             var messageResponses        = new List<WebSocketFrame>();
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP            = true;
+                validatedTCP++;
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection        = true;
+                newTCPConnection++;
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -277,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket      = true;
+                validatedWebSocket++;
                 return null;
             };
 
@@ -286,29 +323,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection  = true;
+                newWebSocketConnection++;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
-                messageRequests.     Add(requestFrame);
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
             };
 
-            //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
-            //    messageResponses.    Add(responseFrame);
-            //};
-
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
-                textMessageRequests. Add(requestMessage);
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
             };
 
-            //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
-            //    textMessageResponses.Add(responseMessage ?? "-");
-            //};
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
 
 
             var clientWebSocket = new ClientWebSocket();
 
-            //clientWebSocket.Options.Credentials = CredentialCache.DefaultCredentials;
             clientWebSocket.Options.AddSubProtocol("ocpp1.6");
 
             try
@@ -317,19 +363,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             }
             catch (Exception e)
             {
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
             }
-
-
-            Assert.IsTrue  (validatedTCP);
-            Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validatedWebSocket);
-            Assert.IsTrue  (newWebSocketConnection);
-
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
-            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
-
 
             var state                = clientWebSocket.State;
             var closeStatus          = clientWebSocket.CloseStatus;
@@ -337,6 +372,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var subProtocol          = clientWebSocket.SubProtocol;
             var httpStatusCode       = clientWebSocket.HttpStatusCode;
             var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection == 0)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(1, validatedTCP);
+            Assert.AreEqual(1, newTCPConnection);
+            Assert.AreEqual(1, validatedWebSocket);
+            Assert.AreEqual(1, newWebSocketConnection);
+
+            Assert.AreEqual(1, httpRequests. Count);
+            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
             var httpRequest          = httpRequests.First();
@@ -360,7 +411,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
 
+            #endregion
 
+            #region Check HTTP response
 
             var httpResponse  = httpResponses.First();
             var response      = httpResponse.EntirePDU;
@@ -380,9 +433,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
             Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
+            #endregion
 
 
-            // Send messages
+            #region Send messages
+
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
                                             messageType:        WebSocketMessageType.Text,
                                             endOfMessage:       true,
@@ -399,19 +454,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageRequests.Count == 1)
                 Thread.Sleep(10);
 
+            #endregion
 
-            // Validate message delivery
-            Assert.AreEqual(2,      messageRequests. Count);
-            Assert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            Assert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            #region Validate message delivery
 
-            Assert.AreEqual(0,      messageResponses.Count);
+            Assert.AreEqual(2,       messageRequests. Count);
+            Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(2,      textMessageRequests.Count);
-            Assert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            Assert.AreEqual(2,       messageResponses.Count);
+            Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(0,      textMessageResponses.Count);
+
+            Assert.AreEqual(2,       textMessageRequests.Count);
+            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
+            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+
+            Assert.AreEqual(2,       textMessageResponses.Count);
+            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
+            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+
+            #endregion
 
 
             try
@@ -428,7 +492,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 // System.Net.WebSockets.WebSocketException
                 // The remote party closed the WebSocket connection without completing the close handshake.
 
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
 
             }
 
@@ -437,37 +501,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
 
         #endregion
 
-        #region Test_003_KnownSubprotocol()
+        #region Test_KnownSubprotocol()
 
         [Test]
-        public async Task Test_003_KnownSubprotocol()
+        public async Task Test_KnownSubprotocol()
         {
+
+            #region Setup
 
             if (webSocketServer is null) {
                 Assert.Fail("WebSocketServer is null!");
                 return;
             }
-
-            var validatedTCP            = false;
-            var newTCPConnection        = false;
-            var validatedWebSocket      = false;
-            var newWebSocketConnection  = false;
-            var httpRequests            = new List<HTTPRequest>();
-            var httpResponses           = new List<HTTPResponse>();
-            var messageRequests         = new List<WebSocketFrame>();
-            var messageResponses        = new List<WebSocketFrame>();
-            var textMessageRequests     = new List<String>();
-            var textMessageResponses    = new List<String>();
 
             webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
 
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
+            var httpRequests            = new List<HTTPRequest>();
+            var httpResponses           = new List<HTTPResponse>();
+            var messageRequests         = new List<WebSocketFrame>();
+            var messageResponses        = new List<WebSocketFrame>();
+            var textMessageRequests     = new List<String>();
+            var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
+
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP            = true;
+                validatedTCP++;
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection        = true;
+                newTCPConnection++;
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -475,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket      = true;
+                validatedWebSocket++;
                 return null;
             };
 
@@ -484,29 +552,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection  = true;
+                newWebSocketConnection++;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
-                messageRequests.     Add(requestFrame);
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
             };
 
-            //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
-            //    messageResponses.    Add(responseFrame);
-            //};
-
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
-                textMessageRequests. Add(requestMessage);
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
             };
 
-            //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
-            //    textMessageResponses.Add(responseMessage ?? "-");
-            //};
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
 
 
             var clientWebSocket = new ClientWebSocket();
 
-            //clientWebSocket.Options.Credentials = CredentialCache.DefaultCredentials;
             clientWebSocket.Options.AddSubProtocol("ocpp1.6");
 
             try
@@ -515,19 +592,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             }
             catch (Exception e)
             {
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
             }
-
-
-            Assert.IsTrue  (validatedTCP);
-            Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validatedWebSocket);
-            Assert.IsTrue  (newWebSocketConnection);
-
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
-            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
-
 
             var state                = clientWebSocket.State;
             var closeStatus          = clientWebSocket.CloseStatus;
@@ -535,6 +601,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var subProtocol          = clientWebSocket.SubProtocol;
             var httpStatusCode       = clientWebSocket.HttpStatusCode;
             var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection == 0)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(1, validatedTCP);
+            Assert.AreEqual(1, newTCPConnection);
+            Assert.AreEqual(1, validatedWebSocket);
+            Assert.AreEqual(1, newWebSocketConnection);
+
+            Assert.AreEqual(1, httpRequests. Count);
+            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
             var httpRequest          = httpRequests.First();
@@ -558,7 +640,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
 
+            #endregion
 
+            #region Check HTTP response
 
             var httpResponse  = httpResponses.First();
             var response      = httpResponse.EntirePDU;
@@ -579,9 +663,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
             Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
+            #endregion
 
 
-            // Send messages
+            #region Send messages
+
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
                                             messageType:        WebSocketMessageType.Text,
                                             endOfMessage:       true,
@@ -598,19 +684,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageRequests.Count == 1)
                 Thread.Sleep(10);
 
+            #endregion
 
-            // Validate message delivery
-            Assert.AreEqual(2,      messageRequests. Count);
-            Assert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            Assert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            #region Validate message delivery
 
-            Assert.AreEqual(0,      messageResponses.Count);
+            Assert.AreEqual(2,       messageRequests. Count);
+            Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(2,      textMessageRequests.Count);
-            Assert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            Assert.AreEqual(2,       messageResponses.Count);
+            Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(0,      textMessageResponses.Count);
+
+            Assert.AreEqual(2,       textMessageRequests.Count);
+            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
+            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+
+            Assert.AreEqual(2,       textMessageResponses.Count);
+            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
+            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+
+            #endregion
 
 
             try
@@ -627,7 +722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 // System.Net.WebSockets.WebSocketException
                 // The remote party closed the WebSocket connection without completing the close handshake.
 
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
 
             }
 
@@ -636,38 +731,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
 
         #endregion
 
-        #region Test_004_KnownSubprotocols()
+        #region Test_KnownSubprotocols()
 
         [Test]
-        public async Task Test_004_KnownSubprotocols()
+        public async Task Test_KnownSubprotocols()
         {
+
+            #region Setup
 
             if (webSocketServer is null) {
                 Assert.Fail("WebSocketServer is null!");
                 return;
             }
-
-            var validatedTCP            = false;
-            var newTCPConnection        = false;
-            var validatedWebSocket      = false;
-            var newWebSocketConnection  = false;
-            var httpRequests            = new List<HTTPRequest>();
-            var httpResponses           = new List<HTTPResponse>();
-            var messageRequests         = new List<WebSocketFrame>();
-            var messageResponses        = new List<WebSocketFrame>();
-            var textMessageRequests     = new List<String>();
-            var textMessageResponses    = new List<String>();
 
             webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
             webSocketServer.SecWebSocketProtocols.Add("ocpp2.0");
 
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
+            var httpRequests            = new List<HTTPRequest>();
+            var httpResponses           = new List<HTTPResponse>();
+            var messageRequests         = new List<WebSocketFrame>();
+            var messageResponses        = new List<WebSocketFrame>();
+            var textMessageRequests     = new List<String>();
+            var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
+
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP            = true;
+                validatedTCP++;
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection        = true;
+                newTCPConnection++;
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -675,7 +774,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket      = true;
+                validatedWebSocket++;
                 return null;
             };
 
@@ -684,24 +783,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection  = true;
+                newWebSocketConnection++;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
-                messageRequests.     Add(requestFrame);
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
             };
 
-            //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
-            //    messageResponses.    Add(responseFrame);
-            //};
-
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
-                textMessageRequests. Add(requestMessage);
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
             };
 
-            //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
-            //    textMessageResponses.Add(responseMessage ?? "-");
-            //};
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
 
 
             var clientWebSocket = new ClientWebSocket();
@@ -715,19 +824,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             }
             catch (Exception e)
             {
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
             }
-
-
-            Assert.IsTrue  (validatedTCP);
-            Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validatedWebSocket);
-            Assert.IsTrue  (newWebSocketConnection);
-
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
-            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
-
 
             var state                = clientWebSocket.State;
             var closeStatus          = clientWebSocket.CloseStatus;
@@ -735,6 +833,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var subProtocol          = clientWebSocket.SubProtocol;
             var httpStatusCode       = clientWebSocket.HttpStatusCode;
             var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection == 0)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(1, validatedTCP);
+            Assert.AreEqual(1, newTCPConnection);
+            Assert.AreEqual(1, validatedWebSocket);
+            Assert.AreEqual(1, newWebSocketConnection);
+
+            Assert.AreEqual(1, httpRequests. Count);
+            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
             var httpRequest          = httpRequests.First();
@@ -758,7 +872,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
             Assert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
 
+            #endregion
 
+            #region Check HTTP response
 
             var httpResponse  = httpResponses.First();
             var response      = httpResponse.EntirePDU;
@@ -779,9 +895,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
             Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
+            #endregion
 
 
-            // Send messages
+            #region Send messages
+
             await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
                                             messageType:        WebSocketMessageType.Text,
                                             endOfMessage:       true,
@@ -798,19 +916,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageRequests.Count == 1)
                 Thread.Sleep(10);
 
+            #endregion
 
-            // Validate message delivery
-            Assert.AreEqual(2,      messageRequests. Count);
-            Assert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            Assert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            #region Validate message delivery
 
-            Assert.AreEqual(0,      messageResponses.Count);
+            Assert.AreEqual(2,       messageRequests. Count);
+            Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(2,      textMessageRequests.Count);
-            Assert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            Assert.AreEqual(2,       messageResponses.Count);
+            Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(0,      textMessageResponses.Count);
+
+            Assert.AreEqual(2,       textMessageRequests.Count);
+            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
+            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+
+            Assert.AreEqual(2,       textMessageResponses.Count);
+            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
+            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+
+            #endregion
 
 
             try
@@ -827,7 +954,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 // System.Net.WebSockets.WebSocketException
                 // The remote party closed the WebSocket connection without completing the close handshake.
 
-                DebugX.LogException(e);
+                Assert.Fail(e.Message);
 
             }
 
@@ -835,6 +962,723 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
         }
 
         #endregion
+
+
+        #region Test_BasicAuth_Optional()
+
+        [Test]
+        public async Task Test_BasicAuth_Optional()
+        {
+
+            #region Setup
+
+            if (webSocketServer is null) {
+                Assert.Fail("WebSocketServer is null!");
+                return;
+            }
+
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
+            var httpRequests            = new List<HTTPRequest>();
+            var httpResponses           = new List<HTTPResponse>();
+            var messageRequests         = new List<WebSocketFrame>();
+            var messageResponses        = new List<WebSocketFrame>();
+            var textMessageRequests     = new List<String>();
+            var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
+
+            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                validatedTCP++;
+                return true;
+            };
+
+            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                newTCPConnection++;
+            };
+
+            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+                httpRequests.Add(httpRequest);
+            };
+
+            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                validatedWebSocket++;
+                return null;
+            };
+
+            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+                httpResponses.Add(httpResponse);
+            };
+
+            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                newWebSocketConnection++;
+            };
+
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
+            };
+
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
+            };
+
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
+
+
+            var clientWebSocket = new ClientWebSocket();
+
+            // Will only work, when the server sends back a "401 Unauthorized" and a "WWW-Authenticate" header for the first request!
+            //clientWebSocket.Options.Credentials = new NetworkCredential("username", "password");
+
+            clientWebSocket.Options.SetRequestHeader("Authorization", $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("username:password"))}");
+
+            try
+            {
+                await clientWebSocket.ConnectAsync(new Uri($"ws://127.0.0.1:{HTTPPort}"), CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                Assert.Fail(e.Message);
+            }
+
+            var state                = clientWebSocket.State;
+            var closeStatus          = clientWebSocket.CloseStatus;
+            var options              = clientWebSocket.Options;
+            var subProtocol          = clientWebSocket.SubProtocol;
+            var httpStatusCode       = clientWebSocket.HttpStatusCode;
+            var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection == 0)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(1, validatedTCP);
+            Assert.AreEqual(1, newTCPConnection);
+            Assert.AreEqual(1, validatedWebSocket);
+            Assert.AreEqual(1, newWebSocketConnection);
+
+            Assert.AreEqual(1, httpRequests. Count);
+            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+
+
+            var httpRequest          = httpRequests.First();
+            var request              = httpRequest.EntirePDU;
+
+            // GET / HTTP/1.1
+            // Host:                     127.0.0.1:111
+            // Authorization:            Basic dXNlcm5hbWU6cGFzc3dvcmQ=
+            // Connection:               Upgrade
+            // Upgrade:                  websocket
+            // Sec-WebSocket-Key:        +LYHhVOGskWz/0bFFcK8dQ==
+            // Sec-WebSocket-Version:    13
+            // Sec-WebSocket-Protocol:   ocpp2.0
+
+            Assert.AreEqual("Upgrade",                                         httpRequest.Connection);
+            Assert.AreEqual("websocket",                                       httpRequest.Upgrade);
+            Assert.IsTrue  (httpRequest.Authorization is HTTPBasicAuthentication, "Is not HTTP Basic Authentication!");
+            Assert.AreEqual("username",                                       (httpRequest.Authorization as HTTPBasicAuthentication)?.Username);
+            Assert.AreEqual("password",                                       (httpRequest.Authorization as HTTPBasicAuthentication)?.Password);
+
+            Assert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
+            Assert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            Assert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
+            Assert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
+            Assert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
+            Assert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
+
+            #endregion
+
+            #region Check HTTP response
+
+            var httpResponse  = httpResponses.First();
+            var response      = httpResponse.EntirePDU;
+            var httpBody      = httpResponse.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 101 Switching Protocols
+            // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
+            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Connection:               Upgrade
+            // Upgrade:                  websocket
+            // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
+            // Sec-WebSocket-Protocol:   ocpp2.0
+            // Sec-WebSocket-Version:    13
+
+            Assert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+
+            Assert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
+            Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
+
+            #endregion
+
+
+            #region Send messages
+
+            await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
+                                            messageType:        WebSocketMessageType.Text,
+                                            endOfMessage:       true,
+                                            cancellationToken:  CancellationToken.None);
+
+            while (textMessageRequests.Count == 0)
+                Thread.Sleep(10);
+
+            await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("ABCD")),
+                                            messageType:        WebSocketMessageType.Text,
+                                            endOfMessage:       true,
+                                            cancellationToken:  CancellationToken.None);
+
+            while (textMessageRequests.Count == 1)
+                Thread.Sleep(10);
+
+            #endregion
+
+            #region Validate message delivery
+
+            Assert.AreEqual(2,       messageRequests. Count);
+            Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+
+            Assert.AreEqual(2,       messageResponses.Count);
+            Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+
+
+            Assert.AreEqual(2,       textMessageRequests.Count);
+            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
+            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+
+            Assert.AreEqual(2,       textMessageResponses.Count);
+            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
+            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+
+            #endregion
+
+
+            try
+            {
+
+                await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                                                 "Done",
+                                                 CancellationToken.None);
+
+            }
+            catch (Exception e)
+            {
+
+                // System.Net.WebSockets.WebSocketException
+                // The remote party closed the WebSocket connection without completing the close handshake.
+
+                Assert.Fail(e.Message);
+
+            }
+
+
+        }
+
+        #endregion
+
+        #region Test_BasicAuth_Mandatory()
+
+        [Test]
+        public async Task Test_BasicAuth_Mandatory()
+        {
+
+            #region Setup
+
+            if (webSocketServer is null) {
+                Assert.Fail("WebSocketServer is null!");
+                return;
+            }
+
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
+            var httpRequests            = new List<HTTPRequest>();
+            var httpResponses           = new List<HTTPResponse>();
+            var messageRequests         = new List<WebSocketFrame>();
+            var messageResponses        = new List<WebSocketFrame>();
+            var textMessageRequests     = new List<String>();
+            var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
+
+            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                validatedTCP++;
+                return true;
+            };
+
+            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                newTCPConnection++;
+            };
+
+            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+                httpRequests.Add(httpRequest);
+            };
+
+            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+
+                if (connection.HTTPRequest is not null &&
+                    connection.HTTPRequest.Authorization is HTTPBasicAuthentication httpBasicAuth &&
+                    httpBasicAuth.Username == "username" &&
+                    httpBasicAuth.Password == "password")
+                {
+                    validatedWebSocket++;
+                    return null;
+                }
+                else
+                {
+                    return new HTTPResponse.Builder(connection.HTTPRequest) {
+                               HTTPStatusCode   = HTTPStatusCode.Unauthorized,
+                               WWWAuthenticate  = @"Basic realm=""Access to the web sockets server"", charset =""UTF-8""",
+                               Connection       = "Close"
+                           }.AsImmutable;
+                }
+
+            };
+
+            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+                httpResponses.Add(httpResponse);
+            };
+
+            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                newWebSocketConnection++;
+            };
+
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
+            };
+
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
+            };
+
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
+
+
+            var clientWebSocket = new ClientWebSocket();
+
+            // Will only work, when the server sends back a "401 Unauthorized" and a "WWW-Authenticate" header for the first request!
+            clientWebSocket.Options.Credentials = new NetworkCredential("username", "password");
+
+            try
+            {
+                await clientWebSocket.ConnectAsync(new Uri($"ws://127.0.0.1:{HTTPPort}"), CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                Assert.AreEqual("The server returned status code '401' when status code '101' was expected.", e.Message);
+            }
+
+            var state                = clientWebSocket.State;
+            var closeStatus          = clientWebSocket.CloseStatus;
+            var options              = clientWebSocket.Options;
+            var subProtocol          = clientWebSocket.SubProtocol;
+            var httpStatusCode       = clientWebSocket.HttpStatusCode;
+            var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection <= 1)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(2, validatedTCP);
+            Assert.AreEqual(2, newTCPConnection);
+            Assert.AreEqual(1, validatedWebSocket);
+            Assert.AreEqual(2, newWebSocketConnection);
+
+            Assert.AreEqual(2, httpRequests. Count);
+            Assert.AreEqual(2, httpResponses.Count);
+            Assert.AreEqual(2, webSocketServer.WebSocketConnections.Count());
+
+
+            var httpRequest1          = httpRequests.First();
+            var request1              = httpRequest1.EntirePDU;
+
+            // GET / HTTP/1.1
+            // Host:                     127.0.0.1:111
+            // Connection:               Upgrade
+            // Upgrade:                  websocket
+            // Sec-WebSocket-Key:        fPK+DduM8UCSqm1WUQ876w==
+            // Sec-WebSocket-Version:    13
+            // Sec-WebSocket-Protocol:   ocpp2.0
+
+
+
+            var httpRequest2          = httpRequests.ElementAt(1);
+            var request2              = httpRequest2.EntirePDU;
+
+            // GET / HTTP/1.1
+            // Host:                     127.0.0.1:111
+            // Connection:               Upgrade
+            // Upgrade:                  websocket
+            // Sec-WebSocket-Key:        +LYHhVOGskWz/0bFFcK8dQ==
+            // Sec-WebSocket-Version:    13
+            // Sec-WebSocket-Protocol:   ocpp2.0
+            // Authorization:            Basic dXNlcm5hbWU6cGFzc3dvcmQ=
+
+            Assert.AreEqual("Upgrade",                                         httpRequest2.Connection);
+            Assert.AreEqual("websocket",                                       httpRequest2.Upgrade);
+            Assert.IsTrue  (httpRequest2.Authorization is HTTPBasicAuthentication, "Is not HTTP Basic Authentication!");
+            Assert.AreEqual("username",                                       (httpRequest2.Authorization as HTTPBasicAuthentication)?.Username);
+            Assert.AreEqual("password",                                       (httpRequest2.Authorization as HTTPBasicAuthentication)?.Password);
+
+            Assert.IsTrue  (request2.Contains("GET / HTTP/1.1"),                request2);
+            Assert.IsTrue  (request2.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request2);
+            Assert.IsTrue  (request2.Contains($"Connection: Upgrade"),          request2);
+            Assert.IsTrue  (request2.Contains($"Upgrade: websocket"),           request2);
+            Assert.IsTrue  (request2.Contains($"Sec-WebSocket-Key:"),           request2);
+            Assert.IsTrue  (request2.Contains($"Sec-WebSocket-Version:"),       request2);
+
+            #endregion
+
+            #region Check HTTP response
+
+            var httpResponse1  = httpResponses.First();
+            var response1      = httpResponse1.EntirePDU;
+            var httpBody1      = httpResponse1.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 401 Unauthorized
+            // Date:                     Thu, 03 Aug 2023 17:09:17 GMT
+            // WWW-Authenticate:         Basic realm="Access to the web sockets server", charset ="UTF-8"
+            // Connection:               Close
+
+
+
+            var httpResponse2  = httpResponses.ElementAt(1);
+            var response2      = httpResponse2.EntirePDU;
+            var httpBody2      = httpResponse2.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 101 Switching Protocols
+            // Date:                     Thu, 03 Aug 2023 17:09:17 GMT
+            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Connection:               Upgrade
+            // Upgrade:                  websocket
+            // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
+            // Sec-WebSocket-Protocol:   ocpp2.0
+            // Sec-WebSocket-Version:    13
+
+            Assert.IsTrue  (response2.Contains("HTTP/1.1 101 Switching Protocols"),   response2);
+
+            Assert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse2.Server);
+            Assert.AreEqual("Upgrade",                                               httpResponse2.Connection);
+            Assert.AreEqual("websocket",                                             httpResponse2.Upgrade);
+
+            #endregion
+
+
+            #region Send messages
+
+            await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
+                                            messageType:        WebSocketMessageType.Text,
+                                            endOfMessage:       true,
+                                            cancellationToken:  CancellationToken.None);
+
+            while (textMessageRequests.Count == 0)
+                Thread.Sleep(10);
+
+            await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("ABCD")),
+                                            messageType:        WebSocketMessageType.Text,
+                                            endOfMessage:       true,
+                                            cancellationToken:  CancellationToken.None);
+
+            while (textMessageRequests.Count == 1)
+                Thread.Sleep(10);
+
+            #endregion
+
+            #region Validate message delivery
+
+            Assert.AreEqual(2,       messageRequests. Count);
+            Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+
+            Assert.AreEqual(2,       messageResponses.Count);
+            Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+
+
+            Assert.AreEqual(2,       textMessageRequests.Count);
+            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
+            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+
+            Assert.AreEqual(2,       textMessageResponses.Count);
+            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
+            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+
+            #endregion
+
+
+            try
+            {
+
+                await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                                                 "Done",
+                                                 CancellationToken.None);
+
+            }
+            catch (Exception e)
+            {
+
+                // System.Net.WebSockets.WebSocketException
+                // The remote party closed the WebSocket connection without completing the close handshake.
+
+                Assert.Fail(e.Message);
+
+            }
+
+
+        }
+
+        #endregion
+
+        #region Test_BasicAuth_Mandatory_Failed()
+
+        [Test]
+        public async Task Test_BasicAuth_Mandatory_Failed()
+        {
+
+            #region Setup
+
+            if (webSocketServer is null) {
+                Assert.Fail("WebSocketServer is null!");
+                return;
+            }
+
+            var validatedTCP            = 0;
+            var newTCPConnection        = 0;
+            var validatedWebSocket      = 0;
+            var newWebSocketConnection  = 0;
+            var httpRequests            = new List<HTTPRequest>();
+            var httpResponses           = new List<HTTPResponse>();
+            var messageRequests         = new List<WebSocketFrame>();
+            var messageResponses        = new List<WebSocketFrame>();
+            var textMessageRequests     = new List<String>();
+            var textMessageResponses    = new List<String>();
+            var binaryMessageRequests   = new List<Byte[]>();
+            var binaryMessageResponses  = new List<Byte[]>();
+
+            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                validatedTCP++;
+                return true;
+            };
+
+            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                newTCPConnection++;
+            };
+
+            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+                httpRequests.Add(httpRequest);
+            };
+
+            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+
+                if (connection.HTTPRequest is not null &&
+                    connection.HTTPRequest.Authorization is HTTPBasicAuthentication httpBasicAuth &&
+                    httpBasicAuth.Username == "username" &&
+                    httpBasicAuth.Password == "password")
+                {
+                    validatedWebSocket++;
+                    return null;
+                }
+                else
+                {
+                    return new HTTPResponse.Builder(connection.HTTPRequest) {
+                               HTTPStatusCode   = HTTPStatusCode.Unauthorized,
+                               Server           = "GraphDefined HTTP Web Socket Service v2.0",
+                               WWWAuthenticate  = @"Basic realm=""Access to the web sockets server"", charset =""UTF-8""",
+                               Connection       = "Close"
+                           }.AsImmutable;
+                }
+
+            };
+
+            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+                httpResponses.Add(httpResponse);
+            };
+
+            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+                newWebSocketConnection++;
+            };
+
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+                messageRequests.       Add(requestFrame);
+            };
+
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+                messageResponses.      Add(responseFrame);
+            };
+
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageRequests.   Add(textMessage);
+            };
+
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+                textMessageResponses.  Add(textMessage ?? "-");
+            };
+
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageRequests. Add(binaryMessage);
+            };
+
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+                binaryMessageResponses.Add(binaryMessage);
+            };
+
+            #endregion
+
+
+            var clientWebSocket = new ClientWebSocket();
+
+            // Will only work, when the server sends back a "401 Unauthorized" and a "WWW-Authenticate" header for the first request!
+            clientWebSocket.Options.Credentials = new NetworkCredential("nameOfUser", "passphrase");
+
+            try
+            {
+                await clientWebSocket.ConnectAsync(new Uri($"ws://127.0.0.1:{HTTPPort}"), CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                Assert.AreEqual("The server returned status code '401' when status code '101' was expected.", e.Message);
+            }
+
+            var state                = clientWebSocket.State;
+            var closeStatus          = clientWebSocket.CloseStatus;
+            var options              = clientWebSocket.Options;
+            var subProtocol          = clientWebSocket.SubProtocol;
+            var httpStatusCode       = clientWebSocket.HttpStatusCode;
+            var httpResponseHeaders  = clientWebSocket.HttpResponseHeaders;
+
+
+            #region Check HTTP request
+
+            // Wait a bit, because running multiple tests at once has timing issues!
+            while (newWebSocketConnection <= 1)
+                Thread.Sleep(10);
+
+            Assert.AreEqual(2, validatedTCP);
+            Assert.AreEqual(2, newTCPConnection);
+            Assert.AreEqual(0, validatedWebSocket);
+            Assert.AreEqual(2, newWebSocketConnection);
+
+            Assert.AreEqual(2, httpRequests. Count);
+            Assert.AreEqual(2, httpResponses.Count);
+            Assert.AreEqual(2, webSocketServer.WebSocketConnections.Count());
+
+
+            var httpRequest1          = httpRequests.First();
+            var request1              = httpRequest1.EntirePDU;
+
+            // GET / HTTP/1.1
+            // Host:                     127.0.0.1:111
+            // Connection:               Upgrade
+            // Upgrade:                  websocket
+            // Sec-WebSocket-Key:        fPK+DduM8UCSqm1WUQ876w==
+            // Sec-WebSocket-Version:    13
+
+
+
+            var httpRequest2          = httpRequests.ElementAt(1);
+            var request2              = httpRequest2.EntirePDU;
+
+            // GET / HTTP/1.1
+            // Host:                    127.0.0.1:111
+            // Connection:              Upgrade
+            // Upgrade:                 websocket
+            // Sec-WebSocket-Key:       kfHFF9xcPEeUwywOtd2+VA==
+            // Sec-WebSocket-Version:   13
+            // Authorization:           Basic bmFtZU9mVXNlcjpwYXNzcGhyYXNl
+
+            Assert.AreEqual("Upgrade",                                         httpRequest2.Connection);
+            Assert.AreEqual("websocket",                                       httpRequest2.Upgrade);
+            Assert.IsTrue  (httpRequest2.Authorization is HTTPBasicAuthentication, "Is not HTTP Basic Authentication!");
+            Assert.AreEqual("nameOfUser",                                     (httpRequest2.Authorization as HTTPBasicAuthentication)?.Username);
+            Assert.AreEqual("passphrase",                                     (httpRequest2.Authorization as HTTPBasicAuthentication)?.Password);
+
+            Assert.IsTrue  (request2.Contains("GET / HTTP/1.1"),                                       request2);
+            Assert.IsTrue  (request2.Contains($"Host: 127.0.0.1:{HTTPPort}"),                          request2);
+            Assert.IsTrue  (request2.Contains($"Connection: Upgrade"),                                 request2);
+            Assert.IsTrue  (request2.Contains($"Upgrade: websocket"),                                  request2);
+            Assert.IsTrue  (request2.Contains($"Sec-WebSocket-Key:"),                                  request2);
+            Assert.IsTrue  (request2.Contains($"Sec-WebSocket-Version:"),                              request2);
+            Assert.IsTrue  (request2.Contains($"Authorization: Basic bmFtZU9mVXNlcjpwYXNzcGhyYXNl"),   request2);
+
+            #endregion
+
+            #region Check HTTP response
+
+            var httpResponse1  = httpResponses.First();
+            var response1      = httpResponse1.EntirePDU;
+            var httpBody1      = httpResponse1.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 401 Unauthorized
+            // Date:               Thu, 03 Aug 2023 22:38:42 GMT
+            // WWW-Authenticate:   Basic realm="Access to the web sockets server", charset ="UTF-8"
+            // Connection:         Close
+
+
+
+            var httpResponse2  = httpResponses.ElementAt(1);
+            var response2      = httpResponse2.EntirePDU;
+            var httpBody2      = httpResponse2.HTTPBodyAsUTF8String;
+
+            // HTTP/1.1 401 Unauthorized
+            // Date:               Thu, 03 Aug 2023 22:38:43 GMT
+            // WWW-Authenticate:   Basic realm="Access to the web sockets server", charset ="UTF-8"
+            // Connection:         Close
+
+            Assert.IsTrue  (response2.Contains("HTTP/1.1 401 Unauthorized"),   response2);
+
+            Assert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",                              httpResponse2.Server);
+            Assert.AreEqual("Basic realm=\"Access to the web sockets server\", charset =\"UTF-8\"",   httpResponse2.WWWAuthenticate);
+            Assert.AreEqual("Close",                                                                  httpResponse2.Connection);
+
+            #endregion
+
+        }
+
+        #endregion
+
 
     }
 

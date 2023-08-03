@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                             Server           = HTTPServer.DefaultServerName,
                             Date             = Timestamp.Now,
-                            WWWAuthenticate  = new[] { @"Basic realm=""" + HTTPRealm + @"""" },
+                            WWWAuthenticate  = @"Basic realm=""" + HTTPRealm + @"""",
                             ContentType      = HTTPContentType.TEXT_UTF8,
                             Content          = "Unauthorized Access!".ToUTF8Bytes(),
                             Connection       = "close"

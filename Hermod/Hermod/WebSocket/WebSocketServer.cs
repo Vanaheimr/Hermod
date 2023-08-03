@@ -30,6 +30,161 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+
+    public delegate Task<WebSocketTextMessageResponse> OnWebSocketTextMessage2Delegate(DateTime             Timestamp,
+                                                                                       WebSocketServer      Server,
+                                                                                       WebSocketServerConnection  Connection,
+                                                                                       EventTracking_Id     EventTrackingId,
+                                                                                       DateTime             RequestTimestamp,
+                                                                                       String               RequestMessage);
+
+
+    public class WebSocketServer2 : WebSocketServer
+    {
+
+        #region Events
+
+        /// <summary>
+        /// An event sent whenever a text message was received.
+        /// </summary>
+        public event OnWebSocketTextMessage2Delegate? OnTextMessage;
+
+        #endregion
+
+
+
+        #region Constructor(s)
+
+        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., Autostart = false)
+
+        /// <summary>
+        /// Create a new HTTP web socket server.
+        /// </summary>
+        /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
+        /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
+        /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        public WebSocketServer2(IIPAddress?                       IPAddress                    = null,
+                                IPPort?                           HTTPPort                     = null,
+                                String?                           HTTPServiceName              = null,
+                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
+                                ThreadPriority?                   ServerThreadPriority         = null,
+                                Boolean?                          ServerThreadIsBackground     = null,
+
+                                IEnumerable<String>?              SecWebSocketProtocols        = null,
+                                Boolean                           DisableWebSocketPings        = false,
+                                TimeSpan?                         WebSocketPingEvery           = null,
+                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
+
+                                DNSClient?                        DNSClient                    = null,
+                                Boolean                           Autostart                    = false)
+
+            : base(IPAddress,
+                   HTTPPort,
+                   HTTPServiceName,
+                   ServerThreadNameCreator,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+
+                   SecWebSocketProtocols,
+                   DisableWebSocketPings,
+                   WebSocketPingEvery,
+                   SlowNetworkSimulationDelay,
+
+                   DNSClient,
+                   Autostart)
+
+        { }
+
+        #endregion
+
+        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., Autostart = false)
+
+        /// <summary>
+        /// Create a new HTTP web socket server.
+        /// </summary>
+        /// <param name="IPSocket">The IP socket to listen on.</param>
+        /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="DNSClient">An optional DNS client.</param>
+        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        public WebSocketServer2(IPSocket                          IPSocket,
+                                String?                           HTTPServiceName              = null,
+                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
+                                ThreadPriority?                   ServerThreadPriority         = null,
+                                Boolean?                          ServerThreadIsBackground     = null,
+
+                                IEnumerable<String>?              SecWebSocketProtocols        = null,
+                                Boolean                           DisableWebSocketPings        = false,
+                                TimeSpan?                         WebSocketPingEvery           = null,
+                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
+
+                                DNSClient?                        DNSClient                    = null,
+                                Boolean                           Autostart                    = false)
+
+            : base(IPSocket,
+                   HTTPServiceName,
+                   ServerThreadNameCreator,
+                   ServerThreadPriority,
+                   ServerThreadIsBackground,
+
+                   SecWebSocketProtocols,
+                   DisableWebSocketPings,
+                   WebSocketPingEvery,
+                   SlowNetworkSimulationDelay,
+
+                   DNSClient,
+                   Autostart)
+
+        { }
+
+        #endregion
+
+        #endregion
+
+
+
+        /// <summary>
+        /// The default HTTP web socket text message processor.
+        /// </summary>
+        /// <param name="RequestTimestamp">The timestamp of the request message.</param>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="TextMessage">The web socket text message.</param>
+        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public async override Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime             RequestTimestamp,
+                                                                                    WebSocketServerConnection  Connection,
+                                                                                    String               TextMessage,
+                                                                                    EventTracking_Id     EventTrackingId,
+                                                                                    CancellationToken    CancellationToken)
+        {
+
+            WebSocketTextMessageResponse? response = null;
+
+            var onTextMessage = OnTextMessage;
+            if (onTextMessage is not null)
+                response = await onTextMessage.Invoke(RequestTimestamp,
+                                                      this,
+                                                      Connection,
+                                                      EventTrackingId,
+                                                      RequestTimestamp,
+                                                      TextMessage);
+
+            response ??= new WebSocketTextMessageResponse(
+                             RequestTimestamp,
+                             TextMessage,
+                             Timestamp.Now,
+                             TextMessage.Reverse(),
+                             EventTrackingId
+                         );
+
+            return response;
+
+        }
+
+    }
+
+
     /// <summary>
     /// A HTTP web socket server.
     /// </summary>
@@ -38,17 +193,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly ConcurrentDictionary<IPSocket, WebSocketConnection>  webSocketConnections;
+        private readonly  ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>  webSocketConnections;
 
-        private          Thread?                                              listenerThread;
+        private           Thread?                                                             listenerThread;
 
-        private readonly CancellationTokenSource                              cancellationTokenSource;
+        private readonly  CancellationTokenSource                                             cancellationTokenSource;
 
-        private volatile Boolean                                              isRunning                   = false;
+        private volatile  Boolean                                                             isRunning                  = false;
 
-        private const    String                                               LogfileName                 = "HTTPWebSocketServer.log";
+        private const     String                                                              LogfileName                = "HTTPWebSocketServer.log";
 
-        public  readonly TimeSpan                                             DefaultWebSocketPingEvery   = TimeSpan.FromSeconds(30);
+        public readonly   TimeSpan                                                            DefaultWebSocketPingEvery  = TimeSpan.FromSeconds(30);
 
         #endregion
 
@@ -57,8 +212,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return an enumeration of all currently connected HTTP web socket connections.
         /// </summary>
-        public IEnumerable<WebSocketConnection>  WebSocketConnections
-            => webSocketConnections.Values.ToArray();
+        public IEnumerable<WebSocketServerConnection> WebSocketConnections
+        {
+            get
+            {
+
+                var webSocketConnectionsList = new List<WebSocketServerConnection>();
+
+                foreach (var weakReference in webSocketConnections.Values)
+                {
+                    if (weakReference.TryGetTarget(out var webSocketConnection) &&
+                        webSocketConnection is not null &&
+                        webSocketConnection.IsClosed == false)
+                    {
+                        webSocketConnectionsList.Add(webSocketConnection);
+                    }
+                }
+
+                return webSocketConnectionsList;
+
+            }
+        }
 
         /// <summary>
         /// The HTTP service name.
@@ -128,45 +302,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever the HTTP web socket server started.
         /// </summary>
-        public event OnServerStartedDelegate?                     OnServerStarted;
+        public event OnServerStartedDelegate?                 OnServerStarted;
 
 
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        public event OnValidateTCPConnectionDelegate?             OnValidateTCPConnection;
+        public event OnValidateTCPConnectionDelegate?         OnValidateTCPConnection;
 
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        public event OnNewTCPConnectionDelegate?                  OnNewTCPConnection;
+        public event OnNewTCPConnectionDelegate?              OnNewTCPConnection;
 
         /// <summary>
         /// An event sent whenever a HTTP request was received.
         /// </summary>
-        public event HTTPRequestLogDelegate?                      OnHTTPRequest;
+        public event HTTPRequestLogDelegate?                  OnHTTPRequest;
 
         /// <summary>
         /// An event sent whenever the HTTP headers of a new web socket connection
         /// need to be validated or filtered by an upper layer application logic.
         /// </summary>
-        public event OnValidateWebSocketConnectionDelegate?       OnValidateWebSocketConnection;
+        public event OnValidateWebSocketConnectionDelegate?   OnValidateWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
         /// </summary>
-        public event OnNewWebSocketConnectionDelegate?            OnNewWebSocketConnection;
+        public event OnNewWebSocketConnectionDelegate?        OnNewWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever a reponse to a HTTP request was sent.
         /// </summary>
-        public event HTTPResponseLogDelegate?                     OnHTTPResponse;
+        public event HTTPResponseLogDelegate?                 OnHTTPResponse;
 
 
         /// <summary>
         /// An event sent whenever a web socket frame was received.
         /// </summary>
-        public event OnWebSocketFrameDelegate?                    OnWebSocketFrameReceived;
+        public event OnWebSocketFrameDelegate?                OnWebSocketFrameReceived;
 
         ///// <summary>
         ///// An event sent whenever the response to a web socket frame was sent.
@@ -176,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        public event OnWebSocketFrameDelegate?                    OnWebSocketFrameSent;
+        public event OnWebSocketFrameDelegate?                OnWebSocketFrameSent;
 
         ///// <summary>
         ///// An event sent whenever the response to a web socket frame was received.
@@ -187,51 +361,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        public event OnWebSocketTextMessageDelegate?       OnTextMessageReceived;
+        public event OnWebSocketTextMessageDelegate?          OnTextMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        public event OnWebSocketTextMessageDelegate?       OnTextMessageSent;
+        public event OnWebSocketTextMessageDelegate?          OnTextMessageSent;
 
 
         /// <summary>
         /// An event sent whenever a binary message was received.
         /// </summary>
-        public event OnWebSocketBinaryMessageDelegate?     OnBinaryMessageReceived;
+        public event OnWebSocketBinaryMessageDelegate?        OnBinaryMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        public event OnWebSocketBinaryMessageDelegate?     OnBinaryMessageSent;
+        public event OnWebSocketBinaryMessageDelegate?        OnBinaryMessageSent;
 
 
         /// <summary>
         /// An event sent whenever a web socket ping frame was received.
         /// </summary>
-        public event OnWebSocketFrameDelegate?                    OnPingMessageReceived;
+        public event OnWebSocketFrameDelegate?                OnPingMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket ping frame was sent.
         /// </summary>
-        public event OnWebSocketFrameDelegate?                    OnPingMessageSent;
+        public event OnWebSocketFrameDelegate?                OnPingMessageSent;
 
         /// <summary>
         /// An event sent whenever a web socket pong frame was received.
         /// </summary>
-        public event OnWebSocketFrameDelegate?                    OnPongMessageReceived;
+        public event OnWebSocketFrameDelegate?                OnPongMessageReceived;
 
 
         /// <summary>
         /// An event sent whenever a web socket close frame was received.
         /// </summary>
-        public event OnCloseMessageDelegate?                      OnCloseMessageReceived;
+        public event OnCloseMessageDelegate?                  OnCloseMessageReceived;
 
 
         /// <summary>
         /// An event sent whenever a TCP connection was closed.
         /// </summary>
-        public event OnTCPConnectionClosedDelegate?               OnTCPConnectionClosed;
+        public event OnTCPConnectionClosedDelegate?           OnTCPConnectionClosed;
 
         #endregion
 
@@ -320,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
             this.DNSClient                   = DNSClient;
 
-            this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WebSocketConnection>();
+            this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
             this.cancellationTokenSource     = new CancellationTokenSource();
 
             if (Autostart)
@@ -341,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="Text">Text data to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public SendStatus SendText(WebSocketConnection  Connection,
+        public SendStatus SendText(WebSocketServerConnection  Connection,
                                    String               Text,
                                    EventTracking_Id?    EventTrackingId   = null)
         {
@@ -364,7 +538,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="Data">Binary data to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public SendStatus SendBinary(WebSocketConnection  Connection,
+        public SendStatus SendBinary(WebSocketServerConnection  Connection,
                                      Byte[]               Data,
                                      EventTracking_Id?    EventTrackingId   = null)
         {
@@ -387,7 +561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="Frame">The web socket frame to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public SendStatus SendFrame(WebSocketConnection  Connection,
+        public SendStatus SendFrame(WebSocketServerConnection  Connection,
                                     WebSocketFrame       Frame,
                                     EventTracking_Id?    EventTrackingId   = null)
         {
@@ -411,8 +585,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         var responseTask = OnWebSocketFrameSentLocal(Timestamp.Now,
                                                                      this,
                                                                      Connection,
-                                                                     Frame,
-                                                                     eventTrackingId);
+                                                                     eventTrackingId,
+                                                                     Frame);
 
                         responseTask.Wait(TimeSpan.FromSeconds(10));
 
@@ -442,7 +616,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                       this,
                                                                       Connection,
                                                                       eventTrackingId,
-                                                                      Timestamp.Now,
                                                                       Frame.Payload.ToUTF8String());
 
                             responseTask.Wait(TimeSpan.FromSeconds(10));
@@ -474,8 +647,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             var responseTask = OnBinaryMessageSentLocal(Timestamp.Now,
                                                                         this,
                                                                         Connection,
-                                                                        Frame.Payload,
-                                                                        eventTrackingId);
+                                                                        eventTrackingId,
+                                                                        Frame.Payload);
 
                             responseTask.Wait(TimeSpan.FromSeconds(10));
 
@@ -505,7 +678,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Remove the given web socket connection.
         /// </summary>
         /// <param name="Connection">A HTTP web socket connection.</param>
-        public Boolean RemoveConnection(WebSocketConnection Connection)
+        public Boolean RemoveConnection(WebSocketServerConnection Connection)
         {
 
             DebugX.Log(nameof(WebSocketServer), " Removing HTTP web socket connection with " + Connection.RemoteSocket);
@@ -615,7 +788,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         try
                         {
 
-                            if (context is WebSocketConnection webSocketConnection)
+                            if (context is WebSocketServerConnection webSocketConnection)
                             {
 
                                 #region Data
@@ -639,13 +812,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 webSocketConnection.WriteTimeout  = TimeSpan.FromSeconds(3);
 
                                 if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
-                                                                 webSocketConnection))
+                                                                 new WeakReference<WebSocketServerConnection>(webSocketConnection)))
                                 {
 
                                     webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
 
                                     webSocketConnections.TryAdd   (webSocketConnection.RemoteSocket,
-                                                                   webSocketConnection);
+                                                                   new WeakReference<WebSocketServerConnection>(webSocketConnection));
 
                                 }
 
@@ -720,13 +893,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         OnPingMessageSent?.Invoke(Timestamp.Now,
                                                                                   this,
                                                                                   webSocketConnection,
-                                                                                  frame,
-                                                                                  eventTrackingId);
+                                                                                  eventTrackingId,
+                                                                                  frame);
 
                                                     }
                                                     catch (Exception e)
                                                     {
-                                                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageReceived));
+                                                        DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnPingMessageSent));
                                                     }
 
                                                     #endregion
@@ -801,7 +974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         else
                                         {
 
-                                            webSocketConnection.Request = httpRequest;
+                                            webSocketConnection.HTTPRequest = httpRequest;
 
                                             #region OnHTTPRequest
 
@@ -840,7 +1013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // 3. Compute SHA-1 and Base64 hash of the new value
                                             // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
 #pragma warning disable SCS0006 // Weak hashing function.
-                                            var swk       = webSocketConnection.Request?.SecWebSocketKey;
+                                            var swk       = webSocketConnection.HTTPRequest?.SecWebSocketKey;
                                             var swka      = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
                                             var swkaSHA1  = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
 #pragma warning restore SCS0006 // Weak hashing function.
@@ -975,8 +1148,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     OnWebSocketFrameReceived?.Invoke(now,
                                                                                      this,
                                                                                      webSocketConnection,
-                                                                                     frame,
-                                                                                     eventTrackingId);
+                                                                                     eventTrackingId,
+                                                                                     frame);
 
                                                 }
                                                 catch (Exception e)
@@ -1002,7 +1175,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                           this,
                                                                                           webSocketConnection,
                                                                                           eventTrackingId,
-                                                                                          now,
                                                                                           frame.Payload.ToUTF8String());
 
                                                         }
@@ -1081,8 +1253,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             OnBinaryMessageReceived?.Invoke(now,
                                                                                             this,
                                                                                             webSocketConnection,
-                                                                                            frame.Payload,
-                                                                                            eventTrackingId);
+                                                                                            eventTrackingId,
+                                                                                            frame.Payload);
 
                                                         }
                                                         catch (Exception e)
@@ -1160,8 +1332,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             OnPingMessageReceived?.Invoke(now,
                                                                                           this,
                                                                                           webSocketConnection,
-                                                                                          frame,
-                                                                                          eventTrackingId);
+                                                                                          eventTrackingId,
+                                                                                          frame);
 
                                                         }
                                                         catch (Exception e)
@@ -1189,8 +1361,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             OnPongMessageReceived?.Invoke(now,
                                                                                           this,
                                                                                           webSocketConnection,
-                                                                                          frame,
-                                                                                          eventTrackingId);
+                                                                                          eventTrackingId,
+                                                                                          frame);
 
                                                         }
                                                         catch (Exception e)
@@ -1218,9 +1390,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             OnCloseMessageReceived?.Invoke(now,
                                                                                            this,
                                                                                            webSocketConnection,
+                                                                                           eventTrackingId,
                                                                                            frame.GetClosingStatusCode(),
-                                                                                           frame.GetClosingReason(),
-                                                                                           eventTrackingId);
+                                                                                           frame.GetClosingReason());
 
                                                         }
                                                         catch (Exception e)
@@ -1383,9 +1555,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         }
 
                     },
-                    new WebSocketConnection(this,
+                    new WebSocketServerConnection(this,
                                             newTCPConnection,
-                                            SlowNetworkSimulationDelay: SlowNetworkSimulationDelay));
+                                            SlowNetworkSimulationDelay: SlowNetworkSimulationDelay),
+                    token);
 
                 }
 
@@ -1446,7 +1619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public virtual Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime             RequestTimestamp,
-                                                                             WebSocketConnection  Connection,
+                                                                             WebSocketServerConnection  Connection,
                                                                              String               TextMessage,
                                                                              EventTracking_Id     EventTrackingId,
                                                                              CancellationToken    CancellationToken)
@@ -1477,7 +1650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public virtual Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime             RequestTimestamp,
-                                                                                 WebSocketConnection  Connection,
+                                                                                 WebSocketServerConnection  Connection,
                                                                                  Byte[]               BinaryMessage,
                                                                                  EventTracking_Id     EventTrackingId,
                                                                                  CancellationToken    CancellationToken)
