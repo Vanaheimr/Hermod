@@ -31,6 +31,7 @@ using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
 #endregion
 
@@ -450,9 +451,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
-        public Task<HTTPResponse?> Connect(EventTracking_Id?   EventTrackingId     = null,
-                                           TimeSpan?           RequestTimeout      = null,
-                                           Byte                NumberOfRetries     = 0)
+        public Task<HTTPResponse> Connect(EventTracking_Id?  EventTrackingId     = null,
+                                          TimeSpan?          RequestTimeout      = null,
+                                          Byte               NumberOfRetries     = 0,
+                                          CancellationToken  CancellationToken   = default)
         {
 
             HTTPResponse? waitingForHTTPResponse = null;
@@ -870,15 +872,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
 
-                                                        SendWebSocketFrame(new WebSocketFrame(
+                                                        SendWebSocketFrame(WebSocketFrame.Pong(
+                                                                               frame.Payload,
                                                                                WebSocketFrame.Fin.Final,
                                                                                WebSocketFrame.MaskStatus.On,
-                                                                               new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
-                                                                               WebSocketFrame.Opcodes.Pong,
-                                                                               frame.Payload,
-                                                                               WebSocketFrame.Rsv.Off,
-                                                                               WebSocketFrame.Rsv.Off,
-                                                                               WebSocketFrame.Rsv.Off
+                                                                               RandomExtensions.GetBytes(4)
                                                                            ));
 
                                                     }
@@ -1051,6 +1049,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
+            waitingForHTTPResponse ??= new HTTPResponse.Builder() {
+                                               HTTPStatusCode = HTTPStatusCode.BadRequest
+                                           };
+
             return Task.FromResult(waitingForHTTPResponse);
 
         }
@@ -1095,15 +1097,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             var payload = pingCounter + ":" + Guid.NewGuid().ToString();
 
-                            SendWebSocketFrame(new WebSocketFrame(
+                            SendWebSocketFrame(WebSocketFrame.Ping(
+                                                   payload.ToUTF8Bytes(),
                                                    WebSocketFrame.Fin.Final,
                                                    WebSocketFrame.MaskStatus.On,
-                                                   new Byte[] { 0xaa, 0xbb, 0xcc, 0xdd },
-                                                   WebSocketFrame.Opcodes.Ping,
-                                                   payload.ToUTF8Bytes(),
-                                                   WebSocketFrame.Rsv.Off,
-                                                   WebSocketFrame.Rsv.Off,
-                                                   WebSocketFrame.Rsv.Off
+                                                   RandomExtensions.GetBytes(4)
                                                ));
 
                             DebugX.Log(nameof(WebSocketClient) + ": Ping sent:     '" + payload + "'!");
@@ -1200,15 +1198,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Text">The text to send.</param>
         public void SendText(String Text)
 
-            => SendWebSocketFrame(new WebSocketFrame(
+            => SendWebSocketFrame(WebSocketFrame.Text(
+                                      Text,
                                       WebSocketFrame.Fin.Final,
                                       WebSocketFrame.MaskStatus.On,
-                                      RandomExtensions.GetBytes(4),
-                                      WebSocketFrame.Opcodes.Text,
-                                      Text.ToUTF8Bytes(),
-                                      WebSocketFrame.Rsv.Off,
-                                      WebSocketFrame.Rsv.Off,
-                                      WebSocketFrame.Rsv.Off
+                                      RandomExtensions.GetBytes(4)
                                   ));
 
         #endregion
@@ -1221,15 +1215,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Bytes">The array of bytes to send.</param>
         public void SendBinary(Byte[] Bytes)
 
-            => SendWebSocketFrame(new WebSocketFrame(
+            => SendWebSocketFrame(WebSocketFrame.Binary(
+                                     Bytes,
                                      WebSocketFrame.Fin.Final,
                                      WebSocketFrame.MaskStatus.On,
-                                     RandomExtensions.GetBytes(4),
-                                     WebSocketFrame.Opcodes.Binary,
-                                     Bytes,
-                                     WebSocketFrame.Rsv.Off,
-                                     WebSocketFrame.Rsv.Off,
-                                     WebSocketFrame.Rsv.Off
+                                     RandomExtensions.GetBytes(4)
                                  ));
 
         #endregion
@@ -1325,9 +1315,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region Close()
+        #region Close(StatusCode = Normal, Reason = null)
 
-        public void Close()
+        /// <summary>
+        /// Close the connection.
+        /// </summary>
+        /// <param name="StatusCode">An optional status code for closing.</param>
+        /// <param name="Reason">An optional reason for closing.</param>
+        public void Close(ClosingStatusCode  StatusCode   = ClosingStatusCode.NormalClosure,
+                          String?            Reason       = null)
         {
 
             try
@@ -1335,15 +1331,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (HTTPStream is not null)
                 {
 
-                    SendWebSocketFrame(new WebSocketFrame(
+                    SendWebSocketFrame(WebSocketFrame.Close(
+                                           StatusCode,
+                                           Reason,
                                            WebSocketFrame.Fin.Final,
                                            WebSocketFrame.MaskStatus.On,
-                                           new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
-                                           WebSocketFrame.Opcodes.Close,
-                                           Array.Empty<Byte>(),
-                                           WebSocketFrame.Rsv.Off,
-                                           WebSocketFrame.Rsv.Off,
-                                           WebSocketFrame.Rsv.Off
+                                           RandomExtensions.GetBytes(4)
                                        ));
 
                     HTTPStream.Close();

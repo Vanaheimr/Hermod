@@ -24,7 +24,6 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Data.SqlTypes;
 
 #endregion
 
@@ -95,11 +94,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean                           IsRunning
             => isRunning;
 
-
         /// <summary>
         /// The supported secondary web socket protocols.
         /// </summary>
-        public IEnumerable<String>               SecWebSocketProtocols         { get; }
+        public HashSet<String>                   SecWebSocketProtocols         { get; }
 
         /// <summary>
         /// Disable web socket pings.
@@ -239,18 +237,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Constructor(s)
 
-        #region WebSocketServer(IPAddress = null, TCPPort = null, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., Autostart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
         /// </summary>
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
-        /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
+        /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer(IIPAddress?                       IPAddress                    = null,
-                               IPPort?                           TCPPort                      = null,
+                               IPPort?                           HTTPPort                     = null,
                                String?                           HTTPServiceName              = null,
                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
                                ThreadPriority?                   ServerThreadPriority         = null,
@@ -265,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                Boolean                           Autostart                    = false)
 
             : this(new IPSocket(IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
-                                TCPPort   ?? IPPort.HTTP),
+                                HTTPPort  ?? IPPort.HTTP),
                    HTTPServiceName,
                    ServerThreadNameCreator,
                    ServerThreadPriority,
@@ -313,7 +311,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.ServerThreadPriority        = ServerThreadPriority              ?? ThreadPriority.Normal;
             this.ServerThreadIsBackground    = ServerThreadIsBackground          ?? false;
 
-            this.SecWebSocketProtocols       = SecWebSocketProtocols?.Distinct() ?? Array.Empty<String>();
+            this.SecWebSocketProtocols       = SecWebSocketProtocols is not null
+                                                   ? new HashSet<String>(SecWebSocketProtocols)
+                                                   : new HashSet<String>();
+
             this.DisableWebSocketPings       = DisableWebSocketPings;
             this.WebSocketPingEvery          = WebSocketPingEvery                ?? DefaultWebSocketPingEvery;
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
@@ -346,16 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             var success = SendFrame(Connection,
-                                    new WebSocketFrame(
-                                        WebSocketFrame.Fin.Final,
-                                        WebSocketFrame.MaskStatus.Off,
-                                        new Byte[4],
-                                        WebSocketFrame.Opcodes.Text,
-                                        Text.ToUTF8Bytes(),
-                                        WebSocketFrame.Rsv.Off,
-                                        WebSocketFrame.Rsv.Off,
-                                        WebSocketFrame.Rsv.Off
-                                    ),
+                                    WebSocketFrame.Text(Text),
                                     EventTrackingId);
 
             return success;
@@ -378,16 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             var success = SendFrame(Connection,
-                                    new WebSocketFrame(
-                                        WebSocketFrame.Fin.Final,
-                                        WebSocketFrame.MaskStatus.Off,
-                                        new Byte[4],
-                                        WebSocketFrame.Opcodes.Binary,
-                                        Data,
-                                        WebSocketFrame.Rsv.Off,
-                                        WebSocketFrame.Rsv.Off,
-                                        WebSocketFrame.Rsv.Off
-                                    ),
+                                    WebSocketFrame.Binary(Data),
                                     EventTrackingId);
 
             return success;
@@ -718,18 +701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 var eventTrackingId  = EventTracking_Id.New;
 
-                                                var payload          = Guid.NewGuid().ToString();
-
-                                                var frame            = new WebSocketFrame(
-                                                                           WebSocketFrame.Fin.Final,
-                                                                           WebSocketFrame.MaskStatus.Off,
-                                                                           new Byte[] { 0x00, 0x00, 0x00, 0x00 },
-                                                                           WebSocketFrame.Opcodes.Ping,
-                                                                           payload.ToUTF8Bytes(),
-                                                                           WebSocketFrame.Rsv.Off,
-                                                                           WebSocketFrame.Rsv.Off,
-                                                                           WebSocketFrame.Rsv.Off
-                                                                       );
+                                                var frame            = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
 
                                                 var success          = SendFrame(webSocketConnection,
                                                                                  frame,
@@ -806,20 +778,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         #region Invalid HTTP request...
 
-                                        // GET /webServices/ocpp/CP3211 HTTP/1.1
-                                        // Host:                    some.server.com:33033
-                                        // Upgrade:                 websocket
-                                        // Connection:              Upgrade
-                                        // Sec-WebSocket-Key:       x3JJHMbDL1EzLkh9GBhXDw==
-                                        // Sec-WebSocket-Protocol:  ocpp1.6, ocpp1.5
-                                        // Sec-WebSocket-Version:   13
-                                        if (!HTTPRequest.TryParse(bytes, out var httpRequest))
+                                        // GET /websocket HTTP/1.1
+                                        // Host:                     example.com:33033
+                                        // Upgrade:                  websocket
+                                        // Connection:               Upgrade
+                                        // Sec-WebSocket-Key:        x3JJHMbDL1EzLkh9GBhXDw==
+                                        // Sec-WebSocket-Protocol:   ocpp1.6, ocpp1.5
+                                        // Sec-WebSocket-Version:    13
+                                        if (!HTTPRequest.TryParse(bytes, out var httpRequest) ||
+                                             httpRequest is null)
+                                        {
                                             httpResponse = new HTTPResponse.Builder() {
                                                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                                Server          = HTTPServiceName,
                                                                Date            = Timestamp.Now,
                                                                Connection      = "close"
                                                            }.AsImmutable;
+                                        }
 
                                         #endregion
 
@@ -865,11 +840,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // 3. Compute SHA-1 and Base64 hash of the new value
                                             // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
 #pragma warning disable SCS0006 // Weak hashing function.
-                                            var swk             = webSocketConnection.Request?.SecWebSocketKey;
-                                            var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                            var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
-                                            var swkaSHA1Base64  = Convert.ToBase64String(swkaSHA1);
+                                            var swk       = webSocketConnection.Request?.SecWebSocketKey;
+                                            var swka      = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                            var swkaSHA1  = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
 #pragma warning restore SCS0006 // Weak hashing function.
+
+                                            var secWebSocketProtocols = new List<String>();
+
+                                            if (httpRequest.SecWebSocketProtocol. Any() &&
+                                                this.       SecWebSocketProtocols.Any())
+                                            {
+                                                foreach (var protocol in httpRequest.SecWebSocketProtocol)
+                                                {
+                                                    if (this.SecWebSocketProtocols.Contains(protocol))
+                                                        secWebSocketProtocols.Add(protocol);
+                                                }
+                                            }
 
                                             // HTTP/1.1 101 Switching Protocols
                                             // Connection:              Upgrade
@@ -882,8 +868,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  Server                = HTTPServiceName,
                                                                  Connection            = "Upgrade",
                                                                  Upgrade               = "websocket",
-                                                                 SecWebSocketAccept    = swkaSHA1Base64,
-                                                                 SecWebSocketProtocol  = SecWebSocketProtocols,
+                                                                 SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
+                                                                 SecWebSocketProtocol  = secWebSocketProtocols,
                                                                  SecWebSocketVersion   = "13"
                                                              }.AsImmutable;
 
@@ -977,7 +963,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             if (frame is not null)
                                             {
 
-                                                EventTracking_Id eventTrackingId  = EventTracking_Id.New;
+                                                var              now              = Timestamp.Now;
+                                                var              eventTrackingId  = EventTracking_Id.New;
                                                 WebSocketFrame?  responseFrame    = null;
 
                                                 #region OnWebSocketFrameReceived
@@ -985,7 +972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 try
                                                 {
 
-                                                    OnWebSocketFrameReceived?.Invoke(Timestamp.Now,
+                                                    OnWebSocketFrameReceived?.Invoke(now,
                                                                                      this,
                                                                                      webSocketConnection,
                                                                                      frame,
@@ -1011,11 +998,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            OnTextMessageReceived?.Invoke(Timestamp.Now,
+                                                            OnTextMessageReceived?.Invoke(now,
                                                                                           this,
                                                                                           webSocketConnection,
                                                                                           eventTrackingId,
-                                                                                          Timestamp.Now,
+                                                                                          now,
                                                                                           frame.Payload.ToUTF8String());
 
                                                         }
@@ -1033,7 +1020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            textMessageResponse = await ProcessTextMessage(Timestamp.Now,
+                                                            textMessageResponse = await ProcessTextMessage(now,
                                                                                                            webSocketConnection,
                                                                                                            frame.Payload.ToUTF8String(),
                                                                                                            eventTrackingId,
@@ -1044,18 +1031,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 textMessageResponse.ResponseMessage is not null &&
                                                                 textMessageResponse.ResponseMessage != "")
                                                             {
-
-                                                                responseFrame = new WebSocketFrame(
-                                                                                    WebSocketFrame.Fin.Final,
-                                                                                    WebSocketFrame.MaskStatus.Off,
-                                                                                    Array.Empty<Byte>(),
-                                                                                    WebSocketFrame.Opcodes.Text,
-                                                                                    textMessageResponse.ResponseMessage.ToUTF8Bytes(),
-                                                                                    WebSocketFrame.Rsv.Off,
-                                                                                    WebSocketFrame.Rsv.Off,
-                                                                                    WebSocketFrame.Rsv.Off
-                                                                                );
-
+                                                                responseFrame = WebSocketFrame.Text(textMessageResponse.ResponseMessage);
                                                             }
 
                                                         }
@@ -1102,7 +1078,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            OnBinaryMessageReceived?.Invoke(Timestamp.Now,
+                                                            OnBinaryMessageReceived?.Invoke(now,
                                                                                             this,
                                                                                             webSocketConnection,
                                                                                             frame.Payload,
@@ -1123,7 +1099,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            binaryMessageResponse = await ProcessBinaryMessage(Timestamp.Now,
+                                                            binaryMessageResponse = await ProcessBinaryMessage(now,
                                                                                                                webSocketConnection,
                                                                                                                frame.Payload,
                                                                                                                eventTrackingId,
@@ -1134,18 +1110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 binaryMessageResponse.ResponseMessage is not null &&
                                                                 binaryMessageResponse.ResponseMessage.Length > 0)
                                                             {
-
-                                                                responseFrame = new WebSocketFrame(
-                                                                                    WebSocketFrame.Fin.Final,
-                                                                                    WebSocketFrame.MaskStatus.Off,
-                                                                                    Array.Empty<Byte>(),
-                                                                                    WebSocketFrame.Opcodes.Text,
-                                                                                    binaryMessageResponse.ResponseMessage,
-                                                                                    WebSocketFrame.Rsv.Off,
-                                                                                    WebSocketFrame.Rsv.Off,
-                                                                                    WebSocketFrame.Rsv.Off
-                                                                                );
-
+                                                                responseFrame = WebSocketFrame.Binary(binaryMessageResponse.ResponseMessage);
                                                             }
 
                                                         }
@@ -1192,7 +1157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            OnPingMessageReceived?.Invoke(Timestamp.Now,
+                                                            OnPingMessageReceived?.Invoke(now,
                                                                                           this,
                                                                                           webSocketConnection,
                                                                                           frame,
@@ -1206,16 +1171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
-                                                        responseFrame = new WebSocketFrame(
-                                                                            WebSocketFrame.Fin.Final,
-                                                                            WebSocketFrame.MaskStatus.Off,
-                                                                            new Byte[] { 0x00, 0x00, 0x00, 0x00 },
-                                                                            WebSocketFrame.Opcodes.Pong,
-                                                                            frame.Payload,
-                                                                            WebSocketFrame.Rsv.Off,
-                                                                            WebSocketFrame.Rsv.Off,
-                                                                            WebSocketFrame.Rsv.Off
-                                                                        );
+                                                        responseFrame = WebSocketFrame.Pong(frame.Payload);
 
                                                         break;
 
@@ -1230,7 +1186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            OnPongMessageReceived?.Invoke(Timestamp.Now,
+                                                            OnPongMessageReceived?.Invoke(now,
                                                                                           this,
                                                                                           webSocketConnection,
                                                                                           frame,
@@ -1259,10 +1215,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         try
                                                         {
 
-                                                            OnCloseMessageReceived?.Invoke(Timestamp.Now,
+                                                            OnCloseMessageReceived?.Invoke(now,
                                                                                            this,
                                                                                            webSocketConnection,
-                                                                                           frame,
+                                                                                           frame.GetClosingStatusCode(),
+                                                                                           frame.GetClosingReason(),
                                                                                            eventTrackingId);
 
                                                         }
@@ -1272,6 +1229,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         }
 
                                                         #endregion
+
+                                                        // The close handshake demands that we have to send a close frame back!
+                                                        SendFrame(webSocketConnection,
+                                                                  WebSocketFrame.Close(),
+                                                                  eventTrackingId);
 
                                                         webSocketConnection.Close();
 

@@ -1080,7 +1080,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
-        /// <param name="TCPPort">The TCP port to listen on.</param>
+        /// <param name="HTTPPort">The TCP port to listen on.</param>
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
@@ -1093,15 +1093,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                               TCPPort                            = null,
+        public HTTPServer(IPPort?                               HTTPPort                           = null,
                           String?                               DefaultServerName                  = null,
                           String?                               ServiceName                        = null,
 
@@ -1132,8 +1129,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    CheckCertificateRevocation,
 
                    ServerThreadName             ?? (ServerCertificateSelector is null
-                                                        ? "HTTP Server :"  + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))
-                                                        : "HTTPS Server :" + (TCPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))),
+                                                        ? "HTTP Server :"  + (HTTPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))
+                                                        : "HTTPS Server :" + (HTTPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))),
                    ServerThreadPriority,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
@@ -1149,9 +1146,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.hostnameNodes      = new Dictionary<HTTPHostname,       HostnameNode>();
             this.eventSources       = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
-            AttachTCPPort(TCPPort ?? (ServerCertificateSelector is null
-                                          ? IPPort.HTTP
-                                          : IPPort.HTTPS));
+            AttachTCPPort(HTTPPort ?? (ServerCertificateSelector is null
+                                           ? IPPort.HTTP
+                                           : IPPort.HTTPS));
 
             if (Autostart)
                 Start();

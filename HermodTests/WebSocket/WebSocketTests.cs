@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
         {
 
             webSocketServer = new WebSocketServer(
-                                  TCPPort:   IPPort.Parse(port),
+                                  HTTPPort:   IPPort.Parse(port),
                                   Autostart: true
                               );
 
