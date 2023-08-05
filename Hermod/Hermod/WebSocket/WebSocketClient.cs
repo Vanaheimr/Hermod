@@ -362,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                                X509Certificate?                      ClientCert                   = null,
                                SslProtocols?                         TLSProtocol                  = null,
-                               String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                               String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                  HTTPAuthentication           = null,
                                TimeSpan?                             RequestTimeout               = null,
                                TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
@@ -392,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
             this.ClientCertificateSelector          = ClientCertificateSelector;
             this.ClientCert                         = ClientCert;
-            this.HTTPUserAgent                      = HTTPUserAgent;
+            this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.TLSProtocol                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
             this.HTTPAuthentication                 = HTTPAuthentication;
