@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System;
 using System.Net.Sockets;
 
 #endregion
@@ -49,6 +48,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public new Socket Socket
             => base.Socket;
+
+        protected override void Dispose(Boolean Disposing)
+        {
+            try
+            {
+                base.Dispose(Disposing);
+            }
+            catch (Exception e)
+            {
+
+            }
+        }
 
     }
 

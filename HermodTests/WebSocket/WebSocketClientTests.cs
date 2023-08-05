@@ -22,7 +22,6 @@ using NUnit.Framework;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
-using System.Net.WebSockets;
 
 #endregion
 
@@ -58,10 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -72,12 +71,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -85,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket++;
+                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
@@ -94,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -131,16 +130,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(1, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
@@ -190,14 +189,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (textMessageResponses.Count == 1)
+            while (binaryMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
+
+            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -208,16 +209,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            Assert.AreEqual(2,       textMessageRequests.Count);
-            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+            Assert.AreEqual(1,       textMessageRequests.   Count);
+            Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageRequests. Count);
+            Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            Assert.AreEqual(2,       textMessageResponses.Count);
-            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
-            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+            Assert.AreEqual(1,       textMessageResponses.  Count);
+            Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageResponses.Count);
+            Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
-
 
 
             webSocketClient.Close();
@@ -240,10 +242,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -254,12 +256,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -267,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket++;
+                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
@@ -276,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -317,16 +319,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(1, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
@@ -378,14 +380,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (textMessageResponses.Count == 1)
+            while (binaryMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
+
+            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -396,13 +400,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            Assert.AreEqual(2,       textMessageRequests.Count);
-            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+            Assert.AreEqual(1,       textMessageRequests.   Count);
+            Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageRequests. Count);
+            Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            Assert.AreEqual(2,       textMessageResponses.Count);
-            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
-            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+            Assert.AreEqual(1,       textMessageResponses.  Count);
+            Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageResponses.Count);
+            Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 
@@ -428,10 +434,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
 
             webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -442,12 +448,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -455,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket++;
+                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
@@ -464,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -505,16 +511,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(1, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
@@ -568,14 +574,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (textMessageResponses.Count == 1)
+            while (binaryMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
+
+            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -586,13 +594,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            Assert.AreEqual(2,       textMessageRequests.Count);
-            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+            Assert.AreEqual(1,       textMessageRequests.   Count);
+            Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageRequests. Count);
+            Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            Assert.AreEqual(2,       textMessageResponses.Count);
-            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
-            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+            Assert.AreEqual(1,       textMessageResponses.  Count);
+            Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageResponses.Count);
+            Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 
@@ -618,10 +628,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
 
             webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -632,12 +642,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -645,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket++;
+                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
@@ -654,7 +664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -695,16 +705,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(1, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
@@ -758,14 +768,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (textMessageResponses.Count == 1)
+            while (binaryMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
+
+            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -776,13 +788,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            Assert.AreEqual(2,       textMessageRequests.Count);
-            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+            Assert.AreEqual(1,       textMessageRequests.   Count);
+            Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageRequests. Count);
+            Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            Assert.AreEqual(2,       textMessageResponses.Count);
-            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
-            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+            Assert.AreEqual(1,       textMessageResponses.  Count);
+            Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageResponses.Count);
+            Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 
@@ -807,10 +821,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -821,12 +835,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -834,7 +848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedWebSocket++;
+                validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
@@ -843,7 +857,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -884,16 +898,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(1, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
@@ -946,14 +960,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (textMessageResponses.Count == 1)
+            while (binaryMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
+
+            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -964,13 +980,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            Assert.AreEqual(2,       textMessageRequests.Count);
-            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+            Assert.AreEqual(1,       textMessageRequests.   Count);
+            Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageRequests. Count);
+            Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            Assert.AreEqual(2,       textMessageResponses.Count);
-            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
-            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+            Assert.AreEqual(1,       textMessageResponses.  Count);
+            Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageResponses.Count);
+            Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 
@@ -994,10 +1012,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -1008,12 +1026,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -1027,7 +1045,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                     httpBasicAuth.Username == "username" &&
                     httpBasicAuth.Password == "password")
                 {
-                    validatedWebSocket++;
+                    validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                     return null;
                 }
                 else
@@ -1046,7 +1064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -1087,16 +1105,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(1, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
@@ -1149,14 +1167,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             while (textMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (textMessageResponses.Count == 1)
+            while (binaryMessageResponses.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
+
+            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -1167,13 +1187,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            Assert.AreEqual(2,       textMessageRequests.Count);
-            Assert.AreEqual("1234",  textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD",  textMessageRequests.ElementAt(1));
+            Assert.AreEqual(1,       textMessageRequests.   Count);
+            Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageRequests. Count);
+            Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            Assert.AreEqual(2,       textMessageResponses.Count);
-            Assert.AreEqual("4321",  textMessageResponses.ElementAt(0));
-            Assert.AreEqual("DCBA",  textMessageResponses.ElementAt(1));
+            Assert.AreEqual(1,       textMessageResponses.  Count);
+            Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageResponses.Count);
+            Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 
@@ -1197,10 +1219,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                 return;
             }
 
-            var validatedTCP            = 0;
-            var newTCPConnection        = 0;
-            var validatedWebSocket      = 0;
-            var newWebSocketConnection  = 0;
+            var validatedTCP            = new List<String>();
+            var newTCPConnection        = new List<String>();
+            var validatedWebSocket      = new List<String>();
+            var newWebSocketConnection  = new List<String>();
             var httpRequests            = new List<HTTPRequest>();
             var httpResponses           = new List<HTTPResponse>();
             var messageRequests         = new List<WebSocketFrame>();
@@ -1211,12 +1233,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             var binaryMessageResponses  = new List<Byte[]>();
 
             webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                validatedTCP++;
+                validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
             webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newTCPConnection++;
+                newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
@@ -1230,7 +1252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
                     httpBasicAuth.Username == "username" &&
                     httpBasicAuth.Password == "password")
                 {
-                    validatedWebSocket++;
+                    validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                     return null;
                 }
                 else
@@ -1250,7 +1272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             };
 
             webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
-                newWebSocketConnection++;
+                newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
             webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
@@ -1291,16 +1313,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
             #region Check HTTP request
 
             // Wait a bit, because running multiple tests at once has timing issues!
-            while (newWebSocketConnection == 0)
+            while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(1, validatedTCP);
-            Assert.AreEqual(1, newTCPConnection);
-            Assert.AreEqual(0, validatedWebSocket);
-            Assert.AreEqual(1, newWebSocketConnection);
+            Assert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            Assert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            Assert.AreEqual(0, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            Assert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
+            Assert.AreEqual(1, httpRequests.          Count);
+            Assert.AreEqual(1, httpResponses.         Count);
             Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 

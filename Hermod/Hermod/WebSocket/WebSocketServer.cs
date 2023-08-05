@@ -31,12 +31,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
 
-    public delegate Task<WebSocketTextMessageResponse> OnWebSocketTextMessage2Delegate(DateTime             Timestamp,
-                                                                                       WebSocketServer      Server,
-                                                                                       WebSocketServerConnection  Connection,
-                                                                                       EventTracking_Id     EventTrackingId,
-                                                                                       DateTime             RequestTimestamp,
-                                                                                       String               RequestMessage);
+    public delegate Task<WebSocketTextMessageResponse>    OnWebSocketTextMessage2Delegate  (DateTime                     Timestamp,
+                                                                                            WebSocketServer              Server,
+                                                                                            WebSocketServerConnection    Connection,
+                                                                                            EventTracking_Id             EventTrackingId,
+                                                                                            DateTime                     RequestTimestamp,
+                                                                                            String                       TextMessage);
+
+    public delegate Task<WebSocketBinaryMessageResponse>  OnWebSocketBinaryMessage2Delegate(DateTime                     Timestamp,
+                                                                                            WebSocketServer              Server,
+                                                                                            WebSocketServerConnection    Connection,
+                                                                                            EventTracking_Id             EventTrackingId,
+                                                                                            DateTime                     RequestTimestamp,
+                                                                                            Byte[]                       BinaryMessage);
 
 
     public class WebSocketServer2 : WebSocketServer
@@ -47,11 +54,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        public event OnWebSocketTextMessage2Delegate? OnTextMessage;
+        public event OnWebSocketTextMessage2Delegate?    OnTextMessage;
+
+        /// <summary>
+        /// An event sent whenever a binary message was received.
+        /// </summary>
+        public event OnWebSocketBinaryMessage2Delegate?  OnBinaryMessage;
 
         #endregion
-
-
 
         #region Constructor(s)
 
@@ -143,6 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   EventTrackingId, CancellationToken)
 
         /// <summary>
         /// The default HTTP web socket text message processor.
@@ -152,11 +163,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="TextMessage">The web socket text message.</param>
         /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
-        public async override Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime             RequestTimestamp,
+        public async override Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime                   RequestTimestamp,
                                                                                     WebSocketServerConnection  Connection,
-                                                                                    String               TextMessage,
-                                                                                    EventTracking_Id     EventTrackingId,
-                                                                                    CancellationToken    CancellationToken)
+                                                                                    String                     TextMessage,
+                                                                                    EventTracking_Id           EventTrackingId,
+                                                                                    CancellationToken          CancellationToken)
         {
 
             WebSocketTextMessageResponse? response = null;
@@ -181,6 +192,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             return response;
 
         }
+
+        #endregion
+
+        #region ProcessBinaryMessage(RequestTimestamp, Connection, BinaryMessage, EventTrackingId, CancellationToken)
+
+        /// <summary>
+        /// The default HTTP web socket binary message processor.
+        /// </summary>
+        /// <param name="RequestTimestamp">The timestamp of the request message.</param>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="BinaryMessage">The web socket binary message.</param>
+        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A cancellation token.</param>
+        public async override Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime                   RequestTimestamp,
+                                                                                        WebSocketServerConnection  Connection,
+                                                                                        Byte[]                     BinaryMessage,
+                                                                                        EventTracking_Id           EventTrackingId,
+                                                                                        CancellationToken          CancellationToken)
+        {
+
+            WebSocketBinaryMessageResponse? response = null;
+
+            var onBinaryMessage = OnBinaryMessage;
+            if (onBinaryMessage is not null)
+                response = await onBinaryMessage.Invoke(RequestTimestamp,
+                                                        this,
+                                                        Connection,
+                                                        EventTrackingId,
+                                                        RequestTimestamp,
+                                                        BinaryMessage);
+
+            var binaryResponse = new Byte[BinaryMessage.Length];
+            Array.Copy(BinaryMessage, binaryResponse, BinaryMessage.Length);
+            binaryResponse.Reverse();
+
+            response ??= new WebSocketBinaryMessageResponse(
+                             RequestTimestamp,
+                             BinaryMessage,
+                             Timestamp.Now,
+                             binaryResponse,
+                             EventTrackingId
+                         );
+
+            return response;
+
+        }
+
+        #endregion
+
 
     }
 
@@ -1556,8 +1616,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     },
                     new WebSocketServerConnection(this,
-                                            newTCPConnection,
-                                            SlowNetworkSimulationDelay: SlowNetworkSimulationDelay),
+                                                  newTCPConnection,
+                                                  SlowNetworkSimulationDelay: SlowNetworkSimulationDelay),
                     token);
 
                 }

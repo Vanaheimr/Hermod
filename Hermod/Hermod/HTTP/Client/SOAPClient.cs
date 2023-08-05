@@ -88,6 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="HTTPContentType">The HTTP content type to use.</param>
@@ -108,6 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           X509Certificate?                      ClientCert                   = null,
                           SslProtocols?                         TLSProtocol                  = null,
                           String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?                  HTTPAuthentication           = null,
                           HTTPPath?                             URLPathPrefix                = null,
                           Tuple<String, String>?                WSSLoginPassword             = null,
                           HTTPContentType?                      HTTPContentType              = null,
@@ -129,6 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    ClientCert,
                    TLSProtocol,
                    HTTPUserAgent,
+                   HTTPAuthentication,
                    URLPathPrefix,
                    WSSLoginPassword,
                    HTTPContentType,
@@ -373,6 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="HTTPContentType">The HTTP content type to use.</param>
@@ -394,6 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           X509Certificate?                      ClientCert                   = null,
                           SslProtocols?                         TLSProtocol                  = null,
                           String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?                  HTTPAuthentication           = null,
                           HTTPPath?                             URLPathPrefix                = null,
                           Tuple<String, String>?                WSSLoginPassword             = null,
                           HTTPContentType?                      HTTPContentType              = null,
@@ -415,6 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    ClientCert,
                    TLSProtocol,
                    HTTPUserAgent,
+                   HTTPAuthentication,
                    URLPathPrefix,
                    WSSLoginPassword,
                    HTTPContentType,

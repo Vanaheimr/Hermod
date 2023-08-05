@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         private   Socket?           TCPSocket;
-        private   MyNetworkStream?  TCPStream;
+        private   MyNetworkStream?  TCPNetworkStream;
         private   SslStream?        TLSStream;
         protected Stream?           HTTPStream;
 
@@ -194,7 +194,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
         /// </summary>
-        public Boolean                               UseHTTPPipelining               { get; }
+        public Boolean                               UseHTTPPipelining
+            => false;
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
@@ -344,12 +345,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
-        /// <param name="HTTPAuthentication">The WebService-Security username/password.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional Request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP Request through a single HTTP/TCP connection.</param>
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="LoggingContext">An optional context for logging client methods.</param>
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
@@ -358,26 +357,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketClient(URL                                   RemoteURL,
                                HTTPHostname?                         VirtualHostname              = null,
                                String?                               Description                  = null,
+                               Boolean?                              PreferIPv4                   = null,
                                RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
                                X509Certificate?                      ClientCert                   = null,
-                               String                                HTTPUserAgent                = DefaultHTTPUserAgent,
-                               HTTPPath?                             URLPathPrefix                = null,
                                SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
+                               String                                HTTPUserAgent                = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                  HTTPAuthentication           = null,
                                TimeSpan?                             RequestTimeout               = null,
                                TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                                UInt16?                               MaxNumberOfRetries           = 3,
-                               Boolean                               UseHTTPPipelining            = false,
+                               UInt32?                               InternalBufferSize           = null,
 
                                IEnumerable<String>?                  SecWebSocketProtocols        = null,
 
-                               Boolean                               DisableMaintenanceTasks      = false,
-                               TimeSpan?                             MaintenanceEvery             = null,
                                Boolean                               DisableWebSocketPings        = false,
                                TimeSpan?                             WebSocketPingEvery           = null,
                                TimeSpan?                             SlowNetworkSimulationDelay   = null,
+
+                               Boolean                               DisableMaintenanceTasks      = false,
+                               TimeSpan?                             MaintenanceEvery             = null,
 
                                String?                               LoggingPath                  = null,
                                String                                LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
@@ -394,14 +393,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.ClientCertificateSelector          = ClientCertificateSelector;
             this.ClientCert                         = ClientCert;
             this.HTTPUserAgent                      = HTTPUserAgent;
-            //this.URLPathPrefix                      = URLPathPrefix;
             this.TLSProtocol                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
             this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
             this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
-            this.UseHTTPPipelining                  = UseHTTPPipelining;
             this.HTTPLogger                         = HTTPLogger;
             this.DNSClient                          = DNSClient;
 
@@ -475,8 +472,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         try
                         {
-
-                            //Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
                             #region Data
 
@@ -557,10 +552,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     sw.Start();
 
-                                    //TCPClient = new TcpClient();
-                                    //TCPClient.Connect(_FinalIPEndPoint);
-                                    //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
 
                                     if (RemoteIPAddress.IsIPv4)
                                         TCPSocket = new Socket(AddressFamily.InterNetwork,
@@ -581,7 +572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 }
 
-                                TCPStream = TCPSocket is not null
+                                TCPNetworkStream = TCPSocket is not null
                                                 ? new MyNetworkStream(TCPSocket, true) {
                                                       ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
                                                   }
@@ -605,7 +596,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     if (TLSStream is null)
                                     {
 
-                                        TLSStream = new SslStream(TCPStream,
+                                        TLSStream = new SslStream(TCPNetworkStream,
                                                                   false,
                                                                   RemoteCertificateValidator,
                                                                   ClientCertificateSelector,
@@ -642,7 +633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 else
                                 {
                                     TLSStream   = null;
-                                    HTTPStream  = TCPStream;
+                                    HTTPStream  = TCPNetworkStream;
                                 }
 
                                 HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
@@ -652,7 +643,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             }
                             while (restart);
 
-                            this.LocalPort = (IPSocket.FromIPEndPoint(TCPStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
+                            this.LocalPort = (IPSocket.FromIPEndPoint(TCPNetworkStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
 
                             #endregion
 
@@ -729,7 +720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 Thread.Sleep(1);
 
-                            } while (TCPStream.DataAvailable && pos < buffer.Length - 2048);
+                            } while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
 
                             var responseData  = buffer.ToUTF8String(pos);
                             var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
@@ -769,7 +760,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             var webSocketClientConnection = new WebSocketClientConnection(this,
                                                                                           TCPSocket,
-                                                                                          TCPStream,
+                                                                                          TCPNetworkStream,
                                                                                           HTTPStream,
                                                                                           httpRequest,
                                                                                           httpResponse,
@@ -779,7 +770,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             do
                             {
 
-                                if (TCPStream?.DataAvailable == true)
+                                if (webSocketClientConnection?.DataAvailable == true)
                                 {
 
                                     buffer = Array.Empty<Byte>();
@@ -807,7 +798,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             Thread.Sleep(1);
 
-                                        } while (TCPStream.DataAvailable);
+                                        } while (webSocketClientConnection.DataAvailable);
 
                                         Array.Resize(ref buffer, pos);
 
@@ -1171,7 +1162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 catch (ObjectDisposedException)
                 {
                     MaintenanceTimer.Dispose();
-                    TCPStream   = null;
+                    TCPNetworkStream   = null;
                     HTTPStream  = null;
                 }
                 catch (Exception e)
@@ -1377,10 +1368,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             try
             {
-                if (TCPStream is not null)
+                if (TCPNetworkStream is not null)
                 {
-                    TCPStream.Close();
-                    TCPStream.Dispose();
+                    TCPNetworkStream.Close();
+                    TCPNetworkStream.Dispose();
                 }
             }
             catch

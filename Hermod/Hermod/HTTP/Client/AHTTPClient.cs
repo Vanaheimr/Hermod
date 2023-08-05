@@ -221,6 +221,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String                                HTTPUserAgent                 { get; }
 
         /// <summary>
+        /// The optional HTTP authentication to use, e.g. HTTP Basic Auth.
+        /// </summary>
+        public IHTTPAuthentication?                  HTTPAuthentication            { get; }
+
+        /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
         public TimeSpan                              RequestTimeout                { get; set; }
@@ -397,6 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               X509Certificate?                      ClientCert                   = null,
                               SslProtocols?                         TLSProtocol                  = null,
                               String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
+                              IHTTPAuthentication?                  HTTPAuthentication           = null,
                               TimeSpan?                             RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -416,6 +422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCert                  = ClientCert;
             this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
+            this.HTTPAuthentication          = HTTPAuthentication;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
