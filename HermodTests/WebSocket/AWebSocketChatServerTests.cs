@@ -29,17 +29,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
     /// <summary>
     /// Hermod HTTP WebSocket server tests endpoints.
     /// </summary>
-    public abstract class AWebSocketServerTests
+    public abstract class AWebSocketChatServerTests
     {
 
         #region Data
 
-        protected AWebSocketServer?     webSocketServer;
+        protected WebSocketChatServer?  webSocketChatServer;
         protected IPPort                HTTPPort;
         protected IEnumerable<String>?  SecWebSocketProtocols;
 
-        public AWebSocketServerTests(IPPort                HTTPPort,
-                                     IEnumerable<String>?  SecWebSocketProtocols   = null)
+        public AWebSocketChatServerTests(IPPort                HTTPPort,
+                                         IEnumerable<String>?  SecWebSocketProtocols   = null)
         {
 
             this.HTTPPort               = HTTPPort;
@@ -55,11 +55,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
         public void Init_WebSocketServer()
         {
 
-            webSocketServer = new WebSocketServer(
-                                  HTTPPort:               HTTPPort,
-                                  SecWebSocketProtocols:  SecWebSocketProtocols,
-                                  Autostart:              true
-                              );
+            webSocketChatServer = new WebSocketChatServer(
+                                      HTTPPort:               HTTPPort,
+                                      SecWebSocketProtocols:  SecWebSocketProtocols,
+                                      Autostart:              true
+                                  );
 
         }
 
@@ -70,8 +70,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
         [TearDown]
         public void Shutdown_WebSocketServer()
         {
-            webSocketServer?.Shutdown(Wait: true);
-            webSocketServer = null;
+            webSocketChatServer?.Shutdown(Wait: true);
+            webSocketChatServer = null;
         }
 
         #endregion

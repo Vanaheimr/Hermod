@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
 
         #region Data
 
-        private          WebSocketServer?  webSocketServer;
+        private          AWebSocketServer?  webSocketServer;
         private readonly UInt16            port  = 18402;
 
         #endregion
@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
 
             webSocketServer = new WebSocketServer(
                                   HTTPPort:   IPPort.Parse(port),
-                                  Autostart: true
+                                  Autostart:  true
                               );
 
         }
