@@ -25,20 +25,20 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public delegate String                               ServerThreadNameCreatorDelegate         (IPSocket Socket);
+    public delegate String                               ServerThreadNameCreatorDelegate         (IPSocket                           Socket);
 
     public delegate Task                                 OnServerStartedDelegate                 (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   EventTracking_Id                   EventTrackingId);
 
     public delegate Task<Boolean?>                       OnValidateTCPConnectionDelegate         (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   System.Net.Sockets.TcpClient       Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
     public delegate Task                                 OnNewTCPConnectionDelegate              (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
@@ -50,11 +50,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Server">The sending web socket server.</param>
     /// <param name="Request">The incoming HTTP request.</param>
     public delegate Task                                 HTTPRequestLogDelegate                  (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   HTTPRequest                        Request);
 
     public delegate Task<HTTPResponse?>                  OnValidateWebSocketConnectionDelegate   (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
@@ -67,25 +67,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Request">The incoming HTTP request.</param>
     /// <param name="Response">The outgoing HTTP response.</param>
     public delegate Task                                 HTTPResponseLogDelegate                 (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   HTTPRequest                        Request,
                                                                                                   HTTPResponse                       Response);
 
     public delegate Task                                 OnNewWebSocketConnectionDelegate        (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
 
     public delegate Task                                 OnWebSocketFrameDelegate                (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   WebSocketFrame                     Frame);
 
     //public delegate Task                                 OnWebSocketResponseFrameDelegate        (DateTime                           Timestamp,
-    //                                                                                              WebSocketServer                    Server,
+    //                                                                                              AWebSocketServer                   Server,
     //                                                                                              WebSocketConnection                Connection,
     //                                                                                              WebSocketFrame                     RequestFrame,
     //                                                                                              WebSocketFrame                     ResponseFrame,
@@ -93,27 +93,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
     public delegate Task                                 OnWebSocketTextMessageDelegate          (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   String                             TextMessage);
 
     public delegate Task                                 OnWebSocketBinaryMessageDelegate        (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   Byte[]                             BinaryMessage);
 
 
     public delegate Task                                 OnCloseMessageDelegate                  (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   WebSocketFrame.ClosingStatusCode   StatusCode,
                                                                                                   String?                            Reason);
 
     public delegate Task                                 OnTCPConnectionClosedDelegate           (DateTime                           Timestamp,
-                                                                                                  AWebSocketServer                    Server,
+                                                                                                  AWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   String                             Reason,
                                                                                                   EventTracking_Id                   EventTrackingId);

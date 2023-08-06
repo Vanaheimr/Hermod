@@ -23,7 +23,7 @@ using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.WebSockets
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 {
 
     /// <summary>

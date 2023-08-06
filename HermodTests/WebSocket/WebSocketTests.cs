@@ -25,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 {
 
     /// <summary>

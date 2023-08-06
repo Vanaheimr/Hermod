@@ -120,6 +120,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private readonly          CancellationToken        networkingCancellationToken;
         private                   Thread                   networkingThread;
 
+
+        private WebSocketClientConnection webSocketClientConnection;
+
         #endregion
 
         #region Properties
@@ -759,14 +762,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             #endregion
 
 
-                            var webSocketClientConnection = new WebSocketClientConnection(this,
-                                                                                          TCPSocket,
-                                                                                          TCPNetworkStream,
-                                                                                          HTTPStream,
-                                                                                          httpRequest,
-                                                                                          httpResponse,
-                                                                                          CustomData:                  null,
-                                                                                          SlowNetworkSimulationDelay:  null);
+                            webSocketClientConnection = new WebSocketClientConnection(this,
+                                                                                      TCPSocket,
+                                                                                      TCPNetworkStream,
+                                                                                      HTTPStream,
+                                                                                      httpRequest,
+                                                                                      httpResponse,
+                                                                                      CustomData:                  null,
+                                                                                      SlowNetworkSimulationDelay:  null);
 
                             do
                             {
@@ -1233,6 +1236,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public async Task SendWebSocketFrame(WebSocketFrame WebSocketFrame)
         {
+
+            await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame);
+
+            #region OnTextMessageSent
+
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
+            {
+
+                try
+                {
+
+                    var onTextMessageSent = OnTextMessageSent;
+                    if (onTextMessageSent is not null)
+                        await onTextMessageSent.Invoke(Timestamp.Now,
+                                                        this,
+                                                        null, //webSocketConnection,
+                                                        WebSocketFrame,
+                                                        EventTracking_Id.New,
+                                                        WebSocketFrame.Payload.ToUTF8String());
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
+                }
+
+            }
+
+            #endregion
+
+            #region OnBinaryMessageSent
+
+            else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
+            {
+
+                try
+                {
+
+                    var onBinaryMessageSent = OnBinaryMessageSent;
+                    if (onBinaryMessageSent is not null)
+                        await onBinaryMessageSent.Invoke(Timestamp.Now,
+                                                            this,
+                                                            null, //webSocketConnection,
+                                                            WebSocketFrame,
+                                                            EventTracking_Id.New,
+                                                            WebSocketFrame.Payload);
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageSent));
+                }
+
+            }
+
+            #endregion
+
+            return;
+
             if (HTTPStream is not null)
             {
                 //lock (HTTPStream)
@@ -1319,6 +1381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 //}
             }
+
         }
 
         #endregion

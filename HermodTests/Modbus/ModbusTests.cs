@@ -25,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Modbus;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.Modbus
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 {
 
     public class ModbusTests

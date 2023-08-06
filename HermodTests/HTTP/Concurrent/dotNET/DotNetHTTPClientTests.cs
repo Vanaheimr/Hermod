@@ -21,12 +21,12 @@ using System.Net;
 using System.Text;
 
 using NUnit.Framework;
-using org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.Concurrent
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 {
 
     /// <summary>

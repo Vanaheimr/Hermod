@@ -31,7 +31,7 @@ using System.IO;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests
 {
 
     /// <summary>

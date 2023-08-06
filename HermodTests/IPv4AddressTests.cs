@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 {
 
     /// <summary>
