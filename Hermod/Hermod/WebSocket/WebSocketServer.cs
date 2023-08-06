@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Constructor(s)
 
-        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer2(IIPAddress?                       IPAddress                    = null,
                                 IPPort?                           HTTPPort                     = null,
                                 String?                           HTTPServiceName              = null,
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
                                 DNSClient?                        DNSClient                    = null,
-                                Boolean                           Autostart                    = false)
+                                Boolean                           AutoStart                    = false)
 
             : base(IPAddress,
                    HTTPPort,
@@ -103,13 +103,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    SlowNetworkSimulationDelay,
 
                    DNSClient,
-                   Autostart)
+                   AutoStart)
 
         { }
 
         #endregion
 
-        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPSocket">The IP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer2(IPSocket                          IPSocket,
                                 String?                           HTTPServiceName              = null,
                                 ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
                                 DNSClient?                        DNSClient                    = null,
-                                Boolean                           Autostart                    = false)
+                                Boolean                           AutoStart                    = false)
 
             : base(IPSocket,
                    HTTPServiceName,
@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    SlowNetworkSimulationDelay,
 
                    DNSClient,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Constructor(s)
 
-        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
@@ -480,7 +480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer(IIPAddress?                       IPAddress                    = null,
                                IPPort?                           HTTPPort                     = null,
                                String?                           HTTPServiceName              = null,
@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
                                DNSClient?                        DNSClient                    = null,
-                               Boolean                           Autostart                    = false)
+                               Boolean                           AutoStart                    = false)
 
             : this(new IPSocket(IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
                                 HTTPPort  ?? IPPort.HTTP),
@@ -509,13 +509,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    SlowNetworkSimulationDelay,
 
                    DNSClient,
-                   Autostart)
+                   AutoStart)
 
         { }
 
         #endregion
 
-        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
@@ -523,7 +523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPSocket">The IP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer(IPSocket                          IPSocket,
                                String?                           HTTPServiceName              = null,
                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
@@ -536,7 +536,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
                                DNSClient?                        DNSClient                    = null,
-                               Boolean                           Autostart                    = false)
+                               Boolean                           AutoStart                    = false)
         {
 
             this.IPSocket                    = IPSocket;
@@ -557,7 +557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
             this.cancellationTokenSource     = new CancellationTokenSource();
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }

@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                   SOAPContentType:    SOAPContentType ?? DefaultContentType,
                                   DNSClient:          DNSClient,
-                                  Autostart:          false),
+                                  AutoStart:          false),
                    URLPrefix)
 
         {
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   ClientCertificateSelector:   ClientCertificateSelector,
                                   AllowedTLSProtocols:         AllowedTLSProtocols,
                                   DNSClient:                   DNSClient,
-                                  Autostart:                   false),
+                                  AutoStart:                   false),
                    URLPrefix)
 
         {

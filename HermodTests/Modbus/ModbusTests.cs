@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.Modbus
 
             ModbusTCPServer = new ModbusTCPServer(
                                   TCPPort:   IPPort.Parse(24694),
-                                  Autostart: true
+                                  AutoStart: true
                               );
 
         }

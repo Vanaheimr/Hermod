@@ -510,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP server threads immediately (default: no).</param>
         public ATCPServers(String?                               ServiceName                        = null,
                            String?                               ServiceBanner                      = null,
 
@@ -532,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                            UInt32?                               MaxClientConnections               = null,
 
                            DNSClient?                            DNSClient                          = null,
-                           Boolean                               Autostart                          = false)
+                           Boolean                               AutoStart                          = false)
 
         {
 
@@ -563,7 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this._ConnectionTimeout                 = ConnectionTimeout                ?? TimeSpan.FromSeconds(30);
             this._MaxClientConnections              = MaxClientConnections             ?? TCPServer.__DefaultMaxClientConnections;
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }

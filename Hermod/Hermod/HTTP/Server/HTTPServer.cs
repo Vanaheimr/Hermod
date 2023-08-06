@@ -170,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                               TCPPort                      = null,
                           String                                DefaultServerName            = HTTPServer.DefaultHTTPServerName,
                           String?                               ServiceName                  = null,
@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           UInt32                                MaxClientConnections         = TCPServer.__DefaultMaxClientConnections,
 
                           DNSClient?                            DNSClient                    = null,
-                          Boolean                               Autostart                    = false)
+                          Boolean                               AutoStart                    = false)
 
             : this(new HTTPServer(TCPPort,
                                   DefaultServerName,
@@ -211,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   MaxClientConnections,
                                   DNSClient,
-                                  Autostart))
+                                  AutoStart))
 
         {  }
 
@@ -1097,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
         public HTTPServer(IPPort?                               HTTPPort                           = null,
                           String?                               DefaultServerName                  = null,
                           String?                               ServiceName                        = null,
@@ -1117,7 +1117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           UInt32?                               MaxClientConnections               = null,
 
                           DNSClient?                            DNSClient                          = null,
-                          Boolean                               Autostart                          = false)
+                          Boolean                               AutoStart                          = false)
 
             : base(ServiceName                  ?? DefaultHTTPServiceName,
                    DefaultServerName            ?? DefaultHTTPServerName,
@@ -1150,7 +1150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            ? IPPort.HTTP
                                            : IPPort.HTTPS));
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }
