@@ -145,53 +145,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var proxy_binaryMessageRequests   = new List<Byte[]>();
             var proxy_binaryMessageResponses  = new List<Byte[]>();
 
-            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketProxy.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
                 proxy_validatedTCP.Add($"{proxy_validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
-            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketProxy.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
                 proxy_newTCPConnection.Add($"{proxy_newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
-            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+            webSocketProxy.OnHTTPRequest                 += async (timestamp, server, httpRequest)                                     => {
                 proxy_httpRequests.Add(httpRequest);
             };
 
-            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketProxy.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
                 proxy_validatedWebSocket.Add($"{proxy_validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
-            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+            webSocketProxy.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse)                       => {
                 proxy_httpResponses.Add(httpResponse);
             };
 
-            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketProxy.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
                 proxy_newWebSocketConnection.Add($"{proxy_newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketProxy.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame)       => {
                 proxy_messageRequests.       Add(requestFrame);
             };
 
-            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+            webSocketProxy.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame)      => {
                 proxy_messageResponses.      Add(responseFrame);
             };
 
-            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketProxy.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage)        => {
                 proxy_textMessageRequests.   Add(textMessage);
             };
 
-            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketProxy.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage)        => {
                 proxy_textMessageResponses.  Add(textMessage ?? "-");
             };
 
-            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketProxy.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage)      => {
                 proxy_binaryMessageRequests. Add(binaryMessage);
             };
 
-            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketProxy.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage)      => {
                 proxy_binaryMessageResponses.Add(binaryMessage);
             };
 

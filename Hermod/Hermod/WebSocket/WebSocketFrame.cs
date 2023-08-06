@@ -916,34 +916,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             frameBytes[0] |= (Byte) Opcode;
 
-            try
+
+            // Mask is only required for client -> server communication!
+            if (IsMasked)
             {
 
-                // Mask is required when client -> server!
-                if (IsMasked)
-                {
+                frameBytes[1] |= 0x80;
 
-                    frameBytes[1] |= 0x80;
+                frameBytes[offset]     = MaskingKey[0];
+                frameBytes[offset + 1] = MaskingKey[1];
+                frameBytes[offset + 2] = MaskingKey[2];
+                frameBytes[offset + 3] = MaskingKey[3];
 
-                    frameBytes[offset]     = MaskingKey[0];
-                    frameBytes[offset + 1] = MaskingKey[1];
-                    frameBytes[offset + 2] = MaskingKey[2];
-                    frameBytes[offset + 3] = MaskingKey[3];
+                offset += 4;
 
-                    offset += 4;
+                for (var i = 0U; i < payloadLength; ++i)
+                    frameBytes[i + offset] = (Byte) (Payload[i] ^ MaskingKey[i % 4]);
 
-                    for (var i = 0U; i < payloadLength; ++i)
-                        Payload[i] = (Byte) (Payload[i] ^ MaskingKey[i % 4]);
-
-                }
-
+            }
+            else
                 Array.Copy(Payload, 0, frameBytes, offset, Payload.Length);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.LogException(e);
-            }
 
             return frameBytes;
 

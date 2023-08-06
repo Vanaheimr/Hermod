@@ -1224,10 +1224,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Task SendBinary(Byte[] Bytes)
 
             => SendWebSocketFrame(WebSocketFrame.Binary(
-                                     Bytes,
-                                     Fin.Final,
-                                     MaskStatus.On,
-                                     RandomExtensions.GetBytes(4)
+                                      Bytes,
+                                      Fin.Final,
+                                      MaskStatus.On,
+                                      RandomExtensions.GetBytes(4)
                                   ));
 
         #endregion
@@ -1241,7 +1241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             #region OnTextMessageSent
 
-            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
+            if (WebSocketFrame.Opcode == Opcodes.Text)
             {
 
                 try
@@ -1250,11 +1250,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     var onTextMessageSent = OnTextMessageSent;
                     if (onTextMessageSent is not null)
                         await onTextMessageSent.Invoke(Timestamp.Now,
-                                                        this,
-                                                        null, //webSocketConnection,
-                                                        WebSocketFrame,
-                                                        EventTracking_Id.New,
-                                                        WebSocketFrame.Payload.ToUTF8String());
+                                                       this,
+                                                       webSocketClientConnection,
+                                                       WebSocketFrame,
+                                                       EventTracking_Id.New,
+                                                       WebSocketFrame.Payload.ToUTF8String());
 
                 }
                 catch (Exception e)
@@ -1268,7 +1268,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             #region OnBinaryMessageSent
 
-            else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
+            else if (WebSocketFrame.Opcode == Opcodes.Binary)
             {
 
                 try
@@ -1277,11 +1277,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     var onBinaryMessageSent = OnBinaryMessageSent;
                     if (onBinaryMessageSent is not null)
                         await onBinaryMessageSent.Invoke(Timestamp.Now,
-                                                            this,
-                                                            null, //webSocketConnection,
-                                                            WebSocketFrame,
-                                                            EventTracking_Id.New,
-                                                            WebSocketFrame.Payload);
+                                                         this,
+                                                         webSocketClientConnection,
+                                                         WebSocketFrame,
+                                                         EventTracking_Id.New,
+                                                         WebSocketFrame.Payload);
 
                 }
                 catch (Exception e)

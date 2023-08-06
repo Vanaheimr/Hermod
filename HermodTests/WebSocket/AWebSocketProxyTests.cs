@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                    UpstreamServerURL:       URL.Parse($"ws://127.0.0.1:{HTTPPortServer}"),
                                    AutoConnect:             true,
 
-                                   HTTPPort:                HTTPPortServer,
+                                   HTTPPort:                HTTPPortProxy,
                                    SecWebSocketProtocols:   SecWebSocketProtocols,
                                    AutoStart:               true
                                );

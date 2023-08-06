@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -72,23 +73,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public WebSocketProxy(URL UpstreamServerURL,
-                              Boolean AutoConnect = true,
+        public WebSocketProxy(URL                               UpstreamServerURL,
+                              Boolean                           AutoConnect                  = true,
 
-                              IIPAddress? IPAddress = null,
-                              IPPort? HTTPPort = null,
-                              String? HTTPServiceName = null,
-                              ServerThreadNameCreatorDelegate? ServerThreadNameCreator = null,
-                              ThreadPriority? ServerThreadPriority = null,
-                              Boolean? ServerThreadIsBackground = null,
+                              IIPAddress?                       IPAddress                    = null,
+                              IPPort?                           HTTPPort                     = null,
+                              String?                           HTTPServiceName              = null,
+                              ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
+                              ThreadPriority?                   ServerThreadPriority         = null,
+                              Boolean?                          ServerThreadIsBackground     = null,
 
-                              IEnumerable<String>? SecWebSocketProtocols = null,
-                              Boolean DisableWebSocketPings = false,
-                              TimeSpan? WebSocketPingEvery = null,
-                              TimeSpan? SlowNetworkSimulationDelay = null,
+                              IEnumerable<String>?              SecWebSocketProtocols        = null,
+                              Boolean                           DisableWebSocketPings        = false,
+                              TimeSpan?                         WebSocketPingEvery           = null,
+                              TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
-                              DNSClient? DNSClient = null,
-                              Boolean AutoStart = false)
+                              DNSClient?                        DNSClient                    = null,
+                              Boolean                           AutoStart                    = false)
 
             : base(IPAddress,
                    HTTPPort,
@@ -107,18 +108,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         {
 
-            this.UpstreamServerURL = UpstreamServerURL;
-            this.AutoConnect = AutoConnect;
+            this.UpstreamServerURL  = UpstreamServerURL;
+            this.AutoConnect        = AutoConnect;
 
-            this.webSocketClient = new WebSocketClient(
-                                        UpstreamServerURL,
-                                        DNSClient: DNSClient
-                                    );
+            this.webSocketClient    = new WebSocketClient(
+                                          UpstreamServerURL,
+                                          DNSClient: DNSClient
+                                      );
 
             if (AutoConnect)
             {
                 UpstreamHTTPResponse = webSocketClient.Connect().GetAwaiter().GetResult();
             }
+
 
             #region WSClient: OnTextMessageReceived
 
@@ -132,7 +134,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 foreach (var connection in connections.Values)
                 {
+
                     await connection.SendWebSocketFrame(webSocketFrame);
+
+                    await SendOnWebSocketFrameSent(timestamp,
+                                                   connection,
+                                                   eventTrackingId,
+                                                   webSocketFrame);
+
+                    await SendOnTextMessageSent(timestamp,
+                                                connection,
+                                                eventTrackingId,
+                                                textMessage);
+
                 }
 
             };
@@ -151,7 +165,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 foreach (var connection in connections.Values)
                 {
+
                     await connection.SendWebSocketFrame(webSocketFrame);
+
+                    await SendOnWebSocketFrameSent(timestamp,
+                                                   connection,
+                                                   eventTrackingId,
+                                                   webSocketFrame);
+
+                    await SendOnBinaryMessageSent(timestamp,
+                                                  connection,
+                                                  eventTrackingId,
+                                                  binaryMessage);
+
                 }
 
             };
@@ -187,7 +213,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
 
                 if (webSocketFrame.IsText || webSocketFrame.IsBinary)
+                {
+
+                    
+
                     await webSocketClient.SendWebSocketFrame(webSocketFrame);
+
+                }
 
             };
 
@@ -225,10 +257,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 String?                           Reason       = null)
         {
 
+            await webSocketClient.Close(StatusCode,
+                                        Reason);
 
         }
 
         #endregion
+
 
     }
 
