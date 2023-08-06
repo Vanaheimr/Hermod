@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Constructor(s)
 
-        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
@@ -53,21 +53,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer(IIPAddress?                       IPAddress                    = null,
-                                IPPort?                           HTTPPort                     = null,
-                                String?                           HTTPServiceName              = null,
-                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
-                                ThreadPriority?                   ServerThreadPriority         = null,
-                                Boolean?                          ServerThreadIsBackground     = null,
+                               IPPort?                           HTTPPort                     = null,
+                               String?                           HTTPServiceName              = null,
+                               ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
+                               ThreadPriority?                   ServerThreadPriority         = null,
+                               Boolean?                          ServerThreadIsBackground     = null,
 
-                                IEnumerable<String>?              SecWebSocketProtocols        = null,
-                                Boolean                           DisableWebSocketPings        = false,
-                                TimeSpan?                         WebSocketPingEvery           = null,
-                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
+                               IEnumerable<String>?              SecWebSocketProtocols        = null,
+                               Boolean                           DisableWebSocketPings        = false,
+                               TimeSpan?                         WebSocketPingEvery           = null,
+                               TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
-                                DNSClient?                        DNSClient                    = null,
-                                Boolean                           Autostart                    = false)
+                               DNSClient?                        DNSClient                    = null,
+                               Boolean                           AutoStart                    = false)
 
             : base(IPAddress,
                    HTTPPort,
@@ -82,13 +82,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    SlowNetworkSimulationDelay,
 
                    DNSClient,
-                   Autostart)
+                   AutoStart)
 
         { }
 
         #endregion
 
-        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., Autostart = false)
+        #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
         /// Create a new HTTP web socket server.
@@ -96,20 +96,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPSocket">The IP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="Autostart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketServer(IPSocket                          IPSocket,
-                                String?                           HTTPServiceName              = null,
-                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
-                                ThreadPriority?                   ServerThreadPriority         = null,
-                                Boolean?                          ServerThreadIsBackground     = null,
+                               String?                           HTTPServiceName              = null,
+                               ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
+                               ThreadPriority?                   ServerThreadPriority         = null,
+                               Boolean?                          ServerThreadIsBackground     = null,
 
-                                IEnumerable<String>?              SecWebSocketProtocols        = null,
-                                Boolean                           DisableWebSocketPings        = false,
-                                TimeSpan?                         WebSocketPingEvery           = null,
-                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
+                               IEnumerable<String>?              SecWebSocketProtocols        = null,
+                               Boolean                           DisableWebSocketPings        = false,
+                               TimeSpan?                         WebSocketPingEvery           = null,
+                               TimeSpan?                         SlowNetworkSimulationDelay   = null,
 
-                                DNSClient?                        DNSClient                    = null,
-                                Boolean                           Autostart                    = false)
+                               DNSClient?                        DNSClient                    = null,
+                               Boolean                           AutoStart                    = false)
 
             : base(IPSocket,
                    HTTPServiceName,
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    SlowNetworkSimulationDelay,
 
                    DNSClient,
-                   Autostart)
+                   AutoStart)
 
         { }
 

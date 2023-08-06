@@ -21,8 +21,6 @@ using System.Net.Sockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Text;
-using System.Threading;
 
 #endregion
 
@@ -392,12 +390,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        // Custom data
+        #region Custom data
 
         #region AddCustomData(Key, Value)
 
         /// <summary>
-        /// Add custom data to this HTTP web socket connection.
+        /// Add custom data to this HTTP web socket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A value.</param>
@@ -421,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region HasCustomData(Key)
 
         /// <summary>
-        /// Checks whether the given data key is present within this HTTP web socket connection.
+        /// Checks whether the given data key is present within this HTTP web socket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         public Boolean HasCustomData(String Key)
@@ -433,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomData  (Key)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket connection.
+        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         public Object? TryGetCustomData(String Key)
@@ -451,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomDataAs(Key)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket connection.
+        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
         /// </summary>
         /// <typeparam name="T">The type of the stored value.</typeparam>
         /// <param name="Key">A key.</param>
@@ -472,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomData  (Key, out Value)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket connection.
+        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">The requested value.</param>
@@ -492,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomDataAs(Key, out Value)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket connection.
+        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
         /// </summary>
         /// <typeparam name="T">The type of the stored value.</typeparam>
         /// <param name="Key">A key.</param>
@@ -513,6 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #endregion
 
 
         #region Operator overloading
@@ -522,8 +521,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (WebSocketServerConnection WebSocketConnection1,
                                            WebSocketServerConnection WebSocketConnection2)
@@ -548,8 +547,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (WebSocketServerConnection WebSocketConnection1,
                                            WebSocketServerConnection WebSocketConnection2)
@@ -563,15 +562,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (WebSocketServerConnection WebSocketConnection1,
                                           WebSocketServerConnection WebSocketConnection2)
         {
 
             if (WebSocketConnection1 is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP web socket connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP web socket server connection must not be null!");
 
             return WebSocketConnection1.CompareTo(WebSocketConnection2) < 0;
 
@@ -584,8 +583,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (WebSocketServerConnection WebSocketConnection1,
                                            WebSocketServerConnection WebSocketConnection2)
@@ -599,15 +598,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (WebSocketServerConnection WebSocketConnection1,
                                           WebSocketServerConnection WebSocketConnection2)
         {
 
             if (WebSocketConnection1 is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP web socket connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP web socket server connection must not be null!");
 
             return WebSocketConnection1.CompareTo(WebSocketConnection2) > 0;
 
@@ -620,8 +619,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (WebSocketServerConnection WebSocketConnection1,
                                            WebSocketServerConnection WebSocketConnection2)
@@ -637,14 +636,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two HTTP web socket connections.
+        /// Compares two HTTP web socket server connections.
         /// </summary>
-        /// <param name="Object">A HTTP web socket connection to compare with.</param>
+        /// <param name="Object">A HTTP web socket server connection to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
-            => Object is WebSocketServerConnection webSocketConnection
-                   ? CompareTo(webSocketConnection)
-                   : throw new ArgumentException("The given object is not a HTTP web socket connection!",
+            => Object is WebSocketServerConnection webSocketServerConnection
+                   ? CompareTo(webSocketServerConnection)
+                   : throw new ArgumentException("The given object is not a HTTP web socket server connection!",
                                                  nameof(Object));
 
         #endregion
@@ -652,14 +651,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region CompareTo(WebSocketConnection)
 
         /// <summary>
-        /// Compares two HTTP web socket connections.
+        /// Compares two HTTP web socket server connections.
         /// </summary>
-        /// <param name="WebSocketConnection">A HTTP web socket connection to compare with.</param>
+        /// <param name="WebSocketConnection">A HTTP web socket server connection to compare with.</param>
         public Int32 CompareTo(WebSocketServerConnection? WebSocketConnection)
         {
 
             if (WebSocketConnection is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection), "The given HTTP web socket connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection), "The given HTTP web socket server connection must not be null!");
 
             return LocalSocket.CompareTo(WebSocketConnection.LocalSocket);
 
@@ -674,22 +673,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two HTTP web socket connections for equality.
+        /// Compares two HTTP web socket server connections for equality.
         /// </summary>
-        /// <param name="Object">A HTTP web socket connection to compare with.</param>
+        /// <param name="Object">A HTTP web socket server connection to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is WebSocketServerConnection webSocketConnection &&
-                   Equals(webSocketConnection);
+            => Object is WebSocketServerConnection webSocketServerConnection &&
+                   Equals(webSocketServerConnection);
 
         #endregion
 
         #region Equals(WebSocketConnection)
 
         /// <summary>
-        /// Compares two HTTP web socket connections for equality.
+        /// Compares two HTTP web socket server connections for equality.
         /// </summary>
-        /// <param name="WebSocketConnection">A HTTP web socket connection to compare with.</param>
+        /// <param name="WebSocketConnection">A HTTP web socket server connection to compare with.</param>
         public Boolean Equals(WebSocketServerConnection? WebSocketConnection)
 
             => WebSocketConnection is not null &&

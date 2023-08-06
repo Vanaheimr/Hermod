@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPPort                                TCPPort,
                             ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
                             RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             TimeSpan?                             ConnectionTimeout                  = null,
 
                             UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
-                            Boolean                               Autostart                          = false)
+                            Boolean                               AutoStart                          = false)
 
             : this(IPv4Address.Any,
                    TCPPort,
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ConnectionTimeout,
 
                    MaxClientConnections,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the TCP/CSV server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP/CSV server thread immediately (default: no).</param>
         public TCPCSVServer(IIPAddress                            IIPAddress,
                             IPPort                                Port,
                             ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             TimeSpan?                             ConnectionTimeout                  = null,
 
                             UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
-                            Boolean                               Autostart                          = false)
+                            Boolean                               AutoStart                          = false)
 
             : base(IIPAddress,
                    Port,
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
             this._TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPCSVServer(IPSocket                              IPSocket,
                             ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
                             RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
@@ -303,7 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             TimeSpan?                             ConnectionTimeout                  = null,
 
                             UInt32                                MaxClientConnections               = __DefaultMaxClientConnections,
-                            Boolean                               Autostart                          = false)
+                            Boolean                               AutoStart                          = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -328,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ConnectionTimeout,
 
                    MaxClientConnections,
-                   Autostart)
+                   AutoStart)
 
         { }
 

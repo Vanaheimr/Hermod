@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                TimeSpan?                             ConnectionTimeout            = null,
 
                                UInt32                                MaxClientConnections         = __DefaultMaxClientConnections,
-                               Boolean                               Autostart                    = false)
+                               Boolean                               AutoStart                    = false)
         {
 
             this.TCPServer = new TCPServer(TCPPort,
@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                            ConnectionTimeout,
 
                                            MaxClientConnections,
-                                           Autostart);
+                                           AutoStart);
 
 
             this.TCPServer.OnNotification += async (NewTCPConnection) => {

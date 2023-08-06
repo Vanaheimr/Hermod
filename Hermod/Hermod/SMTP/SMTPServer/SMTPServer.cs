@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the SMTP server thread immediately (default: no).</param>
         public SMTPServer(IPPort?                               TCPPort                            = null,
                           String                                DefaultServerName                  = __DefaultServerName,
                           String?                               ServiceName                        = null,
@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                           UInt32?                               MaxClientConnections               = null,
                           DNSClient?                            DNSClient                          = null,
-                          Boolean                               Autostart                          = false)
+                          Boolean                               AutoStart                          = false)
 
             : base(ServiceName,
                    DefaultServerName,
@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (TCPPort is not null)
                 this.AttachTCPPort(TCPPort ?? IPPort.SMTP);
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }

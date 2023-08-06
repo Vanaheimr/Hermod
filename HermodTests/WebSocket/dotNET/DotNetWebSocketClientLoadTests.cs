@@ -17,12 +17,13 @@
 
 #region Usings
 
+using System.Net.WebSockets;
+
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
-using System.Net.WebSockets;
 
 #endregion
 
@@ -30,36 +31,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 {
 
     /// <summary>
-    /// Tests between Hermod WebSocket clients and Hermod WebSocket servers.
+    /// Tests between .NET WebSocket clients and Hermod WebSocket servers.
     /// </summary>
     [TestFixture]
-    public class WebSocketChatClientTests : AWebSocketChatServerTests
+    public class DotNetWebSocketClientLoadTests : AWebSocketServerTests
     {
 
         #region Constructor(s)
 
-        public WebSocketChatClientTests()
-            : base(IPPort.Parse(2001))
+        public DotNetWebSocketClientLoadTests()
+            : base(IPPort.Parse(10112))
         { }
 
         #endregion
 
 
-        #region Test_ChatClients()
+        #region Test_ManyClients()
 
         [Test]
-        public async Task Test_ChatClients()
+        public async Task Test_ManyClients()
         {
 
             // Note: Your operating system or firewall might not allow you to open
             //       or accept 100+ TCP connections within a short time span!
             //       Also the task scheduling might slow down the test!
-            var numberOfClients         = 3;
+            var numberOfClients         = 100;
 
-            #region Server setup
+            #region Setup
 
-            if (webSocketChatServer is null) {
-                Assert.Fail("WebSocketChatServer is null!");
+            if (webSocketServer is null) {
+                Assert.Fail("WebSocketServer is null!");
                 return;
             }
 
@@ -76,93 +77,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var binaryMessageRequests   = new List<Byte[]>();
             var binaryMessageResponses  = new List<Byte[]>();
 
-            webSocketChatServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return true;
             };
 
-            webSocketChatServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
             };
 
-            webSocketChatServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
                 httpRequests.Add(httpRequest);
             };
 
-            webSocketChatServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return null;
             };
 
-            webSocketChatServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
             };
 
-            webSocketChatServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
             };
 
-            webSocketChatServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.       Add(requestFrame);
             };
 
-            webSocketChatServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+            webSocketServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
                 messageResponses.      Add(responseFrame);
             };
 
-            webSocketChatServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
                 textMessageRequests.   Add(textMessage);
             };
 
-            webSocketChatServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
                 textMessageResponses.  Add(textMessage ?? "-");
             };
 
-            webSocketChatServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
                 binaryMessageRequests. Add(binaryMessage);
             };
 
-            webSocketChatServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
                 binaryMessageResponses.Add(binaryMessage);
             };
 
             #endregion
 
-            #region Clients setup
 
             var startTimestamp          = Timestamp.Now;
-            var webSocketClients        = new List<WebSocketClient>();
-            var httpClientResponses     = new List<HTTPResponse>();
+            var clientWebSockets        = new List<ClientWebSocket>();
             var exceptions              = new List<Exception>();
-
-            var textMessageLogs         = new List<List<String>>();
 
             for (var i = 1; i <= numberOfClients; i++)
             {
+
+                var clientWebSocket = new ClientWebSocket();
+
                 try
                 {
 
-                    var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
-                    webSocketClients.Add(webSocketClient);
+                    await clientWebSocket.ConnectAsync(new Uri($"ws://127.0.0.1:{HTTPPort}"),
+                                                       CancellationToken.None);
 
-                    var textMessageLog = new List<String>();
-
-                    webSocketClient.OnTextMessageReceived += (timestamp,
-                                                              webSocketClient,
-                                                              webSocketClientConnection,
-                                                              webSocketFrame,
-                                                              eventTrackingId,
-                                                              textMessage) => {
-
-                        textMessageLog.Add(textMessage);
-
-                        return Task.CompletedTask;
-
-                    };
-
-                    textMessageLogs.Add(textMessageLog);
-
-                    httpClientResponses.Add(await webSocketClient.Connect());
+                    clientWebSockets.Add(clientWebSocket);
 
                 }
                 catch (Exception e)
@@ -172,9 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             }
 
-            var runTime1          = Timestamp.Now - startTimestamp;
-
-            #endregion
+            var runTime1 = Timestamp.Now - startTimestamp;
 
 
             #region Check HTTP request
@@ -190,28 +171,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             Assert.AreEqual(numberOfClients, httpRequests.          Count);
             Assert.AreEqual(numberOfClients, httpResponses.         Count);
-            Assert.AreEqual(numberOfClients, webSocketChatServer.WebSocketConnections.Count());
+            Assert.AreEqual(numberOfClients, webSocketServer.WebSocketConnections.Count());
 
 
-            //var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
+            //var httpRequest          = httpRequests.First();
+            //var request              = httpRequest.EntirePDU;
 
             //// GET / HTTP/1.1
-            //// Host:                     127.0.0.1:101
-            //// Connection:               Upgrade
-            //// Upgrade:                  websocket
-            //// Sec-WebSocket-Key:        /vkroMJ5bwBVW200riZKRg==
-            //// Sec-WebSocket-Version:    13
+            //// Host:                    127.0.0.1:111
+            //// Connection:              Upgrade
+            //// Upgrade:                 websocket
+            //// Sec-WebSocket-Key:       +LYHhVOGskWz/0bFFcK8dQ==
+            //// Sec-WebSocket-Version:   13
 
-            //// HTTP requests should not have a "Date"-header!
-            //Assert.IsFalse (request.Contains("Date:"),                         request);
+            //Assert.AreEqual("Upgrade",                                         httpRequest.Connection);
+            //Assert.AreEqual("websocket",                                       httpRequest.Upgrade);
+
             //Assert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
             //Assert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            //Assert.IsTrue  (request.Contains($"Connection: Upgrade"),          request);
             //Assert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
+            //Assert.IsTrue  (request.Contains($"Sec-WebSocket-Key:"),           request);
+            //Assert.IsTrue  (request.Contains($"Sec-WebSocket-Version:"),       request);
 
             #endregion
 
             #region Check HTTP response
 
+            //var httpResponse  = httpResponses.First();
             //var response      = httpResponse.EntirePDU;
             //var httpBody      = httpResponse.HTTPBodyAsUTF8String;
 
@@ -234,45 +221,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Send messages
 
-            await webSocketClients.ElementAt(0).SendText("chat::Hello world!");
+            //await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("1234")),
+            //                                messageType:        WebSocketMessageType.Text,
+            //                                endOfMessage:       true,
+            //                                cancellationToken:  CancellationToken.None);
 
-            do
-            {
-                await Task.Delay(10);
-            }
-            while (textMessageLogs.Any(list => list.Count != 2));
+            //while (textMessageResponses.  Count == 0)
+            //    Thread.Sleep(10);
+
+            //await clientWebSocket.SendAsync(buffer:             new ArraySegment<Byte>(Encoding.UTF8.GetBytes("ABCD")),
+            //                                messageType:        WebSocketMessageType.Binary,
+            //                                endOfMessage:       true,
+            //                                cancellationToken:  CancellationToken.None);
+
+            //while (binaryMessageResponses.Count == 0)
+            //    Thread.Sleep(10);
+
+            #endregion
+
+            #region Validate message delivery
+
+            //Assert.AreEqual(2,       messageRequests. Count);
+            //Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            //Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+
+            //Assert.AreEqual(2,       messageResponses.Count);
+            //Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            //Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            await webSocketClients.ElementAt(1).SendText("chat::What has happend?");
+            //Assert.AreEqual(1,       textMessageRequests.   Count);
+            //Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            //Assert.AreEqual(1,       binaryMessageRequests. Count);
+            //Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            do
-            {
-                await Task.Delay(10);
-            }
-            while (textMessageLogs.Any(list => list.Count != 3));
-
-
-            await webSocketClients.ElementAt(2).SendText("chat::Have a nice day!");
-
-            do
-            {
-                await Task.Delay(10);
-            }
-            while (textMessageLogs.Any(list => list.Count != 4));
+            //Assert.AreEqual(1,       textMessageResponses.  Count);
+            //Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            //Assert.AreEqual(1,       binaryMessageResponses.Count);
+            //Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 
 
-            startTimestamp = Timestamp.Now;
+            startTimestamp  = Timestamp.Now;
             var exceptions2 = new List<Exception>();
 
-            foreach (var webSocketClient in webSocketClients)
+            foreach (var clientWebSocket in clientWebSockets)
             {
 
                 try
                 {
 
-                    await webSocketClient.Close();
+                    await clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                                                     "Done",
+                                                     CancellationToken.None);
 
                 }
                 catch (Exception e)
@@ -285,6 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var runTime2 = Timestamp.Now - startTimestamp;
 
             Assert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP web socket closing exceptions!");
+
 
         }
 

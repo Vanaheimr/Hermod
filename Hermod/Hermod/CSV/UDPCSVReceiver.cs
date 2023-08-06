@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IPPort                                        Port,
                               String                                        ServiceBanner               = DefaultServiceBanner,
                               IEnumerable<String>                           Splitter                    = null,
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                               Func<UDPPacket<IEnumerable<String>>, String>  PacketThreadsNameCreator    = null,
                               ThreadPriority                                PacketThreadsPriority       = ThreadPriority.AboveNormal,
                               Boolean                                       PacketThreadsAreBackground  = true,
-                              Boolean                                       Autostart                   = false)
+                              Boolean                                       AutoStart                   = false)
 
             : this(IPv4Address.Any,
                    Port,
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IIPAddress                                    IPAddress,
                               IPPort                                        Port,
                               String                                        ServiceBanner               = DefaultServiceBanner,
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                               Func<UDPPacket<IEnumerable<String>>, String>  PacketThreadsNameCreator    = null,
                               ThreadPriority                                PacketThreadsPriority       = ThreadPriority.AboveNormal,
                               Boolean                                       PacketThreadsAreBackground  = true,
-                              Boolean                                       Autostart                   = false)
+                              Boolean                                       AutoStart                   = false)
 
             : base(new IPSocket(IPAddress, Port),
                    ServiceBanner,
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         {
 
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPCSVReceiver(IPSocket                                      IPSocket,
                               String                                        ServiceBanner               = DefaultServiceBanner,
                               IEnumerable<String>                           Splitter                    = null,
@@ -197,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                               Func<UDPPacket<IEnumerable<String>>, String>  PacketThreadsNameCreator    = null,
                               ThreadPriority                                PacketThreadsPriority       = ThreadPriority.AboveNormal,
                               Boolean                                       PacketThreadsAreBackground  = true,
-                              Boolean                                       Autostart                   = false)
+                              Boolean                                       AutoStart                   = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -209,7 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 

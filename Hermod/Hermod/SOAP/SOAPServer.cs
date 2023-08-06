@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
         public SOAPServer(IPPort                                TCPPort,
                           String                                DefaultServerName             = HTTPServer.DefaultHTTPServerName,
                           String?                               ServiceName                   = null,
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                           UInt32?                               MaxClientConnections          = null,
                           DNSClient?                            DNSClient                     = null,
-                          Boolean                               Autostart                     = false)
+                          Boolean                               AutoStart                     = false)
 
         {
 
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
             this.soapDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
-            if (Autostart)
+            if (AutoStart)
                 HTTPServer.Start();
 
         }

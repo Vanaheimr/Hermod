@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IPPort                                Port,
                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
                          RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TimeSpan?                             ConnectionTimeout            = null,
 
                          UInt32                                MaxClientConnections         = __DefaultMaxClientConnections,
-                         Boolean                               Autostart                    = false)
+                         Boolean                               AutoStart                    = false)
 
             : this(IPv4Address.Any,
                    Port,
@@ -283,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ConnectionTimeout,
 
                    MaxClientConnections,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -308,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IIPAddress                            IIPAddress,
                          IPPort                                Port,
                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
@@ -328,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TimeSpan?                             ConnectionTimeout            = null,
 
                          UInt32                                MaxClientConnections         = __DefaultMaxClientConnections,
-                         Boolean                               Autostart                    = false)
+                         Boolean                               AutoStart                    = false)
 
         {
 
@@ -557,7 +557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             #endregion
 
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }
@@ -582,7 +582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
-        /// <param name="Autostart">Start the TCP server thread immediately (default: no).</param>
+        /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IPSocket                              IPSocket,
                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
                          RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
@@ -601,7 +601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TimeSpan?                             ConnectionTimeout            = null,
 
                          UInt32                                MaxClientConnections         = __DefaultMaxClientConnections,
-                         Boolean                               Autostart                    = false)
+                         Boolean                               AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -622,7 +622,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ConnectionTimeout,
 
                    MaxClientConnections,
-                   Autostart)
+                   AutoStart)
 
         { }
 

@@ -123,9 +123,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
+            #region Client setup and connect
+
             var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
+
+            #region OnTextMessageReceived
+
+            var textMessageLog   = new List<String>();
+
+            webSocketClient.OnTextMessageReceived += (timestamp,
+                                                      webSocketClient,
+                                                      webSocketClientConnection,
+                                                      webSocketFrame,
+                                                      eventTrackingId,
+                                                      textMessage) => {
+
+                textMessageLog.Add(textMessage);
+
+                return Task.CompletedTask;
+
+            };
+
+            #endregion
+
+            #region OnBinaryMessageReceived
+
+            var binaryMessageLog   = new List<Byte[]>();
+
+            webSocketClient.OnBinaryMessageReceived += (timestamp,
+                                                        webSocketClient,
+                                                        webSocketClientConnection,
+                                                        webSocketFrame,
+                                                        eventTrackingId,
+                                                        binaryMessage) => {
+
+                binaryMessageLog.Add(binaryMessage);
+
+                return Task.CompletedTask;
+
+            };
+
+            #endregion
+
             var httpResponse     = await webSocketClient.Connect();
 
+            #endregion
 
             #region Check HTTP request
 
@@ -186,19 +228,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             await webSocketClient.SendText("1234");
 
-            while (textMessageResponses.Count == 0)
+            while (textMessageLog.Count == 0)
                 Thread.Sleep(10);
 
             await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
 
-            while (binaryMessageResponses.Count == 0)
+            while (binaryMessageLog.Count == 0)
                 Thread.Sleep(10);
 
             #endregion
 
             #region Validate message delivery
 
-            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -219,10 +261,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             Assert.AreEqual(1,       binaryMessageResponses.Count);
             Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
+
+            Assert.AreEqual(1,       textMessageLog.        Count);
+            Assert.AreEqual("4321",  textMessageLog.        ElementAt(0));
+            Assert.AreEqual(1,       binaryMessageLog.      Count);
+            Assert.AreEqual("DCBA",  binaryMessageLog.      ElementAt(0));
+
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -389,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -413,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -583,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -607,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -777,7 +825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -801,7 +849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -969,7 +1017,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -993,7 +1041,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -1176,7 +1224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you debugg too slow HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
             Assert.AreEqual(2,       messageRequests. Count);
             Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -1200,7 +1248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -1365,7 +1413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             #endregion
 
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 

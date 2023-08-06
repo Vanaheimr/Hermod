@@ -1298,7 +1298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
-        /// <param name="Autostart">Whether to start the API automatically.</param>
+        /// <param name="AutoStart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPHostname?                         HTTPHostname                       = null,
                        String?                               ExternalDNSName                    = null,
                        IPPort?                               HTTPServerPort                     = null,
@@ -1340,7 +1340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String?                               LogfileName                        = null,
                        LogfileCreatorDelegate?               LogfileCreator                     = null,
                        DNSClient?                            DNSClient                          = null,
-                       Boolean                               Autostart                          = false)
+                       Boolean                               AutoStart                          = false)
 
             : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
                                   HTTPServerName ?? DefaultHTTPServerName,
@@ -1364,7 +1364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   MaxClientConnections,
 
                                   DNSClient,
-                                  Autostart: false),
+                                  AutoStart: false),
 
                    HTTPHostname,
                    ExternalDNSName,
@@ -1389,11 +1389,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LoggingPath,
                    LogfileName,
                    LogfileCreator,
-                   Autostart: false)
+                   AutoStart: false)
 
         {
 
-            if (Autostart && HTTPServer.Start())
+            if (AutoStart && HTTPServer.Start())
                 DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
         }
@@ -1429,7 +1429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        /// <param name="Autostart">Whether to start the API automatically.</param>
+        /// <param name="AutoStart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPServer               HTTPServer,
                        HTTPHostname?            HTTPHostname              = null,
                        String?                  ExternalDNSName           = "",
@@ -1454,7 +1454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String?                  LoggingPath               = null,
                        String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
                        LogfileCreatorDelegate?  LogfileCreator            = null,
-                       Boolean                  Autostart                 = false)
+                       Boolean                  AutoStart                 = false)
 
         {
 
@@ -1592,7 +1592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            if (Autostart == true && HTTPServer.Start())
+            if (AutoStart == true && HTTPServer.Start())
                 DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
         }

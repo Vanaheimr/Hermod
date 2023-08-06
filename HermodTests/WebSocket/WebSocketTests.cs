@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             webSocketServer = new WebSocketServer(
                                   HTTPPort:   IPPort.Parse(port),
-                                  Autostart:  true
+                                  AutoStart:  true
                               );
 
         }

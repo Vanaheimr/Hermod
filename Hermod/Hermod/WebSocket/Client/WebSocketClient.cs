@@ -1058,8 +1058,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder() {
-                                               HTTPStatusCode = HTTPStatusCode.BadRequest
-                                           };
+                                           HTTPStatusCode = HTTPStatusCode.BadRequest
+                                       };
 
             return Task.FromResult(waitingForHTTPResponse);
 
@@ -1293,95 +1293,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             #endregion
 
-            return;
-
-            if (HTTPStream is not null)
-            {
-                //lock (HTTPStream)
-                //{
-
-                    try
-                    {
-
-                        if (SlowNetworkSimulationDelay.HasValue)
-                        {
-                            foreach (var singleByte in WebSocketFrame.ToByteArray())
-                            {
-                                await HTTPStream.WriteAsync(new[] { singleByte });
-                                await HTTPStream.FlushAsync();
-                                await Task.Delay(SlowNetworkSimulationDelay.Value);
-                            }
-                        }
-
-                        else
-                        {
-                            await HTTPStream.WriteAsync(WebSocketFrame.ToByteArray());
-                            await HTTPStream.FlushAsync();
-                        }
-
-                        #region OnTextMessageSent
-
-                        if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
-                        {
-
-                            try
-                            {
-
-                                var onTextMessageSent = OnTextMessageSent;
-                                if (onTextMessageSent is not null)
-                                    await onTextMessageSent.Invoke(Timestamp.Now,
-                                                                   this,
-                                                                   null, //webSocketConnection,
-                                                                   WebSocketFrame,
-                                                                   EventTracking_Id.New,
-                                                                   WebSocketFrame.Payload.ToUTF8String());
-
-                            }
-                            catch (Exception e)
-                            {
-                                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
-                            }
-
-                        }
-
-                        #endregion
-
-                        #region OnBinaryMessageSent
-
-                        else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
-                        {
-
-                            try
-                            {
-
-                                var onBinaryMessageSent = OnBinaryMessageSent;
-                                if (onBinaryMessageSent is not null)
-                                    await onBinaryMessageSent.Invoke(Timestamp.Now,
-                                                                     this,
-                                                                     null, //webSocketConnection,
-                                                                     WebSocketFrame,
-                                                                     EventTracking_Id.New,
-                                                                     WebSocketFrame.Payload);
-
-                            }
-                            catch (Exception e)
-                            {
-                                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageSent));
-                            }
-
-                        }
-
-                        #endregion
-
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.LogException(e, "Sending a web socket frame in " + nameof(WebSocketClient));
-                    }
-
-                //}
-            }
-
         }
 
         #endregion
@@ -1394,8 +1305,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="StatusCode">An optional status code for closing.</param>
         /// <param name="Reason">An optional reason for closing.</param>
-        public void Close(ClosingStatusCode  StatusCode   = ClosingStatusCode.NormalClosure,
-                          String?            Reason       = null)
+        public async Task Close(ClosingStatusCode  StatusCode   = ClosingStatusCode.NormalClosure,
+                                String?            Reason       = null)
         {
 
             try
@@ -1403,13 +1314,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (HTTPStream is not null)
                 {
 
-                    SendWebSocketFrame(WebSocketFrame.Close(
-                                           StatusCode,
-                                           Reason,
-                                           WebSocketFrame.Fin.Final,
-                                           WebSocketFrame.MaskStatus.On,
-                                           RandomExtensions.GetBytes(4)
-                                       ));
+                    await SendWebSocketFrame(WebSocketFrame.Close(
+                                                 StatusCode,
+                                                 Reason,
+                                                 WebSocketFrame.Fin.Final,
+                                                 WebSocketFrame.MaskStatus.On,
+                                                 RandomExtensions.GetBytes(4)
+                                             ));
 
                     HTTPStream.Close();
                     HTTPStream.Dispose();
@@ -1463,7 +1374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public void Dispose()
         {
-            Close();
+            Close().GetAwaiter().GetResult();
         }
 
         #endregion
