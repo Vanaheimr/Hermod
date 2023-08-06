@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     }
 
 
-    public static class Ext
+    public static class WebSocketFrameExtensions
     {
 
         public static Boolean IsHostOrder(this ByteOrder order)
