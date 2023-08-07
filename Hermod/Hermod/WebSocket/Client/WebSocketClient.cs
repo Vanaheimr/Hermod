@@ -809,109 +809,125 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         if (TryParse(buffer,
                                                      out WebSocketFrame?  frame,
                                                      out UInt64           frameLength,
-                                                     out String?          errorResponse))
+                                                     out String?          errorResponse) &&
+                                            frame is not null)
                                         {
 
-                                            if (frame is not null)
+                                            switch (frame.Opcode)
                                             {
 
-                                                switch (frame.Opcode)
-                                                {
+                                                #region Text
 
-                                                    case WebSocketFrame.Opcodes.Text: {
+                                                case WebSocketFrame.Opcodes.Text: {
 
-                                                        #region OnTextMessageReceived
+                                                    #region OnTextMessageReceived
 
-                                                        try
-                                                        {
+                                                    try
+                                                    {
 
-                                                                var onTextMessageReceived = OnTextMessageReceived;
-                                                                if (onTextMessageReceived is not null)
-                                                                    await onTextMessageReceived.Invoke(Timestamp.Now,
-                                                                                                       this,
-                                                                                                       webSocketClientConnection,
-                                                                                                       frame,
-                                                                                                       EventTracking_Id.New,
-                                                                                                       frame.Payload.ToUTF8String());
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        await ProcessWebSocketTextFrame(frame);
+                                                            var onTextMessageReceived = OnTextMessageReceived;
+                                                            if (onTextMessageReceived is not null)
+                                                                await onTextMessageReceived.Invoke(Timestamp.Now,
+                                                                                                    this,
+                                                                                                    webSocketClientConnection,
+                                                                                                    frame,
+                                                                                                    EventTracking_Id.New,
+                                                                                                    frame.Payload.ToUTF8String());
 
                                                     }
-                                                    break;
-
-                                                    case WebSocketFrame.Opcodes.Binary: {
-
-                                                        #region OnBinaryMessageReceived
-
-                                                        try
-                                                        {
-
-                                                            var onBinaryMessageReceived = OnBinaryMessageReceived;
-                                                            if (onBinaryMessageReceived is not null)
-                                                                await onBinaryMessageReceived.Invoke(Timestamp.Now,
-                                                                                                     this,
-                                                                                                     webSocketClientConnection,
-                                                                                                     frame,
-                                                                                                     EventTracking_Id.New,
-                                                                                                     frame.Payload);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        await ProcessWebSocketBinaryFrame(frame);
-
+                                                    catch (Exception e)
+                                                    {
+                                                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageReceived));
                                                     }
-                                                    break;
 
-                                                    case WebSocketFrame.Opcodes.Ping: {
+                                                    #endregion
 
-                                                        DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
-
-                                                        await SendWebSocketFrame(WebSocketFrame.Pong(
-                                                                                     frame.Payload,
-                                                                                     Fin.Final,
-                                                                                     MaskStatus.On,
-                                                                                     RandomExtensions.GetBytes(4)
-                                                                                 ));
-
-                                                    }
-                                                    break;
-
-                                                    case WebSocketFrame.Opcodes.Pong: {
-                                                        DebugX.Log(nameof(WebSocketClient) + ": Pong received: " + frame.Payload.ToUTF8String());
-                                                    }
-                                                    break;
-
-                                                    default: {
-                                                        DebugX.Log(nameof(WebSocketClient), " Received unknown " + frame.Opcode + " frame!");
-                                                    }
-                                                    break;
+                                                    await ProcessWebSocketTextFrame(frame);
 
                                                 }
+                                                break;
 
-                                                if ((UInt64) buffer.Length > frameLength)
-                                                {
-                                                    var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
-                                                    Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
-                                                    buffer = newBuffer;
+                                                #endregion
+
+                                                #region Binary
+
+                                                case WebSocketFrame.Opcodes.Binary: {
+
+                                                    #region OnBinaryMessageReceived
+
+                                                    try
+                                                    {
+
+                                                        var onBinaryMessageReceived = OnBinaryMessageReceived;
+                                                        if (onBinaryMessageReceived is not null)
+                                                            await onBinaryMessageReceived.Invoke(Timestamp.Now,
+                                                                                                    this,
+                                                                                                    webSocketClientConnection,
+                                                                                                    frame,
+                                                                                                    EventTracking_Id.New,
+                                                                                                    frame.Payload);
+
+                                                    }
+                                                    catch (Exception e)
+                                                    {
+                                                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageReceived));
+                                                    }
+
+                                                    #endregion
+
+                                                    await ProcessWebSocketBinaryFrame(frame);
+
                                                 }
-                                                else
-                                                    buffer = null;
+                                                break;
+
+                                                #endregion
+
+                                                #region Ping
+
+                                                case WebSocketFrame.Opcodes.Ping: {
+
+                                                    DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
+
+                                                    await SendWebSocketFrame(WebSocketFrame.Pong(
+                                                                                    frame.Payload,
+                                                                                    Fin.Final,
+                                                                                    MaskStatus.On,
+                                                                                    RandomExtensions.GetBytes(4)
+                                                                                ));
+
+                                                }
+                                                break;
+
+                                                #endregion
+
+                                                #region Pong
+
+                                                case WebSocketFrame.Opcodes.Pong: {
+                                                    DebugX.Log(nameof(WebSocketClient) + ": Pong received: " + frame.Payload.ToUTF8String());
+                                                }
+                                                break;
+
+                                                #endregion
+
+                                                #region ...unknown
+
+                                                default:
+                                                    DebugX.Log(nameof(WebSocketClient), " Received unknown " + frame.Opcode + " frame!");
+
+                                                break;
+
+                                                #endregion
 
                                             }
+
+                                            if ((UInt64) buffer.Length > frameLength)
+                                            {
+                                                var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
+                                                Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
+                                                buffer = newBuffer;
+                                            }
+                                            else
+                                                buffer = null;
 
                                         }
 

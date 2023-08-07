@@ -262,10 +262,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region SendText          (Text,           CancellationToken = default)
+
+        /// <summary>
+        /// Send the given plain text.
+        /// Do NOT use it to send web socket frames!
+        /// </summary>
+        /// <param name="Text">A text to send.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        public Task<SendStatus> SendText(String             Text,
+                                         CancellationToken  CancellationToken   = default)
+
+            => Send(Text.ToUTF8Bytes(),
+                    CancellationToken);
+
+        #endregion
+
         #region SendData          (Data,           CancellationToken = default)
 
         /// <summary>
-        /// Send the given array of bytes.
+        /// Send the given plain array of bytes.
+        /// Do NOT use it to send web socket frames!
         /// </summary>
         /// <param name="Data">The array of bytes to send.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
@@ -273,21 +290,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                          CancellationToken  CancellationToken   = default)
 
             => Send(Data,
-                    CancellationToken);
-
-        #endregion
-
-        #region SendText          (SendText,       CancellationToken = default)
-
-        /// <summary>
-        /// Send the given text.
-        /// </summary>
-        /// <param name="SendText">A text to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendText(String             SendText,
-                                         CancellationToken  CancellationToken   = default)
-
-            => Send(SendText.ToUTF8Bytes(),
                     CancellationToken);
 
         #endregion

@@ -24,6 +24,7 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
@@ -368,52 +369,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendText  (Connection, Text,  EventTrackingId = null)
+        #region SendTextMessage   (Connection, TextMessage,    EventTrackingId = null)
 
         /// <summary>
-        /// Send a web socket frame.
+        /// Send a text web socket frame.
         /// </summary>
         /// <param name="Connection">The web socket connection.</param>
-        /// <param name="Text">Text data to send.</param>
+        /// <param name="TextMessage">The text message to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public Task<SendStatus> SendText(WebSocketServerConnection  Connection,
-                                         String                     Text,
-                                         EventTracking_Id?          EventTrackingId   = null)
-
-            => Connection.SendText(Text);
-
-        #endregion
-
-        #region SendBinary(Connection, Data,  EventTrackingId = null)
-
-        /// <summary>
-        /// Send a web socket frame.
-        /// </summary>
-        /// <param name="Connection">The web socket connection.</param>
-        /// <param name="Data">Binary data to send.</param>
-        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public Task<SendStatus> SendBinary(WebSocketServerConnection  Connection,
-                                           Byte[]                     Data,
-                                           EventTracking_Id?          EventTrackingId   = null)
-
-            => Connection.SendData(Data);
-
-        #endregion
-
-        #region SendFrame (Connection, Frame, EventTrackingId = null)
-
-        /// <summary>
-        /// Send a web socket frame.
-        /// </summary>
-        /// <param name="Connection">The web socket connection.</param>
-        /// <param name="Frame">The web socket frame to send.</param>
-        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public async Task<SendStatus> SendFrame(WebSocketServerConnection  Connection,
-                                                WebSocketFrame             Frame,
+        public Task<SendStatus> SendTextMessage(WebSocketServerConnection  Connection,
+                                                String                     TextMessage,
                                                 EventTracking_Id?          EventTrackingId   = null)
+
+            => SendWebSocketFrame(Connection,
+                                  WebSocketFrame.Text(TextMessage),
+                                  EventTrackingId);
+
+        #endregion
+
+        #region SendBinaryMessage (Connection, BinaryMessage,  EventTrackingId = null)
+
+        /// <summary>
+        /// Send a binary web socket frame.
+        /// </summary>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="BinaryMessage">The binary message to send.</param>
+        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
+        public Task<SendStatus> SendBinaryMessage(WebSocketServerConnection  Connection,
+                                                  Byte[]                     BinaryMessage,
+                                                  EventTracking_Id?          EventTrackingId   = null)
+
+            => SendWebSocketFrame(Connection,
+                                  WebSocketFrame.Binary(BinaryMessage),
+                                  EventTrackingId);
+
+        #endregion
+
+        #region SendWebSocketFrame(Connection, WebSocketFrame, EventTrackingId = null)
+
+        /// <summary>
+        /// Send a web socket frame.
+        /// </summary>
+        /// <param name="Connection">The web socket connection.</param>
+        /// <param name="WebSocketFrame">The web socket frame to send.</param>
+        /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
+        public async Task<SendStatus> SendWebSocketFrame(WebSocketServerConnection  Connection,
+                                                         WebSocketFrame             WebSocketFrame,
+                                                         EventTracking_Id?          EventTrackingId   = null)
         {
 
-            var success = await Connection.SendWebSocketFrame(Frame);
+            var success = await Connection.SendWebSocketFrame(WebSocketFrame);
 
             if (success == SendStatus.Success)
             {
@@ -426,27 +431,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 await SendOnWebSocketFrameSent(now,
                                                Connection,
                                                eventTrackingId,
-                                               Frame);
+                                               WebSocketFrame);
 
                 #endregion
 
                 #region Send OnTextMessageSent    event
 
-                if (Frame.Opcode == WebSocketFrame.Opcodes.Text)
+                if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
                     await SendOnTextMessageSent(now,
                                                 Connection,
                                                 eventTrackingId,
-                                                Frame.Payload.ToUTF8String());
+                                                WebSocketFrame.Payload.ToUTF8String());
 
                 #endregion
 
                 #region Send OnBinaryMessageSent  event
 
-                if (Frame.Opcode == WebSocketFrame.Opcodes.Binary)
+                if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
                     await SendOnBinaryMessageSent(now,
                                                   Connection,
                                                   eventTrackingId,
-                                                  Frame.Payload);
+                                                  WebSocketFrame.Payload);
 
                 #endregion
 
@@ -458,7 +463,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region RemoveConnection(Connection)
+        #region RemoveConnection  (Connection)
 
         /// <summary>
         /// Remove the given web socket connection.
@@ -662,7 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 var frame            = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
 
-                                                var success          = await SendFrame(webSocketConnection,
+                                                var success          = await SendWebSocketFrame(webSocketConnection,
                                                                                        frame,
                                                                                        eventTrackingId);
 
@@ -1187,7 +1192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     #endregion
 
                                                     // The close handshake demands that we have to send a close frame back!
-                                                    await SendFrame(webSocketConnection,
+                                                    await SendWebSocketFrame(webSocketConnection,
                                                                     WebSocketFrame.Close(),
                                                                     eventTrackingId);
 
@@ -1204,7 +1209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             if (responseFrame is not null)
                                             {
 
-                                                var success = await SendFrame(webSocketConnection,
+                                                var success = await SendWebSocketFrame(webSocketConnection,
                                                                                 responseFrame,
                                                                                 eventTrackingId);
 
