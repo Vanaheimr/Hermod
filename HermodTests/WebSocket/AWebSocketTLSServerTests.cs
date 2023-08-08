@@ -17,16 +17,18 @@
 
 #region Usings
 
+using System.Security.Cryptography.X509Certificates;
+
 using NUnit.Framework;
 
 using Org.BouncyCastle.Crypto;
 
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
-using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.Tests.TLS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 {
 
     /// <summary>
@@ -89,7 +91,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                               "AWebSocketTLSServerTests Server Certificate",
                                               serverCA_RSAKeyPair.Private,
                                               serverCA_X509v3
-                                          ).ToDotNet();
+                                          ).ToDotNet(serverRSAKeyPair.Private);
 
             // Client CA
             clientCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
@@ -106,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                               "AWebSocketTLSServerTests Client Certificate",
                                               clientCA_RSAKeyPair.Private,
                                               clientCA_X509v3
-                                          ).ToDotNet();
+                                          ).ToDotNet(clientRSAKeyPair.Private);
 
         }
 
@@ -119,10 +121,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         {
 
             webSocketServer = new WebSocketServer(
-                                  HTTPPort:               HTTPPort,
-                                  SecWebSocketProtocols:  SecWebSocketProtocols,
-                                  AutoStart:              true
-                              );
+
+                                  HTTPPort:                    HTTPPort,
+
+                                  ServerCertificateSelector:  (tcpServer, tcpClient) => {
+
+                                      return serverCertificate;
+
+                                  },
+
+                                  SecWebSocketProtocols:       SecWebSocketProtocols,
+
+                                  AutoStart:                   true
+
+                              );;
 
         }
 

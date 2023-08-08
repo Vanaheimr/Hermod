@@ -25,10 +25,11 @@ using Org.BouncyCastle.Crypto;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Tests.TLS;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 {
 
     /// <summary>
@@ -60,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Constructor(s)
 
-        public AHTTPSServerTests(IPPort HTTPPort)
+        public AHTTPSServerTests(IPPort HTTPSPort)
         {
 
             // Root CA
@@ -85,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                               "AHTTPSServerTests Server Certificate",
                                               serverCA_RSAKeyPair.Private,
                                               serverCA_X509v3
-                                          ).ToDotNet();
+                                          ).ToDotNet(serverRSAKeyPair.Private);
 
             // Client CA
             clientCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
@@ -102,13 +103,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                               "AHTTPSServerTests Client Certificate",
                                               clientCA_RSAKeyPair.Private,
                                               clientCA_X509v3
-                                          ).ToDotNet();
+                                          ).ToDotNet(clientRSAKeyPair.Private);
 
 
             // HTTPS server configuration
             httpsServer                 = new HTTPServer(
 
-                                              HTTPPort:                    HTTPPort,
+                                              HTTPPort:                    HTTPSPort,
 
                                               ServerCertificateSelector:  (tcpServer, tcpClient) => {
                                                   return serverCertificate;

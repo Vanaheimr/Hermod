@@ -32,10 +32,11 @@ using Org.BouncyCastle.Security;
 using BCx509 = Org.BouncyCastle.X509;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using Org.BouncyCastle.Pkcs;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
 {
 
     /// <summary>
@@ -283,17 +284,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-        #region ToDotNet(this X509Certificate)
+        #region ToDotNet(this Certificate, PrivateKey = null)
 
         /// <summary>
-        /// Convert the Bouncy Castle X.509 certificate to a .NET X.509 certificate.
+        /// Convert the Bouncy Castle certificate to a .NET certificate.
         /// </summary>
-        /// <param name="X509Certificate">A Bouncy Castle X.509 certificate.</param>
-        public static X509Certificate2 ToDotNet(this BCx509.X509Certificate X509Certificate)
+        /// <param name="Certificate">A Bouncy Castle certificate.</param>
+        /// <param name="PrivateKey">An optional private key to be included.</param>
+        public static X509Certificate2 ToDotNet(this BCx509.X509Certificate  Certificate,
+                                                AsymmetricKeyParameter?      PrivateKey   = null)
+        {
 
-            => new (X509Certificate.GetEncoded());
+            if (PrivateKey is null)
+                return new (Certificate.GetEncoded());
+
+            // Create a PKCS#12 store to hold the certificate and private key
+            var store             = new Pkcs12StoreBuilder().Build();
+            var certificateEntry  = new X509CertificateEntry(Certificate);
+
+            store.SetCertificateEntry(Certificate.SubjectDN.ToString(),
+                                      certificateEntry);
+
+            store.SetKeyEntry        (Certificate.SubjectDN.ToString(),
+                                      new AsymmetricKeyEntry(PrivateKey),
+                                      new[] { certificateEntry });
+
+            using (var memoryStream = new MemoryStream())
+            {
+
+                var password = RandomExtensions.RandomString(10);
+
+                store.Save(memoryStream,
+                           password.ToCharArray(),
+                           new SecureRandom());
+
+                return new X509Certificate2(
+                           memoryStream.ToArray(),
+                           password,
+                           X509KeyStorageFlags.Exportable
+                       );
+
+            }
+
+        }
 
         #endregion
+
 
     }
 

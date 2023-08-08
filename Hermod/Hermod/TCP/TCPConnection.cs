@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                       this.ServerTimestamp,
                                                                       base.LocalSocket,
                                                                       base.RemoteSocket);
-            this.isClosed            = false;
+            this.isClosed             = false;
             this.NetworkStream        = TCPClient.GetStream();
 
             if (ReadTimeout.HasValue)

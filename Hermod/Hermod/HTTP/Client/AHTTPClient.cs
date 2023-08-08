@@ -750,7 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
                                                                           clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                                                                          enabledSslProtocols:         this.TLSProtocol,
+                                                                          enabledSslProtocols:         TLSProtocol,
                                                                           checkCertificateRevocation:  false);// true);
 
                                 timings.TLSHandshake = timings.Elapsed;

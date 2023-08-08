@@ -1159,13 +1159,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AttachTCPPort   (TCPPort)
 
         public IHTTPServer AttachTCPPort(IPPort TCPPort)
-        {
 
-            AttachTCPPorts(TCPPort);
-
-            return this;
-
-        }
+            => AttachTCPPorts(TCPPort);
 
         #endregion
 
@@ -1185,13 +1180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AttachTCPSocket (Socket)
 
         public IHTTPServer AttachTCPSocket(IPSocket Socket)
-        {
 
-            AttachTCPSockets(Socket);
-
-            return this;
-
-        }
+            => AttachTCPSockets(Socket);
 
         #endregion
 
@@ -1212,13 +1202,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region DetachTCPPort (TCPPort)
 
         public IHTTPServer DetachTCPPort(IPPort TCPPort)
-        {
 
-            DetachTCPPorts(TCPPort);
-
-            return this;
-
-        }
+            => DetachTCPPorts(TCPPort);
 
         #endregion
 
@@ -1228,9 +1213,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             DetachTCPPorts(tcpServer => {
-                               tcpServer.OnNotification      -= ProcessArrow;
-                               tcpServer.OnExceptionOccured  -= ProcessExceptionOccured;
-                               tcpServer.OnCompleted         -= ProcessCompleted;
+                               tcpServer.OnNotification     -= ProcessArrow;
+                               tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
+                               tcpServer.OnCompleted        -= ProcessCompleted;
                            },
                            Ports);
 
