@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Security.Cryptography.X509Certificates;
+
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.X509;
 using Org.BouncyCastle.X509.Extension;
@@ -26,6 +28,8 @@ using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
+
+using BCx509 = Org.BouncyCastle.X509;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -48,22 +52,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// <param name="RootKeyPair">A crypto key pair.</param>
         /// <param name="SubjectName">A friendly name for the owner of the crypto keys.</param>
         /// <param name="LifeTime">The life time of the certificate.</param>
-        public static (AsymmetricKeyParameter, X509Certificate)
+        public static BCx509.X509Certificate
 
             CreateRootCA(AsymmetricCipherKeyPair  RootKeyPair,
                          String                   SubjectName,
                          TimeSpan?                LifeTime   = null)
 
-                => (RootKeyPair.Private,
-                    GenerateCertificate(
-                        SubjectName,
-                        RootKeyPair,
+                => GenerateCertificate(
+                       SubjectName,
+                       RootKeyPair,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                        null, // self-signed!
+                       null, // self-signed!
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-                        LifeTime,
-                        IsCA:  true
-                    ));
+                       LifeTime,
+                       IsCA:  true
+                   );
 
         #endregion
 
@@ -77,24 +80,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// <param name="RootPrivateKey">The private key for signing the new certificate.</param>
         /// <param name="RootCertificate">The certificate for signing the new certificate.</param>
         /// <param name="LifeTime">The life time of the certificate.</param>
-        public static (AsymmetricKeyParameter, X509Certificate)
+        public static BCx509.X509Certificate
 
             CreateIntermediateCA(AsymmetricCipherKeyPair  IntermediateKeyPair,
                                  String                   SubjectName,
                                  AsymmetricKeyParameter   RootPrivateKey,
-                                 X509Certificate          RootCertificate,
+                                 BCx509.X509Certificate   RootCertificate,
                                  TimeSpan?                LifeTime   = null)
 
-                => (IntermediateKeyPair.Private,
-                    GenerateCertificate(
-                        SubjectName,
-                        IntermediateKeyPair,
-                        new Tuple<AsymmetricKeyParameter, X509Certificate>(
-                            RootPrivateKey,
-                            RootCertificate),
-                        LifeTime,
-                        IsCA:  true
-                    ));
+                => GenerateCertificate(
+                       SubjectName,
+                       IntermediateKeyPair,
+                       new Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>(
+                           RootPrivateKey,
+                           RootCertificate),
+                       LifeTime,
+                       IsCA:  true
+                   );
 
         #endregion
 
@@ -108,25 +110,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// <param name="IntermediatePrivateKey">The private key for signing the new certificate.</param>
         /// <param name="IntermediateCertificate">The certificate for signing the new certificate.</param>
         /// <param name="LifeTime">The life time of the certificate.</param>
-        public static (AsymmetricKeyParameter, X509Certificate)
+        public static BCx509.X509Certificate
 
             CreateServerCertificate(AsymmetricCipherKeyPair  ServerKeyPair,
                                     String                   SubjectName,
                                     AsymmetricKeyParameter   IntermediatePrivateKey,
-                                    X509Certificate          IntermediateCertificate,
+                                    BCx509.X509Certificate   IntermediateCertificate,
                                     TimeSpan?                LifeTime   = null)
 
-                => (ServerKeyPair.Private,
-                    GenerateCertificate(
-                        SubjectName,
-                        ServerKeyPair,
-                        new Tuple<AsymmetricKeyParameter, X509Certificate>(
-                            IntermediatePrivateKey,
-                            IntermediateCertificate),
-                        LifeTime,
-                        IsCA:     false,
-                        IsClient:  false
-                    ));
+                => GenerateCertificate(
+                       SubjectName,
+                       ServerKeyPair,
+                       new Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>(
+                           IntermediatePrivateKey,
+                           IntermediateCertificate),
+                       LifeTime,
+                       IsCA:     false,
+                       IsClient:  false
+                   );
 
         #endregion
 
@@ -140,25 +141,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// <param name="IntermediatePrivateKey">The private key for signing the new certificate.</param>
         /// <param name="IntermediateCertificate">The certificate for signing the new certificate.</param>
         /// <param name="LifeTime">The life time of the certificate.</param>
-        public static (AsymmetricKeyParameter, X509Certificate)
+        public static BCx509.X509Certificate
 
             CreateClientCertificate(AsymmetricCipherKeyPair  ClientKeyPair,
                                     String                   SubjectName,
                                     AsymmetricKeyParameter   IntermediatePrivateKey,
-                                    X509Certificate          IntermediateCertificate,
+                                    BCx509.X509Certificate   IntermediateCertificate,
                                     TimeSpan?                LifeTime   = null)
 
-                => (ClientKeyPair.Private,
-                    GenerateCertificate(
-                        SubjectName,
-                        ClientKeyPair,
-                        new Tuple<AsymmetricKeyParameter, X509Certificate>(
-                            IntermediatePrivateKey,
-                            IntermediateCertificate),
-                        LifeTime,
-                        IsCA:     false,
-                        IsClient:  true
-                    ));
+                => GenerateCertificate(
+                       SubjectName,
+                       ClientKeyPair,
+                       new Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>(
+                           IntermediatePrivateKey,
+                           IntermediateCertificate),
+                       LifeTime,
+                       IsCA:     false,
+                       IsClient:  true
+                   );
 
         #endregion
 
@@ -219,12 +219,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         /// <param name="LifeTime">The life time of the certificate.</param>
         /// <param name="IsCA">Whether this certificate is for a certification authority.</param>
         /// <param name="IsClient">Whether this certificate is used for e.g. TLS client authentication.</param>
-        public static X509Certificate GenerateCertificate(String                                          SubjectName,
-                                                          AsymmetricCipherKeyPair                         SubjectKeyPair,
-                                                          Tuple<AsymmetricKeyParameter, X509Certificate>  Issuer,
-                                                          TimeSpan?                                       LifeTime   = null,
-                                                          Boolean                                         IsCA       = false,
-                                                          Boolean                                         IsClient   = false)
+        public static BCx509.X509Certificate
+
+            GenerateCertificate(String                                                 SubjectName,
+                                AsymmetricCipherKeyPair                                SubjectKeyPair,
+                                Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>  Issuer,
+                                TimeSpan?                                              LifeTime   = null,
+                                Boolean                                                IsCA       = false,
+                                Boolean                                                IsClient   = false)
+
         {
 
             var now     = Timestamp.Now;
@@ -280,6 +283,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        #region ToDotNet(this X509Certificate)
+
+        /// <summary>
+        /// Convert the Bouncy Castle X.509 certificate to a .NET X.509 certificate.
+        /// </summary>
+        /// <param name="X509Certificate">A Bouncy Castle X.509 certificate.</param>
+        public static X509Certificate2 ToDotNet(this BCx509.X509Certificate X509Certificate)
+
+            => new (X509Certificate.GetEncoded());
+
+        #endregion
 
     }
 

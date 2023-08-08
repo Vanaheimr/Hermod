@@ -164,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPRequest">An optional HTTP request of this web socket connection. Can also be attached later.</param>
         /// <param name="HTTPResponse">An optional HTTP response of this web socket connection. Can also be attached later.</param>
         /// <param name="CustomData">Optional custom data to be stored within this web socket connection.</param>
-        public WebSocketServerConnection(AWebSocketServer                              WebSocketServer,
+        public WebSocketServerConnection(AWebSocketServer                             WebSocketServer,
                                          TcpClient                                    TcpClient,
                                          HTTPRequest?                                 HTTPRequest                  = null,
                                          HTTPResponse?                                HTTPResponse                 = null,

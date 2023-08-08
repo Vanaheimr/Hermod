@@ -17,7 +17,11 @@
 
 #region Usings
 
+using System.Security.Cryptography.X509Certificates;
+
 using NUnit.Framework;
+
+using Org.BouncyCastle.Crypto;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -28,41 +32,106 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 {
 
     /// <summary>
-    /// Hermod HTTP server tests endpoints.
+    /// Hermod HTTPS server tests endpoints.
     /// </summary>
-    public abstract class AHTTPServerTests
+    public abstract class AHTTPSServerTests
     {
 
         #region Data
 
-        protected readonly HTTPServer httpServer;
+        protected readonly HTTPServer                     httpsServer;
+
+        protected AsymmetricCipherKeyPair                 rootCA_RSAKeyPair;
+        protected Org.BouncyCastle.X509.X509Certificate   rootCA_X509v3;
+
+        protected AsymmetricCipherKeyPair                 serverCA_RSAKeyPair;
+        protected Org.BouncyCastle.X509.X509Certificate   serverCA_X509v3;
+
+        protected AsymmetricCipherKeyPair                 serverRSAKeyPair;
+        protected X509Certificate2                        serverCertificate;
+
+        protected AsymmetricCipherKeyPair                 clientCA_RSAKeyPair;
+        protected Org.BouncyCastle.X509.X509Certificate   clientCA_X509v3;
+
+        protected AsymmetricCipherKeyPair                 clientRSAKeyPair;
+        protected X509Certificate2                        clientCertificate;
 
         #endregion
 
         #region Constructor(s)
 
-        public AHTTPServerTests(IPPort HTTPPort)
+        public AHTTPSServerTests(IPPort HTTPPort)
         {
 
-            httpServer = new HTTPServer(
-                             HTTPPort,
-                             AutoStart: true
-                         );
+            // Root CA
+            rootCA_RSAKeyPair           = PKIFactory.GenerateRSAKeyPair(2048);
+            rootCA_X509v3               = PKIFactory.CreateRootCA(
+                                              rootCA_RSAKeyPair,
+                                              "AHTTPSServerTests Root CA"
+                                          );
+
+            // Server CA
+            serverCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
+            serverCA_X509v3             = PKIFactory.CreateIntermediateCA(
+                                              serverCA_RSAKeyPair,
+                                              "AHTTPSServerTests Server CA",
+                                              rootCA_RSAKeyPair.Private,
+                                              rootCA_X509v3
+                                          );
+
+            serverRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
+            serverCertificate           = PKIFactory.CreateServerCertificate(
+                                              serverRSAKeyPair,
+                                              "AHTTPSServerTests Server Certificate",
+                                              serverCA_RSAKeyPair.Private,
+                                              serverCA_X509v3
+                                          ).ToDotNet();
+
+            // Client CA
+            clientCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
+            clientCA_X509v3             = PKIFactory.CreateIntermediateCA(
+                                              clientCA_RSAKeyPair,
+                                              "AHTTPSServerTests Client CA",
+                                              rootCA_RSAKeyPair.Private,
+                                              rootCA_X509v3
+                                          );
+
+            clientRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
+            clientCertificate           = PKIFactory.CreateServerCertificate(
+                                              clientRSAKeyPair,
+                                              "AHTTPSServerTests Client Certificate",
+                                              clientCA_RSAKeyPair.Private,
+                                              clientCA_X509v3
+                                          ).ToDotNet();
+
+
+            // HTTPS server configuration
+            httpsServer                 = new HTTPServer(
+
+                                              HTTPPort:                    HTTPPort,
+
+                                              ServerCertificateSelector:  (tcpServer, tcpClient) => {
+                                                  return serverCertificate;
+                                              },
+
+                                              AutoStart:                   true
+
+                                          );
 
         }
 
         #endregion
 
 
-        #region Init_HTTPServer()
+        #region Init_HTTPSServer()
 
         [OneTimeSetUp]
-        public void Init_HTTPServer()
+        public void Init_HTTPSServer()
         {
 
             #region GET     /
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root,
@@ -83,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /NotForEveryone
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "NotForEveryone",
@@ -160,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirror/queryString
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirror" + "queryString",
@@ -180,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirror/httpBody
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirror" + "httpBody",
@@ -200,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region MIRROR  /mirror/httpBody
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.MIRROR,
                                          HTTPPath.Root + "mirror" + "httpBody",
@@ -221,7 +290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunked
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "chunked",
@@ -243,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedSlow
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "chunkedSlow",
@@ -271,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedTrailerHeaders
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "chunkedTrailerHeaders",
@@ -295,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirrorBody2
 
-            httpServer.AddMethodCallback(null,
+            httpsServer.AddMethodCallback(null,
                                          HTTPHostname.Any,
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirrorBody2",
@@ -323,12 +392,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
-        #region Shutdown_HTTPServer()
+        #region Shutdown_HTTPSServer()
 
         [OneTimeTearDown]
-        public void Shutdown_HTTPServer()
+        public void Shutdown_HTTPSServer()
         {
-            httpServer?.Shutdown();
+            httpsServer?.Shutdown();
         }
 
         #endregion

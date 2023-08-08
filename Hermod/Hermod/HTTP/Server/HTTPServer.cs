@@ -17,16 +17,10 @@
 
 #region Usings
 
-using System;
-using System.IO;
 using System.Text;
-using System.Linq;
-using System.Threading;
 using System.Reflection;
 using System.Net.Security;
 using System.Security.Authentication;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
@@ -908,20 +902,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Start(Delay, InBackground = true)
 
-        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
+        public Boolean Start(TimeSpan  Delay,
+                             Boolean   InBackground = true)
 
             => httpServer.Start(Delay,
-                                 InBackground);
+                                InBackground);
 
         #endregion
 
         #region Shutdown(Message = null, Wait = true)
 
-        public Boolean Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String?  Message   = null,
+                                Boolean  Wait      = true)
         {
 
             httpServer.Shutdown(Message,
-                                 Wait);
+                                Wait);
 
             return true;
 
