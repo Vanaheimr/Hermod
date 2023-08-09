@@ -1342,29 +1342,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        DNSClient?                            DNSClient                          = null,
                        Boolean                               AutoStart                          = false)
 
-            : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
-                                  HTTPServerName ?? DefaultHTTPServerName,
-                                  HTTPServiceName,
+            : this(new HTTPServer(
+                       HTTPServerPort ?? DefaultHTTPServerPort,
+                       HTTPServerName ?? DefaultHTTPServerName,
+                       HTTPServiceName,
 
-                                  ServerCertificateSelector,
-                                  ClientCertificateSelector,
-                                  ClientCertificateValidator,
-                                  AllowedTLSProtocols,
-                                  ClientCertificateRequired,
-                                  CheckCertificateRevocation,
+                       ServerCertificateSelector,
+                       ClientCertificateSelector,
+                       ClientCertificateValidator,
+                       AllowedTLSProtocols,
+                       ClientCertificateRequired,
+                       CheckCertificateRevocation,
 
-                                  ServerThreadName,
-                                  ServerThreadPriority,
-                                  ServerThreadIsBackground,
-                                  ConnectionIdBuilder,
-                                  //ConnectionThreadsNameBuilder,
-                                  //ConnectionThreadsPriorityBuilder,
-                                  //ConnectionThreadsAreBackground,
-                                  ConnectionTimeout,
-                                  MaxClientConnections,
+                       ServerThreadName,
+                       ServerThreadPriority,
+                       ServerThreadIsBackground,
+                       ConnectionIdBuilder,
+                       ConnectionTimeout,
+                       MaxClientConnections,
 
-                                  DNSClient,
-                                  AutoStart: false),
+                       DNSClient,
+                       AutoStart: false
+                   ),
 
                    HTTPHostname,
                    ExternalDNSName,
