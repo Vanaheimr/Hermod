@@ -86,13 +86,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback?  ClientCertificateValidator
+        public RemoteCertificateValidationHandler?  ClientCertificateValidator
             => httpServer.ClientCertificateValidator;
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector
             => httpServer.ClientCertificateSelector;
 
         /// <summary>
@@ -170,8 +170,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                               ServiceName                  = null,
 
                           ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                           SslProtocols?                         AllowedTLSProtocols          = null,
                           Boolean?                              ClientCertificateRequired    = null,
                           Boolean?                              CheckCertificateRevocation   = null,
@@ -1099,8 +1099,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator         = null,
                           SslProtocols?                         AllowedTLSProtocols                = null,
                           Boolean?                              ClientCertificateRequired          = null,
                           Boolean?                              CheckCertificateRevocation         = null,

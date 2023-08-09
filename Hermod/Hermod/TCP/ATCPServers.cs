@@ -60,12 +60,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback?  ClientCertificateValidator      { get; }
+        public RemoteCertificateValidationHandler?  ClientCertificateValidator      { get; }
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector       { get; }
 
         /// <summary>
         /// The SSL/TLS protocol(s) allowed for this connection.
@@ -420,8 +420,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                            String?                               ServiceBanner                = null,
 
                            ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                           LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                           RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
+                           LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                           RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                            SslProtocols?                         AllowedTLSProtocols          = null,
                            Boolean?                              ClientCertificateRequired    = null,
                            Boolean?                              CheckCertificateRevocation   = null,

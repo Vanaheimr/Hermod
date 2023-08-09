@@ -251,8 +251,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public TCPServer(IPPort                                Port,
 
                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                         RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                         LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                         RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                         LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                          SslProtocols?                         AllowedTLSProtocols          = null,
                          Boolean?                              ClientCertificateRequired    = null,
                          Boolean?                              CheckCertificateRevocation   = null,
@@ -322,8 +322,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          IPPort                                Port,
 
                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                         RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                         LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                         RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                         LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                          SslProtocols?                         AllowedTLSProtocols          = null,
                          Boolean?                              ClientCertificateRequired    = null,
                          Boolean?                              CheckCertificateRevocation   = null,
@@ -595,8 +595,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
         public TCPServer(IPSocket                              IPSocket,
                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                         RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                         LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                         RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                         LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                          SslProtocols?                         AllowedTLSProtocols          = null,
                          Boolean?                              ClientCertificateRequired    = null,
                          Boolean?                              CheckCertificateRevocation   = null,

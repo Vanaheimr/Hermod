@@ -83,8 +83,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               String?                               HTTPServiceName              = null,
 
                               ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                              RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                               SslProtocols?                         AllowedTLSProtocols          = null,
                               Boolean?                              ClientCertificateRequired    = null,
                               Boolean?                              CheckCertificateRevocation   = null,

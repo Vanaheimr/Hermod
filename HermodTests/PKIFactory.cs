@@ -40,6 +40,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
 {
 
     /// <summary>
+    /// X.509 certificate types.
+    /// </summary>
+    public enum CertificateTypes
+    {
+        RootCA,
+        CA,
+        Server,
+        Client
+    }
+
+    /// <summary>
     /// Generating a RSA and/or ECC Public Key Infrastructure for testing.
     /// </summary>
     public static class PKIFactory
@@ -60,13 +71,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                          TimeSpan?                LifeTime   = null)
 
                 => GenerateCertificate(
+                       CertificateTypes.RootCA,
                        SubjectName,
                        RootKeyPair,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                        null, // self-signed!
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-                       LifeTime,
-                       IsCA:  true
+                       LifeTime
                    );
 
         #endregion
@@ -90,13 +99,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                                  TimeSpan?                LifeTime   = null)
 
                 => GenerateCertificate(
+                       CertificateTypes.CA,
                        SubjectName,
                        IntermediateKeyPair,
                        new Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>(
                            RootPrivateKey,
-                           RootCertificate),
-                       LifeTime,
-                       IsCA:  true
+                           RootCertificate
+                       ),
+                       LifeTime
                    );
 
         #endregion
@@ -120,14 +130,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                                     TimeSpan?                LifeTime   = null)
 
                 => GenerateCertificate(
+                       CertificateTypes.Server,
                        SubjectName,
                        ServerKeyPair,
                        new Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>(
                            IntermediatePrivateKey,
-                           IntermediateCertificate),
-                       LifeTime,
-                       IsCA:     false,
-                       IsClient:  false
+                           IntermediateCertificate
+                       ),
+                       LifeTime
                    );
 
         #endregion
@@ -151,14 +161,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                                     TimeSpan?                LifeTime   = null)
 
                 => GenerateCertificate(
+                       CertificateTypes.Client,
                        SubjectName,
                        ClientKeyPair,
                        new Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>(
                            IntermediatePrivateKey,
-                           IntermediateCertificate),
-                       LifeTime,
-                       IsCA:     false,
-                       IsClient:  true
+                           IntermediateCertificate
+                       ),
+                       LifeTime
                    );
 
         #endregion
@@ -209,25 +219,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
         #endregion
 
 
-        #region GenerateCertificate(SubjectName, SubjectKeyPair, Issuer, LifeTime = null, IsCA = false, IsClient = false)
+        #region GenerateCertificate(CertificateType, SubjectName, SubjectKeyPair, Issuer = null, LifeTime = null)
 
         /// <summary>
         /// Generate a new certificate.
         /// </summary>
+        /// <param name="CertificateType">The type of the certificate.</param>
         /// <param name="SubjectName">A friendly name for the owner of the crypto keys.</param>
         /// <param name="SubjectKeyPair">The crypto keys.</param>
-        /// <param name="Issuer">The crypto key pait signing this certificate.</param>
+        /// <param name="Issuer">The (optional) crypto key pair signing this certificate. Optional means that this certificate will be self-signed!</param>
         /// <param name="LifeTime">The life time of the certificate.</param>
-        /// <param name="IsCA">Whether this certificate is for a certification authority.</param>
-        /// <param name="IsClient">Whether this certificate is used for e.g. TLS client authentication.</param>
         public static BCx509.X509Certificate
 
-            GenerateCertificate(String                                                 SubjectName,
-                                AsymmetricCipherKeyPair                                SubjectKeyPair,
-                                Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>  Issuer,
-                                TimeSpan?                                              LifeTime   = null,
-                                Boolean                                                IsCA       = false,
-                                Boolean                                                IsClient   = false)
+            GenerateCertificate(CertificateTypes                                        CertificateType,
+                                String                                                  SubjectName,
+                                AsymmetricCipherKeyPair                                 SubjectKeyPair,
+                                Tuple<AsymmetricKeyParameter, BCx509.X509Certificate>?  Issuer     = null,
+                                TimeSpan?                                               LifeTime   = null)
 
         {
 
@@ -235,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
             var x509v3  = new X509V3CertificateGenerator();
 
             x509v3.SetSerialNumber(BigInteger.ProbablePrime(120, new Random()));
-            x509v3.SetSubjectDN   (new X509Name($"CN={SubjectName}"));
+            x509v3.SetSubjectDN   (new X509Name($"CN={SubjectName}, O=GraphDefined GmbH, OU=GraphDefined PKI Services"));
             x509v3.SetPublicKey   (SubjectKeyPair.Public);
             x509v3.SetNotBefore   (now);
             x509v3.SetNotAfter    (now + (LifeTime ?? TimeSpan.FromDays(365)));
@@ -246,30 +254,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
             else
             {
 
-                x509v3.SetIssuerDN(Issuer.Item2.SubjectDN);
+                x509v3.SetIssuerDN (Issuer.Item2.SubjectDN);
                 x509v3.AddExtension(X509Extensions.AuthorityKeyIdentifier.Id,
                                     false,
                                     new AuthorityKeyIdentifierStructure(Issuer.Item2));
 
             }
 
-            if (IsCA)
-                x509v3.AddExtension(X509Extensions.BasicConstraints.Id,
-                                    true,
-                                    new BasicConstraints(true));
-
-            if (IsClient)
+            // https://jamielinux.com/docs/openssl-certificate-authority/appendix/root-configuration-file.html
+            // https://jamielinux.com/docs/openssl-certificate-authority/appendix/intermediate-configuration-file.html
+            switch (CertificateType)
             {
 
-                // Set Key Usage for client certificates
-                x509v3.AddExtension(X509Extensions.KeyUsage.Id,
-                                    true,
-                                    new KeyUsage(KeyUsage.DigitalSignature | KeyUsage.KeyEncipherment));
+                case CertificateTypes.RootCA:
+                case CertificateTypes.CA:
 
-                // Set Extended Key Usage for client authentication
-                x509v3.AddExtension(X509Extensions.ExtendedKeyUsage.Id,
-                                    false,
-                                    new ExtendedKeyUsage(KeyPurposeID.IdKPClientAuth));
+                    x509v3.AddExtension(X509Extensions.BasicConstraints.Id,
+                                        true,
+                                        new BasicConstraints(true));
+
+                    x509v3.AddExtension(X509Extensions.KeyUsage,
+                                        true,
+                                        new KeyUsage(
+                                            KeyUsage.DigitalSignature |
+                                            KeyUsage.KeyCertSign |
+                                            KeyUsage.CrlSign
+                                        ));
+
+                    break;
+
+
+                case CertificateTypes.Server:
+
+                    // Set Key Usage for client certificates
+                    x509v3.AddExtension(X509Extensions.KeyUsage.Id,
+                                        true,
+                                        new KeyUsage(
+                                            KeyUsage.DigitalSignature |
+                                            KeyUsage.KeyEncipherment
+                                        ));
+
+                    // Set Extended Key Usage for client authentication
+                    x509v3.AddExtension(X509Extensions.ExtendedKeyUsage.Id,
+                                        false,
+                                        new ExtendedKeyUsage(KeyPurposeID.IdKPClientAuth));
+
+                    break;
+
+
+                case CertificateTypes.Client:
+
+                    // Set Key Usage for client certificates
+                    x509v3.AddExtension(X509Extensions.KeyUsage.Id,
+                                        true,
+                                        new KeyUsage(
+                                            KeyUsage.NonRepudiation   |
+                                            KeyUsage.DigitalSignature |
+                                            KeyUsage.KeyEncipherment
+                                        ));
+
+                    // Set Extended Key Usage for client authentication
+                    x509v3.AddExtension(X509Extensions.ExtendedKeyUsage.Id,
+                                        false,
+                                        new ExtendedKeyUsage(KeyPurposeID.IdKPClientAuth));
+
+                    break;
 
             }
 
@@ -277,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                                        SubjectKeyPair.Public is RsaKeyParameters
                                            ? "SHA256WITHRSA"
                                            : "SHA256WITHECDSA",
-                                       SubjectKeyPair.Private)
+                                       Issuer?.Item1 ?? SubjectKeyPair.Private)
                                    );
 
         }

@@ -22,6 +22,9 @@ using NUnit.Framework;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Channels;
+using System.Text;
 
 #endregion
 
@@ -56,10 +59,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
         public async Task Test_001()
         {
 
-            var httpsClient    = new HTTPSClient(URL.Parse($"https://127.0.0.1:{HTTPSPort}"),
-                                                 RemoteCertificateValidator: (sender, certificate, chain, policyErrors) => {
-                                                     return true;
-                                                 });
+            var httpsClient    = new HTTPSClient(
+                                     URL.Parse($"https://127.0.0.1:{HTTPSPort}"),
+                                     RemoteCertificateValidator: (sender, certificate, chain, policyErrors) => {
+
+                                         // Certificate verification
+                                         if (certificate is null ||
+                                             certificate.Subject != "OU=GraphDefined PKI Services, O=GraphDefined GmbH, CN=AHTTPSServerTests Server Certificate" ||
+                                             certificate.Issuer  != "OU=GraphDefined PKI Services, O=GraphDefined GmbH, CN=AHTTPSServerTests Server CA"          ||
+                                             certificate.NotBefore.ToUniversalTime() > Timestamp.Now ||
+                                             certificate.NotAfter. ToUniversalTime() < Timestamp.Now ||
+                                             certificate.GetSerialNumberString().IsNullOrEmpty())
+                                         {
+                                             return (false, Array.Empty<String>());
+                                         }
+
+                                         // Trust chain verification
+                                         var certificateChain = new X509Chain();
+                                         certificateChain.ChainPolicy.ExtraStore.Add(rootCA);
+                                         certificateChain.ChainPolicy.ExtraStore.Add(serverCA);
+                                         certificateChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                                         certificateChain.ChainPolicy.RevocationMode    = X509RevocationMode.   NoCheck;
+
+                                         if (certificateChain.Build(certificate)      &&
+                                             certificateChain.ChainElements.Count > 0 &&
+                                             certificateChain.ChainElements[^1].Certificate.Thumbprint == rootCA.Thumbprint)
+                                         {
+                                             return (true, Array.Empty<String>());
+                                         }
+
+                                         // Collect status errors
+                                         var errors = new List<String>();
+                                         errors.AddRange(certificateChain.ChainStatus.Select(status => $"{status.Status} => '{status.StatusInformation}'!"));
+
+                                         foreach (var chainElement in certificateChain.ChainElements)
+                                         {
+                                             foreach (var chainStatus in chainElement.ChainElementStatus)
+                                                 errors.Add($"{chainElement.Certificate.SubjectName} => '{chainStatus.StatusInformation}'!");
+                                         }
+
+                                         return (false, errors);
+
+                                     }
+                                 );
             var httpsResponse  = await httpsClient.GET(HTTPPath.Root).
                                                    ConfigureAwait(false);
 

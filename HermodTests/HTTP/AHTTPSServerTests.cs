@@ -44,15 +44,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
         protected AsymmetricCipherKeyPair                 rootCA_RSAKeyPair;
         protected Org.BouncyCastle.X509.X509Certificate   rootCA_X509v3;
+        protected X509Certificate2                        rootCA;
 
         protected AsymmetricCipherKeyPair                 serverCA_RSAKeyPair;
         protected Org.BouncyCastle.X509.X509Certificate   serverCA_X509v3;
+        protected X509Certificate2                        serverCA;
 
         protected AsymmetricCipherKeyPair                 serverRSAKeyPair;
         protected X509Certificate2                        serverCertificate;
 
         protected AsymmetricCipherKeyPair                 clientCA_RSAKeyPair;
         protected Org.BouncyCastle.X509.X509Certificate   clientCA_X509v3;
+        protected X509Certificate2                        clientCA;
 
         protected AsymmetricCipherKeyPair                 clientRSAKeyPair;
         protected X509Certificate2                        clientCertificate;
@@ -70,6 +73,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               rootCA_RSAKeyPair,
                                               "AHTTPSServerTests Root CA"
                                           );
+            rootCA                      = rootCA_X509v3.ToDotNet();
+
+
 
             // Server CA
             serverCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
@@ -79,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               rootCA_RSAKeyPair.Private,
                                               rootCA_X509v3
                                           );
+            serverCA                    = serverCA_X509v3.ToDotNet();
 
             serverRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             serverCertificate           = PKIFactory.CreateServerCertificate(
@@ -88,6 +95,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               serverCA_X509v3
                                           ).ToDotNet(serverRSAKeyPair.Private);
 
+
+
             // Client CA
             clientCA_RSAKeyPair         = PKIFactory.GenerateRSAKeyPair(2048);
             clientCA_X509v3             = PKIFactory.CreateIntermediateCA(
@@ -96,6 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
                                               rootCA_RSAKeyPair.Private,
                                               rootCA_X509v3
                                           );
+            clientCA                    = serverCA_X509v3.ToDotNet();
 
             clientRSAKeyPair            = PKIFactory.GenerateRSAKeyPair(2048);
             clientCertificate           = PKIFactory.CreateServerCertificate(
