@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
         #region Constructor(s)
 
         public WebSocketClientTests()
-            : base(IPPort.Parse(101))
+            : base(IPPort.Parse(1101))
         { }
 
         #endregion

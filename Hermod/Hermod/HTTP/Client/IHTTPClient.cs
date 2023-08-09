@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote SSL/TLS certificate validator.
         /// </summary>
-        RemoteCertificateValidationCallback?  RemoteCertificateValidator    { get; }
+        RemoteCertificateValidationHandler?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// The SSL/TLS client certificate to use of HTTP authentication.
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //bool Connected { get; }
 
         //LingerOption LingerState { get; set; }
-        //LocalCertificateSelectionCallback LocalCertificateSelector { get; }
+        //LocalCertificateSelectionHandler LocalCertificateSelector { get; }
         //bool NoDelay { get; set; }
         //byte TTL { get; set; }
 

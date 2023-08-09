@@ -19,12 +19,14 @@
 
 using System.Text;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Collections.Concurrent;
+using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using static System.Net.Mime.MediaTypeNames;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -283,24 +285,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public AWebSocketServer(IIPAddress?                       IPAddress                    = null,
-                                IPPort?                           HTTPPort                     = null,
-                                String?                           HTTPServiceName              = null,
-                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
-                                ThreadPriority?                   ServerThreadPriority         = null,
-                                Boolean?                          ServerThreadIsBackground     = null,
+        public AWebSocketServer(IIPAddress?                           IPAddress                    = null,
+                                IPPort?                               HTTPPort                     = null,
+                                String?                               HTTPServiceName              = null,
 
-                                IEnumerable<String>?              SecWebSocketProtocols        = null,
-                                Boolean                           DisableWebSocketPings        = false,
-                                TimeSpan?                         WebSocketPingEvery           = null,
-                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
+                                ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                                SslProtocols?                         AllowedTLSProtocols          = null,
+                                Boolean?                              ClientCertificateRequired    = null,
+                                Boolean?                              CheckCertificateRevocation   = null,
 
-                                DNSClient?                        DNSClient                    = null,
-                                Boolean                           AutoStart                    = false)
+                                ServerThreadNameCreatorDelegate?      ServerThreadNameCreator      = null,
+                                ThreadPriority?                       ServerThreadPriority         = null,
+                                Boolean?                              ServerThreadIsBackground     = null,
 
-            : this(new IPSocket(IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
-                                HTTPPort  ?? IPPort.HTTP),
+                                IEnumerable<String>?                  SecWebSocketProtocols        = null,
+                                Boolean                               DisableWebSocketPings        = false,
+                                TimeSpan?                             WebSocketPingEvery           = null,
+                                TimeSpan?                             SlowNetworkSimulationDelay   = null,
+
+                                DNSClient?                            DNSClient                    = null,
+                                Boolean                               AutoStart                    = false)
+
+            : this(new IPSocket(
+                       IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
+                       HTTPPort  ?? IPPort.HTTP
+                   ),
                    HTTPServiceName,
+
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   ClientCertificateSelector,
+                   AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
                    ServerThreadNameCreator,
                    ServerThreadPriority,
                    ServerThreadIsBackground,
@@ -326,19 +346,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public AWebSocketServer(IPSocket                          IPSocket,
-                                String?                           HTTPServiceName              = null,
-                                ServerThreadNameCreatorDelegate?  ServerThreadNameCreator      = null,
-                                ThreadPriority?                   ServerThreadPriority         = null,
-                                Boolean?                          ServerThreadIsBackground     = null,
+        public AWebSocketServer(IPSocket                              IPSocket,
+                                String?                               HTTPServiceName              = null,
 
-                                IEnumerable<String>?              SecWebSocketProtocols        = null,
-                                Boolean                           DisableWebSocketPings        = false,
-                                TimeSpan?                         WebSocketPingEvery           = null,
-                                TimeSpan?                         SlowNetworkSimulationDelay   = null,
+                                ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                                SslProtocols?                         AllowedTLSProtocols          = null,
+                                Boolean?                              ClientCertificateRequired    = null,
+                                Boolean?                              CheckCertificateRevocation   = null,
 
-                                DNSClient?                        DNSClient                    = null,
-                                Boolean                           AutoStart                    = false)
+                                ServerThreadNameCreatorDelegate?      ServerThreadNameCreator      = null,
+                                ThreadPriority?                       ServerThreadPriority         = null,
+                                Boolean?                              ServerThreadIsBackground     = null,
+
+                                IEnumerable<String>?                  SecWebSocketProtocols        = null,
+                                Boolean                               DisableWebSocketPings        = false,
+                                TimeSpan?                             WebSocketPingEvery           = null,
+                                TimeSpan?                             SlowNetworkSimulationDelay   = null,
+
+                                DNSClient?                            DNSClient                    = null,
+                                Boolean                               AutoStart                    = false)
         {
 
             this.IPSocket                    = IPSocket;
@@ -1342,9 +1370,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         }
 
                     },
-                    new WebSocketServerConnection(this,
-                                                  newTCPConnection,
-                                                  SlowNetworkSimulationDelay: SlowNetworkSimulationDelay),
+                    new WebSocketServerConnection(
+                        this,
+                        newTCPConnection,
+                        SlowNetworkSimulationDelay: SlowNetworkSimulationDelay
+                    ),
                     token);
 
                 }

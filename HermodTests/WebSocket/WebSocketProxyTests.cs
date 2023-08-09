@@ -364,7 +364,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
+
             await webSocketClient.Close();
+
 
         }
 

@@ -123,8 +123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public ModbusTCPServer(IPPort                                TCPPort,
                                ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                               RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                SslProtocols?                         AllowedTLSProtocols          = null,
                                Boolean?                              ClientCertificateRequired    = null,
                                Boolean?                              CheckCertificateRevocation   = null,

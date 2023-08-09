@@ -152,12 +152,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The remote SSL/TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationCallback?  RemoteCertificateValidator      { get; private set; }
+        public RemoteCertificateValidationHandler?  RemoteCertificateValidator      { get; private set; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector       { get; }
 
         /// <summary>
         /// The SSL/TLS client certificate to use of HTTP authentication.
@@ -361,8 +361,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                HTTPHostname?                         VirtualHostname              = null,
                                String?                               Description                  = null,
                                Boolean?                              PreferIPv4                   = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                X509Certificate?                      ClientCert                   = null,
                                SslProtocols?                         TLSProtocol                  = null,
                                String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
@@ -590,21 +590,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                    (RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https))
                                 {
                                     RemoteCertificateValidator = (sender, certificate, chain, sslPolicyErrors) => {
-                                        return true;
+                                        return (true, Array.Empty<String>());
                                     };
                                 }
 
-                                if (RemoteCertificateValidator is not null)
+                                if (RemoteURL.Protocol == URLProtocols.https &&
+                                    TCPNetworkStream           is not null   &&
+                                    RemoteCertificateValidator is not null)
                                 {
 
                                     if (TLSStream is null)
                                     {
 
-                                        TLSStream = new SslStream(TCPNetworkStream,
-                                                                  false,
-                                                                  RemoteCertificateValidator,
-                                                                  ClientCertificateSelector,
-                                                                  EncryptionPolicy.RequireEncryption)
+                                        var remoteCertificateValidatorErrors = new List<String>();
+
+                                        TLSStream = new SslStream(
+                                                        innerStream:                         TCPNetworkStream,
+                                                        leaveInnerStreamOpen:                false,
+                                                        userCertificateValidationCallback:  (sender,
+                                                                                             certificate,
+                                                                                             chain,
+                                                                                             policyErrors) => {
+
+                                                                                                 var check = RemoteCertificateValidator(sender,
+                                                                                                                                        certificate is not null
+                                                                                                                                            ? new X509Certificate2(certificate)
+                                                                                                                                            : null,
+                                                                                                                                        chain,
+                                                                                                                                        policyErrors);
+
+                                                                                                 if (check.Item2.Any())
+                                                                                                     remoteCertificateValidatorErrors.AddRange(check.Item2);
+
+                                                                                                 return check.Item1;
+
+                                                                                             },
+                                                        userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                                                                                 ? null
+                                                                                                 : (sender,
+                                                                                                    targetHost,
+                                                                                                    localCertificates,
+                                                                                                    remoteCertificate,
+                                                                                                    acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                                                                                    targetHost,
+                                                                                                                                                    localCertificates.
+                                                                                                                                                        Cast<X509Certificate>().
+                                                                                                                                                        Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                                                    remoteCertificate is not null
+                                                                                                                                                        ? new X509Certificate2(remoteCertificate)
+                                                                                                                                                        : null,
+                                                                                                                                                    acceptableIssuers),
+                                                        encryptionPolicy:                    EncryptionPolicy.RequireEncryption
+                                                    )
                                         {
 
                                             ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
@@ -624,10 +661,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                       false);
 
                                         }
-                                        catch
+                                        catch (Exception e)
                                         {
+
+                                            //timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
+
+                                            //foreach (var error in remoteCertificateValidatorErrors)
+                                            //    timings.AddError(error);
+
                                             TCPSocket  = null;
                                             restart    = true;
+
                                         }
 
                                     }

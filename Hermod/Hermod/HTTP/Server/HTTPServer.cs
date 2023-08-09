@@ -17,16 +17,10 @@
 
 #region Usings
 
-using System;
-using System.IO;
 using System.Text;
-using System.Linq;
-using System.Threading;
 using System.Reflection;
 using System.Net.Security;
 using System.Security.Authentication;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
@@ -92,13 +86,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback?  ClientCertificateValidator
+        public RemoteCertificateValidationHandler?  ClientCertificateValidator
             => httpServer.ClientCertificateValidator;
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector
             => httpServer.ClientCertificateSelector;
 
         /// <summary>
@@ -176,8 +170,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                               ServiceName                  = null,
 
                           ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                           SslProtocols?                         AllowedTLSProtocols          = null,
                           Boolean?                              ClientCertificateRequired    = null,
                           Boolean?                              CheckCertificateRevocation   = null,
@@ -908,20 +902,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Start(Delay, InBackground = true)
 
-        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
+        public Boolean Start(TimeSpan  Delay,
+                             Boolean   InBackground = true)
 
             => httpServer.Start(Delay,
-                                 InBackground);
+                                InBackground);
 
         #endregion
 
         #region Shutdown(Message = null, Wait = true)
 
-        public Boolean Shutdown(String Message = null, Boolean Wait = true)
+        public Boolean Shutdown(String?  Message   = null,
+                                Boolean  Wait      = true)
         {
 
             httpServer.Shutdown(Message,
-                                 Wait);
+                                Wait);
 
             return true;
 
@@ -1103,8 +1099,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                               ServiceName                        = null,
 
                           ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector          = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator         = null,
                           SslProtocols?                         AllowedTLSProtocols                = null,
                           Boolean?                              ClientCertificateRequired          = null,
                           Boolean?                              CheckCertificateRevocation         = null,
@@ -1163,13 +1159,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AttachTCPPort   (TCPPort)
 
         public IHTTPServer AttachTCPPort(IPPort TCPPort)
-        {
 
-            AttachTCPPorts(TCPPort);
-
-            return this;
-
-        }
+            => AttachTCPPorts(TCPPort);
 
         #endregion
 
@@ -1189,13 +1180,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AttachTCPSocket (Socket)
 
         public IHTTPServer AttachTCPSocket(IPSocket Socket)
-        {
 
-            AttachTCPSockets(Socket);
-
-            return this;
-
-        }
+            => AttachTCPSockets(Socket);
 
         #endregion
 
@@ -1216,13 +1202,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region DetachTCPPort (TCPPort)
 
         public IHTTPServer DetachTCPPort(IPPort TCPPort)
-        {
 
-            DetachTCPPorts(TCPPort);
-
-            return this;
-
-        }
+            => DetachTCPPorts(TCPPort);
 
         #endregion
 
@@ -1232,9 +1213,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             DetachTCPPorts(tcpServer => {
-                               tcpServer.OnNotification      -= ProcessArrow;
-                               tcpServer.OnExceptionOccured  -= ProcessExceptionOccured;
-                               tcpServer.OnCompleted         -= ProcessCompleted;
+                               tcpServer.OnNotification     -= ProcessArrow;
+                               tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
+                               tcpServer.OnCompleted        -= ProcessCompleted;
                            },
                            Ports);
 

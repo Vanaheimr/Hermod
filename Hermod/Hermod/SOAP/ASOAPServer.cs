@@ -184,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               String?                               ServiceName                  = null,
 
                               ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                              RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                               SslProtocols                          AllowedTLSProtocols          = SslProtocols.Tls12,
                               HTTPPath?                             URLPrefix                    = null,
                               HTTPContentType?                      SOAPContentType              = null,
