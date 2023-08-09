@@ -121,46 +121,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Constructor(s)
 
-        public ModbusTCPServer(IPPort                                TCPPort,
-                               ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+        public ModbusTCPServer(IPPort                               TCPPort,
+
+                               ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               SslProtocols?                         AllowedTLSProtocols          = null,
-                               Boolean?                              ClientCertificateRequired    = null,
-                               Boolean?                              CheckCertificateRevocation   = null,
+                               SslProtocols?                        AllowedTLSProtocols          = null,
+                               Boolean?                             ClientCertificateRequired    = null,
+                               Boolean?                             CheckCertificateRevocation   = null,
 
-                               String                                ServiceName                  = __DefaultServiceName,
-                               String                                ServiceBanner                = __DefaultServiceBanner,
-                               String?                               ServerThreadName             = null,
-                               ThreadPriority                        ServerThreadPriority         = ThreadPriority.AboveNormal,
-                               Boolean                               ServerThreadIsBackground     = true,
+                               ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                               ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                               Boolean?                             ServerThreadIsBackground     = null,
+                               ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                               TimeSpan?                            ConnectionTimeout            = null,
+                               UInt32?                              MaxClientConnections         = null,
 
-                               ConnectionIdBuilder?                  ConnectionIdBuilder          = null,
-                               TimeSpan?                             ConnectionTimeout            = null,
-
-                               UInt32                                MaxClientConnections         = __DefaultMaxClientConnections,
-                               Boolean                               AutoStart                    = false)
+                               Boolean                              AutoStart                    = false)
         {
 
-            this.TCPServer = new TCPServer(TCPPort,
-                                           ServerCertificateSelector,
-                                           ClientCertificateValidator,
-                                           ClientCertificateSelector,
-                                           AllowedTLSProtocols,
-                                           ClientCertificateRequired,
-                                           CheckCertificateRevocation,
+            this.TCPServer = new TCPServer(
+                                 TCPPort,
+                                 null,
+                                 null,
 
-                                           ServiceName,
-                                           ServiceBanner,
-                                           ServerThreadName,
-                                           ServerThreadPriority,
-                                           ServerThreadIsBackground,
+                                 ServerCertificateSelector,
+                                 ClientCertificateValidator,
+                                 ClientCertificateSelector,
+                                 AllowedTLSProtocols,
+                                 ClientCertificateRequired,
+                                 CheckCertificateRevocation,
 
-                                           ConnectionIdBuilder,
-                                           ConnectionTimeout,
+                                 ServerThreadNameCreator,
+                                 ServerThreadPrioritySetter,
+                                 ServerThreadIsBackground,
+                                 ConnectionIdBuilder,
+                                 ConnectionTimeout,
+                                 MaxClientConnections,
 
-                                           MaxClientConnections,
-                                           AutoStart);
+                                 AutoStart
+                             );
 
 
             this.TCPServer.OnNotification += async (NewTCPConnection) => {

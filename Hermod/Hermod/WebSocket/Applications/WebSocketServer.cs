@@ -23,6 +23,7 @@ using System.Security.Authentication;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -58,32 +59,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public WebSocketServer(IIPAddress?                           IPAddress                    = null,
-                               IPPort?                               HTTPPort                     = null,
-                               String?                               HTTPServiceName              = null,
+        public WebSocketServer(IIPAddress?                          IPAddress                    = null,
+                               IPPort?                              HTTPPort                     = null,
+                               String?                              HTTPServiceName              = null,
 
-                               ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                               IEnumerable<String>?                 SecWebSocketProtocols        = null,
+                               Boolean                              DisableWebSocketPings        = false,
+                               TimeSpan?                            WebSocketPingEvery           = null,
+                               TimeSpan?                            SlowNetworkSimulationDelay   = null,
+
+                               ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               SslProtocols?                         AllowedTLSProtocols          = null,
-                               Boolean?                              ClientCertificateRequired    = null,
-                               Boolean?                              CheckCertificateRevocation   = null,
+                               SslProtocols?                        AllowedTLSProtocols          = null,
+                               Boolean?                             ClientCertificateRequired    = null,
+                               Boolean?                             CheckCertificateRevocation   = null,
 
-                               ServerThreadNameCreatorDelegate?      ServerThreadNameCreator      = null,
-                               ThreadPriority?                       ServerThreadPriority         = null,
-                               Boolean?                              ServerThreadIsBackground     = null,
+                               ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                               ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                               Boolean?                             ServerThreadIsBackground     = null,
+                               ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                               TimeSpan?                            ConnectionTimeout            = null,
+                               UInt32?                              MaxClientConnections         = null,
 
-                               IEnumerable<String>?                  SecWebSocketProtocols        = null,
-                               Boolean                               DisableWebSocketPings        = false,
-                               TimeSpan?                             WebSocketPingEvery           = null,
-                               TimeSpan?                             SlowNetworkSimulationDelay   = null,
-
-                               DNSClient?                            DNSClient                    = null,
-                               Boolean                               AutoStart                    = false)
+                               DNSClient?                           DNSClient                    = null,
+                               Boolean                              AutoStart                    = false)
 
             : base(IPAddress,
                    HTTPPort,
                    HTTPServiceName,
+
+                   SecWebSocketProtocols,
+                   DisableWebSocketPings,
+                   WebSocketPingEvery,
+                   SlowNetworkSimulationDelay,
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
@@ -93,13 +102,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    CheckCertificateRevocation,
 
                    ServerThreadNameCreator,
-                   ServerThreadPriority,
+                   ServerThreadPrioritySetter,
                    ServerThreadIsBackground,
-
-                   SecWebSocketProtocols,
-                   DisableWebSocketPings,
-                   WebSocketPingEvery,
-                   SlowNetworkSimulationDelay,
+                   ConnectionIdBuilder,
+                   ConnectionTimeout,
+                   MaxClientConnections,
 
                    DNSClient,
                    AutoStart)
@@ -117,30 +124,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public WebSocketServer(IPSocket                              IPSocket,
-                               String?                               HTTPServiceName              = null,
+        public WebSocketServer(IPSocket                             IPSocket,
+                               String?                              HTTPServiceName              = null,
 
-                               ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
+                               IEnumerable<String>?                 SecWebSocketProtocols        = null,
+                               Boolean                              DisableWebSocketPings        = false,
+                               TimeSpan?                            WebSocketPingEvery           = null,
+                               TimeSpan?                            SlowNetworkSimulationDelay   = null,
+
+                               ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               SslProtocols?                         AllowedTLSProtocols          = null,
-                               Boolean?                              ClientCertificateRequired    = null,
-                               Boolean?                              CheckCertificateRevocation   = null,
+                               SslProtocols?                        AllowedTLSProtocols          = null,
+                               Boolean?                             ClientCertificateRequired    = null,
+                               Boolean?                             CheckCertificateRevocation   = null,
 
-                               ServerThreadNameCreatorDelegate?      ServerThreadNameCreator      = null,
-                               ThreadPriority?                       ServerThreadPriority         = null,
-                               Boolean?                              ServerThreadIsBackground     = null,
+                               ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                               ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                               Boolean?                             ServerThreadIsBackground     = null,
+                               ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                               TimeSpan?                            ConnectionTimeout            = null,
+                               UInt32?                              MaxClientConnections         = null,
 
-                               IEnumerable<String>?                  SecWebSocketProtocols        = null,
-                               Boolean                               DisableWebSocketPings        = false,
-                               TimeSpan?                             WebSocketPingEvery           = null,
-                               TimeSpan?                             SlowNetworkSimulationDelay   = null,
-
-                               DNSClient?                            DNSClient                    = null,
-                               Boolean                               AutoStart                    = false)
+                               DNSClient?                           DNSClient                    = null,
+                               Boolean                              AutoStart                    = false)
 
             : base(IPSocket,
                    HTTPServiceName,
+
+                   SecWebSocketProtocols,
+                   DisableWebSocketPings,
+                   WebSocketPingEvery,
+                   SlowNetworkSimulationDelay,
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
@@ -150,13 +165,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    CheckCertificateRevocation,
 
                    ServerThreadNameCreator,
-                   ServerThreadPriority,
+                   ServerThreadPrioritySetter,
                    ServerThreadIsBackground,
-
-                   SecWebSocketProtocols,
-                   DisableWebSocketPings,
-                   WebSocketPingEvery,
-                   SlowNetworkSimulationDelay,
+                   ConnectionIdBuilder,
+                   ConnectionTimeout,
+                   MaxClientConnections,
 
                    DNSClient,
                    AutoStart)

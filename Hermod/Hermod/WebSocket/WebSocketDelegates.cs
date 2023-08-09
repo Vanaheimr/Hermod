@@ -25,8 +25,6 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public delegate String                               ServerThreadNameCreatorDelegate         (IPSocket                           Socket);
-
     public delegate Task                                 OnServerStartedDelegate                 (DateTime                           Timestamp,
                                                                                                   AWebSocketServer                   Server,
                                                                                                   EventTracking_Id                   EventTrackingId);

@@ -15,15 +15,22 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Threading;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 {
+
+    /// <summary>
+    /// A delegate to generate a server thread name.
+    /// </summary>
+    /// <param name="Socket"></param>
+    /// <returns></returns>
+    public delegate String          ServerThreadNameCreatorDelegate(IPSocket Socket);
+
+    /// <summary>
+    /// A delegate to set the server thread priority.
+    /// </summary>
+    /// <param name="Socket"></param>
+    /// <returns></returns>
+    public delegate ThreadPriority  ServerThreadPriorityDelegate(IPSocket Socket);
 
     /// <summary>
     /// A delegate to generate a connection identification.
@@ -32,7 +39,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="LocalSocket">The local TCP/IP socket.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    public delegate String ConnectionIdBuilder(Object Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket);
+    public delegate String          ConnectionIdBuilder(Object    Sender,
+                                                        DateTime  Timestamp,
+                                                        IPSocket  LocalSocket,
+                                                        IPSocket  RemoteSocket);
 
     /// <summary>
     /// A delegate to generate a thread name for a connection.
@@ -41,7 +51,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="LocalSocket">The local TCP/IP socket.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    public delegate String ConnectionThreadsNameBuilder(Object Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket);
+    public delegate String          ConnectionThreadsNameBuilder(Object    Sender,
+                                                                 DateTime  Timestamp,
+                                                                 IPSocket  LocalSocket,
+                                                                 IPSocket  RemoteSocket);
 
     /// <summary>
     /// A delegate to generate a thread priority for a connection.
@@ -50,6 +63,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="LocalSocket">The local TCP/IP socket.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    public delegate ThreadPriority ConnectionThreadsPriorityBuilder(Object Sender, DateTime Timestamp, IPSocket LocalSocket, IPSocket RemoteSocket);
+    public delegate ThreadPriority  ConnectionThreadsPriorityDelegate(Object    Sender,
+                                                                      DateTime  Timestamp,
+                                                                      IPSocket  LocalSocket,
+                                                                      IPSocket  RemoteSocket);
 
 }

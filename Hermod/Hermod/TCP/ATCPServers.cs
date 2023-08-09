@@ -18,7 +18,6 @@
 #region Usings
 
 using System.Collections;
-using System.Net.Security;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -149,28 +148,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ServerThreadName
 
-        private String serverThreadName  = TCPServer.__DefaultServerThreadName;
+        private ServerThreadNameCreatorDelegate serverThreadNameCreator;
 
         /// <summary>
         /// The name of the TCP service threads.
         /// </summary>
-        public String ServerThreadName
+        public ServerThreadNameCreatorDelegate ServerThreadNameCreator
         {
 
             get
             {
-                return serverThreadName;
+                return serverThreadNameCreator;
             }
 
             set
             {
-                if (value.IsNotNullOrEmpty())
+                lock (tcpServers)
                 {
-                    lock (tcpServers)
-                    {
-                        serverThreadName = value;
-                        tcpServers.ForEach(tcpServer => tcpServer.ServerThreadName = value);
-                    }
+                    serverThreadNameCreator = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ServerThreadNameCreator = value);
                 }
             }
 
@@ -178,27 +174,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region ServerThreadPriority
+        #region ServerThreadPrioritySetter
 
-        private ThreadPriority serverThreadPriority;
+        private ServerThreadPriorityDelegate serverThreadPrioritySetter;
 
         /// <summary>
         /// The priority of the TCP service threads.
         /// </summary>
-        public ThreadPriority ServerThreadPriority
+        public ServerThreadPriorityDelegate ServerThreadPrioritySetter
         {
 
             get
             {
-                return serverThreadPriority;
+                return serverThreadPrioritySetter;
             }
 
             set
             {
                 lock (tcpServers)
                 {
-                    serverThreadPriority = value;
-                    tcpServers.ForEach(tcpServer => tcpServer.ServerThreadPriority = value);
+                    serverThreadPrioritySetter = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ServerThreadPrioritySetter = value);
                 }
             }
 
@@ -416,25 +412,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String?                               ServiceName                  = null,
-                           String?                               ServiceBanner                = null,
+        public ATCPServers(String?                              ServiceName                  = null,
+                           String?                              ServiceBanner                = null,
 
-                           ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                           LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                           ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
                            RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                           SslProtocols?                         AllowedTLSProtocols          = null,
-                           Boolean?                              ClientCertificateRequired    = null,
-                           Boolean?                              CheckCertificateRevocation   = null,
+                           LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                           SslProtocols?                        AllowedTLSProtocols          = null,
+                           Boolean?                             ClientCertificateRequired    = null,
+                           Boolean?                             CheckCertificateRevocation   = null,
 
-                           String?                               ServerThreadName             = null,
-                           ThreadPriority?                       ServerThreadPriority         = null,
-                           Boolean?                              ServerThreadIsBackground     = null,
-                           ConnectionIdBuilder?                  ConnectionIdBuilder          = null,
-                           TimeSpan?                             ConnectionTimeout            = null,
-                           UInt32?                               MaxClientConnections         = null,
+                           ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                           ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                           Boolean?                             ServerThreadIsBackground     = null,
+                           ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                           TimeSpan?                            ConnectionTimeout            = null,
+                           UInt32?                              MaxClientConnections         = null,
 
-                           DNSClient?                            DNSClient                    = null,
-                           Boolean                               AutoStart                    = false)
+                           DNSClient?                           DNSClient                    = null,
+                           Boolean                              AutoStart                    = false)
 
         {
 
@@ -450,8 +446,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.serviceName                 = ServiceName                ?? TCPServer.__DefaultServiceName;
             this.serviceBanner               = ServiceBanner              ?? TCPServer.__DefaultServiceBanner;
 
-            this.serverThreadName            = ServerThreadName           ?? TCPServer.__DefaultServerThreadName;
-            this.serverThreadPriority        = ServerThreadPriority       ?? ThreadPriority.AboveNormal;
+            this.serverThreadNameCreator     = ServerThreadNameCreator    ?? (socket => TCPServer.__DefaultServerThreadName);
+            this.serverThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
             this.serverThreadIsBackground    = ServerThreadIsBackground   ?? true;
 
             this.connectionIdBuilder         = ConnectionIdBuilder        ?? ((sender, timestamp, localSocket, remoteIPSocket) => $"TCP: {remoteIPSocket.IPAddress}:{remoteIPSocket.Port}");
@@ -484,6 +480,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
                                                                        port,
+                                                                       ServiceName,
+                                                                       ServiceBanner,
+
                                                                        ServerCertificateSelector,
                                                                        ClientCertificateValidator,
                                                                        ClientCertificateSelector,
@@ -491,17 +490,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                        ClientCertificateRequired,
                                                                        CheckCertificateRevocation,
 
-                                                                       ServiceName,
-                                                                       ServiceBanner,
-
-                                                                       serverThreadName,
-                                                                       serverThreadPriority,
+                                                                       serverThreadNameCreator,
+                                                                       serverThreadPrioritySetter,
                                                                        serverThreadIsBackground,
-
                                                                        connectionIdBuilder,
                                                                        connectionTimeout,
-
                                                                        maxClientConnections,
+
                                                                        false)
                                                                    );
 
@@ -535,6 +530,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
                                                                        socket,
+                                                                       ServiceName,
+                                                                       ServiceBanner,
+
                                                                        ServerCertificateSelector,
                                                                        ClientCertificateValidator,
                                                                        ClientCertificateSelector,
@@ -542,16 +540,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                        ClientCertificateRequired,
                                                                        CheckCertificateRevocation,
 
-                                                                       ServiceName,
-                                                                       ServiceBanner,
-                                                                       serverThreadName,
-                                                                       serverThreadPriority,
+                                                                       serverThreadNameCreator,
+                                                                       serverThreadPrioritySetter,
                                                                        serverThreadIsBackground,
-
                                                                        connectionIdBuilder,
                                                                        connectionTimeout,
-
                                                                        maxClientConnections,
+
                                                                        false)
                                                                    );
 

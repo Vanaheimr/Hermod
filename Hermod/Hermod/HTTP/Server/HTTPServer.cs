@@ -165,47 +165,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                               TCPPort                      = null,
-                          String                                DefaultServerName            = HTTPServer.DefaultHTTPServerName,
-                          String?                               ServiceName                  = null,
+        public HTTPServer(IPPort?                              TCPPort                      = null,
+                          String                               DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String?                              ServiceName                  = null,
 
-                          ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
                           RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                          SslProtocols?                         AllowedTLSProtocols          = null,
-                          Boolean?                              ClientCertificateRequired    = null,
-                          Boolean?                              CheckCertificateRevocation   = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          SslProtocols?                        AllowedTLSProtocols          = null,
+                          Boolean?                             ClientCertificateRequired    = null,
+                          Boolean?                             CheckCertificateRevocation   = null,
 
-                          String?                               ServerThreadName             = null,
-                          ThreadPriority                        ServerThreadPriority         = ThreadPriority.AboveNormal,
-                          Boolean                               ServerThreadIsBackground     = true,
-                          ConnectionIdBuilder?                  ConnectionIdBuilder          = null,
-                          TimeSpan?                             ConnectionTimeout            = null,
-                          UInt32                                MaxClientConnections         = TCPServer.__DefaultMaxClientConnections,
+                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                          Boolean?                             ServerThreadIsBackground     = true,
+                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                          TimeSpan?                            ConnectionTimeout            = null,
+                          UInt32?                              MaxClientConnections         = TCPServer.__DefaultMaxClientConnections,
 
-                          DNSClient?                            DNSClient                    = null,
-                          Boolean                               AutoStart                    = false)
+                          DNSClient?                           DNSClient                    = null,
+                          Boolean                              AutoStart                    = false)
 
-            : this(new HTTPServer(TCPPort,
-                                  DefaultServerName,
-                                  ServiceName,
-                                  ServerCertificateSelector,
-                                  ClientCertificateSelector,
-                                  ClientCertificateValidator,
-                                  AllowedTLSProtocols,
-                                  ClientCertificateRequired,
-                                  CheckCertificateRevocation,
+            : this(new HTTPServer(
+                       TCPPort,
+                       DefaultServerName,
+                       ServiceName,
 
-                                  ServerThreadName,
-                                  ServerThreadPriority,
-                                  ServerThreadIsBackground,
+                       ServerCertificateSelector,
+                       ClientCertificateValidator,
+                       ClientCertificateSelector,
+                       AllowedTLSProtocols,
+                       ClientCertificateRequired,
+                       CheckCertificateRevocation,
 
-                                  ConnectionIdBuilder,
-                                  ConnectionTimeout,
+                       ServerThreadNameCreator,
+                       ServerThreadPrioritySetter,
+                       ServerThreadIsBackground,
+                       ConnectionIdBuilder,
+                       ConnectionTimeout,
+                       MaxClientConnections,
 
-                                  MaxClientConnections,
-                                  DNSClient,
-                                  AutoStart))
+                       DNSClient,
+                       AutoStart
+                   ))
 
         {  }
 
@@ -1094,40 +1096,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                               HTTPPort                           = null,
-                          String?                               DefaultServerName                  = null,
-                          String?                               ServiceName                        = null,
+        public HTTPServer(IPPort?                              HTTPPort                     = null,
+                          String?                              DefaultServerName            = null,
+                          String?                              ServiceName                  = null,
 
-                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator         = null,
-                          SslProtocols?                         AllowedTLSProtocols                = null,
-                          Boolean?                              ClientCertificateRequired          = null,
-                          Boolean?                              CheckCertificateRevocation         = null,
+                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          SslProtocols?                        AllowedTLSProtocols          = null,
+                          Boolean?                             ClientCertificateRequired    = null,
+                          Boolean?                             CheckCertificateRevocation   = null,
 
-                          String?                               ServerThreadName                   = null,
-                          ThreadPriority?                       ServerThreadPriority               = null,
-                          Boolean?                              ServerThreadIsBackground           = null,
-                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          TimeSpan?                             ConnectionTimeout                  = null,
-                          UInt32?                               MaxClientConnections               = null,
+                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                          Boolean?                             ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                          TimeSpan?                            ConnectionTimeout            = null,
+                          UInt32?                              MaxClientConnections         = null,
 
-                          DNSClient?                            DNSClient                          = null,
-                          Boolean                               AutoStart                          = false)
+                          DNSClient?                           DNSClient                    = null,
+                          Boolean                              AutoStart                    = false)
 
             : base(ServiceName                  ?? DefaultHTTPServiceName,
                    DefaultServerName            ?? DefaultHTTPServerName,
+
                    ServerCertificateSelector,
-                   ClientCertificateSelector,
                    ClientCertificateValidator,
+                   ClientCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
 
-                   ServerThreadName             ?? (ServerCertificateSelector is null
-                                                        ? "HTTP Server :"  + (HTTPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))
-                                                        : "HTTPS Server :" + (HTTPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))),
-                   ServerThreadPriority,
+                   ServerThreadNameCreator      ?? (ServerCertificateSelector is null
+                                                        ? socket => "HTTP Server :"  + (HTTPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))
+                                                        : socket => "HTTPS Server :" + (HTTPPort ?? (ServerCertificateSelector is null ? IPPort.HTTP : IPPort.HTTPS))),
+                   ServerThreadPrioritySetter,
                    ServerThreadIsBackground,
                    ConnectionIdBuilder,
                    ConnectionTimeout,
