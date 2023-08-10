@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
 
         /// <summary>
-        /// The size of the internal buffers.
+        /// The size of the internal HTTP client buffers.
         /// </summary>
         public UInt32                                InternalBufferSize            { get; }
 
@@ -266,11 +266,146 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public DNSClient                             DNSClient                     { get; }
 
 
+        #region TCP Socket
+
+        #region Available
+
+        /// <summary>
+        /// The amount of data waiting to be read from the network stack.
+        /// </summary>
         public Int32 Available
             => tcpSocket?.Available ?? 0;
 
+        #endregion
+
+        #region Connected
+
+        /// <summary>
+        /// Wether the HTTP client is connected to the remote server or not.
+        /// </summary>
         public Boolean Connected
+
             => tcpSocket?.Connected ?? false;
+
+        #endregion
+
+        #region SendTimeout
+
+        /// <summary>
+        /// The send timeout value of the connection.
+        /// </summary>
+        public TimeSpan SendTimeout
+        {
+
+            get
+            {
+
+                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout);
+
+                if (result is Int32 sendTimeout && sendTimeout >= 0)
+                    return TimeSpan.FromMilliseconds(sendTimeout);
+
+                return TimeSpan.Zero;
+
+            }
+
+            set
+            {
+                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, (Int32) value.TotalMilliseconds);
+            }
+
+        }
+
+        #endregion
+
+        #region ReceiveTimeout
+
+        /// <summary>
+        /// The receive timeout value of the connection.
+        /// </summary>
+        public TimeSpan ReceiveTimeout
+        {
+
+            get
+            {
+
+                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout);
+
+                if (result is Int32 sendTimeout && sendTimeout >= 0)
+                    return TimeSpan.FromMilliseconds(sendTimeout);
+
+                return TimeSpan.Zero;
+
+            }
+
+            set
+            {
+                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) value.TotalMilliseconds);
+            }
+
+        }
+
+        #endregion
+
+        #region SendBufferSize
+
+        /// <summary>
+        /// The size of the underlying send buffer in bytes.
+        /// </summary>
+        public UInt64 SendBufferSize
+        {
+
+            get
+            {
+
+                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer);
+
+                if (result is Int32 sendBufferSize && sendBufferSize >= 0)
+                    return (UInt64) sendBufferSize;
+
+                return 0;
+
+            }
+
+            set
+            {
+
+                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, (Int32) value);
+
+            }
+
+        }
+
+        #endregion
+
+        #region ReceiveBufferSize
+
+        /// <summary>
+        /// The size of the underlying receive buffer in bytes.
+        /// </summary>
+        public UInt64 ReceiveBufferSize
+        {
+
+            get
+            {
+
+                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer);
+
+                if (result is Int32 receiveBufferSize && receiveBufferSize >= 0)
+                    return (UInt64) receiveBufferSize;
+
+                return 0;
+
+            }
+
+            set
+            {
+                tcpSocket?.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, (Int32) value);
+            }
+
+        }
+
+        #endregion
 
         #region LingerState
         public LingerOption? LingerState
@@ -295,21 +430,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region NoDelay
 
-        public Boolean? NoDelay
+        /// <summary>
+        /// Whether to use the Nagle algorithm.
+        /// </summary>
+        public Boolean NoDelay
         {
             get
             {
 
-                if (tcpSocket is not null)
-                    return tcpSocket.NoDelay;
+                var result = tcpSocket?.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay);
 
-                return null;
+                if (result is Int32 noDelay)
+                    return noDelay != 0;
+
+                return false;
 
             }
             set
             {
-                if (tcpSocket is not null && value.HasValue)
-                    tcpSocket.NoDelay = value.Value;
+                tcpSocket?.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, value ? 1 : 0);
             }
         }
 
@@ -317,7 +456,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TTL
 
-        public Byte? TTL
+        /// <summary>
+        /// Setting the "time to live"/hop count of IP data packets.
+        /// </summary>
+        public Byte TTL
         {
             get
             {
@@ -325,17 +467,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (tcpSocket is not null)
                     return (Byte) tcpSocket.Ttl;
 
-                return null;
+                return 0;
 
             }
             set
             {
 
-                if (tcpSocket is not null && value.HasValue)
-                    tcpSocket.Ttl = value.Value;
+                if (tcpSocket is not null)
+                    tcpSocket.Ttl = value;
 
             }
         }
+
+        #endregion
 
         #endregion
 
@@ -383,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries for HTTP request.</param>
-        /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
+        /// <param name="InternalBufferSize">An optional size of the internal HTTP client buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
@@ -682,10 +826,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
                                 try
                                 {
-                                    tcpSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                                    tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                                    tcpSocket.Connect(remoteIPEndPoint);
-                                    tcpSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+                                    NoDelay         = true;
+                                    SendTimeout     = RequestTimeout.Value;
+                                    ReceiveTimeout  = RequestTimeout.Value;
+
+                                    await tcpSocket.ConnectAsync(remoteIPEndPoint);
+
+                                    ReceiveTimeout  = RequestTimeout.Value;
+
                                 }
                                 catch (Exception e)
                                 {
