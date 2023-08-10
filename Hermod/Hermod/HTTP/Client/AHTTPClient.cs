@@ -193,12 +193,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote SSL/TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationCallback?  RemoteCertificateValidator    { get; }
+        public RemoteCertificateValidationHandler?   RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector     { get; }
+        public LocalCertificateSelectionHandler?     ClientCertificateSelector     { get; }
 
         /// <summary>
         /// The SSL/TLS client certificate to use of HTTP authentication.
@@ -219,6 +219,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP user agent identification.
         /// </summary>
         public String                                HTTPUserAgent                 { get; }
+
+        /// <summary>
+        /// The optional HTTP authentication to use, e.g. HTTP Basic Auth.
+        /// </summary>
+        public IHTTPAuthentication?                  HTTPAuthentication            { get; }
 
         /// <summary>
         /// The timeout for upstream requests.
@@ -524,6 +529,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries for HTTP request.</param>
@@ -532,23 +538,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        protected AHTTPClient(URL                                   RemoteURL,
-                              HTTPHostname?                         VirtualHostname              = null,
-                              String?                               Description                  = null,
-                              Boolean?                              PreferIPv4                   = null,
-                              RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                              X509Certificate?                      ClientCert                   = null,
-                              SslProtocols?                         TLSProtocol                  = null,
-                              String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                              TimeSpan?                             RequestTimeout               = null,
-                              TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                              UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                              UInt32?                               InternalBufferSize           = DefaultInternalBufferSize,
-                              Boolean?                              UseHTTPPipelining            = null,
-                              Boolean?                              DisableLogging               = false,
-                              HTTPClientLogger?                     HTTPLogger                   = null,
-                              DNSClient?                            DNSClient                    = null)
+        protected AHTTPClient(URL                                  RemoteURL,
+                              HTTPHostname?                        VirtualHostname              = null,
+                              String?                              Description                  = null,
+                              Boolean?                             PreferIPv4                   = null,
+                              RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                              X509Certificate?                     ClientCert                   = null,
+                              SslProtocols?                        TLSProtocol                  = null,
+                              String?                              HTTPUserAgent                = DefaultHTTPUserAgent,
+                              IHTTPAuthentication?                 HTTPAuthentication           = null,
+                              TimeSpan?                            RequestTimeout               = null,
+                              TransmissionRetryDelayDelegate?      TransmissionRetryDelay       = null,
+                              UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              UInt32?                              InternalBufferSize           = DefaultInternalBufferSize,
+                              Boolean?                             UseHTTPPipelining            = null,
+                              Boolean?                             DisableLogging               = false,
+                              HTTPClientLogger?                    HTTPLogger                   = null,
+                              DNSClient?                           DNSClient                    = null)
         {
 
             this.RemoteURL                   = RemoteURL;
@@ -560,6 +567,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ClientCert                  = ClientCert;
             this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
+            this.HTTPAuthentication          = HTTPAuthentication;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
             this.MaxNumberOfRetries          = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
@@ -873,12 +881,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (tlsStream is null)
                         {
 
+                            var remoteCertificateValidatorErrors = new List<String>();
+
                             tlsStream = new SslStream(
-                                            innerStream:                        tcpStream,
-                                            leaveInnerStreamOpen:               false,
-                                            userCertificateValidationCallback:  RemoteCertificateValidator,
-                                            userCertificateSelectionCallback:   ClientCertificateSelector,
-                                            encryptionPolicy:                   EncryptionPolicy.RequireEncryption
+                                            innerStream:                         tcpStream,
+                                            leaveInnerStreamOpen:                false,
+                                            userCertificateValidationCallback:  (sender,
+                                                                                 certificate,
+                                                                                 chain,
+                                                                                 policyErrors) => {
+
+                                                                                     var check = RemoteCertificateValidator(sender,
+                                                                                                                            certificate is not null
+                                                                                                                                ? new X509Certificate2(certificate)
+                                                                                                                                : null,
+                                                                                                                            chain,
+                                                                                                                            policyErrors);
+
+                                                                                     if (check.Item2.Any())
+                                                                                         remoteCertificateValidatorErrors.AddRange(check.Item2);
+
+                                                                                     return check.Item1;
+
+                                                                                 },
+
+                                            userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                                                                     ? null
+                                                                                     : (sender,
+                                                                                        targetHost,
+                                                                                        localCertificates,
+                                                                                        remoteCertificate,
+                                                                                        acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                                                                        targetHost,
+                                                                                                                                        localCertificates.
+                                                                                                                                            Cast<X509Certificate>().
+                                                                                                                                            Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                                        remoteCertificate is not null
+                                                                                                                                            ? new X509Certificate2(remoteCertificate)
+                                                                                                                                            : null,
+                                                                                                                                        acceptableIssuers),
+                                            encryptionPolicy:                    EncryptionPolicy.RequireEncryption
                                         )
                             {
                                 ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
@@ -891,7 +933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
                                                                           clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                                                                          enabledSslProtocols:         this.TLSProtocol,
+                                                                          enabledSslProtocols:         TLSProtocol,
                                                                           checkCertificateRevocation:  false);// true);
 
                                 timings.TLSHandshake = timings.Elapsed;
@@ -899,9 +941,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
                             catch (Exception e)
                             {
+
                                 timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
+
+                                foreach (var error in remoteCertificateValidatorErrors)
+                                    timings.AddError(error);
+
                                 tcpSocket  = null;
                                 restart    = true;
+
                             }
 
                         }

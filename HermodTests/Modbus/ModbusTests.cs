@@ -25,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Modbus;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.Modbus
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 {
 
     public class ModbusTests
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.Modbus
 
             ModbusTCPServer = new ModbusTCPServer(
                                   TCPPort:   IPPort.Parse(24694),
-                                  Autostart: true
+                                  AutoStart: true
                               );
 
         }

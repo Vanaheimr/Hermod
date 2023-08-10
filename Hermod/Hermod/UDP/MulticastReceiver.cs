@@ -202,7 +202,7 @@
 //                                 String          ThreadName         = "UDPServer thread",
 //                                 ThreadPriority  ThreadPrio         = ThreadPriority.AboveNormal,
 //                                 Boolean         IsBackground       = true,
-//                                 Boolean         Autostart          = false)
+//                                 Boolean         AutoStart          = false)
 //        {
 
 //            if (Mapper == null)

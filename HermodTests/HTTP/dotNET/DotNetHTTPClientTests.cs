@@ -26,7 +26,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 {
 
     /// <summary>

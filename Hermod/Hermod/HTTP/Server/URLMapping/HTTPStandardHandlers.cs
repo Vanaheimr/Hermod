@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011-2022 Achim Friedland <achim.friedland@graphdefined.com>
+ * Copyright (c) 2011-2023 Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                             Server           = HTTPServer.DefaultServerName,
                             Date             = Timestamp.Now,
-                            WWWAuthenticate  = new[] { @"Basic realm=""" + HTTPRealm + @"""" },
+                            WWWAuthenticate  = @"Basic realm=""" + HTTPRealm + @"""",
                             ContentType      = HTTPContentType.TEXT_UTF8,
                             Content          = "Unauthorized Access!".ToUTF8Bytes(),
                             Connection       = "close"

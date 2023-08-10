@@ -194,59 +194,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the SMTP server thread immediately (default: no).</param>
-        public SMTPServer(IPPort?                               TCPPort                            = null,
-                          String                                DefaultServerName                  = __DefaultServerName,
-                          String?                               ServiceName                        = null,
+        /// <param name="AutoStart">Start the SMTP server thread immediately (default: no).</param>
+        public SMTPServer(IPPort?                              TCPPort                      = null,
+                          String                               DefaultServerName            = __DefaultServerName,
+                          String?                              ServiceName                  = null,
+                          Boolean?                             AllowStartTLS                = true,
 
-                          ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
-                          SslProtocols?                         AllowedTLSProtocols                = null,
-                          Boolean?                              ClientCertificateRequired          = null,
-                          Boolean?                              CheckCertificateRevocation         = null,
-                          Boolean?                              AllowStartTLS                      = true,
+                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          SslProtocols?                        AllowedTLSProtocols          = null,
+                          Boolean?                             ClientCertificateRequired    = null,
+                          Boolean?                             CheckCertificateRevocation   = null,
 
-                          String?                               ServerThreadName                   = null,
-                          ThreadPriority                        ServerThreadPriority               = ThreadPriority.AboveNormal,
-                          Boolean                               ServerThreadIsBackground           = true,
+                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                          Boolean?                             ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                          TimeSpan?                            ConnectionTimeout            = null,
+                          UInt32?                              MaxClientConnections         = null,
 
-                          ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                          //ConnectionThreadsNameBuilder          ConnectionThreadsNameBuilder       = null,
-                          //ConnectionThreadsPriorityBuilder      ConnectionThreadsPriorityBuilder   = null,
-                          //Boolean                               ConnectionThreadsAreBackground     = true,
-                          TimeSpan?                             ConnectionTimeout                  = null,
-
-                          UInt32?                               MaxClientConnections               = null,
-                          DNSClient?                            DNSClient                          = null,
-                          Boolean                               Autostart                          = false)
+                          DNSClient?                           DNSClient                    = null,
+                          Boolean                              AutoStart                    = false)
 
             : base(ServiceName,
                    DefaultServerName,
+
                    ServerCertificateSelector,
-                   ClientCertificateSelector,
                    ClientCertificateValidator,
+                   ClientCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
 
-                   ServerThreadName,
-                   ServerThreadPriority,
+                   ServerThreadNameCreator,
+                   ServerThreadPrioritySetter,
                    ServerThreadIsBackground,
-
                    ConnectionIdBuilder,
-                   //ConnectionThreadsNameBuilder,
-                   //ConnectionThreadsPriorityBuilder,
-                   //ConnectionThreadsAreBackground,
                    ConnectionTimeout,
-
                    MaxClientConnections,
+
                    DNSClient,
                    false)
 
@@ -266,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             if (TCPPort is not null)
                 this.AttachTCPPort(TCPPort ?? IPPort.SMTP);
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }

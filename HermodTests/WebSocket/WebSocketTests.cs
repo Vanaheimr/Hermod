@@ -25,7 +25,7 @@ using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 {
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
 
         #region Data
 
-        private          WebSocketServer?  webSocketServer;
+        private          AWebSocketServer?  webSocketServer;
         private readonly UInt16            port  = 18402;
 
         #endregion
@@ -50,8 +50,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
         {
 
             webSocketServer = new WebSocketServer(
-                                  TCPPort:   IPPort.Parse(port),
-                                  Autostart: true
+                                  HTTPPort:   IPPort.Parse(port),
+                                  AutoStart:  true
                               );
 
         }
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.     Add(requestFrame);
             };
 
@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
             };
 
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
                 newWebSocketConnection  = true;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, requestFrame, eventTrackingId) => {
+            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.     Add(requestFrame);
             };
 
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
             };
 

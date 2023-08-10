@@ -35,24 +35,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> GET(this AHTTPClient              HTTPClient,
-                                             HTTPPath                      Path,
-                                             Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                             IHTTPAuthentication?          Authentication   = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.GET,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
-
-
-        /// <summary>
-        /// Create a new HTTP GET request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
         public static HTTPRequest.Builder GETRequest(this AHTTPClient              HTTPClient,
                                                      HTTPPath                      Path,
                                                      Action<HTTPRequest.Builder>?  BuilderAction    = null,
@@ -74,24 +56,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> HEAD(this AHTTPClient              HTTPClient,
-                                              HTTPPath                      Path,
-                                              Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                              IHTTPAuthentication?          Authentication   = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.HEAD,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
-
-
-        /// <summary>
-        /// Create a new HTTP HEAD request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
         public static HTTPRequest.Builder HEADRequest(this AHTTPClient              HTTPClient,
                                                       HTTPPath                      Path,
                                                       Action<HTTPRequest.Builder>?  BuilderAction    = null,
@@ -105,26 +69,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region POST   (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
-
-        /// <summary>
-        /// Create a new HTTP POST request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> POST(this AHTTPClient              HTTPClient,
-                                              HTTPPath                      Path,
-                                              Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                              IHTTPAuthentication?          Authentication   = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.POST,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication).
-                                                   // Always send a Content-Length header, even when it's value is zero!
-                                                   SetContentLength(0));
-
 
         /// <summary>
         /// Create a new HTTP POST request.
@@ -156,24 +100,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> PUT(this AHTTPClient              HTTPClient,
-                                             HTTPPath                      Path,
-                                             Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                             IHTTPAuthentication?          Authentication   = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PUT,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
-
-
-        /// <summary>
-        /// Create a new HTTP PUT request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
         public static HTTPRequest.Builder PUTRequest(this AHTTPClient              HTTPClient,
                                                      HTTPPath                      Path,
                                                      Action<HTTPRequest.Builder>?  BuilderAction    = null,
@@ -187,24 +113,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region PATCH  (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
-
-        /// <summary>
-        /// Create a new HTTP PATCH request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> PATCH(this AHTTPClient              HTTPClient,
-                                               HTTPPath                      Path,
-                                               Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                               IHTTPAuthentication?          Authentication   = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PATCH,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
-
 
         /// <summary>
         /// Create a new HTTP PATCH request.
@@ -234,24 +142,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> DELETE(this AHTTPClient              HTTPClient,
-                                                HTTPPath                      Path,
-                                                Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                IHTTPAuthentication?          Authentication   = null)
-
-            =>  HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.DELETE,
-                                                                  Path,
-                                                                  BuilderAction,
-                                                                  Authentication));
-
-
-        /// <summary>
-        /// Create a new HTTP DELETE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
         public static HTTPRequest.Builder DELETERequest(this AHTTPClient              HTTPClient,
                                                         HTTPPath                      Path,
                                                         Action<HTTPRequest.Builder>?  BuilderAction    = null,
@@ -265,24 +155,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region OPTIONS(this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
-
-        /// <summary>
-        /// Create a new HTTP OPTIONS request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        public static Task<HTTPResponse> OPTIONS(this AHTTPClient              HTTPClient,
-                                                 HTTPPath                      Path,
-                                                 Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                 IHTTPAuthentication?          Authentication   = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.OPTIONS,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
-
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
@@ -313,22 +185,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> CHECK(this AHTTPClient              HTTPClient,
-                                               HTTPPath                      Path,
-                                               Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.CHECK,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP CHECK request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder CHECKRequest(this AHTTPClient              HTTPClient,
                                                        HTTPPath                      Path,
                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -340,22 +196,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region COUNT  (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP COUNT request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> COUNT(this AHTTPClient              HTTPClient,
-                                               HTTPPath                      Path,
-                                               Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.COUNT,
-                                                                 Path,
-                                                                 BuilderAction));
-
 
         /// <summary>
         /// Create a new HTTP COUNT request.
@@ -383,22 +223,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> CLEAR(this AHTTPClient              HTTPClient,
-                                               HTTPPath                      Path,
-                                               Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.CLEAR,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP CLEAR request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder CLEARRequest(this AHTTPClient              HTTPClient,
                                                        HTTPPath                      Path,
                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -410,22 +234,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region CREATE (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP CREATE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> CREATE(this AHTTPClient              HTTPClient,
-                                                HTTPPath                      Path,
-                                                Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.CREATE,
-                                                                 Path,
-                                                                 BuilderAction));
-
 
         /// <summary>
         /// Create a new HTTP CREATE request.
@@ -453,22 +261,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> ADD(this AHTTPClient              HTTPClient,
-                                             HTTPPath                      Path,
-                                             Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.ADD,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP ADD request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder ADDRequest(this AHTTPClient              HTTPClient,
                                                      HTTPPath                      Path,
                                                      Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -480,22 +272,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region SET    (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP SET request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> SET(this AHTTPClient              HTTPClient,
-                                             HTTPPath                      Path,
-                                             Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.SET,
-                                                                 Path,
-                                                                 BuilderAction));
-
 
         /// <summary>
         /// Create a new HTTP SET request.
@@ -523,22 +299,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Path">An URL path.</param>
         /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
         /// <returns>A HTTP request object.</returns>
-        public static Task<HTTPResponse> TRACE(this AHTTPClient              HTTPClient,
-                                               HTTPPath                      Path,
-                                               Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.TRACE,
-                                                                 Path,
-                                                                 BuilderAction));
-
-
-        /// <summary>
-        /// Create a new HTTP TRACE request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
         public static HTTPRequest.Builder TRACERequest(this AHTTPClient              HTTPClient,
                                                        HTTPPath                      Path,
                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
@@ -550,21 +310,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #region MIRROR (this AHTTPClient, Path = "/", BuilderAction = null)
-
-        /// <summary>
-        /// Create a new HTTP MIRROR request.
-        /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        public static Task<HTTPResponse> MIRROR(this AHTTPClient              HTTPClient,
-                                                HTTPPath                      Path,
-                                                Action<HTTPRequest.Builder>?  BuilderAction = null)
-
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.MIRROR,
-                                                                 Path,
-                                                                 BuilderAction));
-
 
         /// <summary>
         /// Create a new HTTP MIRROR request.

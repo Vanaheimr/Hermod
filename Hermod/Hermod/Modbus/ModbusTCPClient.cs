@@ -137,12 +137,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The remote SSL/TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationCallback?  RemoteCertificateValidator    { get; }
+        public RemoteCertificateValidationHandler?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector     { get; }
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector     { get; }
 
         /// <summary>
         /// The SSL/TLS client certificate to use of HTTP authentication.
@@ -330,8 +330,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                Byte?                                 UnitAddress                  = null,
                                Int16?                                StartingAddressOffset        = null,
                                String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                X509Certificate?                      ClientCert                   = null,
                                SslProtocols?                         TLSProtocol                  = null,
                                Boolean?                              PreferIPv4                   = null,
@@ -399,8 +399,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                Byte?                                 UnitAddress                  = null,
                                Int16?                                StartingAddressOffset        = null,
                                String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                X509Certificate?                      ClientCert                   = null,
                                SslProtocols?                         TLSProtocol                  = null,
                                Boolean?                              PreferIPv4                   = null,
@@ -466,8 +466,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                Byte?                                 UnitAddress                  = null,
                                Int16?                                StartingAddressOffset        = null,
                                String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                X509Certificate?                      ClientCert                   = null,
                                SslProtocols?                         TLSProtocol                  = null,
                                Boolean?                              PreferIPv4                   = null,

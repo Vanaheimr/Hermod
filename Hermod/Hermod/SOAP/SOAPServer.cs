@@ -92,57 +92,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the HTTP server thread immediately (default: no).</param>
-        public SOAPServer(IPPort                                TCPPort,
-                          String                                DefaultServerName             = HTTPServer.DefaultHTTPServerName,
-                          String?                               ServiceName                   = null,
+        /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
+        public SOAPServer(IPPort                               TCPPort,
+                          String                               DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String?                              ServiceName                  = null,
+                          HTTPContentType?                     SOAPContentType              = null,
 
-                          HTTPContentType?                      SOAPContentType               = null,
-                          ServerCertificateSelectorDelegate?    ServerCertificateSelector     = null,
-                          LocalCertificateSelectionCallback?    ClientCertificateSelector     = null,
-                          RemoteCertificateValidationCallback?  ClientCertificateValidator    = null,
-                          SslProtocols?                         AllowedTLSProtocols           = null,
-                          Boolean?                              ClientCertificateRequired     = null,
-                          Boolean?                              CheckCertificateRevocation    = null,
+                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                          SslProtocols?                        AllowedTLSProtocols          = null,
+                          Boolean?                             ClientCertificateRequired    = null,
+                          Boolean?                             CheckCertificateRevocation   = null,
 
-                          String?                               ServerThreadName              = null,
-                          ThreadPriority                        ServerThreadPriority          = ThreadPriority.AboveNormal,
-                          Boolean                               ServerThreadIsBackground      = true,
+                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                          Boolean?                             ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                          TimeSpan?                            ConnectionTimeout            = null,
+                          UInt32?                              MaxClientConnections         = null,
 
-                          ConnectionIdBuilder?                  ConnectionIdBuilder           = null,
-                          TimeSpan?                             ConnectionTimeout             = null,
-
-                          UInt32?                               MaxClientConnections          = null,
-                          DNSClient?                            DNSClient                     = null,
-                          Boolean                               Autostart                     = false)
+                          DNSClient?                           DNSClient                    = null,
+                          Boolean                              AutoStart                    = false)
 
         {
 
-            this.HTTPServer  = new HTTPServer(TCPPort,
-                                              DefaultServerName,
-                                              ServiceName,
-                                              ServerCertificateSelector,
-                                              ClientCertificateSelector,
-                                              ClientCertificateValidator,
-                                              AllowedTLSProtocols,
-                                              ClientCertificateRequired,
-                                              CheckCertificateRevocation,
+            this.HTTPServer  = new HTTPServer(
+                                   TCPPort,
+                                   DefaultServerName,
+                                   ServiceName,
 
-                                              ServerThreadName,
-                                              ServerThreadPriority,
-                                              ServerThreadIsBackground,
+                                   ServerCertificateSelector,
+                                   ClientCertificateValidator,
+                                   ClientCertificateSelector,
+                                   AllowedTLSProtocols,
+                                   ClientCertificateRequired,
+                                   CheckCertificateRevocation,
 
-                                              ConnectionIdBuilder,
-                                              ConnectionTimeout,
+                                   ServerThreadNameCreator,
+                                   ServerThreadPrioritySetter,
+                                   ServerThreadIsBackground,
+                                   ConnectionIdBuilder,
+                                   ConnectionTimeout,
+                                   MaxClientConnections,
 
-                                              MaxClientConnections,
-                                              DNSClient,
-                                              false);
+                                   DNSClient,
+                                   false
+                               );
 
             this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
             this.soapDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
-            if (Autostart)
+            if (AutoStart)
                 HTTPServer.Start();
 
         }

@@ -15,19 +15,12 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Text;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
     /// IP address helpers.
-    /// </summary>    
+    /// </summary>
     public static class IPAddressHelper
     {
 

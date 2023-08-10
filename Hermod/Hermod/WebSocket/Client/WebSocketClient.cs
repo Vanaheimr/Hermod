@@ -31,6 +31,7 @@ using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
 #endregion
 
@@ -60,19 +61,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     JArray           Response);
 
 
-    public delegate Task  OnWebSocketClientTextMessageDelegate  (DateTime                         Timestamp,
-                                                                 WebSocketClient                  Client,
-                                                                 WebSocketConnection              Connection,
-                                                                 WebSocketFrame                   Frame,
-                                                                 EventTracking_Id                 EventTrackingId,
-                                                                 String                           message);
+    public delegate Task  OnWebSocketClientTextMessageDelegate  (DateTime                    Timestamp,
+                                                                 WebSocketClient             Client,
+                                                                 WebSocketClientConnection   Connection,
+                                                                 WebSocketFrame              Frame,
+                                                                 EventTracking_Id            EventTrackingId,
+                                                                 String                      TextMessage);
 
-    public delegate Task  OnWebSocketClientBinaryMessageDelegate(DateTime                         Timestamp,
-                                                                 WebSocketClient                  Client,
-                                                                 WebSocketConnection              Connection,
-                                                                 WebSocketFrame                   Frame,
-                                                                 EventTracking_Id                 EventTrackingId,
-                                                                 Byte[]                           message);
+    public delegate Task  OnWebSocketClientBinaryMessageDelegate(DateTime                    Timestamp,
+                                                                 WebSocketClient             Client,
+                                                                 WebSocketClientConnection   Connection,
+                                                                 WebSocketFrame              Frame,
+                                                                 EventTracking_Id            EventTrackingId,
+                                                                 Byte[]                      BinaryMessage);
 
 
     /// <summary>
@@ -95,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         private   Socket?           TCPSocket;
-        private   MyNetworkStream?  TCPStream;
+        private   MyNetworkStream?  TCPNetworkStream;
         private   SslStream?        TLSStream;
         protected Stream?           HTTPStream;
 
@@ -118,6 +119,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private readonly          CancellationTokenSource  networkingCancellationTokenSource;
         private readonly          CancellationToken        networkingCancellationToken;
         private                   Thread                   networkingThread;
+
+
+        private WebSocketClientConnection webSocketClientConnection;
 
         #endregion
 
@@ -148,12 +152,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The remote SSL/TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationCallback?  RemoteCertificateValidator      { get; private set; }
+        public RemoteCertificateValidationHandler?  RemoteCertificateValidator      { get; private set; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector       { get; }
 
         /// <summary>
         /// The SSL/TLS client certificate to use of HTTP authentication.
@@ -193,7 +197,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
         /// </summary>
-        public Boolean                               UseHTTPPipelining               { get; }
+        public Boolean                               UseHTTPPipelining
+            => false;
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
@@ -343,12 +348,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
-        /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
-        /// <param name="HTTPAuthentication">The WebService-Security username/password.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional Request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
-        /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP Request through a single HTTP/TCP connection.</param>
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="LoggingContext">An optional context for logging client methods.</param>
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
@@ -357,26 +360,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketClient(URL                                   RemoteURL,
                                HTTPHostname?                         VirtualHostname              = null,
                                String?                               Description                  = null,
-                               RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               String                                HTTPUserAgent                = DefaultHTTPUserAgent,
-                               HTTPPath?                             URLPathPrefix                = null,
-                               SslProtocols?                         TLSProtocol                  = null,
                                Boolean?                              PreferIPv4                   = null,
+                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                               X509Certificate?                      ClientCert                   = null,
+                               SslProtocols?                         TLSProtocol                  = null,
+                               String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
                                IHTTPAuthentication?                  HTTPAuthentication           = null,
                                TimeSpan?                             RequestTimeout               = null,
                                TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
                                UInt16?                               MaxNumberOfRetries           = 3,
-                               Boolean                               UseHTTPPipelining            = false,
+                               UInt32?                               InternalBufferSize           = null,
 
                                IEnumerable<String>?                  SecWebSocketProtocols        = null,
 
-                               Boolean                               DisableMaintenanceTasks      = false,
-                               TimeSpan?                             MaintenanceEvery             = null,
                                Boolean                               DisableWebSocketPings        = false,
                                TimeSpan?                             WebSocketPingEvery           = null,
                                TimeSpan?                             SlowNetworkSimulationDelay   = null,
+
+                               Boolean                               DisableMaintenanceTasks      = false,
+                               TimeSpan?                             MaintenanceEvery             = null,
 
                                String?                               LoggingPath                  = null,
                                String                                LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
@@ -392,15 +395,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
             this.ClientCertificateSelector          = ClientCertificateSelector;
             this.ClientCert                         = ClientCert;
-            this.HTTPUserAgent                      = HTTPUserAgent;
-            //this.URLPathPrefix                      = URLPathPrefix;
+            this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.TLSProtocol                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
             this.HTTPAuthentication                 = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
             this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
-            this.UseHTTPPipelining                  = UseHTTPPipelining;
             this.HTTPLogger                         = HTTPLogger;
             this.DNSClient                          = DNSClient;
 
@@ -450,9 +451,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
-        public Task<HTTPResponse?> Connect(EventTracking_Id?   EventTrackingId     = null,
-                                           TimeSpan?           RequestTimeout      = null,
-                                           Byte                NumberOfRetries     = 0)
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        public Task<HTTPResponse> Connect(EventTracking_Id?  EventTrackingId     = null,
+                                          TimeSpan?          RequestTimeout      = null,
+                                          Byte               NumberOfRetries     = 0,
+                                          CancellationToken  CancellationToken   = default)
         {
 
             HTTPResponse? waitingForHTTPResponse = null;
@@ -473,8 +476,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         try
                         {
-
-                            //Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
                             #region Data
 
@@ -498,7 +499,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 if (TCPSocket is null)
                                 {
 
-                                    System.Net.IPEndPoint? _FinalIPEndPoint = null;
+                                    System.Net.IPEndPoint? remoteIPEndPoint = null;
 
                                     if (RemoteIPAddress is null)
                                     {
@@ -550,14 +551,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     }
 
-                                    _FinalIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                    remoteIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
                                                                                  RemoteURL.Port.Value.ToInt32());
 
                                     sw.Start();
-
-                                    //TCPClient = new TcpClient();
-                                    //TCPClient.Connect(_FinalIPEndPoint);
-                                    //TCPClient.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
 
 
                                     if (RemoteIPAddress.IsIPv4)
@@ -573,13 +570,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                     if (TCPSocket is not null) {
                                         TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
                                         TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                                        TCPSocket.Connect(_FinalIPEndPoint);
+                                        TCPSocket.Connect(remoteIPEndPoint);
                                         TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
                                     }
 
                                 }
 
-                                TCPStream = TCPSocket is not null
+                                TCPNetworkStream = TCPSocket is not null
                                                 ? new MyNetworkStream(TCPSocket, true) {
                                                       ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
                                                   }
@@ -593,21 +590,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                    (RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https))
                                 {
                                     RemoteCertificateValidator = (sender, certificate, chain, sslPolicyErrors) => {
-                                        return true;
+                                        return (true, Array.Empty<String>());
                                     };
                                 }
 
-                                if (RemoteCertificateValidator is not null)
+                                if (RemoteURL.Protocol == URLProtocols.https &&
+                                    TCPNetworkStream           is not null   &&
+                                    RemoteCertificateValidator is not null)
                                 {
 
                                     if (TLSStream is null)
                                     {
 
-                                        TLSStream = new SslStream(TCPStream,
-                                                                  false,
-                                                                  RemoteCertificateValidator,
-                                                                  ClientCertificateSelector,
-                                                                  EncryptionPolicy.RequireEncryption)
+                                        var remoteCertificateValidatorErrors = new List<String>();
+
+                                        TLSStream = new SslStream(
+                                                        innerStream:                         TCPNetworkStream,
+                                                        leaveInnerStreamOpen:                false,
+                                                        userCertificateValidationCallback:  (sender,
+                                                                                             certificate,
+                                                                                             chain,
+                                                                                             policyErrors) => {
+
+                                                                                                 var check = RemoteCertificateValidator(sender,
+                                                                                                                                        certificate is not null
+                                                                                                                                            ? new X509Certificate2(certificate)
+                                                                                                                                            : null,
+                                                                                                                                        chain,
+                                                                                                                                        policyErrors);
+
+                                                                                                 if (check.Item2.Any())
+                                                                                                     remoteCertificateValidatorErrors.AddRange(check.Item2);
+
+                                                                                                 return check.Item1;
+
+                                                                                             },
+                                                        userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                                                                                 ? null
+                                                                                                 : (sender,
+                                                                                                    targetHost,
+                                                                                                    localCertificates,
+                                                                                                    remoteCertificate,
+                                                                                                    acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                                                                                    targetHost,
+                                                                                                                                                    localCertificates.
+                                                                                                                                                        Cast<X509Certificate>().
+                                                                                                                                                        Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                                                    remoteCertificate is not null
+                                                                                                                                                        ? new X509Certificate2(remoteCertificate)
+                                                                                                                                                        : null,
+                                                                                                                                                    acceptableIssuers),
+                                                        encryptionPolicy:                    EncryptionPolicy.RequireEncryption
+                                                    )
                                         {
 
                                             ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
@@ -627,10 +661,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                       false);
 
                                         }
-                                        catch
+                                        catch (Exception e)
                                         {
+
+                                            //timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
+
+                                            //foreach (var error in remoteCertificateValidatorErrors)
+                                            //    timings.AddError(error);
+
                                             TCPSocket  = null;
                                             restart    = true;
+
                                         }
 
                                     }
@@ -640,7 +681,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 else
                                 {
                                     TLSStream   = null;
-                                    HTTPStream  = TCPStream;
+                                    HTTPStream  = TCPNetworkStream;
                                 }
 
                                 HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
@@ -650,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             }
                             while (restart);
 
-                            this.LocalPort = (IPSocket.FromIPEndPoint(TCPStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
+                            this.LocalPort = (IPSocket.FromIPEndPoint(TCPNetworkStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
 
                             #endregion
 
@@ -707,7 +748,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             //                   String.Concat("Timestamp: ",         Timestamp.Now.ToIso8601(),                                                Environment.NewLine,
                             //                                 "ChargeBoxId: ",       ChargeBoxIdentity.ToString(),                                             Environment.NewLine,
                             //                                 "HTTP request: ",      Environment.NewLine,                                                      Environment.NewLine,
-                            //                                 httpRequest.EntirePDU,                                                                               Environment.NewLine,
+                            //                                 httpRequest.EntirePDU,                                                                           Environment.NewLine,
                             //                                 "--------------------------------------------------------------------------------------------",  Environment.NewLine));
 
                             #endregion
@@ -727,7 +768,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 Thread.Sleep(1);
 
-                            } while (TCPStream.DataAvailable && pos < buffer.Length - 2048);
+                            } while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
 
                             var responseData  = buffer.ToUTF8String(pos);
                             var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
@@ -765,10 +806,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             #endregion
 
 
+                            webSocketClientConnection = new WebSocketClientConnection(this,
+                                                                                      TCPSocket,
+                                                                                      TCPNetworkStream,
+                                                                                      HTTPStream,
+                                                                                      httpRequest,
+                                                                                      httpResponse,
+                                                                                      CustomData:                  null,
+                                                                                      SlowNetworkSimulationDelay:  null);
+
                             do
                             {
 
-                                if (TCPStream?.DataAvailable == true)
+                                if (webSocketClientConnection?.DataAvailable == true)
                                 {
 
                                     buffer = Array.Empty<Byte>();
@@ -796,116 +846,132 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             Thread.Sleep(1);
 
-                                        } while (TCPStream.DataAvailable);
+                                        } while (webSocketClientConnection.DataAvailable);
 
                                         Array.Resize(ref buffer, pos);
 
-                                        if (WebSocketFrame.TryParse(buffer,
-                                                                    out WebSocketFrame?  frame,
-                                                                    out UInt64           frameLength,
-                                                                    out String?          errorResponse))
+                                        if (TryParse(buffer,
+                                                     out WebSocketFrame?  frame,
+                                                     out UInt64           frameLength,
+                                                     out String?          errorResponse) &&
+                                            frame is not null)
                                         {
 
-                                            if (frame is not null)
+                                            switch (frame.Opcode)
                                             {
 
-                                                switch (frame.Opcode)
-                                                {
+                                                #region Text
 
-                                                    case WebSocketFrame.Opcodes.Text: {
+                                                case WebSocketFrame.Opcodes.Text: {
 
-                                                        #region OnTextMessageReceived
+                                                    #region OnTextMessageReceived
 
-                                                        try
-                                                        {
+                                                    try
+                                                    {
 
-                                                            OnTextMessageReceived?.Invoke(Timestamp.Now,
-                                                                                          this,
-                                                                                          null, //webSocketConnection,
-                                                                                          frame,
-                                                                                          EventTracking_Id.New,
-                                                                                          frame.Payload.ToUTF8String());
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        await ProcessWebSocketTextFrame(frame);
+                                                            var onTextMessageReceived = OnTextMessageReceived;
+                                                            if (onTextMessageReceived is not null)
+                                                                await onTextMessageReceived.Invoke(Timestamp.Now,
+                                                                                                    this,
+                                                                                                    webSocketClientConnection,
+                                                                                                    frame,
+                                                                                                    EventTracking_Id.New,
+                                                                                                    frame.Payload.ToUTF8String());
 
                                                     }
-                                                    break;
-
-                                                    case WebSocketFrame.Opcodes.Binary: {
-
-                                                        #region OnBinaryMessageReceived
-
-                                                        try
-                                                        {
-
-                                                            OnBinaryMessageReceived?.Invoke(Timestamp.Now,
-                                                                                            this,
-                                                                                            null, //webSocketConnection,
-                                                                                            frame,
-                                                                                            EventTracking_Id.New,
-                                                                                            frame.Payload);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        await ProcessWebSocketBinaryFrame(frame);
-
+                                                    catch (Exception e)
+                                                    {
+                                                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageReceived));
                                                     }
-                                                    break;
 
-                                                    case WebSocketFrame.Opcodes.Ping: {
+                                                    #endregion
 
-                                                        DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
-
-                                                        SendWebSocketFrame(new WebSocketFrame(
-                                                                               WebSocketFrame.Fin.Final,
-                                                                               WebSocketFrame.MaskStatus.On,
-                                                                               new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
-                                                                               WebSocketFrame.Opcodes.Pong,
-                                                                               frame.Payload,
-                                                                               WebSocketFrame.Rsv.Off,
-                                                                               WebSocketFrame.Rsv.Off,
-                                                                               WebSocketFrame.Rsv.Off
-                                                                           ));
-
-                                                    }
-                                                    break;
-
-                                                    case WebSocketFrame.Opcodes.Pong: {
-                                                        DebugX.Log(nameof(WebSocketClient) + ": Pong received: " + frame.Payload.ToUTF8String());
-                                                    }
-                                                    break;
-
-                                                    default: {
-                                                        DebugX.Log(nameof(WebSocketClient), " Received unknown " + frame.Opcode + " frame!");
-                                                    }
-                                                    break;
+                                                    await ProcessWebSocketTextFrame(frame);
 
                                                 }
+                                                break;
 
-                                                if ((UInt64) buffer.Length > frameLength)
-                                                {
-                                                    var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
-                                                    Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
-                                                    buffer = newBuffer;
+                                                #endregion
+
+                                                #region Binary
+
+                                                case WebSocketFrame.Opcodes.Binary: {
+
+                                                    #region OnBinaryMessageReceived
+
+                                                    try
+                                                    {
+
+                                                        var onBinaryMessageReceived = OnBinaryMessageReceived;
+                                                        if (onBinaryMessageReceived is not null)
+                                                            await onBinaryMessageReceived.Invoke(Timestamp.Now,
+                                                                                                    this,
+                                                                                                    webSocketClientConnection,
+                                                                                                    frame,
+                                                                                                    EventTracking_Id.New,
+                                                                                                    frame.Payload);
+
+                                                    }
+                                                    catch (Exception e)
+                                                    {
+                                                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageReceived));
+                                                    }
+
+                                                    #endregion
+
+                                                    await ProcessWebSocketBinaryFrame(frame);
+
                                                 }
-                                                else
-                                                    buffer = null;
+                                                break;
+
+                                                #endregion
+
+                                                #region Ping
+
+                                                case WebSocketFrame.Opcodes.Ping: {
+
+                                                    DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
+
+                                                    await SendWebSocketFrame(WebSocketFrame.Pong(
+                                                                                    frame.Payload,
+                                                                                    Fin.Final,
+                                                                                    MaskStatus.On,
+                                                                                    RandomExtensions.GetBytes(4)
+                                                                                ));
+
+                                                }
+                                                break;
+
+                                                #endregion
+
+                                                #region Pong
+
+                                                case WebSocketFrame.Opcodes.Pong: {
+                                                    DebugX.Log(nameof(WebSocketClient) + ": Pong received: " + frame.Payload.ToUTF8String());
+                                                }
+                                                break;
+
+                                                #endregion
+
+                                                #region ...unknown
+
+                                                default:
+                                                    DebugX.Log(nameof(WebSocketClient), " Received unknown " + frame.Opcode + " frame!");
+
+                                                break;
+
+                                                #endregion
 
                                             }
+
+                                            if ((UInt64) buffer.Length > frameLength)
+                                            {
+                                                var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
+                                                Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
+                                                buffer = newBuffer;
+                                            }
+                                            else
+                                                buffer = null;
 
                                         }
 
@@ -1051,6 +1117,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }
 
+            waitingForHTTPResponse ??= new HTTPResponse.Builder() {
+                                           HTTPStatusCode = HTTPStatusCode.BadRequest
+                                       };
+
             return Task.FromResult(waitingForHTTPResponse);
 
         }
@@ -1095,15 +1165,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             var payload = pingCounter + ":" + Guid.NewGuid().ToString();
 
-                            SendWebSocketFrame(new WebSocketFrame(
+                            SendWebSocketFrame(WebSocketFrame.Ping(
+                                                   payload.ToUTF8Bytes(),
                                                    WebSocketFrame.Fin.Final,
                                                    WebSocketFrame.MaskStatus.On,
-                                                   new Byte[] { 0xaa, 0xbb, 0xcc, 0xdd },
-                                                   WebSocketFrame.Opcodes.Ping,
-                                                   payload.ToUTF8Bytes(),
-                                                   WebSocketFrame.Rsv.Off,
-                                                   WebSocketFrame.Rsv.Off,
-                                                   WebSocketFrame.Rsv.Off
+                                                   RandomExtensions.GetBytes(4)
                                                ));
 
                             DebugX.Log(nameof(WebSocketClient) + ": Ping sent:     '" + payload + "'!");
@@ -1160,7 +1226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 catch (ObjectDisposedException)
                 {
                     MaintenanceTimer.Dispose();
-                    TCPStream   = null;
+                    TCPNetworkStream   = null;
                     HTTPStream  = null;
                 }
                 catch (Exception e)
@@ -1198,17 +1264,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send a web socket text frame
         /// </summary>
         /// <param name="Text">The text to send.</param>
-        public void SendText(String Text)
+        public Task SendText(String Text)
 
-            => SendWebSocketFrame(new WebSocketFrame(
-                                      WebSocketFrame.Fin.Final,
-                                      WebSocketFrame.MaskStatus.On,
-                                      RandomExtensions.GetBytes(4),
-                                      WebSocketFrame.Opcodes.Text,
-                                      Text.ToUTF8Bytes(),
-                                      WebSocketFrame.Rsv.Off,
-                                      WebSocketFrame.Rsv.Off,
-                                      WebSocketFrame.Rsv.Off
+            => SendWebSocketFrame(WebSocketFrame.Text(
+                                      Text,
+                                      Fin.Final,
+                                      MaskStatus.On,
+                                      RandomExtensions.GetBytes(4)
                                   ));
 
         #endregion
@@ -1219,115 +1281,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send a web socket binary frame
         /// </summary>
         /// <param name="Bytes">The array of bytes to send.</param>
-        public void SendBinary(Byte[] Bytes)
+        public Task SendBinary(Byte[] Bytes)
 
-            => SendWebSocketFrame(new WebSocketFrame(
-                                     WebSocketFrame.Fin.Final,
-                                     WebSocketFrame.MaskStatus.On,
-                                     RandomExtensions.GetBytes(4),
-                                     WebSocketFrame.Opcodes.Binary,
-                                     Bytes,
-                                     WebSocketFrame.Rsv.Off,
-                                     WebSocketFrame.Rsv.Off,
-                                     WebSocketFrame.Rsv.Off
-                                 ));
+            => SendWebSocketFrame(WebSocketFrame.Binary(
+                                      Bytes,
+                                      Fin.Final,
+                                      MaskStatus.On,
+                                      RandomExtensions.GetBytes(4)
+                                  ));
 
         #endregion
 
         #region SendWebSocketFrame(WebSocketFrame)
 
-        public void SendWebSocketFrame(WebSocketFrame WebSocketFrame)
+        public async Task SendWebSocketFrame(WebSocketFrame WebSocketFrame)
         {
-            if (HTTPStream is not null)
+
+            await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame);
+
+            #region OnTextMessageSent
+
+            if (WebSocketFrame.Opcode == Opcodes.Text)
             {
-                lock (HTTPStream)
+
+                try
                 {
 
-                    try
-                    {
-
-                        if (SlowNetworkSimulationDelay.HasValue)
-                        {
-                            foreach (var _byte in WebSocketFrame.ToByteArray())
-                            {
-                                HTTPStream.Write(new Byte[] { _byte });
-                                HTTPStream.Flush();
-                                Thread.Sleep(SlowNetworkSimulationDelay.Value);
-                            }
-                        }
-
-                        else
-                        {
-                            HTTPStream.Write(WebSocketFrame.ToByteArray());
-                            HTTPStream.Flush();
-                        }
-
-                        #region OnOutgoingTextMessage
-
-                        if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
-                        {
-
-                            try
-                            {
-
-                                OnTextMessageSent?.Invoke(Timestamp.Now,
-                                                          this,
-                                                          null, //webSocketConnection,
-                                                          WebSocketFrame,
-                                                          EventTracking_Id.New,
-                                                          WebSocketFrame.Payload.ToUTF8String());
-
-                            }
-                            catch (Exception e)
-                            {
-                                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
-                            }
-
-                        }
-
-                        #endregion
-
-                        #region OnOutgoingBinaryMessage
-
-                        else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
-                        {
-
-                            try
-                            {
-
-                                OnBinaryMessageSent?.Invoke(Timestamp.Now,
-                                                            this,
-                                                            null, //webSocketConnection,
-                                                            WebSocketFrame,
-                                                            EventTracking_Id.New,
-                                                            WebSocketFrame.Payload);
-
-                            }
-                            catch (Exception e)
-                            {
-                                DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
-                            }
-
-                        }
-
-                        #endregion
-
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.LogException(e, "Sending a web socket frame in " + nameof(WebSocketClient));
-                    }
+                    var onTextMessageSent = OnTextMessageSent;
+                    if (onTextMessageSent is not null)
+                        await onTextMessageSent.Invoke(Timestamp.Now,
+                                                       this,
+                                                       webSocketClientConnection,
+                                                       WebSocketFrame,
+                                                       EventTracking_Id.New,
+                                                       WebSocketFrame.Payload.ToUTF8String());
 
                 }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
+                }
+
             }
+
+            #endregion
+
+            #region OnBinaryMessageSent
+
+            else if (WebSocketFrame.Opcode == Opcodes.Binary)
+            {
+
+                try
+                {
+
+                    var onBinaryMessageSent = OnBinaryMessageSent;
+                    if (onBinaryMessageSent is not null)
+                        await onBinaryMessageSent.Invoke(Timestamp.Now,
+                                                         this,
+                                                         webSocketClientConnection,
+                                                         WebSocketFrame,
+                                                         EventTracking_Id.New,
+                                                         WebSocketFrame.Payload);
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageSent));
+                }
+
+            }
+
+            #endregion
+
         }
 
         #endregion
 
 
-        #region Close()
+        #region Close(StatusCode = Normal, Reason = null)
 
-        public void Close()
+        /// <summary>
+        /// Close the connection.
+        /// </summary>
+        /// <param name="StatusCode">An optional status code for closing.</param>
+        /// <param name="Reason">An optional reason for closing.</param>
+        public async Task Close(ClosingStatusCode  StatusCode   = ClosingStatusCode.NormalClosure,
+                                String?            Reason       = null)
         {
 
             try
@@ -1335,16 +1374,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (HTTPStream is not null)
                 {
 
-                    SendWebSocketFrame(new WebSocketFrame(
-                                           WebSocketFrame.Fin.Final,
-                                           WebSocketFrame.MaskStatus.On,
-                                           new Byte[] { 0xaa, 0xaa, 0xaa, 0xaa },
-                                           WebSocketFrame.Opcodes.Close,
-                                           Array.Empty<Byte>(),
-                                           WebSocketFrame.Rsv.Off,
-                                           WebSocketFrame.Rsv.Off,
-                                           WebSocketFrame.Rsv.Off
-                                       ));
+                    await SendWebSocketFrame(WebSocketFrame.Close(
+                                                 StatusCode,
+                                                 Reason,
+                                                 WebSocketFrame.Fin.Final,
+                                                 WebSocketFrame.MaskStatus.On,
+                                                 RandomExtensions.GetBytes(4)
+                                             ));
 
                     HTTPStream.Close();
                     HTTPStream.Dispose();
@@ -1367,10 +1403,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             try
             {
-                if (TCPStream is not null)
+                if (TCPNetworkStream is not null)
                 {
-                    TCPStream.Close();
-                    TCPStream.Dispose();
+                    TCPNetworkStream.Close();
+                    TCPNetworkStream.Dispose();
                 }
             }
             catch
@@ -1398,7 +1434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public void Dispose()
         {
-            Close();
+            Close().GetAwaiter().GetResult();
         }
 
         #endregion

@@ -52,6 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -65,6 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                          Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?             HTTPAuthentication       = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -83,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    null,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -107,6 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -121,6 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                          Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?             HTTPAuthentication       = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -135,6 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Description,
                    PreferIPv4,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -158,6 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -171,6 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                          Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?             HTTPAuthentication       = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -185,6 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Description,
                    PreferIPv4,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -209,6 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -223,6 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String?                          Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?             HTTPAuthentication       = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -237,6 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Description,
                    PreferIPv4,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,

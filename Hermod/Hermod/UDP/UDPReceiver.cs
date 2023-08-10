@@ -283,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                          Port,
                            String                          ServiceBanner                = DefaultServiceBanner,
                            MapperDelegate                  Mapper                       = null,
@@ -293,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                            Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
                            ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                         PacketThreadsAreBackground   = true,
-                           Boolean                         Autostart                    = false)
+                           Boolean                         AutoStart                    = false)
 
 
             : this(new IPSocket(IPv4Address.Any, Port),
@@ -306,7 +306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket                        IPSocket,
                            String                          ServiceBanner                = DefaultServiceBanner,
                            MapperDelegate                  Mapper                       = null,
@@ -337,7 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                            Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
                            ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                         PacketThreadsAreBackground   = true,
-                           Boolean                         Autostart                    = false)
+                           Boolean                         AutoStart                    = false)
 
         {
 
@@ -375,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             this.CancellationTokenSource  = new CancellationTokenSource();
             this.CancellationToken        = CancellationTokenSource.Token;
 
-            if (Autostart)
+            if (AutoStart)
                 Start();
 
         }
@@ -397,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress                      IPAddress,
                            IPPort                          Port,
                            String                          ServiceBanner                = DefaultServiceBanner,
@@ -408,7 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                            Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
                            ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                         PacketThreadsAreBackground   = true,
-                           Boolean                         Autostart                    = false)
+                           Boolean                         AutoStart                    = false)
 
             : this(new IPSocket(IPAddress, Port),
                    ServiceBanner,
@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -742,7 +742,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPPort                           Port,
                            String                           ServiceBanner                = DefaultServiceBanner,
                            MapperDelegate                   Mapper                       = null,
@@ -752,7 +752,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                            Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
                            ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                          PacketThreadsAreBackground   = true,
-                           Boolean                          Autostart                    = false)
+                           Boolean                          AutoStart                    = false)
 
             : this(new IPSocket(IPv4Address.Any, Port),
                    ServiceBanner,
@@ -763,7 +763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -783,7 +783,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IPSocket                         IPSocket,
                            String                           ServiceBanner                = DefaultServiceBanner,
                            MapperDelegate                   Mapper                       = null,
@@ -793,7 +793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                            Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
                            ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                          PacketThreadsAreBackground   = true,
-                           Boolean                          Autostart                    = false)
+                           Boolean                          AutoStart                    = false)
 
             : base(IPSocket,
                    ServiceBanner,
@@ -805,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 
@@ -826,7 +826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsNameCreator">An optional delegate to set the name of the UDP packet threads.</param>
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
-        /// <param name="Autostart">Start the UDP receiver thread immediately.</param>
+        /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
         public UDPReceiver(IIPAddress                       IPAddress,
                            IPPort                           Port,
                            String                           ServiceBanner                = DefaultServiceBanner,
@@ -837,7 +837,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                            Func<UDPPacket<Byte[]>, String>  PacketThreadsNameCreator     = null,
                            ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
                            Boolean                          PacketThreadsAreBackground   = true,
-                           Boolean                          Autostart                    = false)
+                           Boolean                          AutoStart                    = false)
 
             : this(new IPSocket(IPAddress, Port),
                    ServiceBanner,
@@ -848,7 +848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                    PacketThreadsNameCreator,
                    PacketThreadsPriority,
                    PacketThreadsAreBackground,
-                   Autostart)
+                   AutoStart)
 
         { }
 

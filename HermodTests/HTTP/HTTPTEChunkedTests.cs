@@ -24,7 +24,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 {
 
     /// <summary>
@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
                        null,
                        null,
                        null,
-                       true) // Autostart
+                       true) // AutoStart
 
             {
 

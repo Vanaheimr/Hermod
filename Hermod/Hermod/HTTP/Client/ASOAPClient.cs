@@ -116,6 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="HTTPContentType">The HTTP content type to use.</param>
@@ -129,11 +130,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               HTTPHostname?                         VirtualHostname              = null,
                               String?                               Description                  = null,
                               Boolean?                              PreferIPv4                   = null,
-                              RemoteCertificateValidationCallback?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                               X509Certificate?                      ClientCert                   = null,
                               SslProtocols?                         TLSProtocol                  = null,
                               String                                HTTPUserAgent                = DefaultHTTPUserAgent,
+                              IHTTPAuthentication?                  HTTPAuthentication           = null,
                               HTTPPath?                             URLPathPrefix                = null,
                               Tuple<String, String>?                WSSLoginPassword             = null,
                               HTTPContentType?                      HTTPContentType              = null,
@@ -155,6 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                    ClientCert,
                    TLSProtocol,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   HTTPAuthentication,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
