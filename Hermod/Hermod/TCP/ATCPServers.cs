@@ -17,14 +17,12 @@
 
 #region Usings
 
-using System;
 using System.Collections;
-using System.Net.Security;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -40,9 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region Data
 
         /// <summary>
-        /// The internal TCP servers.
+        /// The internal list of TCP servers.
         /// </summary>
-        protected readonly List<TCPServer>  _TCPServers;
+        protected readonly List<TCPServer> tcpServers;
 
         #endregion
 
@@ -61,12 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationCallback?  ClientCertificateValidator      { get; }
+        public RemoteCertificateValidationHandler?  ClientCertificateValidator      { get; }
 
         /// <summary>
         /// The optional delegate to select the SSL/TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionCallback?    ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?    ClientCertificateSelector       { get; }
 
         /// <summary>
         /// The SSL/TLS protocol(s) allowed for this connection.
@@ -86,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ServiceName
 
-        private String _ServiceName = TCPServer.__DefaultServiceName;
+        private String serviceName = TCPServer.__DefaultServiceName;
 
         /// <summary>
         /// The service banner transmitted to a TCP client
@@ -97,17 +95,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return _ServiceName;
+                return serviceName;
             }
 
             set
             {
                 if (value.IsNotNullOrEmpty())
                 {
-                    lock (_TCPServers)
+                    lock (tcpServers)
                     {
-                        _ServiceName = value;
-                        _TCPServers.ForEach(_TCPServer => _TCPServer.ServiceName = value);
+                        serviceName = value;
+                        tcpServers.ForEach(tcpServer => tcpServer.ServiceName = value);
                     }
                 }
             }
@@ -118,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ServiceBanner
 
-        private String _ServiceBanner = TCPServer.__DefaultServiceBanner;
+        private String serviceBanner = TCPServer.__DefaultServiceBanner;
 
         /// <summary>
         /// The service banner transmitted to a TCP client
@@ -129,17 +127,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return _ServiceBanner;
+                return serviceBanner;
             }
 
             set
             {
                 if (value.IsNotNullOrEmpty())
                 {
-                    lock (_TCPServers)
+                    lock (tcpServers)
                     {
-                        _ServiceBanner = value;
-                        _TCPServers.ForEach(_TCPServer => _TCPServer.ServiceBanner = value);
+                        serviceBanner = value;
+                        tcpServers.ForEach(tcpServer => tcpServer.ServiceBanner = value);
                     }
                 }
             }
@@ -150,28 +148,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ServerThreadName
 
-        private String _ServerThreadName  = TCPServer.__DefaultServerThreadName;
+        private ServerThreadNameCreatorDelegate serverThreadNameCreator;
 
         /// <summary>
         /// The name of the TCP service threads.
         /// </summary>
-        public String ServerThreadName
+        public ServerThreadNameCreatorDelegate ServerThreadNameCreator
         {
 
             get
             {
-                return _ServerThreadName;
+                return serverThreadNameCreator;
             }
 
             set
             {
-                if (value.IsNotNullOrEmpty())
+                lock (tcpServers)
                 {
-                    lock (_TCPServers)
-                    {
-                        _ServerThreadName = value;
-                        _TCPServers.ForEach(_TCPServer => _TCPServer.ServerThreadName = value);
-                    }
+                    serverThreadNameCreator = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ServerThreadNameCreator = value);
                 }
             }
 
@@ -179,27 +174,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region ServerThreadPriority
+        #region ServerThreadPrioritySetter
 
-        private ThreadPriority _ServerThreadPriority;
+        private ServerThreadPriorityDelegate serverThreadPrioritySetter;
 
         /// <summary>
         /// The priority of the TCP service threads.
         /// </summary>
-        public ThreadPriority ServerThreadPriority
+        public ServerThreadPriorityDelegate ServerThreadPrioritySetter
         {
 
             get
             {
-                return _ServerThreadPriority;
+                return serverThreadPrioritySetter;
             }
 
             set
             {
-                lock (_TCPServers)
+                lock (tcpServers)
                 {
-                    _ServerThreadPriority = value;
-                    _TCPServers.ForEach(_ => _.ServerThreadPriority = value);
+                    serverThreadPrioritySetter = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ServerThreadPrioritySetter = value);
                 }
             }
 
@@ -209,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ServerThreadIsBackground
 
-        private Boolean _ServerThreadIsBackground;
+        private Boolean serverThreadIsBackground;
 
         /// <summary>
         /// Weather the TCP service threads are background or not (default: yes).
@@ -219,15 +214,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return _ServerThreadIsBackground;
+                return serverThreadIsBackground;
             }
 
             set
             {
-                lock (_TCPServers)
+                lock (tcpServers)
                 {
-                    _ServerThreadIsBackground = value;
-                    _TCPServers.ForEach(_ => _.ServerThreadIsBackground = value);
+                    serverThreadIsBackground = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ServerThreadIsBackground = value);
                 }
             }
 
@@ -238,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ConnectionIdBuilder
 
-        private ConnectionIdBuilder _ConnectionIdBuilder;
+        private ConnectionIdBuilder connectionIdBuilder;
 
         /// <summary>
         /// A delegate to build a connection identification based on IP socket information.
@@ -248,15 +243,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return _ConnectionIdBuilder;
+                return connectionIdBuilder;
             }
 
             set
             {
-                lock (_TCPServers)
+                lock (tcpServers)
                 {
-                    _ConnectionIdBuilder = value;
-                    _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionIdBuilder = value);
+                    connectionIdBuilder = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ConnectionIdBuilder = value);
                 }
             }
 
@@ -264,93 +259,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region ConnectionThreadsNameBuilder
-
-        //private ConnectionThreadsNameBuilder _ConnectionThreadsNameBuilder;
-
-        ///// <summary>
-        ///// A delegate to set the name of the TCP connection threads.
-        ///// </summary>
-        //public ConnectionThreadsNameBuilder ConnectionThreadsNameBuilder
-        //{
-
-        //    get
-        //    {
-        //        return _ConnectionThreadsNameBuilder;
-        //    }
-
-        //    set
-        //    {
-        //        lock (_TCPServers)
-        //        {
-        //            _ConnectionThreadsNameBuilder = value;
-        //            _TCPServers.ForEach(_ => _.ConnectionThreadsNameBuilder = value);
-        //        }
-        //    }
-
-        //}
-
-        #endregion
-
-        #region ConnectionThreadsPriorityBuilder
-
-        //private ConnectionThreadsPriorityBuilder _ConnectionThreadsPriorityBuilder;
-
-        ///// <summary>
-        ///// A delegate to set the priority of the TCP connection threads.
-        ///// </summary>
-        //public ConnectionThreadsPriorityBuilder ConnectionThreadsPriorityBuilder
-        //{
-
-        //    get
-        //    {
-        //        return _ConnectionThreadsPriorityBuilder;
-        //    }
-
-        //    set
-        //    {
-        //        lock (_TCPServers)
-        //        {
-        //            _ConnectionThreadsPriorityBuilder = value;
-        //            _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionThreadsPriorityBuilder = value);
-        //        }
-        //    }
-
-        //}
-
-        #endregion
-
-        #region ConnectionThreadsAreBackground
-
-        //private Boolean _ConnectionThreadsAreBackground;
-
-        ///// <summary>
-        ///// Whether the TCP connection threads are background threads or not (default: yes).
-        ///// </summary>
-        //public Boolean ConnectionThreadsAreBackground
-        //{
-
-        //    get
-        //    {
-        //        return _ConnectionThreadsAreBackground;
-        //    }
-
-        //    set
-        //    {
-        //        lock (_TCPServers)
-        //        {
-        //            _ConnectionThreadsAreBackground = value;
-        //            _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionThreadsAreBackground = value);
-        //        }
-        //    }
-
-        //}
-
-        #endregion
-
         #region ConnectionTimeout
 
-        private TimeSpan _ConnectionTimeout  = TCPServer.__DefaultConnectionTimeout;
+        private TimeSpan connectionTimeout  = TCPServer.__DefaultConnectionTimeout;
 
         /// <summary>
         /// The TCP client timeout for all incoming client connections.
@@ -360,15 +271,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return _ConnectionTimeout;
+                return connectionTimeout;
             }
 
             set
             {
-                lock (_TCPServers)
+                lock (tcpServers)
                 {
-                    _ConnectionTimeout = value;
-                    _TCPServers.ForEach(_TCPServer => _TCPServer.ConnectionTimeout = value);
+                    connectionTimeout = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.ConnectionTimeout = value);
                 }
             }
 
@@ -378,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region MaxClientConnections
 
-        private UInt32 _MaxClientConnections  = TCPServer.__DefaultMaxClientConnections;
+        private UInt32 maxClientConnections  = TCPServer.__DefaultMaxClientConnections;
 
         /// <summary>
         /// The maximum number of concurrent TCP client connections (default: 4096).
@@ -388,15 +299,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             get
             {
-                return _MaxClientConnections;
+                return maxClientConnections;
             }
 
             set
             {
-                lock (_TCPServers)
+                lock (tcpServers)
                 {
-                    _MaxClientConnections = value;
-                    _TCPServers.ForEach(_TCPServer => _TCPServer.MaxClientConnections = value);
+                    maxClientConnections = value;
+                    tcpServers.ForEach(tcpServer => tcpServer.MaxClientConnections = value);
                 }
             }
 
@@ -407,18 +318,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region IsStarted
 
-        private Boolean _IsStarted = false;
+        private Boolean isStarted = false;
 
         /// <summary>
         /// Is the server already started?
         /// </summary>
         public Boolean IsStarted
-        {
-            get
-            {
-                return _IsStarted;
-            }
-        }
+
+            => isStarted;
 
         #endregion
 
@@ -431,12 +338,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         {
             get
             {
-                lock (_TCPServers)
+                lock (tcpServers)
                 {
-
-                    return _TCPServers.Select(_TCPServer => _TCPServer.NumberOfClients).
-                                       Aggregate((a,b) => a + b);
-
+                    return tcpServers.Sum(tcpServer => tcpServer.NumberOfClients);
                 }
             }
         }
@@ -450,37 +354,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever the TCP servers instance was started.
         /// </summary>
-        public event StartedEventHandler?               OnStarted;
+        public event StartedEventHandler?           OnStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP socket was attached.
         /// </summary>
-        public event TCPSocketAttachedHandler?          OnTCPSocketAttached;
+        public event TCPSocketAttachedHandler?      OnTCPSocketAttached;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionHandler?              OnNewConnection;
+        public event NewConnectionHandler?          OnNewConnection;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler?      OnExceptionOccured;
+        public event ExceptionOccuredEventHandler?  OnExceptionOccured;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedHandler?           OnConnectionClosed;
+        public event ConnectionClosedHandler?       OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever a new TCP socket was detached.
         /// </summary>
-        public event TCPSocketDetachedHandler?          OnTCPSocketDetached;
+        public event TCPSocketDetachedHandler?      OnTCPSocketDetached;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.
         /// </summary>
-        public event CompletedEventHandler?             OnCompleted;
+        public event CompletedEventHandler?         OnCompleted;
 
         #endregion
 
@@ -503,67 +407,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server threads are a background thread or not (default: yes).</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionThreadsNameBuilder">An optional delegate to set the name of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsPriorityBuilder">An optional delegate to set the priority of the TCP connection threads.</param>
-        /// <param name="ConnectionThreadsAreBackground">Whether the TCP connection threads are background threads or not (default: yes).</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
-        /// <param name="Autostart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String?                               ServiceName                        = null,
-                           String?                               ServiceBanner                      = null,
+        /// <param name="AutoStart">Start the TCP server threads immediately (default: no).</param>
+        public ATCPServers(String?                              ServiceName                  = null,
+                           String?                              ServiceBanner                = null,
 
-                           ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                           LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                           RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
-                           SslProtocols?                         AllowedTLSProtocols                = null,
-                           Boolean?                              ClientCertificateRequired          = null,
-                           Boolean?                              CheckCertificateRevocation         = null,
+                           ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                           RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                           LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                           SslProtocols?                        AllowedTLSProtocols          = null,
+                           Boolean?                             ClientCertificateRequired    = null,
+                           Boolean?                             CheckCertificateRevocation   = null,
 
-                           String?                               ServerThreadName                   = null,
-                           ThreadPriority?                       ServerThreadPriority               = null,
-                           Boolean?                              ServerThreadIsBackground           = null,
-                           ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                           //ConnectionThreadsNameBuilder?         ConnectionThreadsNameBuilder       = null,
-                           //ConnectionThreadsPriorityBuilder?     ConnectionThreadsPriorityBuilder   = null,
-                           //Boolean?                              ConnectionThreadsAreBackground     = null,
-                           TimeSpan?                             ConnectionTimeout                  = null,
-                           UInt32?                               MaxClientConnections               = null,
+                           ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                           ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                           Boolean?                             ServerThreadIsBackground     = null,
+                           ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                           TimeSpan?                            ConnectionTimeout            = null,
+                           UInt32?                              MaxClientConnections         = null,
 
-                           DNSClient?                            DNSClient                          = null,
-                           Boolean                               Autostart                          = false)
+                           DNSClient?                           DNSClient                    = null,
+                           Boolean                              AutoStart                    = false)
 
         {
 
-            this._TCPServers                        = new List<TCPServer>();
-            this.DNSClient                          = DNSClient                        ?? new DNSClient();
+            this.tcpServers                  = new List<TCPServer>();
 
-            // TCP Server
-            this.ServerCertificateSelector          = ServerCertificateSelector;
-            this.ClientCertificateSelector          = ClientCertificateSelector;
-            this.ClientCertificateValidator         = ClientCertificateValidator;
-            this.AllowedTLSProtocols                = AllowedTLSProtocols              ?? SslProtocols.Tls12 | SslProtocols.Tls13;
-            this.ClientCertificateRequired          = ClientCertificateRequired        ?? false;
-            this.CheckCertificateRevocation         = CheckCertificateRevocation       ?? false;
+            this.ServerCertificateSelector   = ServerCertificateSelector;
+            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.ClientCertificateValidator  = ClientCertificateValidator;
+            this.AllowedTLSProtocols         = AllowedTLSProtocols        ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
+            this.CheckCertificateRevocation  = CheckCertificateRevocation ?? false;
 
-            this._ServiceName                       = ServiceName                      ?? TCPServer.__DefaultServiceName;
-            this._ServiceBanner                     = ServiceBanner                    ?? TCPServer.__DefaultServiceBanner;
+            this.serviceName                 = ServiceName                ?? TCPServer.__DefaultServiceName;
+            this.serviceBanner               = ServiceBanner              ?? TCPServer.__DefaultServiceBanner;
 
-            // Server thread related
-            this._ServerThreadName                  = ServerThreadName                 ?? TCPServer.__DefaultServerThreadName;
-            this._ServerThreadPriority              = ServerThreadPriority             ?? ThreadPriority.AboveNormal;
-            this._ServerThreadIsBackground          = ServerThreadIsBackground         ?? true;
+            this.serverThreadNameCreator     = ServerThreadNameCreator    ?? (socket => TCPServer.__DefaultServerThreadName);
+            this.serverThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
+            this.serverThreadIsBackground    = ServerThreadIsBackground   ?? true;
 
-            // TCP Connection
-            this._ConnectionIdBuilder               = ConnectionIdBuilder              ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP:" + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
-            //this._ConnectionThreadsNameBuilder      = ConnectionThreadsNameBuilder     ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => "TCP thread " + RemoteIPSocket.IPAddress + ":" + RemoteIPSocket.Port);
-            //this._ConnectionThreadsPriorityBuilder  = ConnectionThreadsPriorityBuilder ?? ((Sender, Timestamp, LocalSocket, RemoteIPSocket) => ThreadPriority.AboveNormal);
-            //this._ConnectionThreadsAreBackground    = ConnectionThreadsAreBackground   ?? true;
-            this._ConnectionTimeout                 = ConnectionTimeout                ?? TimeSpan.FromSeconds(30);
-            this._MaxClientConnections              = MaxClientConnections             ?? TCPServer.__DefaultMaxClientConnections;
+            this.connectionIdBuilder         = ConnectionIdBuilder        ?? ((sender, timestamp, localSocket, remoteIPSocket) => $"TCP: {remoteIPSocket.IPAddress}:{remoteIPSocket.Port}");
+            this.connectionTimeout           = ConnectionTimeout          ?? TimeSpan.FromSeconds(30);
+            this.maxClientConnections        = MaxClientConnections       ?? TCPServer.__DefaultMaxClientConnections;
 
-            if (Autostart)
+            this.DNSClient                   = DNSClient                  ?? new DNSClient();
+
+            if (AutoStart)
                 Start();
 
         }
@@ -575,46 +468,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) AttachTCPPorts  (Action, params Ports)
 
-        protected void AttachTCPPorts(Action<TCPServer> Action,
+        protected void AttachTCPPorts(Action<TCPServer>  Action,
                                       params IPPort[]    Ports)
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
 
-                foreach (var Port in Ports)
+                foreach (var port in Ports)
                 {
 
-                    var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(Port,
-                                                                                   ServerCertificateSelector,
-                                                                                   ClientCertificateValidator,
-                                                                                   ClientCertificateSelector,
-                                                                                   AllowedTLSProtocols,
-                                                                                   ClientCertificateRequired,
-                                                                                   CheckCertificateRevocation,
+                    var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
+                                                                       port,
+                                                                       ServiceName,
+                                                                       ServiceBanner,
 
-                                                                                   ServiceName,
-                                                                                   ServiceBanner,
-                                                                                   _ServerThreadName,
-                                                                                   _ServerThreadPriority,
-                                                                                   _ServerThreadIsBackground,
+                                                                       ServerCertificateSelector,
+                                                                       ClientCertificateValidator,
+                                                                       ClientCertificateSelector,
+                                                                       AllowedTLSProtocols,
+                                                                       ClientCertificateRequired,
+                                                                       CheckCertificateRevocation,
 
-                                                                                   _ConnectionIdBuilder,
-                                                                                   //_ConnectionThreadsNameBuilder,
-                                                                                   //_ConnectionThreadsPriorityBuilder,
-                                                                                   //_ConnectionThreadsAreBackground,
-                                                                                   _ConnectionTimeout,
+                                                                       serverThreadNameCreator,
+                                                                       serverThreadPrioritySetter,
+                                                                       serverThreadIsBackground,
+                                                                       connectionIdBuilder,
+                                                                       connectionTimeout,
+                                                                       maxClientConnections,
 
-                                                                                   _MaxClientConnections,
-                                                                                   false));
+                                                                       false)
+                                                                   );
 
-                    _TCPServer.OnStarted          += (Sender, Timestamp, Message) => SendTCPSocketAttached(Timestamp, _TCPServer.IPSocket, Message);
-                    _TCPServer.OnNewConnection    += SendNewConnection;
-                    _TCPServer.OnConnectionClosed += SendConnectionClosed;
-                    _TCPServer.OnCompleted        += (Sender, Timestamp, Message) => SendTCPSocketDetached(Timestamp, _TCPServer.IPSocket, Message);
-                    _TCPServer.OnExceptionOccured += SendExceptionOccured;
+                    tcpServer.OnStarted          += (sender, timestamp, message) => SendTCPSocketAttached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnNewConnection    += SendNewConnection;
+                    tcpServer.OnConnectionClosed += SendConnectionClosed;
+                    tcpServer.OnCompleted        += (sender, timestamp, message) => SendTCPSocketDetached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnExceptionOccured += SendExceptionOccured;
 
-                    Action(_TCPServer);
+                    Action(tcpServer);
 
                 }
 
@@ -626,48 +518,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) AttachTCPSockets(Action, params Sockets)
 
-        protected void AttachTCPSockets(Action<TCPServer> Action,
+        protected void AttachTCPSockets(Action<TCPServer>  Action,
                                         params IPSocket[]  Sockets)
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
 
-                foreach (var Socket in Sockets)
+                foreach (var socket in Sockets)
                 {
 
-                    var _TCPServer = _TCPServers.AddAndReturnElement(new TCPServer(Socket,
-                                                                                   ServerCertificateSelector,
-                                                                                   ClientCertificateValidator,
-                                                                                   ClientCertificateSelector,
-                                                                                   AllowedTLSProtocols,
-                                                                                   ClientCertificateRequired,
-                                                                                   CheckCertificateRevocation,
+                    var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
+                                                                       socket,
+                                                                       ServiceName,
+                                                                       ServiceBanner,
 
-                                                                                   ServiceName,
-                                                                                   ServiceBanner,
-                                                                                   _ServerThreadName,
-                                                                                   _ServerThreadPriority,
-                                                                                   _ServerThreadIsBackground,
+                                                                       ServerCertificateSelector,
+                                                                       ClientCertificateValidator,
+                                                                       ClientCertificateSelector,
+                                                                       AllowedTLSProtocols,
+                                                                       ClientCertificateRequired,
+                                                                       CheckCertificateRevocation,
 
-                                                                                   _ConnectionIdBuilder,
-                                                                                   //_ConnectionThreadsNameBuilder,
-                                                                                   //_ConnectionThreadsPriorityBuilder,
-                                                                                   //_ConnectionThreadsAreBackground,
-                                                                                   _ConnectionTimeout,
+                                                                       serverThreadNameCreator,
+                                                                       serverThreadPrioritySetter,
+                                                                       serverThreadIsBackground,
+                                                                       connectionIdBuilder,
+                                                                       connectionTimeout,
+                                                                       maxClientConnections,
 
-                                                                                   _MaxClientConnections,
-                                                                                   false));
+                                                                       false)
+                                                                   );
 
-                    _TCPServer.OnStarted          += (Sender, Timestamp, Message) => SendTCPSocketAttached(Timestamp, _TCPServer.IPSocket, Message);
-                    _TCPServer.OnNewConnection    += SendNewConnection;
-                    _TCPServer.OnConnectionClosed += SendConnectionClosed;
-                    _TCPServer.OnCompleted        += (Sender, Timestamp, Message) => SendTCPSocketDetached(Timestamp, _TCPServer.IPSocket, Message);
-                    _TCPServer.OnExceptionOccured += SendExceptionOccured;
+                    tcpServer.OnStarted          += (sender, timestamp, message) => SendTCPSocketAttached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnNewConnection    += SendNewConnection;
+                    tcpServer.OnConnectionClosed += SendConnectionClosed;
+                    tcpServer.OnCompleted        += (sender, timestamp, message) => SendTCPSocketDetached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnExceptionOccured += SendExceptionOccured;
 
-                    Action(_TCPServer);
+                    Action(tcpServer);
 
-                    SendTCPSocketAttached(Timestamp.Now, _TCPServer.IPSocket);
+                    SendTCPSocketAttached(Timestamp.Now,
+                                          tcpServer.IPSocket);
 
                 }
 
@@ -679,28 +571,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) DetachTCPPorts  (Action, params Ports)
 
-        protected void DetachTCPPorts(Action<TCPServer> Action,
+        protected void DetachTCPPorts(Action<TCPServer>  Action,
                                       params IPPort[]    Ports)
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
 
                 foreach (var Port in Ports)
                 {
-                    foreach (var _TCPServer in _TCPServers)
+                    foreach (var tcpServer in tcpServers)
                     {
-                        if ((IPv4Address) _TCPServer.IPAddress == IPv4Address.Any &&
-                                          _TCPServer.Port      == Port)
+                        if ((IPv4Address) tcpServer.IPAddress == IPv4Address.Any &&
+                                          tcpServer.Port      == Port)
                         {
 
-                            _TCPServer.OnStarted           -= SendStarted;
-                            _TCPServer.OnNewConnection     -= SendNewConnection;
-                            _TCPServer.OnConnectionClosed  -= SendConnectionClosed;
-                            _TCPServer.OnCompleted         -= SendCompleted;
-                            _TCPServer.OnExceptionOccured  -= SendExceptionOccured;
+                            tcpServer.OnStarted           -= SendStarted;
+                            tcpServer.OnNewConnection     -= SendNewConnection;
+                            tcpServer.OnConnectionClosed  -= SendConnectionClosed;
+                            tcpServer.OnCompleted         -= SendCompleted;
+                            tcpServer.OnExceptionOccured  -= SendExceptionOccured;
 
-                            Action(_TCPServer);
+                            Action(tcpServer);
 
                         }
                     }
@@ -715,21 +607,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region IPPorts
 
         public IEnumerable<IPPort> IPPorts
-            => _TCPServers.SafeSelect(server => server.Port);
+
+            => tcpServers.Select(server => server.Port);
 
         #endregion
 
         #region GetEnumerator()
 
         IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _TCPServers.GetEnumerator();
-        }
+
+            => tcpServers.GetEnumerator();
 
         public IEnumerator<TCPServer> GetEnumerator()
-        {
-            return _TCPServers.GetEnumerator();
-        }
+
+            => tcpServers.GetEnumerator();
 
         #endregion
 
@@ -737,9 +628,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         // Send events...
 
-        #region (protected) SendStarted(Sender, Timestamp, Message = null)
+        #region (protected) SendStarted         (Sender, Timestamp, Message = null)
 
-        protected void SendStarted(Object Sender, DateTime Timestamp, String Message = null)
+        protected void SendStarted(Object    Sender,
+                                   DateTime  Timestamp,
+                                   String?   Message   = null)
         {
 
             OnStarted?.Invoke(Sender,
@@ -752,7 +645,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendTCPSocketAttached(Timestamp, TCPSocket, Message = null)
 
-        protected void SendTCPSocketAttached(DateTime Timestamp, IPSocket TCPSocket, String Message = null)
+        protected void SendTCPSocketAttached(DateTime  Timestamp,
+                                             IPSocket  TCPSocket,
+                                             String?   Message   = null)
         {
 
             OnTCPSocketAttached?.Invoke(this,
@@ -804,7 +699,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendTCPSocketDetached(Timestamp, TCPSocket, Message = null)
 
-        protected void SendTCPSocketDetached(DateTime Timestamp, IPSocket TCPSocket, String Message = null)
+        protected void SendTCPSocketDetached(DateTime  Timestamp,
+                                             IPSocket  TCPSocket,
+                                             String?   Message   = null)
         {
 
             OnTCPSocketDetached?.Invoke(this,
@@ -833,7 +730,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendExceptionOccured(Sender, Timestamp, Exception)
 
-        protected void SendExceptionOccured(Object Sender, DateTime Timestamp, Exception Exception)
+        protected void SendExceptionOccured(Object     Sender,
+                                            DateTime   Timestamp,
+                                            Exception  Exception)
         {
 
             OnExceptionOccured?.Invoke(Sender,
@@ -853,13 +752,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Boolean Start()
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
 
-                foreach (var tcpServer in _TCPServers)
+                foreach (var tcpServer in tcpServers)
                     tcpServer.Start();
 
-                _IsStarted = true;
+                isStarted = true;
 
                 SendStarted(this, Timestamp.Now);
 
@@ -876,10 +775,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
 
-                foreach (var TCPServer in _TCPServers)
+                foreach (var TCPServer in tcpServers)
                     TCPServer.Start(Delay, InBackground);
 
                 SendStarted(this, Timestamp.Now);
@@ -898,10 +797,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         Boolean  Wait      = true)
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
 
-                foreach (var TCPServer in _TCPServers)
+                foreach (var TCPServer in tcpServers)
                     TCPServer.Shutdown(Message, Wait);
 
                 SendCompleted(this,
@@ -922,10 +821,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void Dispose()
         {
 
-            lock (_TCPServers)
+            lock (tcpServers)
             {
-                foreach (var TCPServer in _TCPServers)
-                    TCPServer.Dispose();
+                foreach (var tcpServer in tcpServers)
+                    tcpServer.Dispose();
             }
 
         }

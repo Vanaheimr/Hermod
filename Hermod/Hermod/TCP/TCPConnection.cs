@@ -236,8 +236,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public TCPConnection(TCPServer                             TCPServer,
                              TcpClient                             TCPClient,
                              ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                             RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                             LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                             RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                             LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                              SslProtocols?                         AllowedTLSProtocols          = null,
                              TimeSpan?                             ReadTimeout                  = null,
                              TimeSpan?                             WriteTimeout                 = null)
@@ -258,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                       this.ServerTimestamp,
                                                                       base.LocalSocket,
                                                                       base.RemoteSocket);
-            this.isClosed            = false;
+            this.isClosed             = false;
             this.NetworkStream        = TCPClient.GetStream();
 
             if (ReadTimeout.HasValue)
@@ -283,16 +283,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
 
-                    this.SSLStream      = new SslStream(innerStream:                        NetworkStream,
-                                                        leaveInnerStreamOpen:               true,
-                                                        userCertificateValidationCallback:  ClientCertificateValidator,
-                                                        userCertificateSelectionCallback:   ClientCertificateSelector,
-                                                        encryptionPolicy:                   EncryptionPolicy.RequireEncryption);
+                    this.SSLStream      = new SslStream(innerStream:                         NetworkStream,
+                                                        leaveInnerStreamOpen:                true,
+                                                        userCertificateValidationCallback:   ClientCertificateValidator is null
+                                                                                                 ? null
+                                                                                                 : (sender,
+                                                                                                    certificate,
+                                                                                                    chain,
+                                                                                                    policyErrors) => ClientCertificateValidator(sender,
+                                                                                                                                                certificate is not null
+                                                                                                                                                    ? new X509Certificate2(certificate)
+                                                                                                                                                    : null,
+                                                                                                                                                chain,
+                                                                                                                                                policyErrors).Item1,
+                                                        userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                                                                                 ? null
+                                                                                                 : (sender,
+                                                                                                    targetHost,
+                                                                                                    localCertificates,
+                                                                                                    remoteCertificate,
+                                                                                                    acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                                                                                    targetHost,
+                                                                                                                                                    localCertificates.
+                                                                                                                                                        Cast<X509Certificate>().
+                                                                                                                                                        Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                                                    remoteCertificate is not null
+                                                                                                                                                        ? new X509Certificate2(remoteCertificate)
+                                                                                                                                                        : null,
+                                                                                                                                                    acceptableIssuers),
+                                                        encryptionPolicy:                    EncryptionPolicy.RequireEncryption);
 
-                    this.SSLStream.AuthenticateAsServer(serverCertificate:                  ServerCertificate,
-                                                        clientCertificateRequired:          ClientCertificateValidator is not null,
-                                                        enabledSslProtocols:                AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
-                                                        checkCertificateRevocation:         false);
+                    this.SSLStream.AuthenticateAsServer(serverCertificate:                   ServerCertificate,
+                                                        clientCertificateRequired:           ClientCertificateValidator is not null,
+                                                        enabledSslProtocols:                 AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                        checkCertificateRevocation:          false);
 
                     if (this.SSLStream.RemoteCertificate is not null)
                     {

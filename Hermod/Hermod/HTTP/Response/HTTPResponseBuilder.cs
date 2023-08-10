@@ -423,12 +423,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// WWW-Authenticate
             /// </summary>
-            public IEnumerable<String> WWWAuthenticate
+            public String WWWAuthenticate
             {
 
                 get
                 {
-                    return GetHeaderFields<IEnumerable<String>>(HTTPResponseHeaderField.WWWAuthenticate);
+                    return GetHeaderFields<String>(HTTPResponseHeaderField.WWWAuthenticate);
                 }
 
                 set

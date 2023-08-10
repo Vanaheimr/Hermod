@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                                   SOAPContentType:    SOAPContentType ?? DefaultContentType,
                                   DNSClient:          DNSClient,
-                                  Autostart:          false),
+                                  AutoStart:          false),
                    URLPrefix)
 
         {
@@ -184,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               String?                               ServiceName                  = null,
 
                               ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                              RemoteCertificateValidationCallback?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionCallback?    ClientCertificateSelector    = null,
+                              RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                               SslProtocols                          AllowedTLSProtocols          = SslProtocols.Tls12,
                               HTTPPath?                             URLPrefix                    = null,
                               HTTPContentType?                      SOAPContentType              = null,
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   ClientCertificateSelector:   ClientCertificateSelector,
                                   AllowedTLSProtocols:         AllowedTLSProtocols,
                                   DNSClient:                   DNSClient,
-                                  Autostart:                   false),
+                                  AutoStart:                   false),
                    URLPrefix)
 
         {

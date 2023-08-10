@@ -17,9 +17,8 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 
 #endregion
 
@@ -42,158 +41,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     }
 
 
-    public static class Ext
+    public static class WebSocketFrameExtensions
     {
 
-        //public static bool TryGetUTF8DecodedString(this byte[] bytes, out string s)
-        //{
-        //    s = null;
-
-        //    try
-        //    {
-        //        s = Encoding.UTF8.GetString(bytes);
-        //    }
-        //    catch
-        //    {
-        //        return false;
-        //    }
-
-        //    return true;
-        //}
-
-        //public static bool TryGetUTF8EncodedBytes(this string s, out byte[] bytes)
-        //{
-        //    bytes = null;
-
-        //    try
-        //    {
-        //        bytes = Encoding.UTF8.GetBytes(s);
-        //    }
-        //    catch
-        //    {
-        //        return false;
-        //    }
-
-        //    return true;
-        //}
-
-        //public static T[] Reverse<T>(this T[] array)
-        //{
-        //    var len = array.Length;
-        //    var ret = new T[len];
-
-        //    var end = len - 1;
-        //    for (var i = 0; i <= end; i++)
-        //        ret[i] = array[end - i];
-
-        //    return ret;
-        //}
-
-        //public static byte[] ToHostOrder(this byte[] source, ByteOrder sourceOrder)
-        //{
-        //    if (source == null)
-        //        throw new ArgumentNullException("source");
-
-        //    if (source.Length < 2)
-        //        return source;
-
-        //    if (sourceOrder.IsHostOrder())
-        //        return source;
-
-        //    return source.Reverse();
-
-        //}
-
-        //public static ushort ToUInt16(this byte[] source, ByteOrder sourceOrder)
-        //{
-        //    return BitConverter.ToUInt16(source.ToHostOrder(sourceOrder), 0);
-        //}
-
-        //public static ulong ToUInt64(this byte[] source, ByteOrder sourceOrder)
-        //{
-        //    return BitConverter.ToUInt64(source.ToHostOrder(sourceOrder), 0);
-        //}
-
-        //public static T[] SubArray<T>(this T[] array, int startIndex, int length)
-        //{
-
-        //    if (array == null)
-        //        throw new ArgumentNullException("array");
-
-        //    var len = array.Length;
-        //    if (len == 0)
-        //    {
-        //        if (startIndex != 0)
-        //            throw new ArgumentOutOfRangeException("startIndex");
-
-        //        if (length != 0)
-        //            throw new ArgumentOutOfRangeException("length");
-
-        //        return array;
-        //    }
-
-        //    if (startIndex < 0 || startIndex >= len)
-        //        throw new ArgumentOutOfRangeException("startIndex");
-
-        //    if (length < 0 || length > len - startIndex)
-        //        throw new ArgumentOutOfRangeException("length");
-
-        //    if (length == 0)
-        //        return new T[0];
-
-        //    if (length == len)
-        //        return array;
-
-        //    var subArray = new T[length];
-        //    Array.Copy(array, startIndex, subArray, 0, length);
-
-        //    return subArray;
-
-        //}
-
-        //public static T[] SubArray<T>(this T[] array, long startIndex, long length)
-        //{
-        //    if (array == null)
-        //        throw new ArgumentNullException("array");
-
-        //    var len = array.LongLength;
-        //    if (len == 0)
-        //    {
-        //        if (startIndex != 0)
-        //            throw new ArgumentOutOfRangeException("startIndex");
-
-        //        if (length != 0)
-        //            throw new ArgumentOutOfRangeException("length");
-
-        //        return array;
-        //    }
-
-        //    if (startIndex < 0 || startIndex >= len)
-        //        throw new ArgumentOutOfRangeException("startIndex");
-
-        //    if (length < 0 || length > len - startIndex)
-        //        throw new ArgumentOutOfRangeException("length");
-
-        //    if (length == 0)
-        //        return new T[0];
-
-        //    if (length == len)
-        //        return array;
-
-        //    var subArray = new T[length];
-        //    Array.Copy(array, startIndex, subArray, 0, length);
-
-        //    return subArray;
-        //}
-
-        public static bool IsHostOrder(this ByteOrder order)
+        public static Boolean IsHostOrder(this ByteOrder order)
         {
             // true:  !(true ^ true)  or !(false ^ false)
             // false: !(true ^ false) or !(false ^ true)
             return !(BitConverter.IsLittleEndian ^ (order == ByteOrder.Little));
         }
 
-        internal static byte[] InternalToByteArray(this ushort value, ByteOrder order)
+        internal static Byte[] InternalToByteArray(this ushort value, ByteOrder order)
         {
 
             var ret = BitConverter.GetBytes(value);
@@ -205,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
-        internal static byte[] InternalToByteArray(this ulong value, ByteOrder order)
+        internal static Byte[] InternalToByteArray(this ulong value, ByteOrder order)
         {
 
             var ret = BitConverter.GetBytes(value);
@@ -217,35 +75,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
-        //internal static byte[] Append(this ushort code, string reason)
-        //{
-
-        //    var bytes = code.InternalToByteArray(ByteOrder.Big);
-
-        //    if (reason == null || reason.Length == 0)
-        //        return bytes;
-
-        //    var buff = new List<byte>(bytes);
-        //    buff.AddRange(Encoding.UTF8.GetBytes(reason));
-
-        //    return buff.ToArray();
-
-        //}
-
-
-
-        public   static Boolean IsControl(this WebSocketFrame.Opcodes Opcode)
+        public static Boolean IsControl(this WebSocketFrame.Opcodes Opcode)
             => Opcode >= WebSocketFrame.Opcodes.Close;
 
-        public   static Boolean IsData   (this WebSocketFrame.Opcodes Opcode)
+        public static Boolean IsData   (this WebSocketFrame.Opcodes Opcode)
             => Opcode == WebSocketFrame.Opcodes.Text ||
                Opcode == WebSocketFrame.Opcodes.Binary;
 
-        //internal static Boolean IsReserved(this ushort code)
-        //    => code == 1004 ||
-        //       code == 1005 ||
-        //       code == 1006 ||
-        //       code == 1015;
+        public static Boolean IsControl(this WebSocketFrame Frame)
+            => Frame.IsControl();
+
+        public static Boolean IsData   (this WebSocketFrame Frame)
+            => Frame.IsData();
+
+
+        public static WebSocketFrame.ClosingStatusCode GetClosingStatusCode(this WebSocketFrame Frame)
+        {
+
+            if (Frame.Opcode == WebSocketFrame.Opcodes.Close &&
+                Frame.Payload.Length >= 2)
+            {
+
+                return BitConverter.IsLittleEndian
+                           ? (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16(new[] { Frame.Payload[1], Frame.Payload[0] }, 0)
+                           : (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16(Frame.Payload, 0);
+
+            }
+
+            // https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1
+            // 1005 is a reserved value and MUST NOT be set as a status code in a
+            // Close control frame by an endpoint.  It is designated for use in
+            // applications expecting a status code to indicate that no status
+            // code was actually present.
+            return WebSocketFrame.ClosingStatusCode.NoStatusReceived;
+
+        }
+
+        public static String? GetClosingReason(this WebSocketFrame Frame)
+        {
+
+            if (Frame.Opcode == WebSocketFrame.Opcodes.Close &&
+                Frame.Payload.Length > 2)
+            {
+
+                // https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1
+                //    0- 999: Not used
+                // 1000-2999: Reserved for definition by the WebSocket specification and IETF
+                // 3000-3999: Available for use by libraries and frameworks
+                // 4000-4999: Available for use by applications
+                return Encoding.UTF8.GetString(Frame.Payload,
+                                               2,
+                                               Frame.Payload.Length - 2);
+
+            }
+
+            return null;
+
+        }
+
 
     }
 
@@ -260,6 +147,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// Web socket frame opcodes.
+        /// 
+        /// All control frames MUST have a payload length of 125 bytes or less
+        /// and MUST NOT be fragmented.
+        /// 
+        /// https://www.rfc-editor.org/rfc/rfc6455#section-5.2
         /// </summary>
         public enum Opcodes : byte
         {
@@ -279,6 +171,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             /// </summary>
             Binary        = 0x2,
 
+            // 0x3 - 0x7 are reserved for further non-control frames
+
+
             /// <summary>
             /// Equivalent to numeric value 8. Indicates connection close frame.
             /// </summary>
@@ -293,6 +188,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             /// Equivalent to numeric value 10. Indicates pong frame.
             /// </summary>
             Pong          = 0xa
+
+            // 0xb - 0xf are reserved for further control frames
 
         }
 
@@ -354,6 +251,147 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
+        #region (enum) ClosingStatusCode
+
+        /// <summary>
+        /// When closing an established connection (e.g. when sending a Close
+        /// frame, after the opening handshake has completed), an endpoint MAY
+        /// indicate a reason for closure.
+        /// 
+        ///    0- 999: Not used
+        /// 1000-2999: Reserved for definition by the WebSocket specification and IETF
+        /// 3000-3999: Available for use by libraries and frameworks
+        /// 4000-4999: Available for use by applications
+        /// 
+        /// https://www.rfc-editor.org/rfc/rfc6455#section-7.4
+        /// </summary>
+        public enum ClosingStatusCode : UInt16
+        {
+
+            /// <summary>
+            /// 1000 indicates a normal closure, meaning that the purpose for
+            /// which the connection was established has been fulfilled.
+            /// </summary>
+            NormalClosure           = 1000,
+
+            /// <summary>
+            /// 1001 indicates that an endpoint is "going away", such as a server
+            /// going down or a browser having navigated away from a page.
+            /// </summary>
+            GoingAway               = 1001,
+
+            /// <summary>
+            /// 1002 indicates that an endpoint is terminating the connection
+            /// due to a protocol error.
+            /// </summary>
+            ProtocolError           = 1002,
+
+            /// <summary>
+            /// 1003 indicates that an endpoint is terminating the connection
+            /// because it has received a type of data it cannot accept (e.g., an
+            /// endpoint that understands only text data MAY send this if it
+            /// receives a binary message).
+            /// </summary>
+            UnsupportedData         = 1003,
+
+            // 1004                   Reserved. The specific meaning might be defined in the future.
+
+            /// <summary>
+            /// 1005 is a reserved value and MUST NOT be set as a status code in a
+            /// Close control frame by an endpoint.  It is designated for use in
+            /// applications expecting a status code to indicate that no status
+            /// code was actually present.
+            /// </summary>
+            NoStatusReceived        = 1005,
+
+            /// <summary>
+            /// 1006 is a reserved value and MUST NOT be set as a status code in a
+            /// Close control frame by an endpoint.  It is designated for use in
+            /// applications expecting a status code to indicate that the
+            /// connection was closed abnormally, e.g., without sending or
+            /// receiving a Close control frame.
+            /// </summary>
+            AbnormalClosure         = 1006,
+
+            /// <summary>
+            /// 1007 indicates that an endpoint is terminating the connection
+            /// because it has received data within a message that was not
+            /// consistent with the type of the message (e.g., non-UTF-8 [RFC3629]
+            /// data within a text message).
+            /// </summary>
+            InvalidPayloadData      = 1007,
+
+            /// <summary>
+            /// 1008 indicates that an endpoint is terminating the connection
+            /// because it has received a message that violates its policy.
+            /// This is a generic status code that can be returned when there is no
+            /// other more suitable status code (e.g., 1003 or 1009) or if there
+            /// is a need to hide specific details about the policy.
+            /// </summary>
+            PolicyViolation         = 1008,
+
+            /// <summary>
+            /// 1009 indicates that an endpoint is terminating the connection
+            /// because it has received a message that is too big for it to
+            /// process.
+            /// </summary>
+            MessageTooBig           = 1009,
+
+            /// <summary>
+            /// 1010 indicates that an endpoint (client) is terminating the
+            /// connection because it has expected the server to negotiate one or
+            /// more extension, but the server didn't return them in the response
+            /// message of the WebSocket handshake.  The list of extensions that
+            /// are needed SHOULD appear in the /reason/ part of the Close frame.
+            /// Note that this status code is not used by the server, because it
+            /// can fail the WebSocket handshake instead.
+            /// </summary>
+            MandatoryExtension      = 1010,
+
+            /// <summary>
+            /// 1011 indicates that a server is terminating the connection because
+            /// it encountered an unexpected condition that prevented it from
+            /// fulfilling the request.
+            /// </summary>
+            InternalServerError     = 1011,
+
+            /// <summary>
+            /// This status code is meant to indicate that the server is restarting.
+            /// A service can send this close frame to tell the client it's going
+            /// down for a short period, usually for maintenance or deployment.
+            /// </summary>
+            ServiceRestart          = 1012,
+
+            /// <summary>
+            /// This status code is meant to indicate that the server is currently
+            /// unable to handle the connection (e.g., due to overloading or
+            /// maintenance), but it is suggested that the client reconnect at a
+            /// later time.
+            /// </summary>
+            TryAgainLater           = 1013,
+
+            /// <summary>
+            /// This status code is not defined in any RFC for WebSockets.
+            /// However, it is defined for HTTP and indicates that the server, while
+            /// acting as a gateway or proxy, received an invalid response from an
+            /// inbound server it accessed while attempting to fulfill the request.
+            /// </summary>
+            BadGateway              = 1014,
+
+            /// <summary>
+            /// 1015 is a reserved value and MUST NOT be set as a status code in a
+            /// Close control frame by an endpoint.  It is designated for use in
+            /// applications expecting a status code to indicate that the
+            /// connection was closed due to a failure to perform a TLS handshake
+            /// (e.g., the server certificate can't be verified).
+            /// </summary>
+            TlsHandshakeFailure     = 1015
+
+        }
+
+        #endregion
+
 
         #region Properties
 
@@ -418,29 +456,233 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Rsv1">Reserved 1</param>
         /// <param name="Rsv2">Reserved 2</param>
         /// <param name="Rsv3">Reserved 3</param>
-        public WebSocketFrame(Fin         FIN,
-                              MaskStatus  Mask,
-                              Byte[]      MaskingKey,
-                              Opcodes     Opcode,
-                              Byte[]      Payload,
-                              Rsv         Rsv1,
-                              Rsv         Rsv2,
-                              Rsv         Rsv3)
+        private WebSocketFrame(Opcodes     Opcode,
+                               Byte[]?     Payload      = null,
+                               Fin         FIN          = Fin.Final,
+                               MaskStatus  Mask         = MaskStatus.Off,
+                               Byte[]?     MaskingKey   = null,
+                               Rsv         Rsv1         = Rsv.Off,
+                               Rsv         Rsv2         = Rsv.Off,
+                               Rsv         Rsv3         = Rsv.Off)
         {
 
             if (Mask == MaskStatus.On && (MaskingKey is null || MaskingKey.Length != 4))
                 throw new ArgumentException("When a web socket mask is used the given masking key must be set!");
 
+            this.Opcode      = Opcode;
+            this.Payload     = Payload    ?? Array.Empty<Byte>();
             this.FIN         = FIN;
             this.Mask        = Mask;
-            this.MaskingKey  = MaskingKey;
-            this.Opcode      = Opcode;
-            this.Payload     = Payload;
+            this.MaskingKey  = MaskingKey ?? Array.Empty<Byte>();
             this.Rsv1        = Rsv1;
             this.Rsv2        = Rsv2;
             this.Rsv3        = Rsv3;
 
         }
+
+        #endregion
+
+
+        #region (static) Continuation(Payload = null, ...)
+
+        /// <summary>
+        /// Create a new 'Continuation' frame.
+        /// </summary>
+        /// <param name="Payload">The payload.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame Continuation(Byte[]?     Payload      = null,
+                                                  Fin         FIN          = Fin.Final,
+                                                  MaskStatus  Mask         = MaskStatus.Off,
+                                                  Byte[]?     MaskingKey   = null,
+                                                  Rsv         Rsv1         = Rsv.Off,
+                                                  Rsv         Rsv2         = Rsv.Off,
+                                                  Rsv         Rsv3         = Rsv.Off)
+
+            => new (Opcodes.Continuation,
+                    Payload,
+                    FIN,
+                    Mask,
+                    MaskingKey,
+                    Rsv1,
+                    Rsv2,
+                    Rsv3);
+
+        #endregion
+
+        #region (static) Text        (Text    = null, ...)
+
+        /// <summary>
+        /// Create a new 'Text' frame.
+        /// </summary>
+        /// <param name="Text">The text payload.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame Text(String?     Text         = null,
+                                          Fin         FIN          = Fin.Final,
+                                          MaskStatus  Mask         = MaskStatus.Off,
+                                          Byte[]?     MaskingKey   = null,
+                                          Rsv         Rsv1         = Rsv.Off,
+                                          Rsv         Rsv2         = Rsv.Off,
+                                          Rsv         Rsv3         = Rsv.Off)
+
+            => new (Opcodes.Text,
+                    Text?.ToUTF8Bytes(),
+                    FIN,
+                    Mask,
+                    MaskingKey,
+                    Rsv1,
+                    Rsv2,
+                    Rsv3);
+
+        #endregion
+
+        #region (static) Binary      (Payload = null, ...)
+
+        /// <summary>
+        /// Create a new 'Binary' frame.
+        /// </summary>
+        /// <param name="Payload">The payload.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame Binary(Byte[]?     Payload      = null,
+                                            Fin         FIN          = Fin.Final,
+                                            MaskStatus  Mask         = MaskStatus.Off,
+                                            Byte[]?     MaskingKey   = null,
+                                            Rsv         Rsv1         = Rsv.Off,
+                                            Rsv         Rsv2         = Rsv.Off,
+                                            Rsv         Rsv3         = Rsv.Off)
+
+            => new (Opcodes.Binary,
+                    Payload,
+                    FIN,
+                    Mask,
+                    MaskingKey,
+                    Rsv1,
+                    Rsv2,
+                    Rsv3);
+
+        #endregion
+
+        #region (static) Close       (StatusCode = 1000, Reason = null, ...)
+
+        /// <summary>
+        /// Create a new 'Close' frame.
+        /// </summary>
+        /// <param name="StatusCode">A status code for closing.</param>
+        /// <param name="Reason">An optional reason for closing.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame Close(ClosingStatusCode  StatusCode   = ClosingStatusCode.NormalClosure,
+                                           String?            Reason       = null,
+                                           Fin                FIN          = Fin.Final,
+                                           MaskStatus         Mask         = MaskStatus.Off,
+                                           Byte[]?            MaskingKey   = null,
+                                           Rsv                Rsv1         = Rsv.Off,
+                                           Rsv                Rsv2         = Rsv.Off,
+                                           Rsv                Rsv3         = Rsv.Off)
+        {
+
+            var payload     = new Byte[2 + (Reason?.Length ?? 0)];
+
+            var statusCode  = BitConverter.GetBytes((UInt16) StatusCode);
+
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(statusCode);
+
+            Array.Copy(statusCode, 0, payload, 0, 2);
+
+            if (Reason is not null)
+                Array.Copy(Reason.ToUTF8Bytes(), 0, payload, 2, Reason.Length);
+
+            return new (Opcodes.Close,
+                        payload,
+                        FIN,
+                        Mask,
+                        MaskingKey,
+                        Rsv1,
+                        Rsv2,
+                        Rsv3);
+
+        }
+
+        #endregion
+
+        #region (static) Ping        (Payload = null, ...)
+
+        /// <summary>
+        /// Create a new 'Ping' frame.
+        /// </summary>
+        /// <param name="Payload">The payload.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame Ping(Byte[]?     Payload      = null,
+                                          Fin         FIN          = Fin.Final,
+                                          MaskStatus  Mask         = MaskStatus.Off,
+                                          Byte[]?     MaskingKey   = null,
+                                          Rsv         Rsv1         = Rsv.Off,
+                                          Rsv         Rsv2         = Rsv.Off,
+                                          Rsv         Rsv3         = Rsv.Off)
+
+            => new (Opcodes.Ping,
+                    Payload,
+                    FIN,
+                    Mask,
+                    MaskingKey,
+                    Rsv1,
+                    Rsv2,
+                    Rsv3);
+
+        #endregion
+
+        #region (static) Pong        (Payload = null, ...)
+
+        /// <summary>
+        /// Create a new 'Pong' frame.
+        /// </summary>
+        /// <param name="Payload">The payload.</param>
+        /// <param name="FIN">Whether this frame is the final frame of a larger fragmented frame.</param>
+        /// <param name="Mask">The status of the frame mask.</param>
+        /// <param name="MaskingKey">The masking key.</param>
+        /// <param name="Rsv1">Reserved 1</param>
+        /// <param name="Rsv2">Reserved 2</param>
+        /// <param name="Rsv3">Reserved 3</param>
+        public static WebSocketFrame Pong(Byte[]?     Payload      = null,
+                                          Fin         FIN          = Fin.Final,
+                                          MaskStatus  Mask         = MaskStatus.Off,
+                                          Byte[]?     MaskingKey   = null,
+                                          Rsv         Rsv1         = Rsv.Off,
+                                          Rsv         Rsv2         = Rsv.Off,
+                                          Rsv         Rsv3         = Rsv.Off)
+
+            => new (Opcodes.Pong,
+                    Payload,
+                    FIN,
+                    Mask,
+                    MaskingKey,
+                    Rsv1,
+                    Rsv2,
+                    Rsv3);
 
         #endregion
 
@@ -589,11 +831,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 // DebugX.Log(String.Concat("Received a '", opcode, "' web socket frame with ", payloadLength, " bytes payload: '", payload.ToUTF8String(), "'!"));
 
-                Frame = new WebSocketFrame(fin,
+                Frame = new WebSocketFrame(opcode,
+                                           payload,
+                                           fin,
                                            mask,
                                            maskingKey,
-                                           opcode,
-                                           payload,
                                            rsv1,
                                            rsv2,
                                            rsv3);
@@ -622,7 +864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             var payloadLength  = (UInt64) Payload.Length;
-            var offset         = 0;
+            var offset         = 0U;
 
             Byte[] frameBytes;
 
@@ -674,37 +916,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             frameBytes[0] |= (Byte) Opcode;
 
-            try
+
+            // Mask is only required for client -> server communication!
+            if (IsMasked)
             {
-                // Mask is required when client -> server!
-                if (IsMasked)
-                {
 
-                    frameBytes[1] |= 0x80;
+                frameBytes[1] |= 0x80;
 
-                    frameBytes[offset]     = MaskingKey[0];
-                    frameBytes[offset + 1] = MaskingKey[1];
-                    frameBytes[offset + 2] = MaskingKey[2];
-                    frameBytes[offset + 3] = MaskingKey[3];
+                frameBytes[offset]     = MaskingKey[0];
+                frameBytes[offset + 1] = MaskingKey[1];
+                frameBytes[offset + 2] = MaskingKey[2];
+                frameBytes[offset + 3] = MaskingKey[3];
 
-                    offset += 4;
+                offset += 4;
 
-                    for (var i = 0U; i < payloadLength; ++i)
-                        Payload[i] = (Byte) (Payload[i] ^ MaskingKey[i % 4]);
+                for (var i = 0U; i < payloadLength; ++i)
+                    frameBytes[i + offset] = (Byte) (Payload[i] ^ MaskingKey[i % 4]);
 
-                }
-
+            }
+            else
                 Array.Copy(Payload, 0, frameBytes, offset, Payload.Length);
-
-            }
-            catch (Exception e)
-            {
-                DebugX.LogException(e);
-            }
 
             return frameBytes;
 
         }
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Returns a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => Opcode switch {
+                   Opcodes.Continuation  => $"Continuation '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Text          => $"Text '{Payload.ToUTF8String().SubstringMax(30)}' ({Payload.ToUTF8String().Length})",
+                   Opcodes.Binary        => $"Binary '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Close         => $"Close '{this.GetClosingStatusCode()}' '{this.GetClosingReason()}'",
+                   Opcodes.Ping          => $"Ping '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Pong          => $"Pong '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   _                     => $"Unknown web socket opcode '{Opcode}'!"
+               };
 
         #endregion
 

@@ -31,6 +31,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        /// <summary>
+        /// Creates a new HTTP response header field.
+        /// </summary>
+        /// <param name="Name">The name of the HTTP response header field.</param>
+        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
         public HTTPResponseHeaderField(String               Name,
                                        RequestPathSemantic  RequestPathSemantic)
 
@@ -67,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPResponseHeaderField<UInt64?> Age = new ("Age",
                                                                            RequestPathSemantic.EndToEnd,
-                                                                           StringParsers.NullableUInt64);
+                                                                           StringParser: StringParsers.NullableUInt64);
 
         #endregion
 
@@ -102,7 +107,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPMethod>> Allow = new ("Allow",
                                                                                              RequestPathSemantic.EndToEnd,
-                                                                                             (String s, out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSet(s, HTTPMethod.TryParse, out o));
+                                                                                             MultipleValuesAsList:  true,
+                                                                                             StringParser:         (String s, out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSet(s, HTTPMethod.TryParse, out o));
 
         #endregion
 
@@ -113,7 +119,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPContentType>> AcceptPatch = new ("Accept-Patch",
                                                                                                         RequestPathSemantic.EndToEnd,
-                                                                                                        (String s, out IEnumerable<HTTPContentType>? o) => StringParsers.NullableHashSet(s, HTTPContentType.TryParse, out o));
+                                                                                                        MultipleValuesAsList:  true,
+                                                                                                        StringParser:         (String s, out IEnumerable<HTTPContentType>? o) => StringParsers.NullableHashSet(s, HTTPContentType.TryParse, out o));
 
         #endregion
 
@@ -299,8 +306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPResponseHeaderField<DateTime> LastModified = new ("Last-Modified",
                                                                                      RequestPathSemantic.EndToEnd,
-                                                                                     DateTime.TryParse,
-                                                                                     dateTime => dateTime.ToIso8601());
+                                                                                     StringParser:     DateTime.TryParse,
+                                                                                     ValueSerializer:  dateTime => dateTime.ToIso8601());
 
         #endregion
 
@@ -327,7 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPResponseHeaderField<Location> Location = new ("Location",
                                                                                  RequestPathSemantic.EndToEnd,
-                                                                                 HTTP.Location.TryParse);
+                                                                                 StringParser: HTTP.Location.TryParse);
 
         #endregion
 
@@ -472,11 +479,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// field is provided, the contents of a challenge itself can
         /// contain a comma-separated list of authentication parameters. 
         /// </summary>
-        /// <example>WWW-Authenticate: Basic</example>
+        /// <example>
+        /// WWW-Authenticate: Basic realm="Access to the web sockets server",
+        ///                   charset="UTF-8",
+        ///                   Digest realm="Access to the web sockets server",
+        ///                   domain="/",
+        ///                   nonce="n9ivb628MTAuMTY4LjEuODQ=",
+        ///                   algorithm=MD5,
+        ///                   qop="auth"
+        /// </example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPResponseHeaderField<IEnumerable<String>> WWWAuthenticate = new ("WWW-Authenticate",
-                                                                                                   RequestPathSemantic.EndToEnd,
-                                                                                                   StringParsers.NullableHashSetOfStrings);
+        public static readonly HTTPResponseHeaderField<String> WWWAuthenticate = new ("WWW-Authenticate",
+                                                                                      RequestPathSemantic.EndToEnd);
 
         #endregion
 
@@ -503,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://en.wikipedia.org/wiki/HTTP_cookie"/>
         public static readonly HTTPResponseHeaderField<HTTPCookies?> SetCookie = new ("Set-Cookie",
                                                                                       RequestPathSemantic.EndToEnd,
-                                                                                      HTTPCookies.TryParse);
+                                                                                      StringParser: HTTPCookies.TryParse);
 
         #endregion
 
@@ -531,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlAllowMethods = new ("Access-Control-Allow-Methods",
                                                                                                              RequestPathSemantic.EndToEnd,
-                                                                                                             StringParsers.NullableHashSetOfStrings);
+                                                                                                             StringParser: StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
@@ -544,7 +558,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlAllowHeaders = new ("Access-Control-Allow-Headers",
                                                                                                              RequestPathSemantic.EndToEnd,
-                                                                                                             StringParsers.NullableHashSetOfStrings);
+                                                                                                             MultipleValuesAsList:  true,
+                                                                                                             StringParser:          StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
@@ -560,7 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age"/>
         public static readonly HTTPResponseHeaderField<UInt64?> AccessControlMaxAge = new ("Access-Control-Max-Age",
                                                                                            RequestPathSemantic.EndToEnd,
-                                                                                           StringParsers.NullableUInt64);
+                                                                                           StringParser: StringParsers.NullableUInt64);
 
         #endregion
 
@@ -585,7 +600,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>X-ExpectedTotalNumberOfItems: 42</example>
         public static readonly HTTPResponseHeaderField<UInt64?> X_ExpectedTotalNumberOfItems = new ("X-ExpectedTotalNumberOfItems",
                                                                                                     RequestPathSemantic.EndToEnd,
-                                                                                                    StringParsers.NullableUInt64);
+                                                                                                    StringParser: StringParsers.NullableUInt64);
 
         #endregion
 
@@ -614,14 +629,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        /// <summary>
+        /// Creates a new HTTP response header field.
+        /// </summary>
+        /// <param name="Name">The name of the HTTP response header field.</param>
+        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
+        /// <param name="MultipleValuesAsList">When set to true header fields having multiple values will be serialized as a comma separated list, otherwise as multiple lines.</param>
+        /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
+        /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
         public HTTPResponseHeaderField(String                       Name,
                                        RequestPathSemantic          RequestPathSemantic,
-                                       TryParser<T>?                StringParser      = null,
-                                       ValueSerializerDelegate<T>?  ValueSerializer   = null)
+                                       Boolean?                     MultipleValuesAsList   = null,
+                                       TryParser<T>?                StringParser           = null,
+                                       ValueSerializerDelegate<T>?  ValueSerializer        = null)
 
             : base(Name,
                    HeaderFieldType.Response,
                    RequestPathSemantic,
+                   MultipleValuesAsList,
                    StringParser,
                    ValueSerializer)
 

@@ -335,31 +335,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Sec-WebSocket-Protocol
 
-       // private IEnumerable<String> secWebSocketProtocol;
-
         /// <summary>
         /// Sec-WebSocket-Protocol
         /// </summary>
         public IEnumerable<String> SecWebSocketProtocol
 
-            => GetHeaderFields(HTTPHeaderField.SecWebSocketProtocol);
-
-        //{
-        //    get
-        //    {
-
-        //        if (secWebSocketProtocol is not null)
-        //            return secWebSocketProtocol;
-
-        //        var secWebSocketProtocols = GetHeaderField<String>(HTTPHeaderField.SecWebSocketProtocol);
-
-        //        if (secWebSocketProtocols is not null)
-        //            secWebSocketProtocol = secWebSocketProtocols.Split(',').Select(protocol => protocol.Trim()).Distinct();
-
-        //        return secWebSocketProtocol ?? Array.Empty<String>();
-
-        //    }
-        //}
+            => GetHeaderFields<IEnumerable<String>>(HTTPHeaderField.SecWebSocketProtocol)
+                   ?? Array.Empty<String>();
 
         #endregion
 
@@ -977,13 +959,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (headerFields.TryGetValue(HeaderField.Name, out var value) &&
                 value is not null)
             {
-                if (value is String text &&
-                    HeaderField.StringParser is not null &&
-                    HeaderField.StringParser(text, out var valueT) &&
-                    valueT is not null)
+
+                //if (value is String text &&
+                //    HeaderField.StringParser is not null &&
+                //    HeaderField.StringParser(text, out var valueT) &&
+                //    valueT is not null)
+                //{
+                //    headerFieldsParsed.TryAdd(HeaderField.Name, valueT);
+                //    return valueT;
+                //}
+
+                if (value is String text)
                 {
-                    headerFieldsParsed.TryAdd(HeaderField.Name, valueT);
-                    return valueT;
+
+                    if (typeof(T).Equals(typeof(String)))
+                    {
+                        return (T) value;
+                    }
+
+                    if (HeaderField.StringParser is not null &&
+                        HeaderField.StringParser(text, out var valueT))
+                    {
+                        headerFieldsParsed.Add(HeaderField.Name, valueT);
+                        return valueT;
+                    }
+
                 }
             }
 

@@ -21,11 +21,11 @@ using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 {
 
     /// <summary>
@@ -56,8 +56,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP
         public async Task Test_001()
         {
 
-            var httpClient = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
-            var httpResponse = await httpClient.GET(HTTPPath.Root).
+            var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
+            var httpResponse  = await httpClient.GET(HTTPPath.Root).
                                                  ConfigureAwait(false);
 
 

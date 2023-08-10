@@ -159,9 +159,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             //    break;
 
                             case IEnumerable<String> texts:
-                                //foreach (var text in texts)
-                                //    sb.Append($"{headerField.Key}: {text}\r\n");
-                                sb.Append($"{headerField.Key}: {texts.AggregateWith(", ")}\r\n");
+                                if (texts.Any())
+                                {
+
+                                    var definedHeaderField = HTTPHeaderField.GetByName(headerField.Key);
+                                    if (definedHeaderField is not null)
+                                    {
+
+                                        if (definedHeaderField.MultipleValuesAsList == true)
+                                            sb.Append($"{headerField.Key}: {texts.AggregateWith(", ")}\r\n");
+
+                                        else
+                                            foreach (var text in texts)
+                                                sb.Append($"{headerField.Key}: {text}\r\n");
+
+                                    }
+
+                                }
                                 break;
 
                             case IHTTPAuthentication httpAuthentication:

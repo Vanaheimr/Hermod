@@ -24,7 +24,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.UnitTests.HTTP.Concurrent
+namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 {
 
     /// <summary>

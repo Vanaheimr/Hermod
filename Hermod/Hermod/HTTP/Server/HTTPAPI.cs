@@ -1298,73 +1298,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
-        /// <param name="Autostart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPHostname?                         HTTPHostname                       = null,
-                       String?                               ExternalDNSName                    = null,
-                       IPPort?                               HTTPServerPort                     = null,
-                       HTTPPath?                             BasePath                           = null,
-                       String?                               HTTPServerName                     = DefaultHTTPServerName,
+        /// <param name="AutoStart">Whether to start the API automatically.</param>
+        public HTTPAPI(HTTPHostname?                        HTTPHostname                 = null,
+                       String?                              ExternalDNSName              = null,
+                       IPPort?                              HTTPServerPort               = null,
+                       HTTPPath?                            BasePath                     = null,
+                       String?                              HTTPServerName               = DefaultHTTPServerName,
 
-                       HTTPPath?                             URLPathPrefix                      = null,
-                       String?                               HTTPServiceName                    = DefaultHTTPServiceName,
-                       String?                               HTMLTemplate                       = null,
-                       JObject?                              APIVersionHashes                   = null,
+                       HTTPPath?                            URLPathPrefix                = null,
+                       String?                              HTTPServiceName              = DefaultHTTPServiceName,
+                       String?                              HTMLTemplate                 = null,
+                       JObject?                             APIVersionHashes             = null,
 
-                       ServerCertificateSelectorDelegate?    ServerCertificateSelector          = null,
-                       RemoteCertificateValidationCallback?  ClientCertificateValidator         = null,
-                       LocalCertificateSelectionCallback?    ClientCertificateSelector          = null,
-                       SslProtocols?                         AllowedTLSProtocols                = null,
-                       Boolean?                              ClientCertificateRequired          = null,
-                       Boolean?                              CheckCertificateRevocation         = null,
+                       ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                       RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                       LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                       SslProtocols?                        AllowedTLSProtocols          = null,
+                       Boolean?                             ClientCertificateRequired    = null,
+                       Boolean?                             CheckCertificateRevocation   = null,
 
-                       String?                               ServerThreadName                   = null,
-                       ThreadPriority?                       ServerThreadPriority               = null,
-                       Boolean?                              ServerThreadIsBackground           = null,
+                       ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                       ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                       Boolean?                             ServerThreadIsBackground     = null,
+                       ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                       TimeSpan?                            ConnectionTimeout            = null,
+                       UInt32?                              MaxClientConnections         = null,
 
-                       ConnectionIdBuilder?                  ConnectionIdBuilder                = null,
-                       TimeSpan?                             ConnectionTimeout                  = null,
-                       UInt32?                               MaxClientConnections               = null,
+                       Boolean?                             DisableMaintenanceTasks      = null,
+                       TimeSpan?                            MaintenanceInitialDelay      = null,
+                       TimeSpan?                            MaintenanceEvery             = null,
 
-                       Boolean?                              DisableMaintenanceTasks            = null,
-                       TimeSpan?                             MaintenanceInitialDelay            = null,
-                       TimeSpan?                             MaintenanceEvery                   = null,
+                       Boolean?                             DisableWardenTasks           = null,
+                       TimeSpan?                            WardenInitialDelay           = null,
+                       TimeSpan?                            WardenCheckEvery             = null,
 
-                       Boolean?                              DisableWardenTasks                 = null,
-                       TimeSpan?                             WardenInitialDelay                 = null,
-                       TimeSpan?                             WardenCheckEvery                   = null,
+                       Boolean?                             IsDevelopment                = null,
+                       IEnumerable<String>?                 DevelopmentServers           = null,
+                       Boolean?                             DisableLogging               = null,
+                       String?                              LoggingPath                  = null,
+                       String?                              LogfileName                  = null,
+                       LogfileCreatorDelegate?              LogfileCreator               = null,
+                       DNSClient?                           DNSClient                    = null,
+                       Boolean                              AutoStart                    = false)
 
-                       Boolean?                              IsDevelopment                      = null,
-                       IEnumerable<String>?                  DevelopmentServers                 = null,
-                       Boolean?                              DisableLogging                     = null,
-                       String?                               LoggingPath                        = null,
-                       String?                               LogfileName                        = null,
-                       LogfileCreatorDelegate?               LogfileCreator                     = null,
-                       DNSClient?                            DNSClient                          = null,
-                       Boolean                               Autostart                          = false)
+            : this(new HTTPServer(
+                       HTTPServerPort ?? DefaultHTTPServerPort,
+                       HTTPServerName ?? DefaultHTTPServerName,
+                       HTTPServiceName,
 
-            : this(new HTTPServer(HTTPServerPort ?? DefaultHTTPServerPort,
-                                  HTTPServerName ?? DefaultHTTPServerName,
-                                  HTTPServiceName,
+                       ServerCertificateSelector,
+                       ClientCertificateValidator,
+                       ClientCertificateSelector,
+                       AllowedTLSProtocols,
+                       ClientCertificateRequired,
+                       CheckCertificateRevocation,
 
-                                  ServerCertificateSelector,
-                                  ClientCertificateSelector,
-                                  ClientCertificateValidator,
-                                  AllowedTLSProtocols,
-                                  ClientCertificateRequired,
-                                  CheckCertificateRevocation,
+                       ServerThreadNameCreator,
+                       ServerThreadPrioritySetter,
+                       ServerThreadIsBackground,
+                       ConnectionIdBuilder,
+                       ConnectionTimeout,
+                       MaxClientConnections,
 
-                                  ServerThreadName,
-                                  ServerThreadPriority,
-                                  ServerThreadIsBackground,
-                                  ConnectionIdBuilder,
-                                  //ConnectionThreadsNameBuilder,
-                                  //ConnectionThreadsPriorityBuilder,
-                                  //ConnectionThreadsAreBackground,
-                                  ConnectionTimeout,
-                                  MaxClientConnections,
-
-                                  DNSClient,
-                                  Autostart: false),
+                       DNSClient,
+                       AutoStart: false
+                   ),
 
                    HTTPHostname,
                    ExternalDNSName,
@@ -1389,11 +1387,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LoggingPath,
                    LogfileName,
                    LogfileCreator,
-                   Autostart: false)
+                   AutoStart: false)
 
         {
 
-            if (Autostart && HTTPServer.Start())
+            if (AutoStart && HTTPServer.Start())
                 DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
         }
@@ -1429,7 +1427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        /// <param name="Autostart">Whether to start the API automatically.</param>
+        /// <param name="AutoStart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPServer               HTTPServer,
                        HTTPHostname?            HTTPHostname              = null,
                        String?                  ExternalDNSName           = "",
@@ -1454,7 +1452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String?                  LoggingPath               = null,
                        String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
                        LogfileCreatorDelegate?  LogfileCreator            = null,
-                       Boolean                  Autostart                 = false)
+                       Boolean                  AutoStart                 = false)
 
         {
 
@@ -1592,7 +1590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            if (Autostart == true && HTTPServer.Start())
+            if (AutoStart == true && HTTPServer.Start())
                 DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
 
         }
@@ -1705,7 +1703,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod">The HTTP method.</param>
         /// <param name="URLTemplates">An enumeration of URL templates.</param>
         /// <param name="HTTPContentType">The HTTP content type.</param>
-        /// <param name="HostAuthentication">Whether this method needs explicit host authentication or not.</param>
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
