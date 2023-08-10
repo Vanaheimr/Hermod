@@ -979,9 +979,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 if (value is String text &&
                     HeaderField.StringParser is not null &&
-                    HeaderField.StringParser(text, out var valueT))
+                    HeaderField.StringParser(text, out var valueT) &&
+                    valueT is not null)
                 {
-                    headerFieldsParsed.Add(HeaderField.Name, valueT);
+                    headerFieldsParsed.TryAdd(HeaderField.Name, valueT);
                     return valueT;
                 }
             }
