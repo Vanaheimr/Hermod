@@ -76,54 +76,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var binaryMessageRequests   = new List<Byte[]>();
             var binaryMessageResponses  = new List<Byte[]>();
 
-            webSocketChatServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketChatServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return true;
+                return Task.FromResult<Boolean?>(true);
             };
 
-            webSocketChatServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketChatServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection.Add($"{newTCPConnection.Count}: {connection.RemoteSocket}");
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+            webSocketChatServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
                 httpRequests.Add(httpRequest);
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketChatServer.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedWebSocket.Add($"{validatedWebSocket.Count}: {connection.RemoteSocket}");
-                return null;
+                return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketChatServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+            webSocketChatServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketChatServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketChatServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.       Add(requestFrame);
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnWebSocketFrameSent          += async (timestamp, server, connection, eventTrackingId, responseFrame) => {
+            webSocketChatServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame) => {
                 messageResponses.      Add(responseFrame);
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnTextMessageReceived         += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketChatServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage) => {
                 textMessageRequests.   Add(textMessage);
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnTextMessageSent             += async (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketChatServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage) => {
                 textMessageResponses.  Add(textMessage ?? "-");
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnBinaryMessageReceived       += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketChatServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
                 binaryMessageRequests. Add(binaryMessage);
+                return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnBinaryMessageSent           += async (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketChatServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
                 binaryMessageResponses.Add(binaryMessage);
+                return Task.CompletedTask;
             };
 
             #endregion

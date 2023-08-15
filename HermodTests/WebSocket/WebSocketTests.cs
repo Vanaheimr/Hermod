@@ -92,42 +92,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
 
-            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP            = true;
-                return true;
+                return Task.FromResult<Boolean?>(true);
             };
 
-            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection        = true;
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
                 httpRequests.Add(httpRequest);
+                return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedWebSocket      = true;
-                return null;
+                return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection  = true;
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.     Add(requestFrame);
+                return Task.CompletedTask;
             };
 
             //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
+                return Task.CompletedTask;
             };
 
             //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
@@ -148,8 +154,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
 
             // Send messages
-            webSocketClient.SendText("1234");
-            webSocketClient.SendText("ABCD");
+            await webSocketClient.SendText("1234");
+            await webSocketClient.SendText("ABCD");
 
             while (textMessageRequests.Count < 2)
                 Thread.Sleep(10);
@@ -168,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             Assert.AreEqual(0,      textMessageResponses.Count);
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 
@@ -196,42 +202,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             var textMessageRequests     = new List<String>();
             var textMessageResponses    = new List<String>();
 
-            webSocketServer.OnValidateTCPConnection       += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP            = true;
-                return true;
+                return Task.FromResult<Boolean?>(true);
             };
 
-            webSocketServer.OnNewTCPConnection            += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newTCPConnection        = true;
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnHTTPRequest                 += async (timestamp, server, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
                 httpRequests.Add(httpRequest);
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnValidateWebSocketConnection += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedWebSocket      = true;
-                return null;
+                return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketServer.OnHTTPResponse                += async (timestamp, server, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += async (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection  = true;
+                return Task.CompletedTask;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += async (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.     Add(requestFrame);
+                return Task.CompletedTask;
             };
 
             //webSocketServer.OnWebSocketFrameResponseSent      += async (timestamp, server, connection, requestFrame, responseFrame, eventTrackingId) => {
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += async (timestamp, server, connection, eventTrackingId, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage) => {
                 textMessageRequests. Add(requestMessage);
+                return Task.CompletedTask;
             };
 
             //webSocketServer.OnTextMessageResponseSent         += async (timestamp, server, connection, eventTrackingId, requestTimestamp, requestMessage, responseTimestamp, responseMessage) => {
@@ -252,12 +264,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
 
             // Send messages
-            webSocketClient.SendText("1234");
+            await webSocketClient.SendText("1234");
 
             while (textMessageRequests.Count == 0)
                 Thread.Sleep(10);
 
-            webSocketClient.SendText("ABCD");
+            await webSocketClient.SendText("ABCD");
 
             while (textMessageRequests.Count == 1)
                 Thread.Sleep(10);
@@ -276,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             Assert.AreEqual(0,      textMessageResponses.Count);
 
-            webSocketClient.Close();
+            await webSocketClient.Close();
 
         }
 

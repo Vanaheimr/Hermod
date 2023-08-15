@@ -81,83 +81,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
             ReadHoldingRegistersRequest? readHoldingRegistersRequest1 = null;
             ReadHoldingRegistersRequest? readHoldingRegistersRequest2 = null;
 
-            ModbusTCPServer.OnReadHoldingRegistersRequest += async (timestamp,
-                                                                    modbusTCPServer,
-                                                                    remoteSocket,
-                                                                    connectionId,
-                                                                    request) => {
+            ModbusTCPServer.OnReadHoldingRegistersRequest += (timestamp,
+                                                              modbusTCPServer,
+                                                              remoteSocket,
+                                                              connectionId,
+                                                              request) => {
 
                 readHoldingRegistersRequest1 = request;
 
+                return Task.CompletedTask;
+
             };
 
-            ModbusTCPServer.OnReadHoldingRegisters += async (timestamp,
-                                                             modbusTCPServer,
-                                                             remoteSocket,
-                                                             connectionId,
-                                                             request) => {
+            ModbusTCPServer.OnReadHoldingRegisters += (timestamp,
+                                                       modbusTCPServer,
+                                                       remoteSocket,
+                                                       connectionId,
+                                                       request) => {
 
                 readHoldingRegistersRequest2 = request;
 
-                return new ReadHoldingRegistersResponse(request,
-                                                        new Byte[17] {
+                return Task.FromResult(
+                           new ReadHoldingRegistersResponse(request,
+                               new Byte[17] {
 
-                                                            // Transaction identification
-                                                            request.EntirePDU[0], request.EntirePDU[1],
+                                   // Transaction identification
+                                   request.EntirePDU[0], request.EntirePDU[1],
 
-                                                            // Protocol identification (always zero)
-                                                            request.EntirePDU[2], request.EntirePDU[3],
+                                   // Protocol identification (always zero)
+                                   request.EntirePDU[2], request.EntirePDU[3],
 
-                                                            // Length of frame
-                                                            0x00, 0x0B,
+                                   // Length of frame
+                                   0x00, 0x0B,
 
-                                                            // Unit address
-                                                            request.EntirePDU[6],
+                                   // Unit address
+                                   request.EntirePDU[6],
 
-                                                            // Function code
-                                                            request.EntirePDU[7],
+                                   // Function code
+                                   request.EntirePDU[7],
 
-                                                            // Number of bytes
-                                                            0x08,
+                                   // Number of bytes
+                                   0x08,
 
-                                                            0x00, 0x01,
-                                                            0x00, 0x02,
-                                                            0x00, 0x03,
-                                                            0x00, 0x04
+                                   0x00, 0x01,
+                                   0x00, 0x02,
+                                   0x00, 0x03,
+                                   0x00, 0x04
 
-                                                        });
+                               }
+                           )
+                       );
 
             };
 
             var tcpClient = new TcpClient("127.0.0.1", 24694);
             var tcpStream = tcpClient.GetStream();
 
-            tcpStream.Write(new Byte[12] {
+            await tcpStream.WriteAsync(new Byte[12] {
 
-                                // Transaction identification
-                                0x00, 0x01,
+                                           // Transaction identification
+                                           0x00, 0x01,
 
-                                // Protocol identification (always zero)
-                                0x00, 0x00,
+                                           // Protocol identification (always zero)
+                                           0x00, 0x00,
 
-                                // Length of frame
-                                0x00, 0x06,
+                                           // Length of frame
+                                           0x00, 0x06,
 
-                                // Unit address
-                                0x01,
+                                           // Unit address
+                                           0x01,
 
-                                // Function code
-                                0x03,
+                                           // Function code
+                                           0x03,
 
-                                // Starting address
-                                0x00, 0x09,
+                                           // Starting address
+                                           0x00, 0x09,
 
-                                // Number of registers
-                                0x00, 0x04
+                                           // Number of registers
+                                           0x00, 0x04
 
-                            });
+                                       });
 
-            tcpStream.Flush();
+            await tcpStream.FlushAsync();
 
 
             //await Task.Delay(1000);
@@ -191,13 +196,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             ReadHoldingRegistersRequest? readHoldingRegistersRequest1 = null;
 
-            ModbusTCPServer.OnReadHoldingRegistersRequest += async (timestamp,
-                                                                    modbusTCPServer,
-                                                                    remoteSocket,
-                                                                    connectionId,
-                                                                    request) => {
+            ModbusTCPServer.OnReadHoldingRegistersRequest += (timestamp,
+                                                              modbusTCPServer,
+                                                              remoteSocket,
+                                                              connectionId,
+                                                              request) => {
 
                 readHoldingRegistersRequest1 = request;
+
+                return Task.CompletedTask;
 
             };
 
@@ -219,6 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         }
 
         #endregion
+
 
     }
 

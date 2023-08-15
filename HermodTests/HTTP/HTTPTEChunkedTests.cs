@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #region Start/Stop TEChunkedAPI
 
-        private TEChunkedAPI chunkedAPI;
+        private TEChunkedAPI? chunkedAPI;
 
         [OneTimeSetUp]
         public void Init_TEChunkedAPI()
@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         [OneTimeTearDown]
         public void Shutdown_TEChunkedAPI()
         {
-            chunkedAPI.Shutdown();
+            chunkedAPI?.Shutdown();
         }
 
         #endregion
@@ -346,10 +346,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkData        = new List<String>();
 
             var client           = new HTTPClient(URL.Parse("http://127.0.0.1:1234"));
-            client.OnChunkBlockFound += async (timestamp, number, length, extensions, data, totalBytes) => {
+
+            client.OnChunkBlockFound += (timestamp, number, length, extensions, data, totalBytes) => {
+
                 chunkLengths.   Add(length);
                 chunkExtensions.Add(extensions);
                 chunkData.      Add(data != null ? data.ToUTF8String() : "");
+
+                return Task.CompletedTask;
+
             };
 
             var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test04"),
@@ -410,10 +415,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkData        = new List<String>();
 
             var client           = new HTTPClient(URL.Parse("http://127.0.0.1:1234"));
-            client.OnChunkBlockFound += async (timestamp, number, length, extensions, data, totalBytes) => {
+
+            client.OnChunkBlockFound += (timestamp, number, length, extensions, data, totalBytes) => {
+
                 chunkLengths.   Add(length);
                 chunkExtensions.Add(extensions);
                 chunkData.      Add(data != null ? data.ToUTF8String() : "");
+
+                return Task.CompletedTask;
+
             };
 
             var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test05"),
@@ -474,10 +484,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkData        = new List<String>();
 
             var client           = new HTTPClient(URL.Parse("http://127.0.0.1:1234"), RequestTimeout: TimeSpan.FromHours(1));
-            client.OnChunkBlockFound += async (timestamp, number, length, extensions, data, totalBytes) => {
+
+            client.OnChunkBlockFound += (timestamp, number, length, extensions, data, totalBytes) => {
+
                 chunkLengths.   Add(length);
                 chunkExtensions.Add(extensions);
                 chunkData.      Add(data != null ? data.ToUTF8String() : "");
+
+                return Task.CompletedTask;
+
             };
 
             var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test06"),
@@ -488,46 +503,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                               })).
                                           Result;
 
+            Assert.IsNotNull(response);
 
-            Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
-            Assert.AreEqual (4,                         chunkExtensions.Count);
+            if (response is not null)
+            {
 
-            Assert.AreEqual (7, chunkLengths[0]);
-            Assert.IsNull   (chunkExtensions[0]);
-            Assert.AreEqual ("Mozilla",                 chunkData[0]);
+                Assert.AreEqual (200,                       response.HTTPStatusCode.Code);
+                Assert.AreEqual ("MozillaDeveloperNetwork", response.HTTPBodyAsUTF8String);
+                Assert.AreEqual (4,                         chunkExtensions.Count);
 
-            Assert.AreEqual (9, chunkLengths[1]);
-            Assert.IsNotNull(chunkExtensions[1]);
-            Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
-            Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-            Assert.AreEqual ("Developer",               chunkData[1]);
+                Assert.AreEqual (7, chunkLengths[0]);
+                Assert.IsNull   (chunkExtensions[0]);
+                Assert.AreEqual ("Mozilla",                 chunkData[0]);
 
-            Assert.AreEqual (7, chunkLengths[2]);
-            Assert.IsNotNull(chunkExtensions[2]);
-            Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
-            Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-            Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-            Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-            Assert.AreEqual ("Network",                 chunkData[2]);
+                Assert.AreEqual (9, chunkLengths[1]);
+                Assert.IsNotNull(chunkExtensions[1]);
+                Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
+                Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+                Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+                Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+                Assert.AreEqual ("Developer",               chunkData[1]);
 
-            Assert.AreEqual (0, chunkLengths[3]);
-            Assert.IsNull   (chunkExtensions[3]);
-            Assert.AreEqual ("",                        chunkData[3]);
+                Assert.AreEqual (7, chunkLengths[2]);
+                Assert.IsNotNull(chunkExtensions[2]);
+                Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
+                Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+                Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+                Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+                Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+                Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+                Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+                Assert.AreEqual ("Network",                 chunkData[2]);
 
-            Assert.AreEqual (String.Empty,              response.GetHeaderField(HTTPHeaderField.TransferEncoding));
-            Assert.AreEqual ("no-cache",                response.GetHeaderField(HTTPHeaderField.CacheControl));
-            Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader"));
-            Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader2"));
+                Assert.AreEqual (0, chunkLengths[3]);
+                Assert.IsNull   (chunkExtensions[3]);
+                Assert.AreEqual ("",                        chunkData[3]);
+
+                Assert.AreEqual (String.Empty,              response.GetHeaderField(HTTPHeaderField.TransferEncoding));
+                Assert.AreEqual ("no-cache",                response.GetHeaderField(HTTPHeaderField.CacheControl));
+                Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader"));
+                Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader2"));
+
+            }
 
         }
 
         #endregion
+
 
     }
 

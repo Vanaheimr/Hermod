@@ -60,8 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region /
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root,
                                          HTTPDelegate: Request => Task.FromResult(

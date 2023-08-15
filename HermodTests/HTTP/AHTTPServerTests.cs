@@ -62,8 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root,
                                          HTTPDelegate: request => Task.FromResult(
@@ -83,11 +82,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /NotForEveryone
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "NotForEveryone",
-                                         HTTPDelegate: async request => {
+                                         HTTPDelegate: request => {
 
                                              if (request.Authorization is HTTPBasicAuthentication httpBasicAuthentication)
                                              {
@@ -106,42 +104,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                  if (httpBasicAuthentication.Username == "testUser1" ||
                                                      httpBasicAuthentication.Password == "testPassword1")
                                                  {
-                                                     return new HTTPResponse.Builder(request) {
-                                                            HTTPStatusCode             = HTTPStatusCode.OK,
-                                                            Server                     = "Hermod Test Server",
-                                                            Date                       = Timestamp.Now,
-                                                            AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = new[] { "GET" },
-                                                            AccessControlAllowHeaders  = new[] { "Authorization" },
-                                                            ContentType                = HTTPContentType.TEXT_UTF8,
-                                                            Content                    = $"Hello '{httpBasicAuthentication.Username}'!".ToUTF8Bytes(),
-                                                            Connection                 = "close"
-                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
-                                                          AsImmutable;
+                                                     return Task.FromResult(
+                                                                new HTTPResponse.Builder(request) {
+                                                                    HTTPStatusCode             = HTTPStatusCode.OK,
+                                                                    Server                     = "Hermod Test Server",
+                                                                    Date                       = Timestamp.Now,
+                                                                    AccessControlAllowOrigin   = "*",
+                                                                    AccessControlAllowMethods  = new[] { "GET" },
+                                                                    AccessControlAllowHeaders  = new[] { "Authorization" },
+                                                                    ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                    Content                    = $"Hello '{httpBasicAuthentication.Username}'!".ToUTF8Bytes(),
+                                                                    Connection                 = "close"
+                                                                }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                                  AsImmutable
+                                                            );
                                                  }
 
                                                  // HTTP 403 Forbidden for authentication is ok, but authorization is still not given!
                                                  if (httpBasicAuthentication.Username == "testUser2" ||
                                                      httpBasicAuthentication.Password == "testPassword2")
                                                  {
-                                                     return new HTTPResponse.Builder(request) {
-                                                            HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                            Server                     = "Hermod Test Server",
-                                                            Date                       = Timestamp.Now,
-                                                            AccessControlAllowOrigin   = "*",
-                                                            AccessControlAllowMethods  = new[] { "GET" },
-                                                            AccessControlAllowHeaders  = new[] { "Authorization" },
-                                                            ContentType                = HTTPContentType.TEXT_UTF8,
-                                                            Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
-                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
-                                                            Connection                 = "close"
-                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
-                                                          AsImmutable;
+                                                     return Task.FromResult(
+                                                                new HTTPResponse.Builder(request) {
+                                                                    HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                                                    Server                     = "Hermod Test Server",
+                                                                    Date                       = Timestamp.Now,
+                                                                    AccessControlAllowOrigin   = "*",
+                                                                    AccessControlAllowMethods  = new[] { "GET" },
+                                                                    AccessControlAllowHeaders  = new[] { "Authorization" },
+                                                                    ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                    Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
+                                                                    WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                                    Connection                 = "close"
+                                                                }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                                  AsImmutable
+                                                            );
                                                  }
 
                                              }
 
-                                             return new HTTPResponse.Builder(request) {
+                                             return Task.FromResult(
+                                                        new HTTPResponse.Builder(request) {
                                                             HTTPStatusCode             = HTTPStatusCode.Unauthorized,
                                                             Server                     = "Hermod Test Server",
                                                             Date                       = Timestamp.Now,
@@ -150,8 +153,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             AccessControlAllowHeaders  = new[] { "Authorization" },
                                                             WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
                                                             Connection                 = "close"
-                                                        }.AsImmutable;
-
+                                                        }.AsImmutable
+                                                    );
 
                                          });
 
@@ -160,8 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirror/queryString
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirror" + "queryString",
                                          HTTPDelegate: request => Task.FromResult(
@@ -180,8 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirror/httpBody
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirror" + "httpBody",
                                          HTTPDelegate: request => Task.FromResult(
@@ -200,8 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region MIRROR  /mirror/httpBody
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.MIRROR,
                                          HTTPPath.Root + "mirror" + "httpBody",
                                          HTTPDelegate: request => Task.FromResult(
@@ -221,8 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunked
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "chunked",
                                          HTTPDelegate: request => Task.FromResult(
@@ -243,27 +242,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedSlow
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "chunkedSlow",
-                                         HTTPDelegate: async request => {
+                                         HTTPDelegate: request => {
 
                                              var responseStream  = new MemoryStream();
                                              responseStream.Write((new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes());
 
-                                             return new HTTPResponse.Builder(request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = "Hermod Test Server",
-                                                        Date                       = Timestamp.Now,
-                                                        AccessControlAllowOrigin   = "*",
-                                                        AccessControlAllowMethods  = new[] { "GET" },
-                                                        TransferEncoding           = "chunked",
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        ContentStream              = responseStream,
-                                                        Connection                 = "close"
-                                                    }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
-                                                      AsImmutable;
+                                             return Task.FromResult(
+                                                        new HTTPResponse.Builder(request) {
+                                                            HTTPStatusCode             = HTTPStatusCode.OK,
+                                                            Server                     = "Hermod Test Server",
+                                                            Date                       = Timestamp.Now,
+                                                            AccessControlAllowOrigin   = "*",
+                                                            AccessControlAllowMethods  = new[] { "GET" },
+                                                            TransferEncoding           = "chunked",
+                                                            ContentType                = HTTPContentType.TEXT_UTF8,
+                                                            ContentStream              = responseStream,
+                                                            Connection                 = "close"
+                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
+                                                          AsImmutable
+                                                    );
 
                                          });
 
@@ -271,8 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region GET     /chunkedTrailerHeaders
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Root + "chunkedTrailerHeaders",
                                          HTTPDelegate: request => Task.FromResult(
@@ -295,25 +294,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             #region POST    /mirrorBody2
 
-            httpServer.AddMethodCallback(null,
-                                         HTTPHostname.Any,
+            httpServer.AddMethodCallback(HTTPHostname.Any,
                                          HTTPMethod.POST,
                                          HTTPPath.Root + "mirrorBody2",
-                                         HTTPDelegate: async request => {
+                                         HTTPDelegate: request => {
 
                                              var queryParameter = request.HTTPBodyAsUTF8String ?? "";
 
-                                             return new HTTPResponse.Builder(request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = "Hermod Test Server",
-                                                        Date                       = Timestamp.Now,
-                                                        AccessControlAllowOrigin   = "*",
-                                                        AccessControlAllowMethods  = new[] { "GET" },
-                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                        ContentType                = HTTPContentType.TEXT_UTF8,
-                                                        Content                    = queryParameter.Reverse().ToUTF8Bytes(),
-                                                        Connection                 = "close"
-                                                    }.AsImmutable;
+                                             return Task.FromResult(
+                                                        new HTTPResponse.Builder(request) {
+                                                            HTTPStatusCode             = HTTPStatusCode.OK,
+                                                            Server                     = "Hermod Test Server",
+                                                            Date                       = Timestamp.Now,
+                                                            AccessControlAllowOrigin   = "*",
+                                                            AccessControlAllowMethods  = new[] { "GET" },
+                                                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                            ContentType                = HTTPContentType.TEXT_UTF8,
+                                                            Content                    = queryParameter.Reverse().ToUTF8Bytes(),
+                                                            Connection                 = "close"
+                                                        }.AsImmutable
+                                                    );
 
                                          });
 

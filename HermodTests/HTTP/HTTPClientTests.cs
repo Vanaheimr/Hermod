@@ -496,24 +496,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkBlocks   = new List<String>();
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
 
-            httpClient.OnChunkDataRead += async (time,
-                                                 blockNumber,
-                                                 blockData,
-                                                 blockLength,
-                                                 currentTotalBytes) => {
+            httpClient.OnChunkDataRead += (time,
+                                           blockNumber,
+                                           blockData,
+                                           blockLength,
+                                           currentTotalBytes) => {
 
                 chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+                return Task.CompletedTask;
 
             };
 
-            httpClient.OnChunkBlockFound += async (timestamp,
-                                                   chunkNumber,
-                                                   chunkLength,
-                                                   chunkExtensions,
-                                                   chunkData,
-                                                   totalBytes) => {
+            httpClient.OnChunkBlockFound += (timestamp,
+                                             chunkNumber,
+                                             chunkLength,
+                                             chunkExtensions,
+                                             chunkData,
+                                             totalBytes) => {
 
                 chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+                return Task.CompletedTask;
 
             };
 
@@ -579,24 +581,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkBlocks   = new List<String>();
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
 
-            httpClient.OnChunkDataRead += async (time,
-                                                 blockNumber,
-                                                 blockData,
-                                                 blockLength,
-                                                 currentTotalBytes) => {
+            httpClient.OnChunkDataRead += (time,
+                                           blockNumber,
+                                           blockData,
+                                           blockLength,
+                                           currentTotalBytes) => {
 
                 chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+                return Task.CompletedTask;
 
             };
 
-            httpClient.OnChunkBlockFound += async (timestamp,
-                                                   chunkNumber,
-                                                   chunkLength,
-                                                   chunkExtensions,
-                                                   chunkData,
-                                                   totalBytes) => {
+            httpClient.OnChunkBlockFound += (timestamp,
+                                             chunkNumber,
+                                             chunkLength,
+                                             chunkExtensions,
+                                             chunkData,
+                                             totalBytes) => {
 
                 chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+                return Task.CompletedTask;
 
             };
 
@@ -662,24 +666,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var chunkBlocks   = new List<String>();
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
 
-            httpClient.OnChunkDataRead += async (time,
-                                                 blockNumber,
-                                                 blockData,
-                                                 blockLength,
-                                                 currentTotalBytes) => {
+            httpClient.OnChunkDataRead += (time,
+                                           blockNumber,
+                                           blockData,
+                                           blockLength,
+                                           currentTotalBytes) => {
 
                 chunkData.Add($"{blockNumber}: '{blockData.ToUTF8String()}' {blockLength} byte(s), {currentTotalBytes} byte(s) total");
+                return Task.CompletedTask;
 
             };
 
-            httpClient.OnChunkBlockFound += async (timestamp,
-                                                   chunkNumber,
-                                                   chunkLength,
-                                                   chunkExtensions,
-                                                   chunkData,
-                                                   totalBytes) => {
+            httpClient.OnChunkBlockFound += (timestamp,
+                                             chunkNumber,
+                                             chunkLength,
+                                             chunkExtensions,
+                                             chunkData,
+                                             totalBytes) => {
 
                 chunkBlocks.Add($"{chunkNumber}: '{chunkData.ToUTF8String()}' {chunkLength} byte(s), {totalBytes} byte(s) total");
+                return Task.CompletedTask;
 
             };
 

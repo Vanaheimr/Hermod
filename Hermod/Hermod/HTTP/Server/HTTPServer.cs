@@ -1980,6 +1980,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
+        public void AddMethodCallback(HTTPHostname             Hostname,
+                                      HTTPMethod               HTTPMethod,
+                                      HTTPPath                 URLTemplate,
+                                      HTTPContentType?         HTTPContentType             = null,
+                                      HTTPAuthentication?      URLAuthentication           = null,
+                                      HTTPAuthentication?      HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?      ContentTypeAuthentication   = null,
+                                      HTTPRequestLogHandler?   HTTPRequestLogger           = null,
+                                      HTTPResponseLogHandler?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?            DefaultErrorHandler         = null,
+                                      HTTPDelegate?            HTTPDelegate                = null,
+                                      URLReplacement           AllowReplacement            = URLReplacement.Fail)
+
+        {
+
+            #region Initial checks
+
+            if (URLTemplate.IsNullOrEmpty)
+                throw new ArgumentNullException(nameof(URLTemplate),   "The given URL template must not be null or empty!");
+
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate),  "The given HTTP delegate must not be null!");
+
+            #endregion
+
+            AddHandler(null,
+                       HTTPDelegate,
+                       Hostname,
+                       URLTemplate,
+                       HTTPMethod,
+                       HTTPContentType,
+                       URLAuthentication,
+                       HTTPMethodAuthentication,
+                       ContentTypeAuthentication,
+                       HTTPRequestLogger,
+                       HTTPResponseLogger,
+                       DefaultErrorHandler,
+                       AllowReplacement);
+
+        }
+
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="HTTPMethod">The HTTP method.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="HTTPContentType">The HTTP content type.</param>
+        /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
+        /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
+        /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
+        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="DefaultErrorHandler">The default error handler.</param>
+        /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                  HTTPAPI,
                                       HTTPHostname             Hostname,
                                       HTTPMethod               HTTPMethod,
