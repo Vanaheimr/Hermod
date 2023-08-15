@@ -55,44 +55,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The unqiue identification of the authenticator.
         /// </summary>
-        public IId                   AuthId              { get; }
+        public    IId?                  AuthId              { get; }
 
-        public Object                Sender              { get; }
+        public    Object                Sender              { get; }
 
         /// <summary>
         /// The object of the operation.
         /// </summary>
-        protected T?                 Object              { get; }
+        protected T?                    Object              { get; }
 
         /// <summary>
         /// The unique event tracking identification for correlating this request with other events.
         /// </summary>
-        public    EventTracking_Id   EventTrackingId     { get; }
+        public    EventTracking_Id      EventTrackingId     { get; }
 
         /// <summary>
         /// Whether the operation was successful, or not.
         /// </summary>
-        public    Boolean            IsSuccess           { get; }
+        public    Boolean               IsSuccess           { get; }
 
         /// <summary>
         /// Whether the operation failed, or not.
         /// </summary>
-        public    Boolean            IsFailed
+        public    Boolean               IsFailed
             => !IsSuccess;
 
-        public    String?            Argument            { get; }
+        public    String?               Argument            { get; }
 
-        public    I18NString?        ErrorDescription    { get; }
+        public    I18NString            Description         { get; }
 
         /// <summary>
         /// Warnings or additional information.
         /// </summary>
-        public IEnumerable<Warning>  Warnings           { get; }
+        public    IEnumerable<Warning>  Warnings            { get; }
 
         /// <summary>
         /// The runtime of the request.
         /// </summary>
-        public TimeSpan?             Runtime            { get;  }
+        public    TimeSpan              Runtime             { get;  }
+
+
+
+
+
+
+
+
+        public PushDataResultTypes  Result         { get; }
+        public Object?              SendPOIData    { get; }
+
+
 
         #endregion
 
@@ -105,19 +117,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
         /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
         /// <param name="Argument"></param>
-        /// <param name="ErrorDescription"></param>
+        /// <param name="Description"></param>
         public AResult(T?                Object,
                        EventTracking_Id  EventTrackingId,
                        Boolean           IsSuccess,
-                       String?           Argument           = null,
-                       I18NString?       ErrorDescription   = null)
+                       String?           Argument      = null,
+                       I18NString?       Description   = null)
         {
 
             this.Object            = Object;
             this.EventTrackingId   = EventTrackingId;
             this.IsSuccess         = IsSuccess;
             this.Argument          = Argument;
-            this.ErrorDescription  = ErrorDescription;
+            this.Description       = Description ?? I18NString.Empty;
 
         }
 
@@ -128,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
         /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
         /// <param name="Argument"></param>
-        /// <param name="ErrorDescription"></param>
+        /// <param name="Description"></param>
         public AResult(T                      Entity,
                        PushDataResultTypes    Result,
                        EventTracking_Id?      EventTrackingId   = null,
@@ -140,10 +152,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             this.Object            = Entity;
+            this.Result            = Result;
             this.EventTrackingId   = EventTrackingId ?? EventTracking_Id.New;
-            this.IsSuccess         = IsSuccess;
-            this.Argument          = Argument;
-            this.ErrorDescription  = ErrorDescription;
+            this.AuthId            = AuthId;
+            this.SendPOIData       = SendPOIData;
+            this.Description       = Description     ?? I18NString.Empty;
+            this.Warnings          = Warnings        ?? Array.Empty<Warning>();
+            this.Runtime           = Runtime         ?? TimeSpan.Zero;
+
+            //this.IsSuccess         = IsSuccess;
+            //this.Argument          = Argument;
 
         }
 
@@ -154,10 +172,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public JObject ToJSON()
 
             => JSONObject.Create(
-                   ErrorDescription is not null
-                       ? ErrorDescription.Count == 1
-                             ? new JProperty("description",  ErrorDescription.FirstText())
-                             : new JProperty("description",  ErrorDescription.ToJSON())
+                   Description is not null
+                       ? Description.Count == 1
+                             ? new JProperty("description",  Description.FirstText())
+                             : new JProperty("description",  Description.ToJSON())
                        : null
                );
 
@@ -166,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             => IsSuccess
                     ? "Success"
-                    : "Failed" + (ErrorDescription is not null && ErrorDescription.IsNullOrEmpty()
-                                      ? ": " + ErrorDescription.FirstText()
+                    : "Failed" + (Description is not null && Description.IsNullOrEmpty()
+                                      ? ": " + Description.FirstText()
                                       : "!");
 
     }
@@ -217,7 +235,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.Identification = Entity is not null ? Entity.Id : default;
+            this.Identification = Entity is not null
+                                      ? Entity.Id
+                                      : default;
 
         }
 
@@ -252,7 +272,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.Identification = Entity is not null ? Entity.Id : default;
+            this.Identification = Entity is not null
+                                      ? Entity.Id
+                                      : default;
 
         }
 
@@ -384,7 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <typeparam name="TId">The type of the entity identification.</typeparam>
-    public abstract class AEnititiesResult<TResult, TEntity, TId> : IEnumerable<TResult>
+    public abstract class AEnititiesResult<TResult, TEntity, TId>
 
         where TResult : AEnitityResult<TEntity, TId>
         where TEntity : class, IHasId<TId>
@@ -394,17 +416,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
-        public PushDataResultTypes    Result             { get; }
-        public IEnumerable<TResult>?  SuccessfulItems    { get; }
-        public IEnumerable<TResult>?  RejectedItems      { get; }
+        public PushDataResultTypes   Result             { get; }
+        public IEnumerable<TResult>  SuccessfulItems    { get; }
+        public IEnumerable<TResult>  RejectedItems      { get; }
 
-        public IId?                   AuthId             { get; }
-        public Object?                SendPOIData        { get; }
-        public EventTracking_Id?      EventTrackingId    { get; }
-        public I18NString?            Description        { get; }
-        public IEnumerable<Warning>?  Warnings           { get; }
-        public TimeSpan?              Runtime            { get; }
-
+        public IId?                  AuthId             { get; }
+        public Object?               SendPOIData        { get; }
+        public EventTracking_Id      EventTrackingId    { get; }
+        public I18NString            Description        { get; }
+        public IEnumerable<Warning>  Warnings           { get; }
+        public TimeSpan              Runtime            { get; }
 
         #endregion
 
@@ -430,28 +451,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             this.Result           = Result;
-            this.SuccessfulItems  = SuccessfulEVSEs;
-            this.RejectedItems    = RejectedEVSEs;
+            this.SuccessfulItems  = SuccessfulEVSEs ?? Array.Empty<TResult>();
+            this.RejectedItems    = RejectedEVSEs   ?? Array.Empty<TResult>();
             this.AuthId           = AuthId;
             this.SendPOIData      = SendPOIData;
-            this.EventTrackingId  = EventTrackingId;
-            this.Description      = Description;
-            this.Warnings         = Warnings;
-            this.Runtime          = Runtime;
+            this.EventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
+            this.Description      = Description     ?? I18NString.Empty;
+            this.Warnings         = Warnings        ?? Array.Empty<Warning>();
+            this.Runtime          = Runtime         ?? TimeSpan.Zero;
 
         }
 
         #endregion
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
-
-        IEnumerator<TResult> IEnumerable<TResult>.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
 
     }
 
