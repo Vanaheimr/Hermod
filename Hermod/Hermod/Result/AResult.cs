@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
-        public CommandResults  Result         { get; }
+        public CommandResult  Result         { get; }
         public Object?              SendPOIData    { get; }
 
 
@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Argument"></param>
         /// <param name="Description"></param>
         public AResult(T                      Entity,
-                       CommandResults    Result,
+                       CommandResult    Result,
                        EventTracking_Id?      EventTrackingId   = null,
                        IId?                   AuthId            = null,
                        Object?                SendPOIData       = null,

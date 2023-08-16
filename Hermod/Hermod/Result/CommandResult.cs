@@ -18,10 +18,12 @@
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    //ToDo: enum -> struct
+
     /// <summary>
     /// The result of a command operation.
     /// </summary>
-    public enum CommandResults
+    public enum CommandResult
     {
 
         /// <summary>

@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
-        public CommandResults   Result             { get; }
+        public CommandResult   Result             { get; }
         public IEnumerable<TResult>  SuccessfulItems    { get; }
         public IEnumerable<TResult>  RejectedItems      { get; }
 
@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
         /// <param name="Argument"></param>
         /// <param name="ErrorDescription"></param>
-        public AEnititiesResult(CommandResults    Result,
+        public AEnititiesResult(CommandResult    Result,
                                 IEnumerable<TResult>?  SuccessfulEVSEs   = null,
                                 IEnumerable<TResult>?  RejectedEVSEs     = null,
                                 IId?                   AuthId            = null,

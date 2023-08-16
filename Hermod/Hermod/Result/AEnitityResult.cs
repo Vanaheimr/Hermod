@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Argument"></param>
         /// <param name="ErrorDescription"></param>
         public AEnitityResult(TEntity                Entity,
-                              CommandResults    Result,
+                              CommandResult    Result,
                               EventTracking_Id?      EventTrackingId   = null,
                               IId?                   AuthId            = null,
                               Object?                SendPOIData       = null,
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Argument"></param>
         /// <param name="ErrorDescription"></param>
         public AEnitityResult(TId                    EntityId,
-                              CommandResults    Result,
+                              CommandResult    Result,
                               EventTracking_Id?      EventTrackingId   = null,
                               IId?                   AuthId            = null,
                               Object?                SendPOIData       = null,
