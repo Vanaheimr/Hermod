@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// The JSON-LD context of this object.
         /// </summary>
-        public const String JSONLDContext = "https://opendata.social/contexts/UsersAPI+json/EMailAddress";
+        public const String JSONLDContext = "https://opendata.social/contexts/HTTPExtAPI+json/EMailAddress";
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2014-2023 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of UsersAPI <https://www.github.com/Vanaheimr/UsersAPI>
+ * Copyright (c) 2010-2023 GraphDefined GmbH
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace social.OpenData.UsersAPI
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace social.OpenData.UsersAPI
         /// <summary>
         /// The default JSON-LD context of users.
         /// </summary>
-        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/URLWithAPIKeyId");
+        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/URLWithAPIKeyId");
 
         #endregion
 

@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2010-2023 GraphDefined GmbH
- * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
+ * Copyright (c) 2014-2023 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public enum AddedOrUpdated
-    {
-        NoOperation,
-        Add,
-        Update,
-        Enqueued,
-        Failed
-    }
+    //public enum Organization2UserEdgeLabel
+    //{
+    //    IsAdmin,
+    //    IsMember,
+    //    IsVisitor,
+    //    IsFollower
+    //}
 
 }
