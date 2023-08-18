@@ -1773,7 +1773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Auth
 
-        private readonly List<HTTPAuth2Delegate> _HTTPAuths = new List<HTTPAuth2Delegate>();
+        private readonly List<HTTPAuth2Delegate> _HTTPAuths = new();
 
         public void AddAuth(HTTPAuth1Delegate Filter)
         {

@@ -51,46 +51,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Create a new abstract result.
         /// </summary>
         /// <param name="Entity">The entity of the operation.</param>
+        /// <param name="Result">The command result.</param>
         /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
-        /// <param name="Argument"></param>
-        /// <param name="ErrorDescription"></param>
-        public AEnitityResult(TEntity?          Entity,
-                              EventTracking_Id  EventTrackingId,
-                              Boolean           IsSuccess,
-                              String?           Argument           = null,
-                              I18NString?       ErrorDescription   = null)
-
-            : base(Entity,
-                   EventTrackingId,
-                   IsSuccess,
-                   Argument,
-                   ErrorDescription)
-
-        {
-
-            this.Identification = Entity is not null
-                                      ? Entity.Id
-                                      : default;
-
-        }
-
-
-
-
-        /// <summary>
-        /// Create a new abstract result.
-        /// </summary>
-        /// <param name="Entity">The entity of the operation.</param>
-        /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
-        /// <param name="Argument"></param>
-        /// <param name="ErrorDescription"></param>
         public AEnitityResult(TEntity                Entity,
-                              CommandResult    Result,
+                              CommandResult          Result,
                               EventTracking_Id?      EventTrackingId   = null,
                               IId?                   AuthId            = null,
-                              Object?                SendPOIData       = null,
+                              Object?                Sender            = null,
                               I18NString?            Description       = null,
                               IEnumerable<Warning>?  Warnings          = null,
                               TimeSpan?              Runtime           = null)
@@ -99,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    Result,
                    EventTrackingId,
                    AuthId,
-                   SendPOIData,
+                   Sender,
                    Description,
                    Warnings,
                    Runtime)
@@ -111,6 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                       : default;
 
         }
+
 
         /// <summary>
         /// Create a new abstract result.
@@ -121,10 +89,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Argument"></param>
         /// <param name="ErrorDescription"></param>
         public AEnitityResult(TId                    EntityId,
-                              CommandResult    Result,
+                              CommandResult          Result,
                               EventTracking_Id?      EventTrackingId   = null,
                               IId?                   AuthId            = null,
-                              Object?                SendPOIData       = null,
+                              Object?                Sender            = null,
                               I18NString?            Description       = null,
                               IEnumerable<Warning>?  Warnings          = null,
                               TimeSpan?              Runtime           = null)
@@ -133,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    Result,
                    EventTrackingId,
                    AuthId,
-                   SendPOIData,
+                   Sender,
                    Description,
                    Warnings,
                    Runtime)
@@ -145,31 +113,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
 
-        /// <summary>
-        /// Create a new abstract result.
-        /// </summary>
-        /// <param name="EntityId">The object of the operation.</param>
-        /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
-        /// <param name="Argument"></param>
-        /// <param name="ErrorDescription"></param>
-        public AEnitityResult(TId               EntityId,
-                              EventTracking_Id  EventTrackingId,
-                              Boolean           IsSuccess,
-                              String?           Argument           = null,
-                              I18NString?       ErrorDescription   = null)
+        ///// <summary>
+        ///// Create a new abstract result.
+        ///// </summary>
+        ///// <param name="EntityId">The object of the operation.</param>
+        ///// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
+        ///// <param name="IsSuccess">Whether the operation was successful, or not.</param>
+        ///// <param name="Argument"></param>
+        ///// <param name="ErrorDescription"></param>
+        //public AEnitityResult(TId               EntityId,
+        //                      EventTracking_Id  EventTrackingId,
+        //                      Boolean           IsSuccess,
+        //                      String?           Argument           = null,
+        //                      I18NString?       ErrorDescription   = null)
 
-            : base(default,
-                   EventTrackingId,
-                   IsSuccess,
-                   Argument,
-                   ErrorDescription)
+        //    : base(default,
+        //           EventTrackingId,
+        //           IsSuccess,
+        //           Argument,
+        //           ErrorDescription)
 
-        {
+        //{
 
-            this.Identification = EntityId;
+        //    this.Identification = EntityId;
 
-        }
+        //}
 
         #endregion
 

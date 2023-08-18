@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                                        ? status[(CryptoSignatureStatus.JSONLDContext.Length + 1)..]
                                                                        : status),
 
-                              Description is not null && Description.IsNeitherNullNorEmpty()
+                              Description is not null && Description.IsNotNullOrEmpty()
                                   ? new JProperty("description",   Description.  ToJSON())
                                   : null,
 

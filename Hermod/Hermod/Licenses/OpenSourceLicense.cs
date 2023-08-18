@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                ? new JProperty("@context",      JSONLDContext)
                                : null,
 
-                           Description.IsNeitherNullNorEmpty()
+                           Description.IsNotNullOrEmpty()
                                ? new JProperty("description",   Description.ToJSON())
                                : null,
 
@@ -616,7 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                    Id.ToString(),
 
-                   Description.IsNeitherNullNorEmpty()
+                   Description.IsNotNullOrEmpty()
                        ? ": " + Description
                        : String.Empty
 

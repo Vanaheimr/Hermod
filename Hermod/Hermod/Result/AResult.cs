@@ -35,59 +35,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
-        /// <summary>
-        /// The unqiue identification of the authenticator.
-        /// </summary>
-        public    IId?                  AuthId              { get; }
+        public     CommandResult         Result             { get; }
 
-        public    Object                Sender              { get; }
+        /// <summary>
+        /// The optionalunqiue identification of the sender.
+        /// </summary>
+        public     IId?                  SenderId           { get; }
+
+        /// <summary>
+        /// The optional sender of this result.
+        /// </summary>
+        public     Object?               Sender             { get; }
 
         /// <summary>
         /// The object of the operation.
         /// </summary>
-        protected T?                    Object              { get; }
+        protected  T?                    Object             { get; }
 
         /// <summary>
         /// The unique event tracking identification for correlating this request with other events.
         /// </summary>
-        public    EventTracking_Id      EventTrackingId     { get; }
+        public     EventTracking_Id      EventTrackingId    { get; }
+
+        //public    String?               Argument           { get; }
+
+        public     I18NString            Description        { get; }
 
         /// <summary>
-        /// Whether the operation was successful, or not.
+        /// Optional warnings or additional information.
         /// </summary>
-        public    Boolean               IsSuccess           { get; }
+        public     IEnumerable<Warning>  Warnings           { get; }
 
         /// <summary>
-        /// Whether the operation failed, or not.
+        /// The runtime of the command till this result.
         /// </summary>
-        public    Boolean               IsFailed
-            => !IsSuccess;
-
-        public    String?               Argument            { get; }
-
-        public    I18NString            Description         { get; }
-
-        /// <summary>
-        /// Warnings or additional information.
-        /// </summary>
-        public    IEnumerable<Warning>  Warnings            { get; }
-
-        /// <summary>
-        /// The runtime of the request.
-        /// </summary>
-        public    TimeSpan              Runtime             { get;  }
-
-
-
-
-
-
-
-
-        public CommandResult  Result         { get; }
-        public Object?              SendPOIData    { get; }
-
-
+        public     TimeSpan              Runtime            { get;  }
 
         #endregion
 
@@ -96,39 +78,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Create a new abstract result.
         /// </summary>
-        /// <param name="Object">The object of the operation.</param>
-        /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
-        /// <param name="Argument"></param>
-        /// <param name="Description"></param>
-        public AResult(T?                Object,
-                       EventTracking_Id  EventTrackingId,
-                       Boolean           IsSuccess,
-                       String?           Argument      = null,
-                       I18NString?       Description   = null)
-        {
-
-            this.Object            = Object;
-            this.EventTrackingId   = EventTrackingId;
-            this.IsSuccess         = IsSuccess;
-            this.Argument          = Argument;
-            this.Description       = Description ?? I18NString.Empty;
-
-        }
-
-        /// <summary>
-        /// Create a new abstract result.
-        /// </summary>
-        /// <param name="Object">The object of the operation.</param>
-        /// <param name="EventTrackingId">The unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="IsSuccess">Whether the operation was successful, or not.</param>
-        /// <param name="Argument"></param>
-        /// <param name="Description"></param>
+        /// <param name="Entity">An entity.</param>
+        /// <param name="Result">A (command) result.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="SenderId">An optional unqiue identification of the sender.</param>
+        /// <param name="Sender">An optional sender of this result.</param>
+        /// <param name="Description">An optional description of the result.</param>
+        /// <param name="Warnings">Optional warnings or additional information.</param>
+        /// <param name="Runtime">An optional runtime of the command till this result.</param>
         public AResult(T                      Entity,
-                       CommandResult    Result,
+                       CommandResult          Result,
                        EventTracking_Id?      EventTrackingId   = null,
-                       IId?                   AuthId            = null,
-                       Object?                SendPOIData       = null,
+                       IId?                   SenderId          = null,
+                       Object?                Sender            = null,
                        I18NString?            Description       = null,
                        IEnumerable<Warning>?  Warnings          = null,
                        TimeSpan?              Runtime           = null)
@@ -137,14 +99,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.Object            = Entity;
             this.Result            = Result;
             this.EventTrackingId   = EventTrackingId ?? EventTracking_Id.New;
-            this.AuthId            = AuthId;
-            this.SendPOIData       = SendPOIData;
+            this.SenderId          = SenderId;
+            this.Sender            = Sender;
             this.Description       = Description     ?? I18NString.Empty;
             this.Warnings          = Warnings        ?? Array.Empty<Warning>();
             this.Runtime           = Runtime         ?? TimeSpan.Zero;
-
-            //this.IsSuccess         = IsSuccess;
-            //this.Argument          = Argument;
 
         }
 
@@ -165,17 +124,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public override String ToString()
 
-            => IsSuccess
-                    ? "Success"
-                    : "Failed" + (Description is not null && Description.IsNullOrEmpty()
-                                      ? ": " + Description.FirstText()
-                                      : "!");
+            => Result.ToString();
+
+            //=> IsSuccess
+            //        ? "Success"
+            //        : "Failed" + (Description is not null && Description.IsNullOrEmpty()
+            //                          ? ": " + Description.FirstText()
+            //                          : "!");
 
     }
 
 
     /// <summary>
-    /// An abstract result.
+    /// An abstract result for two objects, e.g. linked together.
     /// </summary>
     /// <typeparam name="T1">The type of the result.</typeparam>
     /// <typeparam name="T2">The type of the result.</typeparam>

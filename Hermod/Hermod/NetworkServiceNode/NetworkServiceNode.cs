@@ -104,16 +104,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   DNSClient?                   DNSClient        = null)
         {
 
-            #region Initial checks
-
-            if (Id.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Id), "The given unique network service node identification must not be null or empty!");
-
-            #endregion
-
-            this.Id               = Id          ?? NetworkServiceNode_Id.NewRandom();
-            this.Name             = Name        ?? I18NString.Empty;
-            this.Description      = Description ?? I18NString.Empty;
+            this.Id              = Id          ?? NetworkServiceNode_Id.NewRandom();
+            this.Name            = Name        ?? I18NString.Empty;
+            this.Description     = Description ?? I18NString.Empty;
 
             if (Identities is not null)
                 foreach (var identity in Identities.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.Identity)))
@@ -123,9 +116,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 foreach (var identityGroup in IdentityGroups.Where(cryptoKey => cryptoKey.KeyUsages.Contains(CryptoKeyUsage.IdentityGroup)))
                     AddCryptoKey(identityGroup);
 
-            this.DefaultHTTPAPI   = DefaultHTTPAPI;
+            this.DefaultHTTPAPI  = DefaultHTTPAPI;
 
-            this.DNSClient        = DNSClient   ?? new DNSClient();
+            this.DNSClient       = DNSClient   ?? new DNSClient();
 
             unchecked
             {

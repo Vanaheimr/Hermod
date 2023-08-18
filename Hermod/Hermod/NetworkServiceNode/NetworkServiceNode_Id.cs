@@ -25,22 +25,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// Extension methods for network service node identifications.
+    /// Extension methods for network network service node identifications.
     /// </summary>
     public static class ServiceNodeIdExtensions
     {
 
         /// <summary>
-        /// Indicates whether this network service node identification is null or empty.
+        /// Indicates whether this network network service node identification is null or empty.
         /// </summary>
-        /// <param name="NodeId">A network service node identification.</param>
+        /// <param name="NodeId">A network network service node identification.</param>
         public static Boolean IsNullOrEmpty(this NetworkServiceNode_Id? NodeId)
             => !NodeId.HasValue || NodeId.Value.IsNullOrEmpty;
 
         /// <summary>
-        /// Indicates whether this network service node identification is null or empty.
+        /// Indicates whether this network network service node identification is null or empty.
         /// </summary>
-        /// <param name="NodeId">A network service node identification.</param>
+        /// <param name="NodeId">A network network service node identification.</param>
         public static Boolean IsNotNullOrEmpty(this NetworkServiceNode_Id? NodeId)
             => NodeId.HasValue && NodeId.Value.IsNotNullOrEmpty;
 
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
     /// <summary>
-    /// The unique identification of a network service node.
+    /// The unique identification of a network network service node.
     /// </summary>
     public readonly struct NetworkServiceNode_Id : IId,
                                                    IEquatable <NetworkServiceNode_Id>,
@@ -89,9 +89,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new unique service node identification based on the given text.
+        /// Create a new unique network service node identification based on the given text.
         /// </summary>
-        /// <param name="Text">The text representation of a network service node identification.</param>
+        /// <param name="Text">The text representation of a network network service node identification.</param>
         private NetworkServiceNode_Id(String Text)
         {
             InternalId = Text;
@@ -103,9 +103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (static) NewRandom(Length = 50)
 
         /// <summary>
-        /// Create a new random service node identification.
+        /// Create a new random network service node identification.
         /// </summary>
-        /// <param name="Length">The expected length of the service node identification.</param>
+        /// <param name="Length">The expected length of the network service node identification.</param>
         public static NetworkServiceNode_Id NewRandom(Byte Length = 50)
 
             => new(RandomExtensions.RandomString(Length));
@@ -115,16 +115,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (static) Parse    (Text)
 
         /// <summary>
-        /// Parse the given text as a network service node identification.
+        /// Parse the given text as a network network service node identification.
         /// </summary>
-        /// <param name="Text">A text representation of a network service node identification.</param>
+        /// <param name="Text">A text representation of a network network service node identification.</param>
         public static NetworkServiceNode_Id Parse(String Text)
         {
 
             if (TryParse(Text, out var networkServiceNodeId))
                 return networkServiceNodeId;
 
-            throw new ArgumentException($"Invalid text representation of a network service node identification: '{Text}'!",
+            throw new ArgumentException($"Invalid text representation of a network network service node identification: '{Text}'!",
                                         nameof(Text));
 
         }
@@ -134,9 +134,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (static) TryParse (Text)
 
         /// <summary>
-        /// Try to parse the given text as a network service node identification.
+        /// Try to parse the given text as a network network service node identification.
         /// </summary>
-        /// <param name="Text">A text representation of a network service node identification.</param>
+        /// <param name="Text">A text representation of a network network service node identification.</param>
         public static NetworkServiceNode_Id? TryParse(String Text)
         {
 
@@ -152,10 +152,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (static) TryParse (Text, out NodeId)
 
         /// <summary>
-        /// Parse the given string as a network service node identification.
+        /// Parse the given string as a network network service node identification.
         /// </summary>
-        /// <param name="Text">A text representation of a network service node identification.</param>
-        /// <param name="NodeId">The parsed service node identification.</param>
+        /// <param name="Text">A text representation of a network network service node identification.</param>
+        /// <param name="NodeId">The parsed network service node identification.</param>
         public static Boolean TryParse(String Text, out NetworkServiceNode_Id NodeId)
         {
 
@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Clone
 
         /// <summary>
-        /// Clone this service node identification.
+        /// Clone this network service node identification.
         /// </summary>
         public NetworkServiceNode_Id Clone
 
@@ -195,93 +195,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Operator overloading
 
-        #region Operator == (NodeId1, NodeId2)
+        #region Operator == (NetworkServiceNodeId1, NetworkServiceNodeId2)
 
         /// <summary>
-        /// Compares two service node identifications for equality.
+        /// Compares two network service node identifications for equality.
         /// </summary>
-        /// <param name="NodeId1">A service node identification.</param>
-        /// <param name="NodeId2">Another service node identification.</param>
+        /// <param name="NetworkServiceNodeId1">A network service node identification.</param>
+        /// <param name="NetworkServiceNodeId2">Another network service node identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (NetworkServiceNode_Id NodeId1,
-                                           NetworkServiceNode_Id NodeId2)
+        public static Boolean operator == (NetworkServiceNode_Id NetworkServiceNodeId1,
+                                           NetworkServiceNode_Id NetworkServiceNodeId2)
 
-            => NodeId1.Equals(NodeId2);
+            => NetworkServiceNodeId1.Equals(NetworkServiceNodeId2);
 
         #endregion
 
-        #region Operator != (NodeId1, NodeId2)
+        #region Operator != (NetworkServiceNodeId1, NetworkServiceNodeId2)
 
         /// <summary>
-        /// Compares two service node identifications for inequality.
+        /// Compares two network service node identifications for inequality.
         /// </summary>
-        /// <param name="NodeId1">A service node identification.</param>
-        /// <param name="NodeId2">Another service node identification.</param>
+        /// <param name="NetworkServiceNodeId1">A network service node identification.</param>
+        /// <param name="NetworkServiceNodeId2">Another network service node identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (NetworkServiceNode_Id NodeId1,
-                                           NetworkServiceNode_Id NodeId2)
+        public static Boolean operator != (NetworkServiceNode_Id NetworkServiceNodeId1,
+                                           NetworkServiceNode_Id NetworkServiceNodeId2)
 
-            => !NodeId1.Equals(NodeId2);
+            => !NetworkServiceNodeId1.Equals(NetworkServiceNodeId2);
 
         #endregion
 
-        #region Operator <  (NodeId1, NodeId2)
+        #region Operator <  (NetworkServiceNodeId1, NetworkServiceNodeId2)
 
         /// <summary>
-        /// Compares two service node identifications.
+        /// Compares two network service node identifications.
         /// </summary>
-        /// <param name="NodeId1">A service node identification.</param>
-        /// <param name="NodeId2">Another service node identification.</param>
+        /// <param name="NetworkServiceNodeId1">A network service node identification.</param>
+        /// <param name="NetworkServiceNodeId2">Another network service node identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (NetworkServiceNode_Id NodeId1,
-                                          NetworkServiceNode_Id NodeId2)
+        public static Boolean operator < (NetworkServiceNode_Id NetworkServiceNodeId1,
+                                          NetworkServiceNode_Id NetworkServiceNodeId2)
 
-            => NodeId1.CompareTo(NodeId2) < 0;
+            => NetworkServiceNodeId1.CompareTo(NetworkServiceNodeId2) < 0;
 
         #endregion
 
-        #region Operator <= (NodeId1, NodeId2)
+        #region Operator <= (NetworkServiceNodeId1, NetworkServiceNodeId2)
 
         /// <summary>
-        /// Compares two service node identifications.
+        /// Compares two network service node identifications.
         /// </summary>
-        /// <param name="NodeId1">A service node identification.</param>
-        /// <param name="NodeId2">Another service node identification.</param>
+        /// <param name="NetworkServiceNodeId1">A network service node identification.</param>
+        /// <param name="NetworkServiceNodeId2">Another network service node identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (NetworkServiceNode_Id NodeId1,
-                                           NetworkServiceNode_Id NodeId2)
+        public static Boolean operator <= (NetworkServiceNode_Id NetworkServiceNodeId1,
+                                           NetworkServiceNode_Id NetworkServiceNodeId2)
 
-            => NodeId1.CompareTo(NodeId2) <= 0;
+            => NetworkServiceNodeId1.CompareTo(NetworkServiceNodeId2) <= 0;
 
         #endregion
 
-        #region Operator >  (NodeId1, NodeId2)
+        #region Operator >  (NetworkServiceNodeId1, NetworkServiceNodeId2)
 
         /// <summary>
-        /// Compares two service node identifications.
+        /// Compares two network service node identifications.
         /// </summary>
-        /// <param name="NodeId1">A service node identification.</param>
-        /// <param name="NodeId2">Another service node identification.</param>
+        /// <param name="NetworkServiceNodeId1">A network service node identification.</param>
+        /// <param name="NetworkServiceNodeId2">Another network service node identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (NetworkServiceNode_Id NodeId1,
-                                          NetworkServiceNode_Id NodeId2)
+        public static Boolean operator > (NetworkServiceNode_Id NetworkServiceNodeId1,
+                                          NetworkServiceNode_Id NetworkServiceNodeId2)
 
-            => NodeId1.CompareTo(NodeId2) > 0;
+            => NetworkServiceNodeId1.CompareTo(NetworkServiceNodeId2) > 0;
 
         #endregion
 
-        #region Operator >= (NodeId1, NodeId2)
+        #region Operator >= (NetworkServiceNodeId1, NetworkServiceNodeId2)
 
         /// <summary>
-        /// Compares two service node identifications.
+        /// Compares two network service node identifications.
         /// </summary>
-        /// <param name="NodeId1">A service node identification.</param>
-        /// <param name="NodeId2">Another service node identification.</param>
+        /// <param name="NetworkServiceNodeId1">A network service node identification.</param>
+        /// <param name="NetworkServiceNodeId2">Another network service node identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (NetworkServiceNode_Id NodeId1,
-                                           NetworkServiceNode_Id NodeId2)
+        public static Boolean operator >= (NetworkServiceNode_Id NetworkServiceNodeId1,
+                                           NetworkServiceNode_Id NetworkServiceNodeId2)
 
-            => NodeId1.CompareTo(NodeId2) >= 0;
+            => NetworkServiceNodeId1.CompareTo(NetworkServiceNodeId2) >= 0;
 
         #endregion
 
@@ -292,14 +292,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two service node identifications.
+        /// Compares two network service node identifications.
         /// </summary>
-        /// <param name="Object">A service node identification to compare with.</param>
+        /// <param name="Object">A network service node identification to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is NetworkServiceNode_Id networkServiceNodeId
                    ? CompareTo(networkServiceNodeId)
-                   : throw new ArgumentException("The given object is not a network service node identification!",
+                   : throw new ArgumentException("The given object is not a network network service node identification!",
                                                  nameof(Object));
 
         #endregion
@@ -307,9 +307,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(NodeId)
 
         /// <summary>
-        /// Compares two service node identifications.
+        /// Compares two network service node identifications.
         /// </summary>
-        /// <param name="NodeId">A service node identification to compare with.</param>
+        /// <param name="NodeId">A network service node identification to compare with.</param>
         public Int32 CompareTo(NetworkServiceNode_Id NodeId)
 
             => String.Compare(InternalId,
@@ -325,9 +325,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two service node identifications for equality.
+        /// Compares two network service node identifications for equality.
         /// </summary>
-        /// <param name="Object">A service node identification to compare with.</param>
+        /// <param name="Object">A network service node identification to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is NetworkServiceNode_Id networkServiceNodeId &&
@@ -338,9 +338,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Equals(NodeId)
 
         /// <summary>
-        /// Compares two service node identifications for equality.
+        /// Compares two network service node identifications for equality.
         /// </summary>
-        /// <param name="NodeId">A service node identification to compare with.</param>
+        /// <param name="NodeId">A network service node identification to compare with.</param>
         public Boolean Equals(NetworkServiceNode_Id NodeId)
 
             => String.Equals(InternalId,

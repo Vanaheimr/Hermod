@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IEnumerable<TResult>  RejectedItems      { get; }
 
         public IId?                  AuthId             { get; }
-        public Object?               SendPOIData        { get; }
+        public Object?               Sender        { get; }
         public EventTracking_Id      EventTrackingId    { get; }
         public I18NString            Description        { get; }
         public IEnumerable<Warning>  Warnings           { get; }
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 IEnumerable<TResult>?  SuccessfulEVSEs   = null,
                                 IEnumerable<TResult>?  RejectedEVSEs     = null,
                                 IId?                   AuthId            = null,
-                                Object?                SendPOIData       = null,
+                                Object?                Sender       = null,
                                 EventTracking_Id?      EventTrackingId   = null,
                                 I18NString?            Description       = null,
                                 IEnumerable<Warning>?  Warnings          = null,
@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.SuccessfulItems  = SuccessfulEVSEs ?? Array.Empty<TResult>();
             this.RejectedItems    = RejectedEVSEs   ?? Array.Empty<TResult>();
             this.AuthId           = AuthId;
-            this.SendPOIData      = SendPOIData;
+            this.Sender      = Sender;
             this.EventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
             this.Description      = Description     ?? I18NString.Empty;
             this.Warnings         = Warnings        ?? Array.Empty<Warning>();
