@@ -39,11 +39,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         [Mandatory]
         public EMailAddress               EMail                { get; }
 
-        /// <summary>
-        /// The offical public name of the user.
-        /// </summary>
-        [Optional]
-        public String                     Name                 { get; }
+        ///// <summary>
+        ///// The offical public name of the user.
+        ///// </summary>
+        //[Optional]
+        //public String                     Name                 { get; }
 
         /// <summary>
         /// The language setting of the user.
@@ -51,11 +51,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         [Mandatory]
         public Languages                  UserLanguage         { get; }
 
-        /// <summary>
-        /// An optional (multi-language) description of the user.
-        /// </summary>
-        [Optional]
-        public I18NString                 Description          { get; }
+        ///// <summary>
+        ///// An optional (multi-language) description of the user.
+        ///// </summary>
+        //[Optional]
+        //public I18NString                 Description          { get; }
 
         /// <summary>
         /// Timestamp when the user accepted the End-User-License-Agreement.
