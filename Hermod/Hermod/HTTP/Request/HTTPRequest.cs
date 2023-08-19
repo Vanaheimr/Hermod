@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region TryParseUTF8StringRequestBody(this Request, out Text, out HTTPResponseBuilder, AllowEmptyHTTPBody = false)
+        #region TryParseUTF8StringRequestBody(this Request, out Text,                      out HTTPResponseBuilder, AllowEmptyHTTPBody = false)
 
         /// <summary>
         /// Return the HTTP request body as JSON object.
@@ -183,26 +183,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParseJObjectRequestBody   (this Request, out JSON, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
+        #region TryParseJSONRequestBody      (this Request, out JSONArray, out JSONObject, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
         /// <summary>
-        /// Return the HTTP request body as JSON object.
+        /// Return the HTTP request body as JSON array or object.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        /// <param name="JSON">The HTTP request body as a JSON object.</param>
+        /// <param name="JSONArray">The HTTP request body as a JSON array.</param>
+        /// <param name="JSONObject">The HTTP request body as a JSON object.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
-        public static Boolean TryParseJObjectRequestBody(this HTTPRequest           Request,
-                                                         out JObject?               JSON,
-                                                         out HTTPResponse.Builder?  HTTPResponseBuilder,
-                                                         Boolean                    AllowEmptyHTTPBody   = false,
-                                                         String?                    JSONLDContext        = null)
+        public static Boolean TryParseJSONRequestBody(this HTTPRequest           Request,
+                                                      out JArray?                JSONArray,
+                                                      out JObject?               JSONObject,
+                                                      out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                      Boolean                    AllowEmptyHTTPBody   = false,
+                                                      String?                    JSONLDContext        = null)
         {
 
-            #region AllowEmptyHTTPBody
+            #region Allow empty HTTP body?
 
-            JSON                 = new JObject();
+            JSONArray            = null;
+            JSONObject           = null;
             HTTPResponseBuilder  = null;
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
@@ -215,25 +218,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
-                                                                       AllowEmptyHTTPBody);
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                AllowEmptyHTTPBody);
 
-            if (requestBodyString.HasErrors)
+            if (httpResult.HasErrors    ||
+                httpResult.Data is null ||
+                httpResult.Data.IsNullOrEmpty())
             {
-                HTTPResponseBuilder = requestBodyString.Error;
+                HTTPResponseBuilder = httpResult.Error;
                 return false;
             }
 
+            var json = httpResult.Data.Trim();
+
             #endregion
 
-            #region Try to parse the JSON object
+            #region Try to parse the JSON array or object
 
             try
             {
 
-                JSON = requestBodyString.Data is not null
-                           ? JObject.Parse(requestBodyString.Data)
-                           : null;
+                if (json.StartsWith('['))
+                    JSONArray  = JArray. Parse(json);
+                else
+                    JSONObject = JObject.Parse(json);
 
             }
             catch (Exception e)
@@ -242,13 +250,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 HTTPResponseBuilder  = new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.JSON_UTF8,
-                    Content         = JSONObject.Create(
+                    Content         = Illias.JSONObject.Create(
                                           JSONLDContext.IsNotNullOrEmpty()
                                               ? new JProperty("context",  JSONLDContext?.ToString())
                                               : null,
-                                          new JProperty("description",  "Invalid JSON object in request body!"),
+                                          new JProperty("description",  "Invalid JSON in request body!"),
                                           new JProperty("exception",    e.Message),
-                                          new JProperty("source",       requestBodyString.Data)
+                                          new JProperty("source",       httpResult.Data)
                                       ).ToUTF8Bytes()
                 };
 
@@ -264,26 +272,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParseJArrayRequestBody    (this Request, out JSON, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
+        #region TryParseJSONArrayRequestBody (this Request, out JSONArray,                 out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
 
         /// <summary>
         /// Return the HTTP request body as JSON array.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
-        /// <param name="JSON">The HTTP request body as a JSON array.</param>
+        /// <param name="JSONArray">The HTTP request body as a JSON array.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
-        public static Boolean TryParseJArrayRequestBody(this HTTPRequest           Request,
-                                                        out JArray                 JSON,
-                                                        out HTTPResponse.Builder?  HTTPResponseBuilder,
-                                                        Boolean                    AllowEmptyHTTPBody   = false,
-                                                        String?                    JSONLDContext        = null)
+        public static Boolean TryParseJSONArrayRequestBody(this HTTPRequest           Request,
+                                                           out JArray?                JSONArray,
+                                                           out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                           Boolean                    AllowEmptyHTTPBody   = false,
+                                                           String?                    JSONLDContext        = null)
         {
 
-            #region AllowEmptyHTTPBody
+            #region Allow empty HTTP body?
 
-            JSON                 = new JArray();
+            JSONArray            = null;
             HTTPResponseBuilder  = null;
 
             if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
@@ -296,14 +304,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
-                                                                       AllowEmptyHTTPBody);
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                AllowEmptyHTTPBody);
 
-            if (requestBodyString.HasErrors)
+            if (httpResult.HasErrors    ||
+                httpResult.Data is null ||
+                httpResult.Data.IsNullOrEmpty())
             {
-                HTTPResponseBuilder = requestBodyString.Error;
+                HTTPResponseBuilder = httpResult.Error;
                 return false;
             }
+
+            var json = httpResult.Data.Trim();
 
             #endregion
 
@@ -312,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                JSON = JArray.Parse(requestBodyString.Data);
+                JSONArray = JArray.Parse(json);
 
             }
             catch (Exception e)
@@ -327,6 +339,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               : null,
                                           new JProperty("description",  "Invalid JSON array in request body!"),
                                           new JProperty("exception",    e.Message)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            return true;
+
+            #endregion
+
+        }
+
+        #endregion
+
+        #region TryParseJSONObjectRequestBody(this Request,                out JSONObject, out HTTPResponseBuilder, AllowEmptyHTTPBody = false, JSONLDContext = null)
+
+        /// <summary>
+        /// Return the HTTP request body as JSON object.
+        /// </summary>
+        /// <param name="Request">A HTTP request.</param>
+        /// <param name="JSONObject">The HTTP request body as a JSON object.</param>
+        /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
+        /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
+        /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
+        public static Boolean TryParseJSONObjectRequestBody(this HTTPRequest           Request,
+                                                            out JObject?               JSONObject,
+                                                            out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                            Boolean                    AllowEmptyHTTPBody   = false,
+                                                            String?                    JSONLDContext        = null)
+        {
+
+            #region Allow empty HTTP body?
+
+            JSONObject           = null;
+            HTTPResponseBuilder  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                                                                AllowEmptyHTTPBody);
+
+            if (httpResult.HasErrors    ||
+                httpResult.Data is null ||
+                httpResult.Data.IsNullOrEmpty())
+            {
+                HTTPResponseBuilder = httpResult.Error;
+                return false;
+            }
+
+            var json = httpResult.Data.Trim();
+
+            #endregion
+
+            #region Try to parse the JSON object
+
+            try
+            {
+
+                JSONObject = JObject.Parse(json);
+
+            }
+            catch (Exception e)
+            {
+
+                HTTPResponseBuilder  = new HTTPResponse.Builder(Request) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.JSON_UTF8,
+                    Content         = Illias.JSONObject.Create(
+                                          JSONLDContext.IsNotNullOrEmpty()
+                                              ? new JProperty("context",  JSONLDContext?.ToString())
+                                              : null,
+                                          new JProperty("description",  "Invalid JSON object in request body!"),
+                                          new JProperty("exception",    e.Message),
+                                          new JProperty("source",       httpResult.Data)
                                       ).ToUTF8Bytes()
                 };
 
@@ -402,20 +497,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region TryParseI18NString(HTTPRequest, DescriptionJSON, out I18N, out HTTPResponse)
 
-        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString? I18N, out HTTPResponse? Response)
+        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString? I18N, out HTTPResponse? HTTPResponse)
         {
 
             if (DescriptionJSON is null)
             {
 
-                I18N     = null;
+                I18N          = null;
 
-                Response = new HTTPResponse.Builder(HTTPRequest) {
-                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                               ContentType     = HTTPContentType.JSON_UTF8,
-                               Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
-                           }.AsImmutable;
+                HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
+                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                    ContentType     = HTTPContentType.JSON_UTF8,
+                                    Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
+                                }.AsImmutable;
 
                 return false;
 
@@ -430,13 +526,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!Enum.TryParse(Description.Key, out Languages Language))
                 {
 
-                    I18N = null;
+                    I18N          = null;
 
-                    Response = new HTTPResponse.Builder(HTTPRequest) {
-                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   ContentType     = HTTPContentType.JSON_UTF8,
-                                   Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
-                               }.AsImmutable;
+                    HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
+                                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                        ContentType     = HTTPContentType.JSON_UTF8,
+                                        Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
+                                    }.AsImmutable;
 
                     return false;
 
@@ -447,13 +543,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (Text is null)
                 {
 
-                    I18N = null;
+                    I18N          = null;
 
-                    Response = new HTTPResponse.Builder(HTTPRequest) {
-                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   ContentType     = HTTPContentType.JSON_UTF8,
-                                   Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
-                               }.AsImmutable;
+                    HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
+                                        HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                        ContentType     = HTTPContentType.JSON_UTF8,
+                                        Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
+                                    }.AsImmutable;
 
                     return false;
 
@@ -463,12 +559,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Response = null;
-
+            HTTPResponse = null;
             return true;
 
         }
 
+        #endregion
 
 
         #region Reply(this HTTPRequest)

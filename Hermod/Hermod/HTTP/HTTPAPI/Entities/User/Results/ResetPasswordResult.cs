@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         public IEnumerable<IUser>  Users
-            => Object ?? Array.Empty<IUser>();
+            => Entity ?? Array.Empty<IUser>();
 
         public PasswordReset?      PasswordReset    { get; internal set; }
 

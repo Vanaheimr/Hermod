@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -73,24 +72,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// The user of a simple e-mail address.
         /// </summary>
-        public String  User     { get; }
+        public String  User      { get; }
 
         /// <summary>
         /// The domain of a simple e-mail address.
         /// </summary>
-        public String  Domain   { get; }
+        public String  Domain    { get; }
 
         /// <summary>
         /// Indicates whether this e-mail address is null or empty.
         /// </summary>
         public Boolean IsNullOrEmpty
-            => User.IsNullOrEmpty() || Domain.IsNullOrEmpty();
+            => User.IsNullOrEmpty()    || Domain.IsNullOrEmpty();
 
         /// <summary>
         /// Indicates whether this e-mail address is NOT null or empty.
         /// </summary>
         public Boolean IsNotNullOrEmpty
-            => User.IsNullOrEmpty() || Domain.IsNullOrEmpty();
+            => User.IsNotNullOrEmpty() && Domain.IsNotNullOrEmpty();
 
         /// <summary>
         /// The length of the tag identification.
@@ -102,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The string value of a simple e-mail address.
         /// </summary>
         public String  Value
-            => User + "@" + Domain;
+            => $"{User}@{Domain}";
 
         #endregion
 
@@ -117,16 +116,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                    String  Domain)
         {
 
-            #region Initial checks
-
-            if (User.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(User),    "The given user part of an email address must not be null or empty!");
-
-            if (Domain.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Domain),  "The given domain part of an email address must not be null or empty!");
-
-            #endregion
-
             this.User    = User;
             this.Domain  = Domain;
 
@@ -135,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #endregion
 
 
-        #region (static) Parse(Text)
+        #region (static) Parse   (Text)
 
         /// <summary>
         /// Parse the given string as an e-mail address.
@@ -144,14 +133,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static SimpleEMailAddress Parse(String Text)
         {
 
-            var matchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
+            if (TryParse(Text, out var simpleEMailAddress))
+                return simpleEMailAddress;
 
-            if (matchCollection.Count != 1)
-                throw new ArgumentException("Illegal email address '" + Text + "'!",
-                                            nameof(Text));
-
-            return new SimpleEMailAddress(matchCollection[0].Groups[1].Value,
-                                          matchCollection[0].Groups[2].Value);
+            throw new ArgumentException($"Invalid text representation of an e-mail address: '{Text}'!",
+                                        nameof(Text));
 
         }
 
@@ -187,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (Text.IsNullOrEmpty())
+            if (Text.IsNullOrEmpty() || !Text.Contains('@'))
             {
                 EMailAddress = default;
                 return false;
@@ -200,42 +186,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 var matchCollection = SimpleEMail_RegEx.Matches(Text.Trim());
 
-                if (matchCollection.Count == 1)
+                if (matchCollection.Count == 1 &&
+                    matchCollection[0].Groups[1].Value.IsNotNullOrEmpty() &&
+                    matchCollection[0].Groups[2].Value.IsNotNullOrEmpty())
                 {
 
-                    EMailAddress = new SimpleEMailAddress(matchCollection[0].Groups[1].Value,
-                                                          matchCollection[0].Groups[2].Value);
+                    EMailAddress = new SimpleEMailAddress(
+                                       matchCollection[0].Groups[1].Value,
+                                       matchCollection[0].Groups[2].Value
+                                   );
 
                     return true;
 
                 }
 
             }
-#pragma warning disable RCS1075  // Avoid empty catch clause that catches System.Exception.
-#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
             catch
             { }
-#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
-#pragma warning restore RCS1075  // Avoid empty catch clause that catches System.Exception.
 
             EMailAddress = default;
             return false;
 
         }
-
-        #endregion
-
-        #region (static) IsValid(Text)
-
-        /// <summary>
-        /// Checks if the given string is a valid e-mail address.
-        /// </summary>
-        /// <param name="Text">A text representation of an e-mail address.</param>
-        public static Boolean IsValid(String Text)
-
-            => SimpleEMail_RegEx.
-                   Match(Text.Trim()).
-                   Success;
 
         #endregion
 
@@ -247,8 +219,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
-        /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
+        /// <param name="SimpleEMailAddress1">A simple e-mail address.</param>
+        /// <param name="SimpleEMailAddress2">Another simple e-mail address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (SimpleEMailAddress SimpleEMailAddress1,
                                            SimpleEMailAddress SimpleEMailAddress2)
@@ -262,8 +234,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
-        /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
+        /// <param name="SimpleEMailAddress1">A simple e-mail address.</param>
+        /// <param name="SimpleEMailAddress2">Another simple e-mail address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (SimpleEMailAddress SimpleEMailAddress1,
                                            SimpleEMailAddress SimpleEMailAddress2)
@@ -277,8 +249,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
-        /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
+        /// <param name="SimpleEMailAddress1">A simple e-mail address.</param>
+        /// <param name="SimpleEMailAddress2">Another simple e-mail address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (SimpleEMailAddress SimpleEMailAddress1,
                                           SimpleEMailAddress SimpleEMailAddress2)
@@ -292,8 +264,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
-        /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
+        /// <param name="SimpleEMailAddress1">A simple e-mail address.</param>
+        /// <param name="SimpleEMailAddress2">Another simple e-mail address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (SimpleEMailAddress SimpleEMailAddress1,
                                            SimpleEMailAddress SimpleEMailAddress2)
@@ -307,8 +279,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
-        /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
+        /// <param name="SimpleEMailAddress1">A simple e-mail address.</param>
+        /// <param name="SimpleEMailAddress2">Another simple e-mail address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (SimpleEMailAddress SimpleEMailAddress1,
                                           SimpleEMailAddress SimpleEMailAddress2)
@@ -322,8 +294,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="SimpleEMailAddress1">A SimpleEMailAddress.</param>
-        /// <param name="SimpleEMailAddress2">Another SimpleEMailAddress.</param>
+        /// <param name="SimpleEMailAddress1">A simple e-mail address.</param>
+        /// <param name="SimpleEMailAddress2">Another simple e-mail address.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (SimpleEMailAddress SimpleEMailAddress1,
                                            SimpleEMailAddress SimpleEMailAddress2)
@@ -390,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="SimpleEMailAddress">A simple e-mail address to compare with.</param>
         public Boolean Equals(SimpleEMailAddress SimpleEMailAddress)
 
-            => Value.ToLower().Equals(SimpleEMailAddress.Value.ToLower());
+            => Value?.ToLower().Equals(SimpleEMailAddress.Value?.ToLower() ?? "") ?? false;
 
         #endregion
 
@@ -415,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public override String ToString()
 
-            => Value;
+            => Value ?? "n/a";
 
         #endregion
 

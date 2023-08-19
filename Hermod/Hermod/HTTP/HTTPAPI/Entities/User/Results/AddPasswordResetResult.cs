@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         public PasswordReset? PasswordReset
-            => Object;
+            => Entity;
 
         #endregion
 

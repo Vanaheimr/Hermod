@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private static ConcurrentDictionary<String, HTTPMethod> httpMethods = new();
+        private static readonly ConcurrentDictionary<String, HTTPMethod> httpMethods = new();
 
         #endregion
 
@@ -293,6 +293,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPMethod SET             = Parse("SET");
 
         /// <summary>
+        /// RESET the value of a resource
+        /// </summary>
+        public static readonly HTTPMethod RESET           = Parse("RESET");
+
+        /// <summary>
         /// Change the owner of a resource
         /// </summary>
         public static readonly HTTPMethod CHOWN           = Parse("CHOWN");
@@ -490,10 +495,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             else
             {
 
-                HTTPMethod = new HTTPMethod(Text,
-                                            IsSafe,
-                                            IsIdempotent,
-                                            Description);
+                HTTPMethod = new HTTPMethod(
+                                 Text,
+                                 IsSafe,
+                                 IsIdempotent,
+                                 Description
+                             );
 
                 httpMethods.TryAdd(Text,
                                    HTTPMethod);

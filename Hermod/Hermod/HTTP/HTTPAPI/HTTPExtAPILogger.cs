@@ -322,54 +322,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region ServiceTickets
-
-            RegisterEvent2("AddServiceTicketRequest",
-                           handler => HTTPExtAPI.OnAddServiceTicketRequest += handler,
-                           handler => HTTPExtAPI.OnAddServiceTicketRequest -= handler,
-                           "ServiceTicket", "Request", "All").
-                RegisterDefaultConsoleLogTarget(this).
-                RegisterDefaultDiscLogTarget(this);
-
-            RegisterEvent2("AddServiceTicketResponse",
-                           handler => HTTPExtAPI.OnAddServiceTicketResponse += handler,
-                           handler => HTTPExtAPI.OnAddServiceTicketResponse -= handler,
-                           "ServiceTicket", "Response", "All").
-                RegisterDefaultConsoleLogTarget(this).
-                RegisterDefaultDiscLogTarget(this);
-
-
-            RegisterEvent2("SetServiceTicketRequest",
-                           handler => HTTPExtAPI.OnSetServiceTicketRequest += handler,
-                           handler => HTTPExtAPI.OnSetServiceTicketRequest -= handler,
-                           "ServiceTicket", "Request", "All").
-                RegisterDefaultConsoleLogTarget(this).
-                RegisterDefaultDiscLogTarget(this);
-
-            RegisterEvent2("SetServiceTicketResponse",
-                           handler => HTTPExtAPI.OnSetServiceTicketResponse += handler,
-                           handler => HTTPExtAPI.OnSetServiceTicketResponse -= handler,
-                           "ServiceTicket", "Response", "All").
-                RegisterDefaultConsoleLogTarget(this).
-                RegisterDefaultDiscLogTarget(this);
-
-
-            RegisterEvent2("AddServiceTicketCommentRequest",
-                           handler => HTTPExtAPI.OnAddServiceTicketChangeSetRequest += handler,
-                           handler => HTTPExtAPI.OnAddServiceTicketChangeSetRequest -= handler,
-                           "ServiceTicketComment", "ServiceTicket", "Request", "All").
-                RegisterDefaultConsoleLogTarget(this).
-                RegisterDefaultDiscLogTarget(this);
-
-            RegisterEvent2("AddServiceTicketCommentResponse",
-                           handler => HTTPExtAPI.OnAddServiceTicketChangeSetResponse += handler,
-                           handler => HTTPExtAPI.OnAddServiceTicketChangeSetResponse -= handler,
-                           "ServiceTicketComment", "ServiceTicket", "Response", "All").
-                RegisterDefaultConsoleLogTarget(this).
-                RegisterDefaultDiscLogTarget(this);
-
-            #endregion
-
             #region API
 
             RegisterEvent2("RestartRequest",

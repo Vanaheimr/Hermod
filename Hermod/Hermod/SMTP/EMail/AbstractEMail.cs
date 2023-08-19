@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             {
 
                 case "from":
-                    if (SimpleEMailAddress.IsValid(Value))
+                    if (SimpleEMailAddress.TryParse(Value, out _))
                         this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
                     break;
 

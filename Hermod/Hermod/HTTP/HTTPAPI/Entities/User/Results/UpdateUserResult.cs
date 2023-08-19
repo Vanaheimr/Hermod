@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         public IUser?          User
-            => Object;
+            => Entity;
 
         public IOrganization?  Organization    { get; internal set; }
 

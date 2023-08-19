@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         public APIKey?         APIKey
-            => Object;
+            => Entity;
 
         public IOrganization?  Organization    { get; internal set; }
 
