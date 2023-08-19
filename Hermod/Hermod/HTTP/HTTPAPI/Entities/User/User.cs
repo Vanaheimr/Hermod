@@ -38,8 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     public delegate Boolean UserProviderDelegate(User_Id UserId, out IUser User);
 
-    public delegate JObject UserToJSONDelegate(IUser    User,
-                                               Boolean  Embedded   = false);
+    public delegate JObject CustomUserSerializerDelegate(IUser    User,
+                                                         Boolean  Embedded   = false);
+
+
 
     public delegate User OverwriteUserDelegate(IUser User);
 
@@ -59,11 +61,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Skip">The optional number of Users to skip.</param>
         /// <param name="Take">The optional number of Users to return.</param>
         /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
-        public static JArray ToJSON(this IEnumerable<IUser>  Users,
-                                    UInt64?                  Skip         = null,
-                                    UInt64?                  Take         = null,
-                                    Boolean                  Embedded     = false,
-                                    UserToJSONDelegate?      UserToJSON   = null)
+        public static JArray ToJSON(this IEnumerable<IUser>        Users,
+                                    UInt64?                        Skip         = null,
+                                    UInt64?                        Take         = null,
+                                    Boolean                        Embedded     = false,
+                                    CustomUserSerializerDelegate?  UserToJSON   = null)
 
 
             => Users?.Any() != true
