@@ -9423,12 +9423,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
@@ -9436,14 +9439,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check OrganizationId URL parameter
 
                                   if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
+                                                                 out var organizationId,
+                                                                 out var organization,
+                                                                 out httpResponseBuilder) ||
+                                      !organizationId.HasValue ||
+                                       organization is null)
                                   {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
+
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
@@ -9454,7 +9460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                              ETag                       = "1",
                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                             Content                    = GetNotifications(Organization).ToUTF8Bytes(),
+                                             Content                    = GetNotifications(organization).ToUTF8Bytes(),
                                              Connection                 = "close"
                                          }.AsImmutable);
 
@@ -9484,13 +9490,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var HTTPResponse,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
                                                       Access_Levels.ReadWrite,
-                                                      Recursive: true))
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -9498,18 +9506,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check OrganizationId URL parameter
 
                                   if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out HTTPResponse))
+                                                                 out var organizationId,
+                                                                 out var organization,
+                                                                 out httpResponseBuilder) ||
+                                      !organizationId.HasValue ||
+                                       organization is null)
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
 
+
                                   #region Has the current HTTP user the required access rights to update?
 
-                                  if (!HTTPOrganizations.Contains(Organization))
+                                  if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
                                                  Server                      = HTTPServer.DefaultServerName,
@@ -9525,25 +9536,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out JArray JSONArray, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
+                                      return httpResponseBuilder!;
 
-                                  String ErrorString = null;
+                                  String? errorString = null;
 
-                                  if (JSONArray.Count > 0)
+                                  if (jsonArray.Count > 0)
                                   {
 
-                                      var JSONObjects = JSONArray.Cast<JObject>().ToArray();
+                                      var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!JSONObjects.Any())
+                                      if (!jsonObjects.Any())
                                           goto fail;
 
-                                      String context = null;
+                                      String? context = null;
 
-                                      foreach (var JSONObject in JSONObjects)
+                                      foreach (var jsonObject in jsonObjects)
                                       {
 
-                                          context = JSONObject["@context"]?.Value<String>();
+                                          context = jsonObject["@context"]?.Value<String>();
 
                                           if (context.IsNullOrEmpty())
                                               goto fail;
@@ -9552,48 +9563,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           {
 
                                               case TelegramNotification.JSONLDContext:
-                                                  if (!TelegramNotification.TryParse(JSONObject, out TelegramNotification telegramNotification))
+                                                  if (!TelegramNotification.TryParse(jsonObject, out var telegramNotification))
                                                   {
-                                                      ErrorString = "Could not parse Telegram notification!";
+                                                      errorString = "Could not parse Telegram notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(Organization, telegramNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(organization, telegramNotification,      Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case TelegramGroupNotification.JSONLDContext:
-                                                  if (!TelegramGroupNotification.TryParse(JSONObject, out TelegramGroupNotification telegramGroupNotification))
+                                                  if (!TelegramGroupNotification.TryParse(jsonObject, out var telegramGroupNotification))
                                                   {
-                                                      ErrorString = "Could not parse Telegram group notification!";
+                                                      errorString = "Could not parse Telegram group notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(Organization, telegramGroupNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(organization, telegramGroupNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case SMSNotification.JSONLDContext:
-                                                  if (!SMSNotification.TryParse(JSONObject, out SMSNotification   smsNotification))
+                                                  if (!SMSNotification.TryParse(jsonObject, out var smsNotification))
                                                   {
-                                                      ErrorString = "Could not parse sms notification!";
+                                                      errorString = "Could not parse sms notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(Organization, smsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(organization, smsNotification,           Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(JSONObject, out HTTPSNotification httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification))
                                                   {
-                                                      ErrorString = "Could not parse https notification!";
+                                                      errorString = "Could not parse https notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(Organization, httpsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(organization, httpsNotification,         Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case EMailNotification.JSONLDContext:
-                                                  if (!EMailNotification.TryParse(JSONObject, out EMailNotification eMailNotification))
+                                                  if (!EMailNotification.TryParse(jsonObject, out var eMailNotification))
                                                   {
-                                                      ErrorString = "Could not parse e-mail notification!";
+                                                      errorString = "Could not parse e-mail notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(Organization, eMailNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(organization, eMailNotification,         Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               default:
@@ -9621,7 +9632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ETag                       = "1",
                                                  ContentType                = HTTPContentType.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", ErrorString ?? "Invalid array of notifications!")
+                                                                                  new JProperty("description", errorString ?? "Invalid array of notifications!")
                                                                               ).ToUTF8Bytes()
                                              }.AsImmutable;
 
@@ -9640,7 +9651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                              ContentType                 = HTTPContentType.JSON_UTF8,
-                                             Content                     = GetNotifications(HTTPUser).ToUTF8Bytes(),
+                                             Content                     = GetNotifications(organization).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
 
@@ -9670,13 +9681,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var HTTPResponse,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuidler,
                                                       Access_Levels.ReadWrite,
-                                                      Recursive: true))
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuidler!;
                                   }
 
                                   #endregion
@@ -9684,18 +9697,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check OrganizationId URL parameter
 
                                   if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationIdURL,
-                                                                 out var Organization,
-                                                                 out HTTPResponse))
+                                                                 out var organizationId,
+                                                                 out var organization,
+                                                                 out httpResponseBuidler) || organization is null)
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuidler!;
                                   }
 
                                   #endregion
 
-                                  #region Has the current HTTP user the required access rights to update?
 
-                                  if (!HTTPOrganizations.Contains(Organization))
+                                  #region Has the current HTTP user the required access rights to delete?
+
+                                  if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
                                                  Server                      = HTTPServer.DefaultServerName,
@@ -9711,25 +9725,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out var JSONArray, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuidler) || jsonArray is null)
+                                      return httpResponseBuidler!;
 
-                                  String ErrorString = null;
+                                  String? errorString = null;
 
-                                  if (JSONArray.Count > 0)
+                                  if (jsonArray.Count > 0)
                                   {
 
-                                      var JSONObjects = JSONArray.Cast<JObject>().ToArray();
+                                      var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!JSONObjects.Any())
+                                      if (!jsonObjects.Any())
                                           goto fail;
 
-                                      String context = null;
+                                      String? context = null;
 
-                                      foreach (var JSONObject in JSONObjects)
+                                      foreach (var jsonObject in jsonObjects)
                                       {
 
-                                          context = JSONObject["@context"]?.Value<String>();
+                                          context = jsonObject["@context"]?.Value<String>();
 
                                           if (context.IsNullOrEmpty())
                                               goto fail;
@@ -9738,48 +9752,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           {
 
                                               case TelegramNotification.JSONLDContext:
-                                                  if (!TelegramNotification.TryParse(JSONObject, out TelegramNotification telegramNotification))
+                                                  if (!TelegramNotification.TryParse(jsonObject, out var telegramNotification))
                                                   {
-                                                      ErrorString = "Could not parse Telegram notification!";
+                                                      errorString = "Could not parse Telegram notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(Organization, telegramNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(organization, telegramNotification,      Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case TelegramGroupNotification.JSONLDContext:
-                                                  if (!TelegramGroupNotification.TryParse(JSONObject, out TelegramGroupNotification telegramGroupNotification))
+                                                  if (!TelegramGroupNotification.TryParse(jsonObject, out var telegramGroupNotification))
                                                   {
-                                                      ErrorString = "Could not parse Telegram group notification!";
+                                                      errorString = "Could not parse Telegram group notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(Organization, telegramGroupNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(organization, telegramGroupNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case SMSNotification.JSONLDContext:
-                                                  if (!SMSNotification.  TryParse(JSONObject, out SMSNotification   smsNotification))
+                                                  if (!SMSNotification.  TryParse(jsonObject, out var smsNotification))
                                                   {
-                                                      ErrorString = "Could not parse sms notification!";
+                                                      errorString = "Could not parse sms notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(Organization, smsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(organization, smsNotification,           Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(JSONObject, out HTTPSNotification httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification))
                                                   {
-                                                      ErrorString = "Could not parse https notification!";
+                                                      errorString = "Could not parse https notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(Organization, httpsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(organization, httpsNotification,         Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case EMailNotification.JSONLDContext:
-                                                  if (!EMailNotification.TryParse(JSONObject, out EMailNotification eMailNotification))
+                                                  if (!EMailNotification.TryParse(jsonObject, out var eMailNotification))
                                                   {
-                                                      ErrorString = "Could not parse e-mail notification!";
+                                                      errorString = "Could not parse e-mail notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(Organization, eMailNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(organization, eMailNotification,         Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               default:
@@ -9807,7 +9821,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ETag                       = "1",
                                                  ContentType                = HTTPContentType.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", ErrorString ?? "Invalid array of notifications!")
+                                                                                  new JProperty("description", errorString ?? "Invalid array of notifications!")
                                                                               ).ToUTF8Bytes()
                                              }.AsImmutable;
 
@@ -9826,7 +9840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                              ContentType                 = HTTPContentType.JSON_UTF8,
-                                             Content                     = GetNotifications(HTTPUser).ToUTF8Bytes(),
+                                             Content                     = GetNotifications(organization).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
 
@@ -10071,71 +10085,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               URLPathPrefix + "serviceCheck",
                               HTTPDelegate: Request => {
 
-                                  try
+                                  var jsonResponse  = JSONObject.Create(
+                                                          new JProperty("timestamp",  Timestamp.Now),
+                                                          new JProperty("service",    HTTPServer.ServiceName),
+                                                          new JProperty("instance",   Environment.MachineName),
+                                                          new JProperty("content",    RandomExtensions.RandomString(20))
+                                                      );
+
+                                  if (ServiceCheckPublicKey is not null)
                                   {
 
-                                      var jsonResponse  = JSONObject.Create(
-                                                              new JProperty("timestamp",  Timestamp.Now),
-                                                              new JProperty("service",    HTTPServer.ServiceName),
-                                                              new JProperty("instance",   Environment.MachineName),
-                                                              new JProperty("content",    RandomExtensions.RandomString(20))
-                                                          );
+                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      if (ServiceCheckPublicKey is not null)
+                                      if (ServiceCheckPrivateKey is not null)
                                       {
 
-                                          jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          if (ServiceCheckPrivateKey is not null)
-                                          {
+                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                                          signer.Init(true, ServiceCheckPrivateKey);
+                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                                          var signature   = signer.GenerateSignature().ToHexString();
 
-                                              var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                              var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                                              var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                              signer.Init(true, ServiceCheckPrivateKey);
-                                              signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                              var signature   = signer.GenerateSignature().ToHexString();
-
-                                              jsonResponse.Add("signature", signature);
-
-                                          }
+                                          jsonResponse.Add("signature", signature);
 
                                       }
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                              Content                    = jsonResponse.ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
-
                                   }
-                                  catch (Exception e)
-                                  {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.TEXT_UTF8,
-                                              Content                    = (e.Message + Environment.NewLine + Environment.NewLine + e.StackTrace).ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
-
-                                  }
+                                  return Task.FromResult(
+                                             new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.OK,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "POST" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = jsonResponse.ToUTF8Bytes(),
+                                                 CacheControl               = "no-cache",
+                                                 Connection                 = "close"
+                                             }.AsImmutable);
 
                               }, AllowReplacement: URLReplacement.Allow);
 
@@ -10152,100 +10143,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPContentType.JSON_UTF8,
                               HTTPDelegate: Request => {
 
-                                  try
+                                  var content = String.Empty;
+
+                                  #region Try to parse a text HTTP body...
+
+                                  HTTPResponse.Builder? httpResponse = null;
+
+                                  if (Request.ContentType == HTTPContentType.TEXT_UTF8 &&
+                                      Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
+                                  {
+                                      
+                                  }
+
+                                  #endregion
+
+                                  #region ...or parse a JSON HTTP body
+
+                                  else if (Request.ContentType == HTTPContentType.JSON_UTF8 &&
+                                      Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
+                                      jsonRequest is not null)
+                                  {
+                                      content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
+                                  }
+
+                                  if (httpResponse is not null)
+                                      return Task.FromResult(httpResponse.AsImmutable);
+
+                                  #endregion
+
+
+                                  var jsonResponse  = JSONObject.Create(
+                                                          new JProperty("timestamp",  Timestamp.Now),
+                                                          new JProperty("service",    HTTPServer.ServiceName),
+                                                          new JProperty("instance",   Environment.MachineName),
+                                                          new JProperty("content",    content?.Reverse())
+                                                      );
+
+                                  if (ServiceCheckPublicKey is not null)
                                   {
 
-                                      var content = String.Empty;
+                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      #region Try to parse a text HTTP body...
-
-                                      HTTPResponse.Builder? httpResponse = null;
-
-                                      if (Request.ContentType == HTTPContentType.TEXT_UTF8 &&
-                                          Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
-                                      {
-                                          
-                                      }
-
-                                      #endregion
-
-                                      #region ...or parse a JSON HTTP body
-
-                                      else if (Request.ContentType == HTTPContentType.JSON_UTF8 &&
-                                          Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
-                                          jsonRequest is not null)
-                                      {
-                                          content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
-                                      }
-
-                                      if (httpResponse is not null)
-                                          return Task.FromResult(httpResponse.AsImmutable);
-
-                                      #endregion
-
-
-                                      var jsonResponse  = JSONObject.Create(
-                                                              new JProperty("timestamp",  Timestamp.Now),
-                                                              new JProperty("service",    HTTPServer.ServiceName),
-                                                              new JProperty("instance",   Environment.MachineName),
-                                                              new JProperty("content",    content?.Reverse())
-                                                          );
-
-                                      if (ServiceCheckPublicKey is not null)
+                                      if (ServiceCheckPrivateKey is not null)
                                       {
 
-                                          jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          if (ServiceCheckPrivateKey is not null)
-                                          {
+                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                                          signer.Init(true, ServiceCheckPrivateKey);
+                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                                          var signature   = signer.GenerateSignature().ToHexString();
 
-                                              var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                              var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                                              var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                              signer.Init(true, ServiceCheckPrivateKey);
-                                              signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                              var signature   = signer.GenerateSignature().ToHexString();
-
-                                              jsonResponse.Add("signature", signature);
-
-                                          }
+                                          jsonResponse.Add("signature", signature);
 
                                       }
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                              Content                    = jsonResponse.ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
 
                                   }
-                                  catch (Exception e)
-                                  {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.TEXT_UTF8,
-                                              Content                    = (e.Message + Environment.NewLine + Environment.NewLine + e.StackTrace).ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
-
-                                  }
+                                  return Task.FromResult(
+                                      new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode             = HTTPStatusCode.OK,
+                                          Server                     = HTTPServer.DefaultServerName,
+                                          Date                       = Timestamp.Now,
+                                          AccessControlAllowOrigin   = "*",
+                                          AccessControlAllowMethods  = new[] { "POST" },
+                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                                          ContentType                = HTTPContentType.JSON_UTF8,
+                                          Content                    = jsonResponse.ToUTF8Bytes(),
+                                          CacheControl               = "no-cache",
+                                          Connection                 = "close"
+                                      }.AsImmutable);
 
                               }, AllowReplacement: URLReplacement.Allow);
 
@@ -10261,84 +10229,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               URLPathPrefix + "monitoring",
                               HTTPDelegate: Request => {
 
-                                  try
+                                  var process           = Process.GetCurrentProcess();
+                                  process.Refresh();
+
+                                  var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                                                          RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                                                              ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+                                                              : ResourcesMonitor.GetMemoryMetricsOnWindows();
+
+                                  var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
+                                  var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
+
+                                  var jsonResponse      = JSONObject.Create(
+                                                              new JProperty("timestamp",  Timestamp.Now),
+                                                              new JProperty("service",    HTTPServer.ServiceName),
+                                                              new JProperty("instance",   Environment.MachineName),
+                                                              new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
+                                                              new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
+                                                              new JProperty("content",    RandomExtensions.RandomString(20))
+                                                          );
+
+                                  if (ServiceCheckPublicKey is not null)
                                   {
 
-                                      var process           = Process.GetCurrentProcess();
-                                      process.Refresh();
+                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                                                              RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                                                                  ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-                                                                  : ResourcesMonitor.GetMemoryMetricsOnWindows();
-
-                                      var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
-                                      var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
-
-                                      var jsonResponse      = JSONObject.Create(
-                                                                  new JProperty("timestamp",  Timestamp.Now),
-                                                                  new JProperty("service",    HTTPServer.ServiceName),
-                                                                  new JProperty("instance",   Environment.MachineName),
-                                                                  new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                                                  new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                                  new JProperty("content",    RandomExtensions.RandomString(20))
-                                                              );
-
-                                      if (ServiceCheckPublicKey is not null)
+                                      if (ServiceCheckPrivateKey is not null)
                                       {
 
-                                          jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          if (ServiceCheckPrivateKey is not null)
-                                          {
+                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                                          signer.Init(true, ServiceCheckPrivateKey);
+                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                                          var signature   = signer.GenerateSignature().ToHexString();
 
-                                              var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                              var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                                              var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                              signer.Init(true, ServiceCheckPrivateKey);
-                                              signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                              var signature   = signer.GenerateSignature().ToHexString();
-
-                                              jsonResponse.Add("signature", signature);
-
-                                          }
+                                          jsonResponse.Add("signature", signature);
 
                                       }
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                              Content                    = jsonResponse.ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
-
                                   }
-                                  catch (Exception e)
-                                  {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.TEXT_UTF8,
-                                              Content                    = (e.Message + Environment.NewLine + Environment.NewLine + e.StackTrace).ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
-
-                                  }
+                                  return Task.FromResult(
+                                      new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode             = HTTPStatusCode.OK,
+                                          Server                     = HTTPServer.DefaultServerName,
+                                          Date                       = Timestamp.Now,
+                                          AccessControlAllowOrigin   = "*",
+                                          AccessControlAllowMethods  = new[] { "POST" },
+                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                                          ContentType                = HTTPContentType.JSON_UTF8,
+                                          Content                    = jsonResponse.ToUTF8Bytes(),
+                                          CacheControl               = "no-cache",
+                                          Connection                 = "close"
+                                      }.AsImmutable);
 
                               }, AllowReplacement: URLReplacement.Allow);
 
@@ -10355,105 +10300,82 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPContentType.JSON_UTF8,
                               HTTPDelegate: Request => {
 
-                                  try
+                                  var content = String.Empty;
+
+                                  #region Try to parse a text HTTP body...
+
+                                  HTTPResponse.Builder? httpResponse = null;
+
+                                  if (Request.ContentType == HTTPContentType.TEXT_UTF8 &&
+                                      Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
+                                  {
+                                      
+                                  }
+
+                                  #endregion
+
+                                  #region ...or parse a JSON HTTP body
+
+                                  else if (Request.ContentType == HTTPContentType.JSON_UTF8 &&
+                                      Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
+                                      jsonRequest is not null)
+                                  {
+                                      content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
+                                  }
+
+                                  if (httpResponse is not null)
+                                      return Task.FromResult(httpResponse.AsImmutable);
+
+                                  #endregion
+
+
+                                  var process       = Process.GetCurrentProcess();
+                                  process.Refresh();
+
+                                  var jsonResponse  = JSONObject.Create(
+                                                          new JProperty("timestamp",  Timestamp.Now),
+                                                          new JProperty("service",    HTTPServer.ServiceName),
+                                                          new JProperty("instance",   Environment.MachineName),
+                                                          new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
+                                                          new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
+                                                          new JProperty("content",    content?.Reverse())
+                                                      );
+
+                                  if (ServiceCheckPublicKey is not null)
                                   {
 
-                                      var content = String.Empty;
+                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      #region Try to parse a text HTTP body...
-
-                                      HTTPResponse.Builder? httpResponse = null;
-
-                                      if (Request.ContentType == HTTPContentType.TEXT_UTF8 &&
-                                          Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
-                                      {
-                                          
-                                      }
-
-                                      #endregion
-
-                                      #region ...or parse a JSON HTTP body
-
-                                      else if (Request.ContentType == HTTPContentType.JSON_UTF8 &&
-                                          Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
-                                          jsonRequest is not null)
-                                      {
-                                          content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
-                                      }
-
-                                      if (httpResponse is not null)
-                                          return Task.FromResult(httpResponse.AsImmutable);
-
-                                      #endregion
-
-
-                                      var process       = Process.GetCurrentProcess();
-                                      process.Refresh();
-
-                                      var jsonResponse  = JSONObject.Create(
-                                                              new JProperty("timestamp",  Timestamp.Now),
-                                                              new JProperty("service",    HTTPServer.ServiceName),
-                                                              new JProperty("instance",   Environment.MachineName),
-                                                              new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                                              new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                              new JProperty("content",    content?.Reverse())
-                                                          );
-
-                                      if (ServiceCheckPublicKey is not null)
+                                      if (ServiceCheckPrivateKey is not null)
                                       {
 
-                                          jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          if (ServiceCheckPrivateKey is not null)
-                                          {
+                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                                          signer.Init(true, ServiceCheckPrivateKey);
+                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                                          var signature   = signer.GenerateSignature().ToHexString();
 
-                                              var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                              var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
-
-                                              var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                              signer.Init(true, ServiceCheckPrivateKey);
-                                              signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                              var signature   = signer.GenerateSignature().ToHexString();
-
-                                              jsonResponse.Add("signature", signature);
-
-                                          }
+                                          jsonResponse.Add("signature", signature);
 
                                       }
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                              Content                    = jsonResponse.ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
 
                                   }
-                                  catch (Exception e)
-                                  {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "POST" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                              ContentType                = HTTPContentType.TEXT_UTF8,
-                                              Content                    = (e.Message + Environment.NewLine + Environment.NewLine + e.StackTrace).ToUTF8Bytes(),
-                                              CacheControl               = "no-cache",
-                                              Connection                 = "close"
-                                          }.AsImmutable);
-
-                                  }
+                                  return Task.FromResult(
+                                             new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.OK,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "POST" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = jsonResponse.ToUTF8Bytes(),
+                                                 CacheControl               = "no-cache",
+                                                 Connection                 = "close"
+                                             }.AsImmutable);
 
                               }, AllowReplacement: URLReplacement.Allow);
 
@@ -10537,16 +10459,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var       httpUser,
-                                                      out var       httpOrganizations,
-                                                      out var       httpResponseBuilder,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
                                                       Access_Levels.Admin,
-                                                      Recursive: true))
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
+
 
                                   //Task.Run(() => {
                                   //    Task.Delay(10000);
@@ -10580,20 +10505,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var       httpUser,
-                                                      out var       httpOrganizations,
-                                                      out var       httpResponseBuilder,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
                                                       Access_Levels.Admin,
-                                                      Recursive: true))
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
 
+
                                   //Task.Run(() => {
                                   //    Task.Delay(1000);
-                                      Environment.Exit(0);
+                                  Environment.Exit(0);
                                   //});
 
                                   return Task.FromResult(
@@ -21145,9 +21073,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region AddNotification(User,           NotificationType,                           CurrentUserId = null)
 
         protected async Task addNotification<T>(IUser              User,
-                                                 T                  NotificationType,
-                                                 EventTracking_Id?  EventTrackingId   = null,
-                                                 User_Id?           CurrentUserId     = null)
+                                                T                  NotificationType,
+                                                EventTracking_Id?  EventTrackingId   = null,
+                                                User_Id?           CurrentUserId     = null)
 
             where T : ANotification
 
