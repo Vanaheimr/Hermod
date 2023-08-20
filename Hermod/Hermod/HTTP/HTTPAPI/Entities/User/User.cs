@@ -36,7 +36,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public delegate Boolean UserProviderDelegate(User_Id UserId, out IUser User);
+    public delegate Boolean UserProviderDelegate(User_Id UserId, out IUser? User);
 
     public delegate JObject CustomUserSerializerDelegate(IUser    User,
                                                          Boolean  Embedded   = false);

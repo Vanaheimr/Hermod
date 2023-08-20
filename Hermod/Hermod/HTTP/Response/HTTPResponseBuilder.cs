@@ -1160,6 +1160,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 get
                 {
 
+                    // Update response timestamp
+                    Date = Illias.Timestamp.Now;
+
                     PrepareImmutability();
 
                     if      (Content       is not null)

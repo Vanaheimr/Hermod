@@ -23,6 +23,7 @@ using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.Security.Authentication;
 using System.Security.Cryptography;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
 using Newtonsoft.Json.Linq;
@@ -65,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// Extension method for the Users API.
+    /// Extension method for the HTTPExt API.
     /// </summary>
     public static class HTTPExtAPIExtensions
     {
@@ -78,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">A HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
@@ -94,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
             if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given Users API must not be null!");
+                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -144,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="HTTPResponseBuilder">A HTTP error response builder.</param>
         /// <returns>True, when user identification was found; false else.</returns>
@@ -182,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="User">The resolved user.</param>
         /// <param name="HTTPResponse">A HTTP error response.</param>
@@ -200,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
             if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given Users API must not be null!");
+                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -268,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">A HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
@@ -284,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
             if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given Users API must not be null!");
+                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -337,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">A HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="UserGroup">The resolved user.</param>
         /// <param name="HTTPResponse">A HTTP error response.</param>
@@ -355,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
             if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given Users API must not be null!");
+                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -575,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user.
         /// </summary>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
@@ -679,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user.
         /// </summary>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="AccessRight">The organization membership of the new user.</param>
@@ -790,7 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user, if he/she does not already exist.
         /// </summary>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
@@ -894,7 +895,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user, if he/she does not already exist.
         /// </summary>
-        /// <param name="HTTPExtAPI">The Users API.</param>
+        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="AccessRight">The organization membership of the new user.</param>
@@ -1003,24 +1004,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CreateOrganization           (Id, Name = null, Description = null, ParentOrganization = null)
 
-        public async static Task<IOrganization> CreateOrganization(this HTTPExtAPI              HTTPExtAPI,
+        public async static Task<IOrganization?> CreateOrganization(this HTTPExtAPI            HTTPExtAPI,
 
-                                                                   Organization_Id            Id,
-                                                                   I18NString?                Name                 = null,
-                                                                   I18NString?                Description          = null,
-                                                                   String?                    Website              = null,
-                                                                   EMailAddress?              EMail                = null,
-                                                                   PhoneNumber?               Telephone            = null,
-                                                                   Address?                   Address              = null,
-                                                                   GeoCoordinate?             GeoLocation          = null,
-                                                                   Func<Tags.Builder, Tags>?  Tags                 = null,
-                                                                   Boolean                    IsDisabled           = false,
+                                                                    Organization_Id            Id,
+                                                                    I18NString?                Name                 = null,
+                                                                    I18NString?                Description          = null,
+                                                                    String?                    Website              = null,
+                                                                    EMailAddress?              EMail                = null,
+                                                                    PhoneNumber?               Telephone            = null,
+                                                                    Address?                   Address              = null,
+                                                                    GeoCoordinate?             GeoLocation          = null,
+                                                                    Func<Tags.Builder, Tags>?  Tags                 = null,
+                                                                    Boolean                    IsDisabled           = false,
 
-                                                                   Organization?              ParentOrganization   = null,
+                                                                    Organization?              ParentOrganization   = null,
 
-                                                                   String                     DataSource           = "",
-                                                                   EventTracking_Id?          EventTrackingId      = null,
-                                                                   User_Id?                   CurrentUserId        = null)
+                                                                    String                     DataSource           = "",
+                                                                    EventTracking_Id?          EventTrackingId      = null,
+                                                                    User_Id?                   CurrentUserId        = null)
         {
 
             var addOrganizationResult = await HTTPExtAPI.AddOrganization(new Organization(
@@ -1051,24 +1052,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CreateOrganizationIfNotExists(Id, Name = null, Description = null, ParentOrganization = null)
 
-        public async static Task<IOrganization> CreateOrganizationIfNotExists(this HTTPExtAPI              HTTPExtAPI,
+        public async static Task<IOrganization?> CreateOrganizationIfNotExists(this HTTPExtAPI            HTTPExtAPI,
 
-                                                                              Organization_Id            Id,
-                                                                              I18NString?                Name                 = null,
-                                                                              I18NString?                Description          = null,
-                                                                              String?                    Website              = null,
-                                                                              EMailAddress?              EMail                = null,
-                                                                              PhoneNumber?               Telephone            = null,
-                                                                              Address?                   Address              = null,
-                                                                              GeoCoordinate?             GeoLocation          = null,
-                                                                              Func<Tags.Builder, Tags>?  Tags                 = null,
-                                                                              Boolean                    IsDisabled           = false,
+                                                                               Organization_Id            Id,
+                                                                               I18NString?                Name                 = null,
+                                                                               I18NString?                Description          = null,
+                                                                               String?                    Website              = null,
+                                                                               EMailAddress?              EMail                = null,
+                                                                               PhoneNumber?               Telephone            = null,
+                                                                               Address?                   Address              = null,
+                                                                               GeoCoordinate?             GeoLocation          = null,
+                                                                               Func<Tags.Builder, Tags>?  Tags                 = null,
+                                                                               Boolean                    IsDisabled           = false,
 
-                                                                              Organization?              ParentOrganization   = null,
+                                                                               Organization?              ParentOrganization   = null,
 
-                                                                              String                     DataSource           = "",
-                                                                              EventTracking_Id?          EventTrackingId      = null,
-                                                                              User_Id?                   CurrentUserId        = null)
+                                                                               String                     DataSource           = "",
+                                                                               EventTracking_Id?          EventTrackingId      = null,
+                                                                               User_Id?                   CurrentUserId        = null)
         {
 
             var addOrganizationResult = await HTTPExtAPI.AddOrganizationIfNotExists(new Organization(
@@ -1111,12 +1112,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public new const           String         DefaultHTTPServerName                = "GraphDefined Users API";
+        public new const           String         DefaultHTTPServerName                = "GraphDefined HTTPExt API";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public new const           String         DefaultHTTPServiceName               = "GraphDefined Users API";
+        public new const           String         DefaultHTTPServiceName               = "GraphDefined HTTPExt API";
 
         /// <summary>
         /// The default HTTP server port.
@@ -1154,9 +1155,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  static readonly   PasswordQualityCheckDelegate                  DefaultPasswordQualityCheck             = password => password.Length >= 8 ? 1.0f : 0;
         public  static readonly   TimeSpan                                      DefaultMaxSignInSessionLifetime         = TimeSpan.FromDays(30);
 
-        protected readonly        Dictionary<User_Id, LoginPassword>            loginPasswords;
-        protected readonly        Dictionary<VerificationToken, IUser>          verificationTokens;
-
         public  const             String                                        SignUpContext                           = "";
         public  const             String                                        SignInOutContext                        = "";
 
@@ -1168,18 +1166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public  static readonly   Organization_Id                               DefaultAdminOrganizationId              = Organization_Id.Parse("Admins");
 
-
-        /// <summary>
-        /// All HTTP cookies.
-        /// </summary>
-        protected readonly        Dictionary<SecurityToken_Id, SecurityToken>   httpCookies;
-
-        public  const             String                                        HTTPCookieDomain                = "";
-
-        /// <summary>
-        /// All password resets.
-        /// </summary>
-        protected readonly        Dictionary<SecurityToken_Id, PasswordReset>   passwordResets;
+        public  const             String                                        HTTPCookieDomain                        = "";
 
 
         protected static readonly String[]  Split1  = { "\r\n" };
@@ -1206,7 +1193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The API version hash (git commit hash value).
         /// </summary>
-        public new String                     APIVersionHash                     { get; }
+        public new String?                    APIVersionHash                     { get; }
 
 
         public Organization_Id                AdminOrganizationId                { get; }
@@ -1227,16 +1214,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The virtual 'robot' user.
         /// </summary>
         public User                           Robot                              { get; }
-
-        /// <summary>
-        /// The e-mail address used for the default newsletter.
-        /// </summary>
-        public EMailAddress                   NewsletterEMailAddress             { get; set; }
-
-        /// <summary>
-        /// The e-mail address used for the default newsletter.
-        /// </summary>
-        public String                         NewsletterGPGPassphrase            { get; set; }
 
         /// <summary>
         /// The passphrase of the PGP/GPG secret key of the API.
@@ -1330,7 +1307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Servers for remote authorization.
         /// </summary>
-        public IEnumerable<URLWithAPIKey>    RemoteAuthServers
+        public IEnumerable<URLWithAPIKey>     RemoteAuthServers
             => RemoteAuthServers;
 
 
@@ -1353,7 +1330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 JObject            Data,
                                                 TimeSpan?          RequestTimeout);
 
-        public event OnSendSMSDelegate OnSendSMS;
+        public event OnSendSMSDelegate? OnSendSMS;
 
         // ---------------------------------------------------------------
 
@@ -2260,28 +2237,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Inital checks
 
-            if (HTTPServer is null)
-                throw new ArgumentNullException(nameof(HTTPServer),            "The given HTTP server must not be null!");
-
             if (APIRobotEMailAddress is null)
-                throw new ArgumentNullException(nameof(APIRobotEMailAddress),  "The given API robot e-mail address must not be null!");
+                throw new ArgumentNullException(nameof(APIRobotEMailAddress),   "The given API robot e-mail address must not be null!");
+
+            if (APIRobotGPGPassphrase is null)
+                throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
 
             #endregion
 
             #region Init data
-
-            this.users                           = new Dictionary<User_Id,                    IUser>();
-            this.verificationTokens              = new Dictionary<VerificationToken,          IUser>();
-            this.loginPasswords                  = new Dictionary<User_Id,                    LoginPassword>();
-            this.passwordResets                  = new Dictionary<SecurityToken_Id,           PasswordReset>();
-            this.httpCookies                     = new Dictionary<SecurityToken_Id,           SecurityToken>();
-            this.apiKeys                         = new Dictionary<APIKey_Id,                  APIKey>();
-            this._NotificationMessages           = new Dictionary<NotificationMessage_Id,     NotificationMessage>();
-            this.userGroups                      = new Dictionary<UserGroup_Id,               IUserGroup>();
-            this.organizations                   = new Dictionary<Organization_Id,            IOrganization>();
-            this.organizationGroups              = new Dictionary<OrganizationGroup_Id,       OrganizationGroup>();
-            this.dataLicenses                    = new Dictionary<OpenDataLicense_Id,         OpenDataLicense>();
-
 
             this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPI)]?.Value<String>()?.Trim();
 
@@ -2335,6 +2299,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.PasswordQualityCheck            = PasswordQualityCheck           ?? DefaultPasswordQualityCheck;
             this.MaxSignInSessionLifetime        = MaxSignInSessionLifetime       ?? DefaultMaxSignInSessionLifetime;
 
+            this.CurrentDatabaseHashValue        = "";
+
             this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
             this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
 
@@ -2350,8 +2316,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Cast<OpenDataLicense>())
             {
 
-                dataLicenses.Add(dataLicense.Id,
-                                 dataLicense);
+                dataLicenses.TryAdd(dataLicense.Id,
+                                    dataLicense);
 
             }
 
@@ -2365,8 +2331,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                "No owner".ToI18NString()
                            );
 
-            organizations.Add(this.NoOwner.Id,
-                              this.NoOwner);
+            organizations.TryAdd(this.NoOwner.Id,
+                                 this.NoOwner);
 
             #endregion
 
@@ -2383,7 +2349,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
 
                                     if (HDPercentageFree < 3 &&
-                                        TryGetOrganization(this.AdminOrganizationId, out var adminOrganization))
+                                        TryGetOrganization(this.AdminOrganizationId, out var adminOrganization) &&
+                                        adminOrganization is not null)
                                     {
 
                                         // lowStorage_MessageType
@@ -2461,7 +2428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// <param name="LogfileName">The name of the logfile for this API.</param>
         //public static HTTPExtAPI AttachToHTTPAPI(HTTPServer                           HTTPServer,
         //                                       HTTPHostname?                        HTTPHostname                     = null,
-        //                                       String                               ServiceName                      = "GraphDefined Users API",
+        //                                       String                               ServiceName                      = "GraphDefined HTTPExt API",
         //                                       String                               ExternalDNSName                  = null,
         //                                       HTTPPath?                            URLPathPrefix                    = null,
         //                                       HTTPPath?                            BasePath                         = null,
@@ -2644,7 +2611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               HTTPPath?  BasePath,
                                               EMailType  EMailType)
 
-            => String.Concat("GraphDefined Users API\r\n",
+            => String.Concat("GraphDefined HTTPExt API\r\n",
                              "----------------------\r\n\r\n");
 
         #endregion
@@ -2662,7 +2629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              EMailType == EMailType.Notification
                                  ? "If you no longer wish to receive this kind of notification e-mails you can unsubscribe here: https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/notifications.\r\n\r\n"
                                  : "",
-                             "Users API\r\n",
+                             "HTTPExt API\r\n",
                              "(c) GraphDefined GmbH\r\n\r\n");
 
         #endregion
@@ -3467,26 +3434,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                              HTTPEventSourceId,
-                                                  HTTPAPI                                         HTTPAPI,
-                                                  HTTPPath                                        URLTemplate,
+        public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
+                                                  HTTPAPI                                          HTTPAPI,
+                                                  HTTPPath                                         URLTemplate,
 
-                                                  Func<TState, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                    CreatePerRequestState,
+                                                  Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+                                                  Func<TState>                                     CreatePerRequestState,
 
-                                                  HTTPHostname?                                   Hostname                   = null,
-                                                  HTTPMethod?                                     HttpMethod                 = null,
-                                                  HTTPContentType?                                HTTPContentType            = null,
+                                                  HTTPHostname?                                    Hostname                   = null,
+                                                  HTTPMethod?                                      HttpMethod                 = null,
+                                                  HTTPContentType?                                 HTTPContentType            = null,
 
-                                                  HTTPAuthentication?                             URLAuthentication          = null,
-                                                  HTTPAuthentication?                             HTTPMethodAuthentication   = null,
+                                                  HTTPAuthentication?                              URLAuthentication          = null,
+                                                  HTTPAuthentication?                              HTTPMethodAuthentication   = null,
 
-                                                  HTTPDelegate?                                   DefaultErrorHandler        = null)
+                                                  HTTPDelegate?                                    DefaultErrorHandler        = null)
         {
 
             IncludeFilterAtRuntime ??= (s, u, e) => true;
 
-            if (TryGet(HTTPEventSourceId, out IHTTPEventSource<TData> _EventSource))
+            if (TryGet(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
             {
 
                 AddMethodCallback(Hostname        ?? HTTPHostname.Any,
@@ -3500,37 +3467,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       #region Get HTTP user and its organizations
 
-                                                 // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                                 if (!TryGetHTTPUser(Request,
-                                                                     out var HTTPUser,
-                                                                     out var HTTPOrganizations,
-                                                                     out var Response,
-                                                                     AccessLevel:  Access_Levels.ReadWrite,
-                                                                     Recursive:    true))
-                                                 {
-                                                     return Task.FromResult(Response.AsImmutable);
-                                                 }
+                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                      if (!TryGetHTTPUser(Request,
+                                                          out var httpUser,
+                                                          out var httpOrganizations,
+                                                          out var httpResponseBuilder,
+                                                          AccessLevel: Access_Levels.ReadWrite,
+                                                          Recursive: true) ||
+                                          httpUser is null)
+                                      {
+                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      }
 
-                                                 #endregion
+                                      #endregion
 
-                                      var State        = CreatePerRequestState != null ? CreatePerRequestState() : default(TState);
-                                      var _HTTPEvents  = _EventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                                      Where  (_event => IncludeFilterAtRuntime(State,
-                                                                                                               HTTPUser,
-                                                                                                               _event)).
-                                                                      Reverse().
-                                                                      Skip   (Request.QueryString.GetUInt64("skip")).
-                                                                      Take   (Request.QueryString.GetUInt64("take")).
-                                                                      Reverse().
-                                                                      Aggregate(new StringBuilder(),
-                                                                                (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                                                                                                            AppendLine(httpEvent.SerializedData).
-                                                                                                                            AppendLine()).
-                                                                      Append(Environment.NewLine).
-                                                                      Append("retry: ").Append((UInt32) _EventSource.RetryIntervall.TotalMilliseconds).
-                                                                      Append(Environment.NewLine).
-                                                                      Append(Environment.NewLine).
-                                                                      ToString();
+                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+                                      var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                                                                    Where  (httpEvent => IncludeFilterAtRuntime(state,
+                                                                                                                httpUser,
+                                                                                                                httpEvent)).
+                                                                    Reverse().
+                                                                    Skip   (Request.QueryString.GetUInt64("skip")).
+                                                                    Take   (Request.QueryString.GetUInt64("take")).
+                                                                    Reverse().
+                                                                    Aggregate(new StringBuilder(),
+                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+                                                                                                                          AppendLine(httpEvent.SerializedData).
+                                                                                                                          AppendLine()).
+                                                                    Append(Environment.NewLine).
+                                                                    Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                                    Append(Environment.NewLine).
+                                                                    Append(Environment.NewLine).
+                                                                    ToString();
 
                                       return Task.FromResult(
                                           new HTTPResponse.Builder(Request) {
@@ -3539,8 +3507,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * _EventSource.RetryIntervall.TotalSeconds)),
-                                              Content         = _HTTPEvents.ToUTF8Bytes()
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
                                   });
@@ -3559,31 +3527,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                       if (!TryGetHTTPUser(Request,
-                                                          out var HTTPUser,
-                                                          out var HTTPOrganizations,
-                                                          out var Response,
-                                                          AccessLevel:  Access_Levels.ReadWrite,
-                                                          Recursive:    true))
+                                                          out var httpUser,
+                                                          out var httpOrganizations,
+                                                          out var httpResponseBuilder,
+                                                          Access_Levels.ReadWrite,
+                                                          Recursive: true) ||
+                                          httpUser is null)
                                       {
-                                          return Task.FromResult(Response.AsImmutable);
+                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                       }
 
                                       #endregion
 
-                                      var State        = CreatePerRequestState != null ? CreatePerRequestState() : default(TState);
-                                      var _HTTPEvents  = _EventSource.Where(httpEvent => IncludeFilterAtRuntime(State,
-                                                                                                                HTTPUser,
-                                                                                                                httpEvent)).
-                                                                      Skip (Request.QueryString.GetUInt64("skip")).
-                                                                      Take (Request.QueryString.GetUInt64("take")).
-                                                                      Aggregate(new StringBuilder().AppendLine("["),
-                                                                                (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
-                                                                                                                            Append    (httpEvent.Subevent ?? "").
-                                                                                                                            Append    (@""",").
-                                                                                                                            Append    (httpEvent.SerializedData).
-                                                                                                                            AppendLine("],")).
-                                                                      ToString().
-                                                                      TrimEnd();
+                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+                                      var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+                                                                                                              httpUser,
+                                                                                                              httpEvent)).
+                                                                    Skip (Request.QueryString.GetUInt64("skip")).
+                                                                    Take (Request.QueryString.GetUInt64("take")).
+                                                                    Aggregate(new StringBuilder().AppendLine("["),
+                                                                              (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
+                                                                                                                          Append    (httpEvent.Subevent ?? "").
+                                                                                                                          Append    (@""",").
+                                                                                                                          Append    (httpEvent.SerializedData).
+                                                                                                                          AppendLine("],")).
+                                                                    ToString().
+                                                                    TrimEnd();
 
 
                                       return Task.FromResult(
@@ -3593,9 +3562,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * _EventSource.RetryIntervall.TotalSeconds)),
-                                              Content         = (_HTTPEvents.Length > 1
-                                                                     ? _HTTPEvents.Remove(_HTTPEvents.Length - 1, 1) + Environment.NewLine + "]"
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              Content         = (httpEvents.Length > 1
+                                                                     ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
                                                                      : "]").ToUTF8Bytes()
                                           }.AsImmutable);
 
@@ -3612,26 +3581,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                          HTTPEventSourceId,
-                                                  HTTPAPI                                                                     HTTPAPI,
-                                                  HTTPPath                                                                    URLTemplate,
+        public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
+                                                  HTTPAPI                                                                      HTTPAPI,
+                                                  HTTPPath                                                                     URLTemplate,
 
-                                                  Func<TState, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                                                CreatePerRequestState,
+                                                  Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+                                                  Func<TState>                                                                 CreatePerRequestState,
 
-                                                  HTTPHostname?                                                               Hostname                   = null,
-                                                  HTTPMethod?                                                                 HttpMethod                 = null,
-                                                  HTTPContentType?                                                            HTTPContentType            = null,
+                                                  HTTPHostname?                                                                Hostname                   = null,
+                                                  HTTPMethod?                                                                  HttpMethod                 = null,
+                                                  HTTPContentType?                                                             HTTPContentType            = null,
 
-                                                  HTTPAuthentication?                                                         URLAuthentication          = null,
-                                                  HTTPAuthentication?                                                         HTTPMethodAuthentication   = null,
+                                                  HTTPAuthentication?                                                          URLAuthentication          = null,
+                                                  HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
 
-                                                  HTTPDelegate?                                                               DefaultErrorHandler        = null)
+                                                  HTTPDelegate?                                                                DefaultErrorHandler        = null)
         {
 
             IncludeFilterAtRuntime ??= (s, u, o, e) => true;
 
-            if (TryGet<TData>(HTTPEventSourceId, out var _EventSource))
+            if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
             {
 
                 AddMethodCallback(Hostname        ?? HTTPHostname.Any,
@@ -3645,38 +3614,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       #region Get HTTP user and its organizations
 
-                                                 // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                                 if (!TryGetHTTPUser(Request,
-                                                                     out var HTTPUser,
-                                                                     out var HTTPOrganizations,
-                                                                     out var Response,
-                                                                     AccessLevel:  Access_Levels.ReadWrite,
-                                                                     Recursive:    true))
-                                                 {
-                                                     return Task.FromResult(Response.AsImmutable);
-                                                 }
+                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                      if (!TryGetHTTPUser(Request,
+                                                          out var httpUser,
+                                                          out var httpOrganizations,
+                                                          out var httpResponseBuilder,
+                                                          Access_Levels.ReadWrite,
+                                                          Recursive: true) ||
+                                          httpUser is null)
+                                      {
+                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      }
 
-                                                 #endregion
+                                      #endregion
 
-                                      var State        = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var _HTTPEvents  = _EventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                                      Where  (httpEvent => IncludeFilterAtRuntime(State,
-                                                                                                                  HTTPUser,
-                                                                                                                  HTTPOrganizations,
-                                                                                                                  httpEvent)).
-                                                                      Reverse().
-                                                                      Skip   (Request.QueryString.GetUInt64("skip")).
-                                                                      Take   (Request.QueryString.GetUInt64("take")).
-                                                                      Reverse().
-                                                                      Aggregate(new StringBuilder(),
-                                                                                (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                                                                                                            AppendLine(httpEvent.SerializedData).
-                                                                                                                            AppendLine()).
-                                                                      Append(Environment.NewLine).
-                                                                      Append("retry: ").Append((UInt32) _EventSource.RetryIntervall.TotalMilliseconds).
-                                                                      Append(Environment.NewLine).
-                                                                      Append(Environment.NewLine).
-                                                                      ToString();
+                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+                                      var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                                                                    Where  (httpEvent => IncludeFilterAtRuntime(state,
+                                                                                                                httpUser,
+                                                                                                                httpOrganizations,
+                                                                                                                httpEvent)).
+                                                                    Reverse().
+                                                                    Skip   (Request.QueryString.GetUInt64("skip")).
+                                                                    Take   (Request.QueryString.GetUInt64("take")).
+                                                                    Reverse().
+                                                                    Aggregate(new StringBuilder(),
+                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+                                                                                                                          AppendLine(httpEvent.SerializedData).
+                                                                                                                          AppendLine()).
+                                                                    Append(Environment.NewLine).
+                                                                    Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                                    Append(Environment.NewLine).
+                                                                    Append(Environment.NewLine).
+                                                                    ToString();
 
                                       return Task.FromResult(
                                           new HTTPResponse.Builder(Request) {
@@ -3685,8 +3655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * _EventSource.RetryIntervall.TotalSeconds)),
-                                              Content         = _HTTPEvents.ToUTF8Bytes()
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
                                   });
@@ -3705,32 +3675,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                       if (!TryGetHTTPUser(Request,
-                                                          out var HTTPUser,
-                                                          out var HTTPOrganizations,
-                                                          out var Response,
-                                                          AccessLevel:  Access_Levels.ReadWrite,
-                                                          Recursive:    true))
+                                                          out var httpUser,
+                                                          out var httpOrganizations,
+                                                          out var httpResponseBuilder,
+                                                          Access_Levels.ReadWrite,
+                                                          Recursive: true) ||
+                                          httpUser is null)
                                       {
-                                          return Task.FromResult(Response.AsImmutable);
+                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                       }
 
                                       #endregion
 
-                                      var State        = CreatePerRequestState != null ? CreatePerRequestState() : default(TState);
-                                      var _HTTPEvents  = _EventSource.Where(httpEvent => IncludeFilterAtRuntime(State,
-                                                                                                                HTTPUser,
-                                                                                                                HTTPOrganizations,
-                                                                                                                httpEvent)).
-                                                                      Skip (Request.QueryString.GetUInt64("skip")).
-                                                                      Take (Request.QueryString.GetUInt64("take")).
-                                                                      Aggregate(new StringBuilder().AppendLine("["),
-                                                                                (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
-                                                                                                                            Append(httpEvent.Subevent ?? "").
-                                                                                                                            Append(@""",").
-                                                                                                                            Append(httpEvent.SerializedData).
-                                                                                                                            AppendLine("],")).
-                                                                      ToString().
-                                                                      TrimEnd();
+                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+                                      var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+                                                                                                              httpUser,
+                                                                                                              httpOrganizations,
+                                                                                                              httpEvent)).
+                                                                    Skip (Request.QueryString.GetUInt64("skip")).
+                                                                    Take (Request.QueryString.GetUInt64("take")).
+                                                                    Aggregate(new StringBuilder().AppendLine("["),
+                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
+                                                                                                                          Append(httpEvent.Subevent ?? "").
+                                                                                                                          Append(@""",").
+                                                                                                                          Append(httpEvent.SerializedData).
+                                                                                                                          AppendLine("],")).
+                                                                    ToString().
+                                                                    TrimEnd();
 
 
                                       return Task.FromResult(
@@ -3740,9 +3711,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * _EventSource.RetryIntervall.TotalSeconds)),
-                                              Content         = (_HTTPEvents.Length > 1
-                                                                     ? _HTTPEvents.Remove(_HTTPEvents.Length - 1, 1) + Environment.NewLine + "]"
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              Content         = (httpEvents.Length > 1
+                                                                     ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
                                                                      : "]").ToUTF8Bytes()
                                           }.AsImmutable);
 
@@ -3765,7 +3736,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override Stream? GetResourceStream(String ResourceName)
 
             => GetResourceStream(ResourceName,
-                                 new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                  new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3775,7 +3745,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override MemoryStream? GetResourceMemoryStream(String ResourceName)
 
             => GetResourceMemoryStream(ResourceName,
-                                       new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                        new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3785,7 +3754,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override String GetResourceString(String ResourceName)
 
             => GetResourceString(ResourceName,
-                                 new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                  new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3795,7 +3763,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override Byte[] GetResourceBytes(String ResourceName)
 
             => GetResourceBytes(ResourceName,
-                                new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                 new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3805,7 +3772,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override String MixWithHTMLTemplate(String ResourceName)
 
             => MixWithHTMLTemplate(ResourceName,
-                                   new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                    new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3944,279 +3910,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                URLPathPrefix + "shared/HTTPExtAPI",
                                                HTTPRoot[..^1],
                                                typeof(HTTPExtAPI).Assembly);
-
-            #endregion
-
-
-            #region OPTIONS     ~/changeSets
-
-            // -----------------------------------------------------
-            // curl -X OPTIONS -v http://127.0.0.1:3004/changeSets
-            // -----------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.OPTIONS,
-                              URLPathPrefix + "changeSets",
-                              HTTPDelegate: Request => {
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "GET", "OPTIONS" },
-                                          AccessControlAllowHeaders  = new[] { "Authorization", "X-App-Version" },
-                                          Connection                 = "close"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region GET         ~/changeSets
-
-            // ---------------------------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: application/json" -H "API-Key: xxx" http://127.0.0.1:3004/changeSets?withMetadata\&take=2
-            // ---------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "changeSets",
-                              HTTPContentType.JSON_UTF8,
-                              HTTPDelegate: async Request => {
-
-                                  #region Check API Key...
-
-                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "GET" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-
-                                                                                  Request.API_Key.HasValue
-                                                                                      ? new JProperty("apiKey",  Request.API_Key?.ToString() ?? "")
-                                                                                      : null,
-
-                                                                                  new JProperty("description",  "Please use a valid API key!")
-
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = "close"
-                                             }.AsImmutable;
-
-                                  #endregion
-
-                                  var withMetadata                            = Request.QueryString.GetBoolean ("withMetadata", false);
-                                  var since                                   = Request.QueryString.GetDateTime("since");
-                                  var skipUntil                               = Request.QueryString.GetString  ("skipUntil");
-                                  var skip                                    = Request.QueryString.GetUInt64  ("skip");
-                                  var take                                    = Request.QueryString.GetUInt64  ("take");
-                                  var match                                   = Request.QueryString.GetString  ("match");
-
-                                  var (filteredChangeSets, totalCount, ETag)  = await LoadChangeSetsFromDisc(since,
-                                                                                                     skipUntil,
-                                                                                                     match is not null
-                                                                                                       ? line => line.Contains(match)
-                                                                                                       : null,
-                                                                                                     skip,
-                                                                                                     take);
-                                  var filteredCount                           = filteredChangeSets.ULongCount();
-
-                                  var JSONResults                             = new JArray(filteredChangeSets);
-
-
-                                  return new HTTPResponse.Builder(Request) {
-                                             HTTPStatusCode                = HTTPStatusCode.OK,
-                                             Server                        = HTTPServer.DefaultServerName,
-                                             Date                          = Timestamp.Now,
-                                             AccessControlAllowOrigin      = "*",
-                                             AccessControlAllowMethods     = new[] { "GET", "OPTIONS" },
-                                             AccessControlAllowHeaders     = new[] { "Authorization", "X-App-Version" },
-                                             ETag                          = ETag,
-                                             ContentType                   = HTTPContentType.JSON_UTF8,
-                                             Content                       = withMetadata
-                                                                                 ? JSONObject.Create(
-                                                                                       new JProperty("totalCount",    totalCount),
-                                                                                       new JProperty("filteredCount", filteredCount),
-                                                                                       new JProperty("changeSets",    JSONResults)
-                                                                                   ).ToUTF8Bytes()
-                                                                                 : JSONResults.ToUTF8Bytes(),
-                                             X_ExpectedTotalNumberOfItems  = filteredCount,
-                                             Connection                    = "close"
-                                         }.AsImmutable;
-
-                              });
-
-            #endregion
-
-
-            #region OPTIONS     ~/securityToken
-
-            // --------------------------------------------------------
-            // curl -X OPTIONS -v http://127.0.0.1:3004/securityToken
-            // --------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.OPTIONS,
-                              URLPathPrefix + "securityToken",
-                              HTTPDelegate: Request => {
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
-                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization", "X-App-Version" },
-                                          Connection                 = "close"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region CHECK       ~/securityToken
-
-            // Used by distributed HTTP APIs to check whether a security token is valid.
-
-            // ------------------------------------------------------------------------------------------------------------------------
-            // curl -v -X CHECK -H "Content-type: application/json" -H "Accept: application/json" http://127.0.0.1:3004/securityToken
-            // ------------------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.CHECK,
-                              URLPathPrefix + "securityToken",
-                              HTTPContentType.JSON_UTF8,
-                              HTTPDelegate: async Request => {
-
-                                  #region Check API Key...
-
-                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-
-                                                                                  Request.API_Key.HasValue
-                                                                                      ? new JProperty("apiKey",  Request.API_Key?.ToString() ?? "")
-                                                                                      : null,
-
-                                                                                  new JProperty("description",  "Please use a valid API key!")
-
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = "close"
-                                             }.AsImmutable;
-
-                                  #endregion
-
-
-                                  #region Parse JSON HTTP body...
-
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out var errorResponseBuilder) || json is null)
-                                      return errorResponseBuilder.AsImmutable;
-
-                                  #endregion
-
-                                  #region Parse securityTokenId    [mandatory]
-
-                                  if (!json.ParseMandatory("securityTokenId",
-                                                           "security token identification",
-                                                           SecurityToken_Id.TryParse,
-                                                           out SecurityToken_Id  securityTokenId,
-                                                           out String            errorDescription))
-                                  {
-
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "CHECK" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", errorDescription)
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = "close"
-                                             }.AsImmutable;
-
-                                  }
-
-                                  #endregion
-
-                                  #region Parse maxHopCount        [optional]
-
-                                  if (json.ParseOptional("maxHopCount",
-                                                         "remote auth server max hop count",
-                                                         out Byte? maxHopCount,
-                                                         out       errorDescription))
-                                  {
-
-                                      if (errorDescription != null)
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "CHECK" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", errorDescription)
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close"
-                                                 }.AsImmutable;
-
-                                  }
-
-                                  #endregion
-
-
-                                  var securityToken = await CheckHTTPCookie(securityTokenId,
-                                                                            maxHopCount ?? 0);
-
-
-                                  if (securityToken is not null)
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                 = HTTPContentType.JSON_UTF8,
-                                                 Content                     = JSONObject.Create(
-
-                                                                                   new JProperty("userId",   securityToken.UserId. ToString()),
-                                                                                   new JProperty("expires",  securityToken.Expires.ToIso8601()),
-
-                                                                                   securityToken.SuperUserId.HasValue
-                                                                                       ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
-                                                                                       : null
-
-                                                                               ).ToUTF8Bytes(),
-                                                 Connection                  = "close"
-                                             }.AsImmutable;
-
-
-                                  return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable;
-
-                              });
 
             #endregion
 
@@ -4469,9 +4162,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   lock (httpCookies)
                                   {
 
-                                      httpCookies.Add(securityTokenId,
-                                                       new SecurityToken(validUser.Id,
-                                                                         expires));
+                                      httpCookies.TryAdd(securityTokenId,
+                                                         new SecurityToken(validUser.Id,
+                                                                           expires));
 
                                       File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
                                                          securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
@@ -4526,7 +4219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Parse JSON
 
                                   if (!Request.TryParseJSONObjectRequestBody(out var json,
-                                                                          out var errorResponseBuilder) || json is null)
+                                                                             out var errorResponseBuilder) || json is null)
                                   {
 
                                       // Slow down attackers!
@@ -4832,7 +4525,206 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
+            #region ~/securityToken
+
+            // Used by distributed HTTP APIs to check whether a security token is valid.
+
+            #region OPTIONS     ~/securityToken
+
+            // --------------------------------------------------------
+            // curl -X OPTIONS -v http://127.0.0.1:3004/securityToken
+            // --------------------------------------------------------
+            AddMethodCallback(Hostname,
+                              HTTPMethod.OPTIONS,
+                              URLPathPrefix + "securityToken",
+                              HTTPDelegate: Request => {
+
+                                  return Task.FromResult(
+                                      new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode             = HTTPStatusCode.OK,
+                                          Server                     = HTTPServer.DefaultServerName,
+                                          Date                       = Timestamp.Now,
+                                          AccessControlAllowOrigin   = "*",
+                                          AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
+                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization", "X-App-Version" },
+                                          Connection                 = "close"
+                                      }.AsImmutable);
+
+                              });
+
+            #endregion
+
+            #region CHECK       ~/securityToken
+
+            // ------------------------------------------------------------------------------------------------------------------------
+            // curl -v -X CHECK -H "Content-type: application/json" -H "Accept: application/json" http://127.0.0.1:3004/securityToken
+            // ------------------------------------------------------------------------------------------------------------------------
+            AddMethodCallback(Hostname,
+                              HTTPMethod.CHECK,
+                              URLPathPrefix + "securityToken",
+                              HTTPContentType.JSON_UTF8,
+                              HTTPDelegate: async Request => {
+
+                                  #region Check API Key...
+
+                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+
+                                                                                  Request.API_Key.HasValue
+                                                                                      ? new JProperty("apiKey",  Request.API_Key?.ToString() ?? "")
+                                                                                      : null,
+
+                                                                                  new JProperty("description",  "Please use a valid API key!")
+
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close"
+                                             }.AsImmutable;
+
+                                  #endregion
+
+
+                                  #region Parse JSON HTTP body...
+
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out var errorResponseBuilder) || json is null)
+                                      return errorResponseBuilder!;
+
+                                  #endregion
+
+                                  #region Parse securityTokenId    [mandatory]
+
+                                  if (!json.ParseMandatory("securityTokenId",
+                                                           "security token identification",
+                                                           SecurityToken_Id.TryParse,
+                                                           out SecurityToken_Id  securityTokenId,
+                                                           out var               errorDescription))
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "CHECK" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", errorDescription)
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close"
+                                             }.AsImmutable;
+
+                                  }
+
+                                  #endregion
+
+                                  #region Parse maxHopCount        [optional]
+
+                                  if (json.ParseOptional("maxHopCount",
+                                                         "remote auth server max hop count",
+                                                         out Byte? maxHopCount,
+                                                         out       errorDescription))
+                                  {
+
+                                      if (errorDescription != null)
+                                          return new HTTPResponse.Builder(Request) {
+                                                     HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Date                       = Timestamp.Now,
+                                                     AccessControlAllowOrigin   = "*",
+                                                     AccessControlAllowMethods  = new[] { "CHECK" },
+                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                     ContentType                = HTTPContentType.JSON_UTF8,
+                                                     Content                    = JSONObject.Create(
+                                                                                      new JProperty("description", errorDescription)
+                                                                                  ).ToUTF8Bytes(),
+                                                     Connection                 = "close"
+                                                 }.AsImmutable;
+
+                                  }
+
+                                  #endregion
+
+
+                                  var securityToken = await CheckHTTPCookie(securityTokenId,
+                                                                            maxHopCount ?? 0);
+
+
+                                  if (securityToken is not null)
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.OK,
+                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = new[] { "CHECK" },
+                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 Content                     = JSONObject.Create(
+
+                                                                                   new JProperty("userId",   securityToken.UserId. ToString()),
+                                                                                   new JProperty("expires",  securityToken.Expires.ToIso8601()),
+
+                                                                                   securityToken.SuperUserId.HasValue
+                                                                                       ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
+                                                                                       : null
+
+                                                                               ).ToUTF8Bytes(),
+                                                 Connection                  = "close"
+                                             }.AsImmutable;
+
+
+                                  return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.NotFound,
+                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = new[] { "CHECK" },
+                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 Connection                  = "close"
+                                             }.AsImmutable;
+
+                              });
+
+            #endregion
+
+            #endregion
+
+
             #region ~/users
+
+            #region OPTIONS     ~/users
+
+            // ------------------------------------------------------------------------------
+            // curl -X OPTIONS -v -H "Accept: application/json" http://127.0.0.1:2100/users
+            // ------------------------------------------------------------------------------
+            AddMethodCallback(Hostname,
+                              HTTPMethod.OPTIONS,
+                              URLPathPrefix + "users",
+                              HTTPDelegate: Request => {
+
+                                  return Task.FromResult(
+                                      new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode             = HTTPStatusCode.OK,
+                                          Server                     = HTTPServer.DefaultServerName,
+                                          Date                       = Timestamp.Now,
+                                          AccessControlAllowOrigin   = "*",
+                                          AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
+                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                          AccessControlMaxAge        = 3600,
+                                          CacheControl               = "public",
+                                          Connection                 = "close"
+                                      }.AsImmutable);
+
+                              });
+
+            #endregion
 
             #region ADD         ~/users
 
@@ -4870,7 +4762,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        out var httpOrganizations,
                                                        ref responseBuilder,
                                                        AccessLevel: Access_Levels.ReadWrite,
-                                                       Recursive:   true) ||
+                                                       Recursive: true) ||
                                       httpUser is null ||
                                      !httpOrganizations.Any())
                                   {
@@ -5261,7 +5153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        out var httpOrganizations,
                                                        ref responseBuilder,
                                                        AccessLevel: Access_Levels.ReadOnly,
-                                                       Recursive:   true) ||
+                                                       Recursive: true) ||
                                       httpUser is null ||
                                      !httpOrganizations.Any())
                                   {
@@ -5323,6 +5215,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region DEAUTH      ~/users
 
+            // -----------------------------------------------------------------------------
+            // curl -X DEAUTH -v -H "Accept: application/json" http://127.0.0.1:2100/users
+            // -----------------------------------------------------------------------------
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.DEAUTH,
                               HTTPPath.Parse("/users"),
@@ -5359,14 +5254,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------
             // curl -X OPTIONS -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // -----------------------------------------------------------------------------------
-            //HTTPServer.ITEM_GET<User_Id, User>(UriTemplate:         URLPrefix + "users/{UserId}",
-            //                                   ParseIdDelegate:     User_Id.TryParse,
-            //                                   ParseIdError:        Text => "Invalid user identification '" + Text + "'!",
-            //                                   TryGetItemDelegate:  _Users.TryGetValue,
-            //                                   ItemFilterDelegate:  user   => user.PrivacyLevel == PrivacyLevel.World,
-            //                                   TryGetItemError:     userId => "Unknown user '" + userId + "'!",
-            //                                   ToJSONDelegate:      user   => user.ToJSON(IncludeCryptoHash: true));
-
             AddMethodCallback(Hostname,
                               HTTPMethod.OPTIONS,
                               URLPathPrefix + "users/{UserId}",
@@ -5388,22 +5275,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       }.AsImmutable);
 
                               });
-
-
-            #region Get HTTP user and its organizations
-
-            // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-            //if (!TryGetHTTPUser(Request,
-            //                    out var HTTPUser,
-            //                    out var HTTPOrganizations,
-            //                    out HTTPResponse           Response,
-            //                    Recursive: true))
-            //{
-            //    return Task.FromResult(Response);
-            //}
-
-            #endregion
-
 
             #endregion
 
@@ -5443,7 +5314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        out var httpOrganizations,
                                                        ref responseBuilder,
                                                        AccessLevel: Access_Levels.ReadWrite,
-                                                       Recursive:   true) ||
+                                                       Recursive: true) ||
                                       httpUser is null ||
                                      !httpOrganizations.Any())
                                   {
@@ -5683,7 +5554,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //      -H "Content-Type: application/json; charset=utf-8" \
             //      -d "{ \
             //              \"@id\" :             \"214080158\", \
-            //              \"@context\" :        \"https://opendata.social/contexts/usersAPI/user+json\", \
+            //              \"@context\" :        \"https://opendata.social/contexts/UsersAPI/user+json\", \
             //              \"description\" :     { \"deu\" : \"Test AED in Erlangen Raum Yavin 4\" },\
             //              \"dataLicenseIds\" :  [ \"ODbL\" ],\
             //              \"ownerId\" :         \"Organization\", \
@@ -5712,13 +5583,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadWrite,
-                                                      Recursive:    true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Response;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -5727,22 +5599,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   if (!Request.ParseUserId(this,
                                                            out var UserIdURL,
-                                                           out var HTTPResponse))
+                                                           out httpResponseBuilder))
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
 
                                   #region Parse JSON
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var JSONObj, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                      return httpResponseBuilder!;
 
-                                  if (!User.TryParseJSON(JSONObj,
-                                                         out var _User,
+                                  if (!User.TryParseJSON(json,
+                                                         out var user,
                                                          out var ErrorResponse,
-                                                         UserIdURL))
+                                                         UserIdURL) || user is null)
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -5766,7 +5638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Has the current HTTP user the required
                                   // access rights to update?
-                                  if (HTTPUser.Id != _User.Id && !CanImpersonate(HTTPUser, _User))
+                                  if (httpUser.Id != user.Id && !CanImpersonate(httpUser, user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
                                                  Server                      = HTTPServer.DefaultServerName,
@@ -5778,7 +5650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              }.AsImmutable;
 
 
-                                  var result = await AddOrUpdateUser(_User,
+                                  var result = await AddOrUpdateUser(user,
                                                                      false,
                                                                      false,
                                                                      false,
@@ -5786,7 +5658,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      null,
                                                                      null,
                                                                      Request.EventTrackingId,
-                                                                     HTTPUser.Id);
+                                                                     httpUser.Id);
 
 
                                   return result.Result == CommandResult.Success
@@ -5800,7 +5672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                                    //ETag                        = _User.HashValue,
                                                    ContentType                 = HTTPContentType.JSON_UTF8,
-                                                   Content                     = _User.ToJSON().ToUTF8Bytes(),
+                                                   Content                     = user.ToJSON().ToUTF8Bytes(),
                                                    Connection                  = "close"
                                                }.AsImmutable
 
@@ -5837,12 +5709,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var errorResponse,
-                                                      Recursive: true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return errorResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -5850,19 +5723,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUser(this,
-                                                         out var UserId,
-                                                         out var User,
-                                                         out errorResponse))
+                                                         out var userId,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                     !userId.HasValue ||
+                                      user is null)
                                   {
-                                      return errorResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
 
                                   #region Validate user
 
-                                  if (HTTPUser != User && !CanImpersonate(HTTPUser,
-                                                                          User,
+                                  if (httpUser != user && !CanImpersonate(httpUser,
+                                                                          user,
                                                                           Access_Levels.ReadWrite))
                                   {
                                       return new HTTPResponse.Builder(Request) {
@@ -5884,11 +5759,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #endregion
 
 
-                                  var result = await DeleteUser(User,
+                                  var result = await DeleteUser(user,
                                                                 false,
                                                                 null,
                                                                 Request.EventTrackingId,
-                                                                HTTPUser.Id);
+                                                                httpUser.Id);
 
 
                                   return result.Result == CommandResult.Success
@@ -5901,7 +5776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
                                                   AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                   ContentType                = HTTPContentType.JSON_UTF8,
-                                                  Content                    = User.ToJSON(false).ToUTF8Bytes(),
+                                                  Content                    = user.ToJSON(false).ToUTF8Bytes(),
                                                   Connection                 = "close",
                                                   Vary                       = "Accept"
                                               }.AsImmutable
@@ -5942,8 +5817,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region GET         ~/users/{UserId}
 
-            #region JSON
-
             // ------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // ------------------------------------------------------------------------
@@ -5957,13 +5830,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadOnly,
-                                                      Recursive:    true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
@@ -5971,17 +5845,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUser(this,
-                                                         out var UserIdURL,
-                                                         out var User,
-                                                         out Response))
+                                                         out var userIdURL,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                     !userIdURL.HasValue ||
+                                      user is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
 
 
-                                  if (HTTPUser != User && !CanImpersonate(HTTPUser, User, Access_Levels.ReadOnly))
+                                  if (httpUser != user && !CanImpersonate(httpUser, user, Access_Levels.ReadOnly))
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
@@ -5994,11 +5870,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  }.AsImmutable);
 
 
-                                  var UserJSON = User.ToJSON(false);
+                                  var userJSON = user.ToJSON(false);
 
                                   // You request your own profile or you are a valid *admin*
-                                  if (HTTPUser == User || CanImpersonate(HTTPUser, User, Access_Levels.ReadWrite))
-                                      UserJSON.Add(new JProperty("youCanEdit", true));
+                                  if (httpUser == user || CanImpersonate(httpUser, user, Access_Levels.ReadWrite))
+                                      userJSON.Add(new JProperty("youCanEdit", true));
 
 
                                   return Task.FromResult(
@@ -6009,85 +5885,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = new[] { "GET", "SET" },
                                           AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.HTML_UTF8,
-                                          Content                     = UserJSON.ToUTF8Bytes(),
+                                          ContentType                 = HTTPContentType.JSON_UTF8,
+                                          Content                     = userJSON.ToUTF8Bytes(),
                                           Connection                  = "close",
                                           Vary                        = "Accept"
                                       }.AsImmutable);
 
                               });
-
-            #endregion
-
-            #region HTML
-
-            // ------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:2100/users/Organization
-            // ------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var HTTPResponse,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check UserId URL parameter
-
-                                  if (!Request.ParseUser(this,
-                                                         out var UserId,
-                                                         out var User,
-                                                         out     HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  // You request your own profile or you are a valid *admin*
-                                  return Task.FromResult(User == HTTPUser || CanImpersonate(HTTPUser,
-                                                                                            User,
-                                                                                            Access_Levels.ReadOnly)
-
-                                              ? new HTTPResponse.Builder(Request) {
-                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                    Server                      = HTTPServer.DefaultServerName,
-                                                    Date                        = Timestamp.Now,
-                                                    AccessControlAllowOrigin    = "*",
-                                                    AccessControlAllowMethods   = new[] { "GET" },
-                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                    ContentType                 = HTTPContentType.HTML_UTF8,
-                                                    Content                     = MixWithHTMLTemplate("user.user.shtml").ToUTF8Bytes(),
-                                                    Connection                  = "close",
-                                                    Vary                        = "Accept"
-                                                }.AsImmutable
-
-                                              : new HTTPResponse.Builder(Request) {
-                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                    Server                      = HTTPServer.DefaultServerName,
-                                                    Date                        = Timestamp.Now,
-                                                    AccessControlAllowOrigin    = "*",
-                                                    AccessControlAllowMethods   = new[] { "GET" },
-                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                    Connection                  = "close"
-                                                }.AsImmutable);
-
-                              });
-
-            #endregion
 
             #endregion
 
@@ -6101,10 +5905,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Check JSON body...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var loginData, out var httpResponseBuilder))
+                                  if (!Request.TryParseJSONObjectRequestBody(out var loginDataJSON, out var httpResponseBuilder))
                                       return httpResponseBuilder!;
 
-                                  if (!loginData.HasValues)
+                                  if (!loginDataJSON.HasValues)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
@@ -6144,13 +5948,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  loginData["username"] = login;
+                                  loginDataJSON["username"] = login;
 
                                   #endregion
 
                                   #region Verify password
 
-                                  var password = loginData.GetString("password") ?? "";
+                                  var password = loginDataJSON.GetString("password") ?? "";
 
                                   if (password.IsNullOrEmpty())
                                   {
@@ -6192,7 +5996,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  loginData["passwordQuality"] = passwordQuality;
+                                  loginDataJSON["passwordQuality"] = passwordQuality;
 
                                   #endregion
 
@@ -6298,7 +6102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Check EULA
 
-                                  var acceptsEULA = loginData["acceptsEULA"]?.Value<Boolean>();
+                                  var acceptsEULA = loginDataJSON["acceptsEULA"]?.Value<Boolean>();
 
                                   if (!validUser.AcceptedEULA.HasValue)
                                   {
@@ -6346,9 +6150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   lock (httpCookies)
                                   {
 
-                                      httpCookies.Add(securityTokenId,
-                                                       new SecurityToken(validUser.Id,
-                                                                         expires));
+                                      httpCookies.TryAdd(securityTokenId,
+                                                         new SecurityToken(validUser.Id,
+                                                                           expires));
 
                                       File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
                                                          securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
@@ -6437,7 +6241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Recursive: true) ||
                                        superUser is null)
                                   {
-                                      return httpResponseBuilder;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -6445,15 +6249,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUserId(this,
-                                                           out var UserIdURL,
+                                                           out var userIdURL,
                                                            out httpResponseBuilder) ||
-                                      !UserIdURL.HasValue)
+                                      !userIdURL.HasValue)
                                   {
                                       return httpResponseBuilder!;
                                   }
 
-                                  if (!TryGetUser(UserIdURL.Value, out var UserURL) ||
-                                       UserURL is null)
+                                  if (!TryGetUser(userIdURL.Value, out var userURL) ||
+                                       userURL is null)
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -6472,7 +6276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Is the current user allowed to impersonate the given user?
 
-                                  if (!CanImpersonate(superUser, UserURL))
+                                  if (!CanImpersonate(superUser, userURL))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
                                                  Server                      = HTTPServer.DefaultServerName,
@@ -6491,25 +6295,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var securityTokenId  = SecurityToken_Id.Parse(
                                                              SHA256.HashData(
                                                                  String.Concat(Guid.NewGuid().ToString(),
-                                                                               UserURL.Id).
+                                                                               userURL.Id).
                                                                  ToUTF8Bytes()
                                                              ).ToHexString()
                                                          );
 
                                   var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
 
-                                  lock (httpCookies)
-                                  {
+                                  httpCookies.TryAdd(securityTokenId,
+                                                     new SecurityToken(userURL.Id,
+                                                                       expires,
+                                                                       superUser.Id));
 
-                                      httpCookies.Add(securityTokenId,
-                                                       new SecurityToken(UserURL.Id,
-                                                                         expires,
-                                                                         superUser.Id));
-
-                                      File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                         securityTokenId + ";" + UserURL.Id + ";" + expires.ToIso8601() + ";" + superUser.Id + Environment.NewLine);
-
-                                  }
+                                  await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
+                                                                $"{securityTokenId};{userURL.Id};{expires.ToIso8601()};{superUser.Id}{Environment.NewLine}");
 
                                   #endregion
 
@@ -6519,15 +6318,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              ContentType     = HTTPContentType.TEXT_UTF8,
                                              Content         = new JObject(
                                                                    new JProperty("@context",  SignInOutContext),
-                                                                   new JProperty("login",     UserURL.Id.ToString()),
-                                                                   new JProperty("username",  UserURL.Name),
-                                                                   new JProperty("email",     UserURL.EMail.Address.ToString())
+                                                                   new JProperty("login",     userURL.Id.ToString()),
+                                                                   new JProperty("username",  userURL.Name),
+                                                                   new JProperty("email",     userURL.EMail.Address.ToString())
                                                                ).ToUTF8Bytes(),
                                              CacheControl    = "private",
                                              SetCookie       = HTTPCookies.Parse(
 
                                                                    String.Concat(CookieName,
-                                                                                 GenerateCookieUserData(UserURL, superUser),
+                                                                                 GenerateCookieUserData(userURL, superUser),
                                                                                  GenerateCookieSettings(expires)),
 
                                                                    String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
@@ -6548,7 +6347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPMethod.DEPERSONATE,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.JSON_UTF8,
-                              HTTPDelegate: Request => {
+                              HTTPDelegate: async Request => {
 
                                   #region Get super user and its organizations
 
@@ -6560,7 +6359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Recursive: true) ||
                                        superUser is null)
                                   {
-                                      return Task.FromResult(httpResponseBuilder.AsImmutable);
+                                      return httpResponseBuilder!.AsImmutable;
                                   }
 
                                   #endregion
@@ -6572,23 +6371,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            out httpResponseBuilder) ||
                                        userIdURL is null)
                                   {
-                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                      return httpResponseBuilder!.AsImmutable;
                                   }
 
                                   if (!TryGetUser(userIdURL.Value, out var UserURL) ||
                                        UserURL is null)
                                   {
 
-                                      return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                     Server                      = HTTPServer.DefaultServerName,
-                                                     Date                        = Timestamp.Now,
-                                                     AccessControlAllowOrigin    = "*",
-                                                     AccessControlAllowMethods   = new[] { "DEPERSONATE" },
-                                                     AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     Connection                  = "close"
-                                                 }.AsImmutable);
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.NotFound,
+                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = new[] { "DEPERSONATE" },
+                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 Connection                  = "close"
+                                             }.AsImmutable;
 
                                   }
 
@@ -6607,50 +6405,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
 
-                                  lock (httpCookies)
-                                  {
 
-                                      httpCookies.Add(securityTokenId,
-                                                       new SecurityToken(superUser.Id,
-                                                                         expires));
+                                  httpCookies.TryAdd(securityTokenId,
+                                                     new SecurityToken(superUser.Id,
+                                                                       expires));
 
-                                      File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                         securityTokenId + ";" + superUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
-
-                                  }
+                                  await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
+                                                                $"{securityTokenId};{superUser.Id};{expires.ToIso8601()}{Environment.NewLine}");
 
                                   #endregion
 
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode  = HTTPStatusCode.Created,
-                                          ContentType     = HTTPContentType.TEXT_UTF8,
-                                          Content         = new JObject(
-                                                                new JProperty("@context",  SignInOutContext),
-                                                                new JProperty("login",     superUser.Id.ToString()),
-                                                                new JProperty("username",  superUser.Name),
-                                                                new JProperty("email",     superUser.EMail.Address.ToString())
-                                                            ).ToUTF8Bytes(),
-                                          CacheControl    = "private",
-                                          SetCookie       = HTTPCookies.Parse(
+                                  return new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode  = HTTPStatusCode.Created,
+                                             ContentType     = HTTPContentType.TEXT_UTF8,
+                                             Content         = new JObject(
+                                                                   new JProperty("@context",  SignInOutContext),
+                                                                   new JProperty("login",     superUser.Id.ToString()),
+                                                                   new JProperty("username",  superUser.Name),
+                                                                   new JProperty("email",     superUser.EMail.Address.ToString())
+                                                               ).ToUTF8Bytes(),
+                                             CacheControl    = "private",
+                                             SetCookie       = HTTPCookies.Parse(
 
-                                                                String.Concat(CookieName,
-                                                                              GenerateCookieUserData(superUser),
-                                                                              GenerateCookieSettings(expires)),
+                                                                   String.Concat(CookieName,
+                                                                                 GenerateCookieUserData(superUser),
+                                                                                 GenerateCookieSettings(expires)),
 
-                                                                String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                              GenerateCookieSettings(expires),
-                                                                              "; HttpOnly")
+                                                                   String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
+                                                                                 GenerateCookieSettings(expires),
+                                                                                 "; HttpOnly")
 
-                                                            ),
-                                          Connection      = "close"
-                                      }.AsImmutable);
+                                                               ),
+                                             Connection      = "close"
+                                         }.AsImmutable;
 
                               });
 
             #endregion
-
 
 
             #region SET         ~/users/{UserId}/password
@@ -6667,13 +6459,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadWrite,
-                                                      Recursive:    true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Response;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -6681,11 +6474,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUser(this,
-                                                         out var UserIdURL,
-                                                         out var User,
-                                                         out var HTTPResponse))
+                                                         out var userIdURL,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                      !userIdURL.HasValue ||
+                                       user is null)
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -6693,7 +6488,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Has the current HTTP user the required
                                   // access rights to update?
-                                  if (HTTPUser.Id != UserIdURL.Value)
+                                  if (httpUser.Id != userIdURL.Value)
+                                  {
+
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
                                                  Server                      = HTTPServer.DefaultServerName,
@@ -6704,21 +6501,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Connection                  = "close"
                                              }.AsImmutable;
 
+                                  }
 
                                   #region Parse JSON
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var JSONObj, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                      return httpResponseBuilder!;
 
                                   #endregion
 
                                   #region Parse CurrentPassword    [mandatory]
 
-                                  if (!JSONObj.ParseMandatory("currentPassword",
-                                                              "current password",
-                                                              Password.TryParse,
-                                                              out Password CurrentPassword,
-                                                              out var errorResponse))
+                                  if (!json.ParseMandatory("currentPassword",
+                                                           "current password",
+                                                           Password.TryParse,
+                                                           out Password CurrentPassword,
+                                                           out var errorResponse))
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -6741,11 +6539,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse NewPassword        [mandatory]
 
-                                  if (!JSONObj.ParseMandatory("newPassword",
-                                                              "new password",
-                                                              Password.TryParse,
-                                                              out Password NewPassword,
-                                                              out errorResponse))
+                                  if (!json.ParseMandatory("newPassword",
+                                                           "new password",
+                                                           Password.TryParse,
+                                                           out Password NewPassword,
+                                                           out errorResponse))
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -6782,12 +6580,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #endregion
 
 
-
-                                  var result = await ChangePassword(User,
+                                  var result = await ChangePassword(user,
                                                                     NewPassword,
                                                                     CurrentPassword,
                                                                     EventTrackingId: Request.EventTrackingId,
-                                                                    CurrentUserId:   HTTPUser.Id);
+                                                                    CurrentUserId:   httpUser.Id);
 
 
                                   return result.Result == CommandResult.Success
@@ -6841,12 +6638,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
@@ -6854,17 +6652,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUser(this,
-                                                         out var UserIdURL,
-                                                         out var User,
-                                                         out Response))
+                                                         out var userIdURL,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                      !userIdURL.HasValue ||
+                                       user is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
 
 
-                                  var AllMyOrganizations = new OrganizationInfo(NoOwner, HTTPUser).Childs;
+                                  var allMyOrganizations = new OrganizationInfo(NoOwner, httpUser).Childs;
 
                                   var summary = Request.QueryString.GetBoolean("summary", false);
 
@@ -6889,7 +6689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                           ETag                       = "1",
                                           ContentType                = HTTPContentType.JSON_UTF8,
-                                          Content                    = AllMyOrganizations.ToJSON().ToUTF8Bytes(),
+                                          Content                    = allMyOrganizations.ToJSON().ToUTF8Bytes(),
                                           Vary                       = "Accept"
                                       }.AsImmutable);
 
@@ -6900,117 +6700,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region GET         ~/users/{UserId}/notifications
 
-            #region JSON
-
             // --------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/notifications
             // --------------------------------------------------------------------------------------
-            AddMethodCallback(
-                                         Hostname,
-                                         HTTPMethod.GET,
-                                         URLPathPrefix + "users/{UserId}/notifications",
-                                         HTTPContentType.JSON_UTF8,
-                                         HTTPDelegate: Request => {
-
-                                             #region Get HTTP user and its organizations
-
-                                             // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                             if (!TryGetHTTPUser(Request,
-                                                                 out var HTTPUser,
-                                                                 out var HTTPOrganizations,
-                                                                 out var Response,
-                                                                 Recursive: true))
-                                             {
-                                                 return Task.FromResult(Response.AsImmutable);
-                                             }
-
-                                             #endregion
-
-                                             return Task.FromResult(new HTTPResponse.Builder(Request) {
-                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                        Server                     = HTTPServer.DefaultServerName,
-                                                        Date                       = Timestamp.Now,
-                                                        AccessControlAllowOrigin   = "*",
-                                                        AccessControlAllowMethods  = new[] { "GET", "SET" },
-                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                        ETag                       = "1",
-                                                        ContentType                = HTTPContentType.JSON_UTF8,
-                                                        Content                    = GetNotifications(HTTPUser).ToUTF8Bytes(),
-                                                        Connection                 = "close",
-                                                        Vary                       = "Accept"
-                                                    }.AsImmutable);
-
-            });
-
-            #endregion
-
-            #region HTML
-
-            // -------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:2100/users/ahzf/notifications
-            // -------------------------------------------------------------------------------
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/notifications",
-                              HTTPContentType.HTML_UTF8,
+                              HTTPContentType.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
 
-                                  #region Check UserId URL parameter
+                                  return Task.FromResult(new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode             = HTTPStatusCode.OK,
+                                             Server                     = HTTPServer.DefaultServerName,
+                                             Date                       = Timestamp.Now,
+                                             AccessControlAllowOrigin   = "*",
+                                             AccessControlAllowMethods  = new[] { "GET", "SET" },
+                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                             ETag                       = "1",
+                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                             Content                    = GetNotifications(httpUser).ToUTF8Bytes(),
+                                             Connection                 = "close",
+                                             Vary                       = "Accept"
+                                         }.AsImmutable);
 
-                                  if (!Request.ParseUser(this,
-                                                         out var UserId,
-                                                         out var User,
-                                                         out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  // You request your own profile or you are a valid *admin*
-                                  return Task.FromResult(User == HTTPUser || CanImpersonate(HTTPUser, User)
-
-                                              ? new HTTPResponse.Builder(Request) {
-                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                    Server                      = HTTPServer.DefaultServerName,
-                                                    Date                        = Timestamp.Now,
-                                                    AccessControlAllowOrigin    = "*",
-                                                    AccessControlAllowMethods   = new[] { "GET" },
-                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                    ContentType                 = HTTPContentType.HTML_UTF8,
-                                                    Content                     = MixWithHTMLTemplate("user.notifications.shtml").ToUTF8Bytes(),
-                                                    Connection                  = "close",
-                                                    Vary                        = "Accept"
-                                                }.AsImmutable
-
-                                              : new HTTPResponse.Builder(Request) {
-                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                    Server                      = HTTPServer.DefaultServerName,
-                                                    Date                        = Timestamp.Now,
-                                                    AccessControlAllowOrigin    = "*",
-                                                    AccessControlAllowMethods   = new[] { "GET" },
-                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                    Connection                  = "close"
-                                                }.AsImmutable);
-
-                              });
-
-            #endregion
+            });
 
             #endregion
 
@@ -7036,13 +6764,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var HTTPResponse,
-                                                      AccessLevel:  Access_Levels.ReadOnly,
-                                                      Recursive:    true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -7050,18 +6779,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUser(this,
-                                                         out var UserIdURL,
-                                                         out var User,
-                                                         out HTTPResponse))
+                                                         out var userIdURL,
+                                                         out var user,
+                                                         out httpResponseBuilder))
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
 
+
                                   #region Has the current HTTP user the required access rights to update?
 
-                                  if (UserIdURL != HTTPUser.Id)
+                                  if (userIdURL != httpUser.Id)
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -7081,22 +6811,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out var JSONArray, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
+                                      return httpResponseBuilder!;
 
                                   String? ErrorString = null;
 
-                                  if (JSONArray.Count > 0)
+                                  if (jsonArray.Count > 0)
                                   {
 
-                                      var JSONObjects = JSONArray.Cast<JObject>().ToArray();
+                                      var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!JSONObjects.Any())
+                                      if (!jsonObjects.Any())
                                           goto fail;
 
-                                      String context = null;
+                                      String? context = null;
 
-                                      foreach (var JSONObject in JSONObjects)
+                                      foreach (var JSONObject in jsonObjects)
                                       {
 
                                           context = JSONObject["@context"]?.Value<String>();
@@ -7113,7 +6843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       ErrorString = "Could not parse Telegram notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(HTTPUser, telegramNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(httpUser, telegramNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case TelegramGroupNotification.JSONLDContext:
@@ -7122,7 +6852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       ErrorString = "Could not parse Telegram group notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(HTTPUser, telegramGroupNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(httpUser, telegramGroupNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case SMSNotification.JSONLDContext:
@@ -7131,7 +6861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       ErrorString = "Could not parse sms notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(HTTPUser, smsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(httpUser, smsNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
@@ -7140,7 +6870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       ErrorString = "Could not parse https notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(HTTPUser, httpsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(httpUser, httpsNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case EMailNotification.JSONLDContext:
@@ -7149,7 +6879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       ErrorString = "Could not parse e-mail notification!";
                                                       goto fail;
                                                   }
-                                                  await AddNotification(HTTPUser, eMailNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await AddNotification(httpUser, eMailNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               default:
@@ -7196,7 +6926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                              ContentType                 = HTTPContentType.JSON_UTF8,
-                                             Content                     = GetNotifications(HTTPUser).ToUTF8Bytes(),
+                                             Content                     = GetNotifications(httpUser).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
 
@@ -7226,13 +6956,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var HTTPResponse,
-                                                      AccessLevel:  Access_Levels.ReadOnly,
-                                                      Recursive:    true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
@@ -7240,18 +6971,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check UserId URL parameter
 
                                   if (!Request.ParseUser(this,
-                                                         out var UserIdURL,
-                                                         out var User,
-                                                         out HTTPResponse))
+                                                         out var userIdURL,
+                                                         out var user,
+                                                         out httpResponseBuilder))
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
 
+
                                   #region Has the current HTTP user the required access rights to update?
 
-                                  if (UserIdURL != HTTPUser.Id)
+                                  if (userIdURL != httpUser.Id)
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
@@ -7271,25 +7003,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse JSON and new notifications...
 
-                                  if (!Request.TryParseJSONArrayRequestBody(out var JSONArray, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONArrayRequestBody(out var jsonArray, out httpResponseBuilder) || jsonArray is null)
+                                      return httpResponseBuilder!;
 
                                   String? ErrorString = null;
 
-                                  if (JSONArray.Count > 0)
+                                  if (jsonArray.Count > 0)
                                   {
 
-                                      var JSONObjects = JSONArray.Cast<JObject>().ToArray();
+                                      var jsonObjects = jsonArray.Cast<JObject>().ToArray();
 
-                                      if (!JSONObjects.Any())
+                                      if (!jsonObjects.Any())
                                           goto fail;
 
                                       String? context = null;
 
-                                      foreach (var JSONObject in JSONObjects)
+                                      foreach (var jsonObject in jsonObjects)
                                       {
 
-                                          context = JSONObject["@context"]?.Value<String>();
+                                          context = jsonObject["@context"]?.Value<String>();
 
                                           if (context.IsNullOrEmpty())
                                               goto fail;
@@ -7298,48 +7030,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           {
 
                                               case TelegramNotification.JSONLDContext:
-                                                  if (!TelegramNotification.TryParse(JSONObject, out TelegramNotification telegramNotification))
+                                                  if (!TelegramNotification.TryParse(jsonObject, out var telegramNotification))
                                                   {
                                                       ErrorString = "Could not parse Telegram notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(HTTPUser, telegramNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(httpUser, telegramNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case TelegramGroupNotification.JSONLDContext:
-                                                  if (!TelegramGroupNotification.TryParse(JSONObject, out TelegramGroupNotification telegramGroupNotification))
+                                                  if (!TelegramGroupNotification.TryParse(jsonObject, out var telegramGroupNotification))
                                                   {
                                                       ErrorString = "Could not parse Telegram group notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(HTTPUser, telegramGroupNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(httpUser, telegramGroupNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case SMSNotification.JSONLDContext:
-                                                  if (!SMSNotification.  TryParse(JSONObject, out SMSNotification   smsNotification))
+                                                  if (!SMSNotification.  TryParse(jsonObject, out var smsNotification))
                                                   {
                                                       ErrorString = "Could not parse sms notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(HTTPUser, smsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(httpUser, smsNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case HTTPSNotification.JSONLDContext:
-                                                  if (!HTTPSNotification.TryParse(JSONObject, out HTTPSNotification httpsNotification))
+                                                  if (!HTTPSNotification.TryParse(jsonObject, out var httpsNotification))
                                                   {
                                                       ErrorString = "Could not parse https notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(HTTPUser, httpsNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(httpUser, httpsNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               case EMailNotification.JSONLDContext:
-                                                  if (!EMailNotification.TryParse(JSONObject, out EMailNotification eMailNotification))
+                                                  if (!EMailNotification.TryParse(jsonObject, out var eMailNotification))
                                                   {
                                                       ErrorString = "Could not parse e-mail notification!";
                                                       goto fail;
                                                   }
-                                                  await RemoveNotification(HTTPUser, eMailNotification, Request.EventTrackingId, HTTPUser.Id);
+                                                  await RemoveNotification(httpUser, eMailNotification, Request.EventTrackingId, httpUser.Id);
                                                   break;
 
                                               default:
@@ -7386,7 +7118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                              ContentType                 = HTTPContentType.JSON_UTF8,
-                                             Content                     = GetNotifications(HTTPUser).ToUTF8Bytes(),
+                                             Content                     = GetNotifications(httpUser).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
 
@@ -7395,8 +7127,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             #region GET         ~/users/{UserId}/notifications/{notificationId}
-
-            #region JSON
 
             // -------------------------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/notifications/{notificationId}
@@ -7411,12 +7141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
@@ -7436,13 +7167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  var notificationId = Request.ParsedURLParameters[1];
+                                  var notificationIdText = Request.ParsedURLParameters[1];
 
-                                  #endregion
-
-                                  #region Return notification for notification identification
-
-                                  if (UInt32.TryParse(notificationId, out var NotificationId))
+                                  if (notificationIdText is not null &&
+                                      UInt32.TryParse(notificationIdText, out var notificationId))
                                   {
 
                                       return Task.FromResult(new HTTPResponse.Builder(Request) {
@@ -7454,7 +7182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                                  ETag                       = "1",
                                                                  ContentType                = HTTPContentType.JSON_UTF8,
-                                                                 Content                    = GetNotification(HTTPUser, NotificationId).ToUTF8Bytes(),
+                                                                 Content                    = GetNotification(httpUser, notificationId).ToUTF8Bytes(),
                                                                  Connection                 = "close",
                                                                  Vary                       = "Accept"
                                                              }.AsImmutable);
@@ -7476,164 +7204,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region HTML
-
-            // ------------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:2100/users/ahzf/notifications/{notificationId}
-            // ------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}/notifications/{notificationId}",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check UserId URL parameter
-
-                                  if (!Request.ParseUser(this,
-                                                         out var UserId,
-                                                         out var User,
-                                                         out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Get notificationId URL parameter
-
-                                  if (Request.ParsedURLParameters.Length < 2 ||
-                                      !UInt32.TryParse(Request.ParsedURLParameters[1], out var NotificationId))
-                                  {
-
-                                      return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = Timestamp.Now,
-                                                     Connection      = "close"
-                                                 }.AsImmutable);
-
-                                  }
-
-                                  #endregion
-
-
-                                  // You request your own profile or you are a valid *admin*
-                                  return Task.FromResult(User == HTTPUser || CanImpersonate(HTTPUser, User)
-
-                                              ? new HTTPResponse.Builder(Request) {
-                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                    Server                      = HTTPServer.DefaultServerName,
-                                                    Date                        = Timestamp.Now,
-                                                    AccessControlAllowOrigin    = "*",
-                                                    AccessControlAllowMethods   = new[] { "GET" },
-                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                    ContentType                 = HTTPContentType.HTML_UTF8,
-                                                    Content                     = MixWithHTMLTemplate("user.editNotification.shtml").ToUTF8Bytes(),
-                                                    Connection                  = "close",
-                                                    Vary                        = "Accept"
-                                                }.AsImmutable
-
-                                              : new HTTPResponse.Builder(Request) {
-                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                    Server                      = HTTPServer.DefaultServerName,
-                                                    Date                        = Timestamp.Now,
-                                                    AccessControlAllowOrigin    = "*",
-                                                    AccessControlAllowMethods   = new[] { "GET" },
-                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                    Connection                  = "close"
-                                                }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #endregion
-
-            #region GET         ~/users/{UserId}/notification/_new
-
-            // ------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:2100/users/ahzf/notification/_new
-            // ------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "users/{UserId}/notification/_new",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check UserId URL parameter
-
-                                  if (!Request.ParseUser(this,
-                                                         out var UserId,
-                                                         out var User,
-                                                         out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  if (User != HTTPUser)
-                                  {
-                                      return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                     Server                      = HTTPServer.DefaultServerName,
-                                                     Date                        = Timestamp.Now,
-                                                     AccessControlAllowOrigin    = "*",
-                                                     AccessControlAllowMethods   = new[] { "GET" },
-                                                     AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     Connection                  = "close"
-                                                 }.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPServer.DefaultServerName,
-                                          Date                        = Timestamp.Now,
-                                          AccessControlAllowOrigin    = "*",
-                                          AccessControlAllowMethods   = new[] { "GET" },
-                                          AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.HTML_UTF8,
-                                          Content                     = MixWithHTMLTemplate("user.editNotification.shtml").ToUTF8Bytes(),
-                                          Connection                  = "close",
-                                          Vary                        = "Accept"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
 
             #region GET         ~/users/{UserId}/APIKeys
 
@@ -7646,94 +7216,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPContentType.JSON_UTF8,
                               HTTPDelegate: Request => {
 
-                                  try
+                                  #region Get HTTP user and its organizations
+
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var HTTPUser,
-                                                          out var HTTPOrganizations,
-                                                          out var errorResponse,
-                                                          Recursive: true))
-                                      {
-                                          return Task.FromResult(errorResponse.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      #region Check UserId URL parameter
-
-                                      if (!Request.ParseUser(this,
-                                                             out var UserId,
-                                                             out var User,
-                                                             out errorResponse))
-                                      {
-                                          return Task.FromResult(errorResponse.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      #region Validate user
-
-                                      if (HTTPUser != User && !CanImpersonate(HTTPUser, User))
-                                      {
-                                          return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "ADD", "GET" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "This operation is not allowed!")
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 }.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      return Task.FromResult(new HTTPResponse.Builder(Request) {
-                                                                 HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                 Server                     = HTTPServer.DefaultServerName,
-                                                                 Date                       = Timestamp.Now,
-                                                                 AccessControlAllowOrigin   = "*",
-                                                                 AccessControlAllowMethods  = new[] { "ADD", "GET" },
-                                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                                 ETag                       = "1",
-                                                                 ContentType                = HTTPContentType.JSON_UTF8,
-                                                                 Content                    = new JArray(
-                                                                                                  GetAPIKeysForUser(User).
-                                                                                                  SafeSelect       (apiKey => apiKey.ToJSON(Embedded: false))
-                                                                                              ).ToUTF8Bytes(),
-                                                                 Connection                 = "close",
-                                                                 Vary                       = "Accept"
-                                                             }.AsImmutable);
-
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
-                                  catch (Exception e)
+
+                                  #endregion
+
+                                  #region Check UserId URL parameter
+
+                                  if (!Request.ParseUser(this,
+                                                         out var userId,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                      !userId.HasValue ||
+                                       user is null)
+                                  {
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                  }
+
+                                  #endregion
+
+
+                                  #region Validate user
+
+                                  if (httpUser.Id != userId && !CanImpersonate(httpUser, user))
                                   {
                                       return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "ADD", "GET" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "Could not fetch the requestes API keys! " + e.Message)
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 }.AsImmutable);
+                                             new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", "This operation is not allowed!")
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close",
+                                                 Vary                       = "Accept"
+                                             }.AsImmutable);
                                   }
+
+                                  #endregion
+
+
+                                  return Task.FromResult(new HTTPResponse.Builder(Request) {
+                                                             HTTPStatusCode             = HTTPStatusCode.OK,
+                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Date                       = Timestamp.Now,
+                                                             AccessControlAllowOrigin   = "*",
+                                                             AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                             ETag                       = "1",
+                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             Content                    = new JArray(
+                                                                                              GetAPIKeysForUser(user).
+                                                                                              SafeSelect       (apiKey => apiKey.ToJSON(Embedded: false))
+                                                                                          ).ToUTF8Bytes(),
+                                                             Connection                 = "close",
+                                                             Vary                       = "Accept"
+                                                         }.AsImmutable);
 
                               });
 
@@ -7750,46 +7302,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPContentType.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
-                                  try
+                                  #region Get HTTP user and its organizations
+
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
+                                      return httpResponseBuilder!;
+                                  }
 
-                                      #region Get HTTP user and its organizations
+                                  #endregion
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var HTTPUser,
-                                                          out var HTTPOrganizations,
-                                                          out var errorResponse,
-                                                          Recursive: true))
-                                      {
-                                          return errorResponse;
-                                      }
+                                  #region Check UserId URL parameter
 
-                                      #endregion
+                                  if (!Request.ParseUser(this,
+                                                         out var userId,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                      !userId.HasValue ||
+                                       user is null)
+                                  {
+                                      return httpResponseBuilder!;
+                                  }
 
-                                      #region Check UserId URL parameter
+                                  #endregion
 
-                                      if (!Request.ParseUser(this,
-                                                             out var UserId,
-                                                             out var User,
-                                                             out errorResponse))
-                                      {
-                                          return errorResponse;
-                                      }
+                                  #region Parse JSON HTTP body...
 
-                                      #endregion
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                      return httpResponseBuilder!;
 
-                                      #region Parse JSON HTTP body...
+                                  #region Parse APIKey    [mandatory]
 
-                                      if (!Request.TryParseJSONObjectRequestBody(out var JSONBody, out errorResponse))
-                                          return errorResponse;
-
-                                      #region Parse APIKey    [mandatory]
-
-                                      if (!APIKey.TryParse(JSONBody,
+                                      if (!APIKey.TryParse(json,
                                                            users.TryGetValue,
                                                            out var apiKey,
-                                                           out var errorString))
+                                                           out var errorString) ||
+                                          apiKey is null)
                                       {
 
                                           return new HTTPResponse.Builder(Request) {
@@ -7809,69 +7362,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       #endregion
 
-                                      #endregion
-
-                                      #region Validate user
-
-                                      if (apiKey.UserId != User.Id || (HTTPUser != User && !CanImpersonate(HTTPUser, User)))
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "ADD", "GET" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "This operation is not allowed!")
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 }.AsImmutable;
-                                      }
-
-                                      #endregion
+                                  #endregion
 
 
-                                      var result = await AddAPIKey(apiKey,
-                                                                   null,
-                                                                   Request.EventTrackingId,
-                                                                   HTTPUser.Id);
+                                  #region Validate user
 
-                                      return result != null
-
-                                                 ? new HTTPResponse.Builder(Request) {
-                                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                                           Server                     = HTTPServer.DefaultServerName,
-                                                           Date                       = Timestamp.Now,
-                                                           AccessControlAllowOrigin   = "*",
-                                                           AccessControlAllowMethods  = new[] { "ADD", "GET" },
-                                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                           ContentType                = HTTPContentType.JSON_UTF8,
-                                                           Content                    = apiKey.ToJSON().ToUTF8Bytes(),
-                                                           Connection                 = "close",
-                                                           Vary                       = "Accept"
-                                                       }.AsImmutable
-
-                                                 : new HTTPResponse.Builder(Request) {
-                                                           HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                           Server                     = HTTPServer.DefaultServerName,
-                                                           Date                       = Timestamp.Now,
-                                                           AccessControlAllowOrigin   = "*",
-                                                           AccessControlAllowMethods  = new[] { "ADD", "GET" },
-                                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                           ContentType                = HTTPContentType.JSON_UTF8,
-                                                           Content                    = JSONObject.Create(
-                                                                                            new JProperty("description", errorString)
-                                                                                        ).ToUTF8Bytes()
-                                                       }.AsImmutable;
-
-                                  }
-                                  catch (Exception e)
+                                  if (apiKey.UserId != userId || (httpUser.Id != userId && !CanImpersonate(httpUser, user)))
                                   {
+
                                       return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.InternalServerError,
+                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
@@ -7879,12 +7379,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ContentType                = HTTPContentType.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", "Could not fetch the requestes API keys! " + e.Message)
+                                                                                  new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
                                                  Connection                 = "close",
                                                  Vary                       = "Accept"
                                              }.AsImmutable;
+
                                   }
+
+                                  #endregion
+
+
+                                  var result = await AddAPIKey(apiKey,
+                                                               null,
+                                                               Request.EventTrackingId,
+                                                               httpUser.Id);
+
+                                  return result is not null
+
+                                             ? new HTTPResponse.Builder(Request) {
+                                                       HTTPStatusCode             = HTTPStatusCode.OK,
+                                                       Server                     = HTTPServer.DefaultServerName,
+                                                       Date                       = Timestamp.Now,
+                                                       AccessControlAllowOrigin   = "*",
+                                                       AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                       AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                       ContentType                = HTTPContentType.JSON_UTF8,
+                                                       Content                    = apiKey.ToJSON().ToUTF8Bytes(),
+                                                       Connection                 = "close",
+                                                       Vary                       = "Accept"
+                                                   }.AsImmutable
+
+                                             : new HTTPResponse.Builder(Request) {
+                                                       HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                       Server                     = HTTPServer.DefaultServerName,
+                                                       Date                       = Timestamp.Now,
+                                                       AccessControlAllowOrigin   = "*",
+                                                       AccessControlAllowMethods  = new[] { "ADD", "GET" },
+                                                       AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                       ContentType                = HTTPContentType.JSON_UTF8,
+                                                       Content                    = JSONObject.Create(
+                                                                                        new JProperty("description", errorString)
+                                                                                    ).ToUTF8Bytes()
+                                                   }.AsImmutable;
 
                               });
 
@@ -7901,142 +7438,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPContentType.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
-                                  try
+                                  #region Get HTTP user and its organizations
+
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var HTTPUser,
-                                                          out var HTTPOrganizations,
-                                                          out var errorResponse,
-                                                          Recursive: true))
-                                      {
-                                          return errorResponse;
-                                      }
-
-                                      #endregion
-
-                                      #region Check UserId URL parameter
-
-                                      if (!Request.ParseUser(this,
-                                                             out var UserId,
-                                                             out var User,
-                                                             out errorResponse))
-                                      {
-                                          return errorResponse;
-                                      }
-
-                                      #endregion
-
-                                      #region Get API key
-
-                                      if (Request.ParsedURLParameters.Length < 1)
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "DELETE" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "Missing API key!")
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 };
-                                      }
-
-                                      var apiKeyId = APIKey_Id.TryParse(Request.ParsedURLParameters[0]);
-
-                                      if (!apiKeyId.HasValue || apiKeyId.Value.IsNullOrEmpty)
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "DELETE" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "Invalid API key!")
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 };
-                                      }
-
-                                      if (!TryGetAPIKey(apiKeyId.Value, out var apiKeyInfo))
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "DELETE" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "Unknown API key!")
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 };
-                                      }
-
-                                      #endregion
-
-                                      #region Validate user
-
-                                      if (apiKeyInfo.UserId != User.Id || (HTTPUser != User && !CanImpersonate(HTTPUser, User)))
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "DELETE" },
-                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", "This operation is not allowed!")
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = "close",
-                                                     Vary                       = "Accept"
-                                                 }.AsImmutable;
-                                      }
-
-                                      #endregion
-
-
-                                      await RemoveAPIKey(apiKeyInfo,
-                                                         null,
-                                                         Request.EventTrackingId,
-                                                         HTTPUser.Id);
-
-
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "DELETE" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
-                                                 Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
-                                                 Connection                 = "close",
-                                                 Vary                       = "Accept"
-                                             }.AsImmutable;
-
+                                      return httpResponseBuilder!;
                                   }
-                                  catch (Exception e)
+
+                                  #endregion
+
+                                  #region Check UserId URL parameter
+
+                                  if (!Request.ParseUser(this,
+                                                         out var userId,
+                                                         out var user,
+                                                         out httpResponseBuilder) ||
+                                      !userId.HasValue ||
+                                       user is null)
                                   {
+                                      return httpResponseBuilder!;
+                                  }
+
+                                  #endregion
+
+                                  #region Get API key
+
+                                  if (Request.ParsedURLParameters.Length < 1)
+                                  {
+
                                       return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.InternalServerError,
+                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server                     = HTTPServer.DefaultServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
@@ -8044,14 +7481,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ContentType                = HTTPContentType.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", "Could not delete the requested API key! " + e.Message)
+                                                                                  new JProperty("description", "Missing API key!")
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close",
+                                                 Vary                       = "Accept"
+                                             };
+
+                                  }
+
+                                  var apiKeyId = APIKey_Id.TryParse(Request.ParsedURLParameters[0]);
+
+                                  if (!apiKeyId.HasValue || apiKeyId.Value.IsNullOrEmpty)
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", "Invalid API key!")
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close",
+                                                 Vary                       = "Accept"
+                                             };
+
+                                  }
+
+                                  if (!TryGetAPIKey(apiKeyId.Value, out var apiKeyInfo) || apiKeyInfo is null)
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", "Unknown API key!")
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close",
+                                                 Vary                       = "Accept"
+                                             };
+
+                                  }
+
+                                  #endregion
+
+
+                                  #region Validate user
+
+                                  if (apiKeyInfo.UserId != userId || (httpUser.Id != userId && !CanImpersonate(httpUser, user)))
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "DELETE" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
                                                  Connection                 = "close",
                                                  Vary                       = "Accept"
                                              }.AsImmutable;
+
                                   }
 
-            });
+                                  #endregion
+
+
+                                  await RemoveAPIKey(apiKeyInfo,
+                                                     null,
+                                                     Request.EventTrackingId,
+                                                     httpUser.Id);
+
+
+                                  return new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode             = HTTPStatusCode.OK,
+                                             Server                     = HTTPServer.DefaultServerName,
+                                             Date                       = Timestamp.Now,
+                                             AccessControlAllowOrigin   = "*",
+                                             AccessControlAllowMethods  = new[] { "DELETE" },
+                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                             Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
+                                             Connection                 = "close",
+                                             Vary                       = "Accept"
+                                         }.AsImmutable;
+
+                              });
 
             #endregion
 
@@ -8061,181 +7588,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region GET         ~/userGroups
 
-            #region HTML
-
-            // -------------------------------------------------------------------
-            // curl -v -H "Accept: application/json" http://127.0.0.1:3001/userGroups
-            // -------------------------------------------------------------------
-            AddMethodCallback(
-                                         Hostname,
-                                         HTTPMethod.GET,
-                                         URLPathPrefix + "userGroups",
-                                         HTTPContentType.HTML_UTF8,
-                                         HTTPDelegate: Request => {
-
-                                             #region Get HTTP user and its users
-
-                                             // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                             if (!TryGetHTTPUser(Request,
-                                                                 out var HTTPUser,
-                                                                 out var HTTPOrganizations,
-                                                                 out var Response,
-                                                                 Recursive:                 true))
-                                             {
-                                                 return Task.FromResult(Response.AsImmutable);
-                                             }
-
-                                             #endregion
-
-                                             return Task.FromResult(
-                                                     new HTTPResponse.Builder(Request) {
-                                                         HTTPStatusCode             = HTTPStatusCode.OK,
-                                                         Server                     = HTTPServer.DefaultServerName,
-                                                         Date                       = Timestamp.Now,
-                                                         AccessControlAllowOrigin   = "*",
-                                                         AccessControlAllowMethods  = new[] { "GET" },
-                                                         AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                         ContentType                = HTTPContentType.HTML_UTF8,
-                                                         Content                    = MixWithHTMLTemplate("user.userGroups.shtml").ToUTF8Bytes(),
-                                                         Connection                 = "close",
-                                                         Vary                       = "Accept"
-                                                     }.AsImmutable);
-
-                                         });
-
-            #endregion
-
-            #region JSON
-
             // ------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/userGroups
             // ------------------------------------------------------------------------
-            AddMethodCallback(
-                                         Hostname,
-                                         HTTPMethod.GET,
-                                         URLPathPrefix + "userGroups",
-                                         HTTPContentType.JSON_UTF8,
-                                         HTTPDelegate: Request => {
-
-                                             #region Try to get HTTP user and its organizations
-
-                                             TryGetHTTPUser(Request,
-                                                            out var HTTPUser,
-                                                            out var HTTPOrganizations,
-                                                            out var Response,
-                                                            Recursive: true);
-
-                                             #endregion
-
-
-                                             var withMetadata           = Request.QueryString.GetBoolean("withMetadata", false);
-                                             var matchFilter            = Request.QueryString.CreateStringFilter<IUserGroup>("match",
-                                                                                                                             (group, include) => group.Id.ToString().IndexOf(include) >= 0 ||
-                                                                                                                                                 group.Name.       Matches(include, IgnoreCase: true) ||
-                                                                                                                                                 group.Description.Matches(include, IgnoreCase: true));
-
-                                             var skip                   = Request.QueryString.GetUInt64 ("skip");
-                                             var take                   = Request.QueryString.GetUInt64 ("take");
-
-                                             //var expand                 = Request.QueryString.GetStrings("expand");
-                                             //var expandTags             = expand.ContainsIgnoreCase("tags")              ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
-
-                                             var filteredUserGroups     = userGroups.Values.
-                                                                              //Where         (userGroup => userGroup.Id.ToString() != "Admins").
-                                                                              Where         (matchFilter).
-                                                                              OrderBy       (userGroup => userGroup.Name.FirstText()).
-                                                                              ToArray();
-
-                                             var filteredCount          = filteredUserGroups.ULongCount();
-                                             var totalCount             = HTTPOrganizations.ULongCount();
-
-                                             var JSONResults            = filteredUserGroups.
-                                                                              ToJSON(skip,
-                                                                                     take,
-                                                                                     true, //Embedded
-                                                                                     InfoStatus.ShowIdOnly,
-                                                                                     InfoStatus.ShowIdOnly,
-                                                                                     InfoStatus.ShowIdOnly,
-                                                                                     InfoStatus.ShowIdOnly,
-                                                                                     InfoStatus.ShowIdOnly,
-                                                                                     GetUserGroupSerializator(Request, HTTPUser));
-
-
-                                             return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode                = HTTPStatusCode.OK,
-                                                     Server                        = HTTPServer.DefaultServerName,
-                                                     Date                          = Timestamp.Now,
-                                                     AccessControlAllowOrigin      = "*",
-                                                     AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
-                                                     AccessControlAllowHeaders     = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ETag                          = "1",
-                                                     ContentType                   = HTTPContentType.JSON_UTF8,
-                                                     Content                       = withMetadata
-                                                                                         ? JSONObject.Create(
-                                                                                               new JProperty("totalCount",     totalCount),
-                                                                                               new JProperty("filteredCount",  filteredCount),
-                                                                                               new JProperty("userGroups",     JSONResults)
-                                                                                           ).ToUTF8Bytes()
-                                                                                         : JSONResults.ToUTF8Bytes(),
-                                                     X_ExpectedTotalNumberOfItems  = filteredCount,
-                                                     Connection                    = "close",
-                                                     Vary                          = "Accept"
-                                                 }.AsImmutable);
-
-                                         });
-
-            #endregion
-
-            #endregion
-
-
-            #region GET         ~/userGroups/{UserGroupId}
-
-            #region HTML
-
-            // --------------------------------------------------------------------------------------
-            // curl -v -H "Accept: application/json" http://127.0.0.1:3001/userGroups/{UserGroupId}
-            // --------------------------------------------------------------------------------------
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
-                              URLPathPrefix + "userGroups/{UserGroupId}",
-                              HTTPContentType.HTML_UTF8,
+                              URLPathPrefix + "userGroups",
+                              HTTPContentType.JSON_UTF8,
                               HTTPDelegate: Request => {
 
-                                  #region Get HTTP user and its users
+                                  #region Try to get HTTP user and its organizations
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive:                 true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      AccessLevel: Access_Levels.ReadWrite,
+                                                      Recursive: true) ||
+                                      httpUser is null)
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
 
+
+                                  var withMetadata           = Request.QueryString.GetBoolean("withMetadata", false);
+                                  var matchFilter            = Request.QueryString.CreateStringFilter<IUserGroup>("match",
+                                                                                                                  (group, include) => group.Id.ToString().IndexOf(include) >= 0 ||
+                                                                                                                                      group.Name.       Matches(include, IgnoreCase: true) ||
+                                                                                                                                      group.Description.Matches(include, IgnoreCase: true));
+
+                                  var skip                   = Request.QueryString.GetUInt64 ("skip");
+                                  var take                   = Request.QueryString.GetUInt64 ("take");
+
+                                  //var expand                 = Request.QueryString.GetStrings("expand");
+                                  //var expandTags             = expand.ContainsIgnoreCase("tags")              ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
+
+                                  var filteredUserGroups     = userGroups.Values.
+                                                                   //Where         (userGroup => userGroup.Id.ToString() != "Admins").
+                                                                   Where         (matchFilter).
+                                                                   OrderBy       (userGroup => userGroup.Name.FirstText()).
+                                                                   ToArray();
+
+                                  var filteredCount          = filteredUserGroups.ULongCount();
+                                  var totalCount             = userGroups.        ULongCount();
+
+                                  var JSONResults            = filteredUserGroups.
+                                                                   ToJSON(skip,
+                                                                          take,
+                                                                          true, //Embedded
+                                                                          InfoStatus.ShowIdOnly,
+                                                                          InfoStatus.ShowIdOnly,
+                                                                          InfoStatus.ShowIdOnly,
+                                                                          InfoStatus.ShowIdOnly,
+                                                                          InfoStatus.ShowIdOnly,
+                                                                          GetUserGroupSerializator(Request, httpUser));
+
+
                                   return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "GET" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.HTML_UTF8,
-                                              Content                    = MixWithHTMLTemplate("user.userGroup.shtml").ToUTF8Bytes(),
-                                              Connection                 = "close",
-                                              Vary                       = "Accept"
-                                          }.AsImmutable);
+                                      new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode                = HTTPStatusCode.OK,
+                                          Server                        = HTTPServer.DefaultServerName,
+                                          Date                          = Timestamp.Now,
+                                          AccessControlAllowOrigin      = "*",
+                                          AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
+                                          AccessControlAllowHeaders     = new[] { "Content-Type", "Accept", "Authorization" },
+                                          ETag                          = "1",
+                                          ContentType                   = HTTPContentType.JSON_UTF8,
+                                          Content                       = withMetadata
+                                                                              ? JSONObject.Create(
+                                                                                    new JProperty("totalCount",     totalCount),
+                                                                                    new JProperty("filteredCount",  filteredCount),
+                                                                                    new JProperty("userGroups",     JSONResults)
+                                                                                ).ToUTF8Bytes()
+                                                                              : JSONResults.ToUTF8Bytes(),
+                                          X_ExpectedTotalNumberOfItems  = filteredCount,
+                                          Connection                    = "close",
+                                          Vary                          = "Accept"
+                                      }.AsImmutable);
 
                               });
 
             #endregion
 
-            #region JSON
+
+            #region GET         ~/userGroups/{UserGroupId}
 
             // --------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/userGroups/{UserGroupId}
@@ -8248,54 +7687,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Get HTTP user and its organizations
 
-                                  TryGetHTTPUser(Request,
-                                                 out var HTTPUser,
-                                                 out var HTTPOrganizations,
-                                                 out var Response,
-                                                 Recursive: true);
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      AccessLevel: Access_Levels.ReadWrite,
+                                                      Recursive: true) ||
+                                      httpUser is null)
+                                  {
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                  }
 
                                   #endregion
 
                                   #region Check UserGroupId URL parameter
 
-                                  Request.ParseUserGroup(this,
-                                                         out var UserGroupId,
-                                                         out var UserGroup,
-                                                         out var HTTPResponse);
+                                  if (!Request.ParseUserGroup(this,
+                                                              out var userGroupId,
+                                                              out var userGroup,
+                                                              out httpResponseBuilder))
+                                  {
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                  }
 
                                   #endregion
 
 
-                                  if (UserGroup is not null)
+                                  if (userGroup is null)
+                                  {
+
                                       return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = UserGroup.ToJSON(false).ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
+                                                 new HTTPResponse.Builder(Request) {
+                                                     HTTPStatusCode             = HTTPStatusCode.Unauthorized,
+                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Date                       = Timestamp.Now,
+                                                     AccessControlAllowOrigin   = "*",
+                                                     AccessControlAllowMethods  = new[] { "GET", "SET" },
+                                                     AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                     Connection                 = "close"
+                                                 }.AsImmutable
+                                             );
+
+                                  }
 
 
                                   return Task.FromResult(
-                                                   new HTTPResponse.Builder(Request) {
-                                                             HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                             Server                     = HTTPServer.DefaultServerName,
-                                                             Date                       = Timestamp.Now,
-                                                             AccessControlAllowOrigin   = "*",
-                                                             AccessControlAllowMethods  = new[] { "GET", "SET" },
-                                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             Connection                 = "close"
-                                                         }.AsImmutable);
+                                             new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.OK,
+                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = new[] { "GET", "SET" },
+                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 Content                     = userGroup.ToJSON(false).ToUTF8Bytes(),
+                                                 Connection                  = "close",
+                                                 Vary                        = "Accept"
+                                             }.AsImmutable);
 
                               });
-
-            #endregion
 
             #endregion
 
@@ -8305,8 +7756,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region ~/organizations
 
             #region GET         ~/organizations
-
-            #region JSON
 
             // ---------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/organizations
@@ -8319,11 +7768,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  TryGetHTTPUser(Request,
-                                                 out var HTTPUser,
-                                                 out var HTTPOrganizations,
-                                                 out var Response,
-                                                 Recursive: true);
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
+                                  {
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                  }
 
                                   #endregion
 
@@ -8345,13 +7801,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   var expandSubOrganizations  = expand.ContainsIgnoreCase("subOrganizations")  ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
                                   var expandTags              = expand.ContainsIgnoreCase("tags")              ? InfoStatus.Expanded : InfoStatus.ShowIdOnly;
 
-                                  var filteredOrganizations   = HTTPOrganizations.
+                                  var filteredOrganizations   = httpOrganizations.
                                                                     OrderBy(organization => organization.Name.FirstText()).
                                                                     Where  (includeFilter).
                                                                     ToArray();
 
                                   var filteredCount           = filteredOrganizations.ULongCount();
-                                  var totalCount              = HTTPOrganizations.ULongCount();
+                                  var totalCount              = httpOrganizations.ULongCount();
 
                                   var JSONResults             = filteredOrganizations.
                                                                     ToJSON(skip,
@@ -8361,7 +7817,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            expandParents,
                                                                            expandSubOrganizations,
                                                                            expandTags,
-                                                                           GetOrganizationSerializator(Request, HTTPUser),
+                                                                           GetOrganizationSerializator(Request, httpUser),
                                                                            includeCryptoHash);
 
 
@@ -8391,50 +7847,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region HTML
-
-            // ----------------------------------------------------------------------------
-            // curl -v -H "Accept: application/json" http://127.0.0.1:3001/organizations
-            // ----------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.HTML_UTF8,
-                                              Content                    = MixWithHTMLTemplate("organization.organizations.shtml").ToUTF8Bytes(),
-                                              Connection                 = "close",
-                                              Vary                       = "Accept"
-                                          }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #endregion
 
             #region COUNT       ~/organizations
 
@@ -8451,15 +7863,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
-                                      return Task.FromResult(Response.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
+
 
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
@@ -8472,7 +7888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           ETag                       = "1",
                                           ContentType                = HTTPContentType.JSON_UTF8,
                                           Content                    = JSONObject.Create(
-                                                                           new JProperty("count", Organizations.ULongCount())
+                                                                           new JProperty("count", httpOrganizations.ULongCount())
                                                                        ).ToUTF8Bytes(),
                                           Connection                 = "close"
                                       }.AsImmutable);
@@ -8488,7 +7904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //      -H "Accept:       application/json; charset=utf-8" \
             //      -H "Content-Type: application/json; charset=utf-8" \
             //      -d "{ \
-            //              \"@context\" :             \"https://opendata.social/contexts/usersAPI/user+json\", \
+            //              \"@context\" :             \"https://opendata.social/contexts/UsersAPI/user+json\", \
             //              \"name\" :                 { \"deu\" : \"ACME Inc.\" },\
             //              \"description\" :          { \"deu\" : \"Testing123!\" },\
             //              \"parentOrganization\" :   \"GraphDefined\", \
@@ -8512,136 +7928,135 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
                               HTTPDelegate:       async Request => {
 
-                                  try
+                                  #region Get HTTP user and its organizations
+
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var HTTPUser,
-                                                          out var HTTPOrganizations,
-                                                          out var Response,
-                                                          AccessLevel:  Access_Levels.ReadWrite,
-                                                          Recursive:    true))
-                                      {
-                                          return Response;
-                                      }
-
-                                      #endregion
-
-                                      #region Parse JSON and create the new child organization...
-
-                                      if (!Request.TryParseJSONObjectRequestBody(out var JSONObj, out var HTTPResponse))
-                                          return HTTPResponse;
-
-                                      if (!Organization.TryParseJSON(JSONObj,
-                                                                     out var newOrganization,
-                                                                     out var ErrorResponse,
-                                                                     OrganizationIdURL:  Organization_Id.Random()))
-                                      {
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                     Server                      = HTTPServer.DefaultServerName,
-                                                     Date                        = Timestamp.Now,
-                                                     AccessControlAllowOrigin    = "*",
-                                                     AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
-                                                     AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                 = HTTPContentType.JSON_UTF8,
-                                                     Content                     = JSONObject.Create(
-                                                                                       new JProperty("description", ErrorResponse)
-                                                                                   ).ToUTF8Bytes(),
-                                                     Connection                  = "close"
-                                                 }.AsImmutable;
-                                      }
-
-                                      #endregion
-
-                                      #region Parse parent organization
-
-                                      if (!JSONObj.ParseMandatory("parentOrganization",
-                                                                  "parent organization",
-                                                                  HTTPServer.DefaultHTTPServerName,
-                                                                  Organization_Id.TryParse,
-                                                                  out Organization_Id ParentOrganizationId,
-                                                                  Request,
-                                                                  out HTTPResponse))
-                                      {
-                                          return HTTPResponse;
-                                      }
-
-                                      if (!organizations.TryGetValue(ParentOrganizationId, out var ParentOrganization))
-                                      {
-
-                                          return new HTTPResponse.Builder(Request) {
-                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                  Server                     = HTTPServer.DefaultServerName,
-                                                  Date                       = Timestamp.Now,
-                                                  AccessControlAllowOrigin   = "*",
-                                                  AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
-                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                  ContentType                = HTTPContentType.JSON_UTF8,
-                                                  Content                    = JSONObject.Create(
-                                                                                   new JProperty("description",  "Unknown parent organization!")
-                                                                               ).ToUTF8Bytes(),
-                                                  Connection                 = "close"
-                                              }.AsImmutable;
-
-                                      }
-
-                                      #endregion
-
-
-                                      var result = await AddOrganization(newOrganization,
-                                                                         ParentOrganization,
-                                                                         null,
-                                                                         Request.EventTrackingId,
-                                                                         HTTPUser.Id);
-
-
-                                      return result.Result == CommandResult.Success
-
-                                                 ? new HTTPResponse.Builder(Request) {
-                                                       HTTPStatusCode              = HTTPStatusCode.Created,
-                                                       Server                      = HTTPServer.DefaultServerName,
-                                                       Date                        = Timestamp.Now,
-                                                       AccessControlAllowOrigin    = "*",
-                                                       AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
-                                                       AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                       ContentType                 = HTTPContentType.JSON_UTF8,
-                                                       Content                     = result.Organization.ToJSON(false).ToUTF8Bytes(),
-                                                       Connection                  = "close"
-                                                   }.AsImmutable
-
-                                                 : new HTTPResponse.Builder(Request) {
-                                                       HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                       Server                      = HTTPServer.DefaultServerName,
-                                                       Date                        = Timestamp.Now,
-                                                       AccessControlAllowOrigin    = "*",
-                                                       AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
-                                                       AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                       ContentType                 = HTTPContentType.JSON_UTF8,
-                                                       Content                     = result.ToJSON().ToUTF8Bytes(),
-                                                       Connection                  = "close"
-                                                   }.AsImmutable;
-
+                                      return httpResponseBuilder!;
                                   }
-                                  catch (Exception e)
+
+                                  #endregion
+
+                                  #region Parse JSON and create the new child organization...
+
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                      return httpResponseBuilder!;
+
+                                  #region Parse new organization
+
+                                  if (!Organization.TryParseJSON(json,
+                                                                 out var newOrganization,
+                                                                 out var errorResponse,
+                                                                 OrganizationIdURL:  Organization_Id.Random()) || newOrganization is null)
                                   {
+
                                       return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.InternalServerError,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-                                                                                  new JProperty("description",  "Could not create the given organization! " + e.Message)
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = "close"
+                                                 HTTPStatusCode              = HTTPStatusCode.BadRequest,
+                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 Content                     = JSONObject.Create(
+                                                                                   new JProperty("description", errorResponse)
+                                                                               ).ToUTF8Bytes(),
+                                                 Connection                  = "close"
                                              }.AsImmutable;
+
                                   }
+
+                                  #endregion
+
+                                  #region Parse parent organization
+
+                                  if (!json.ParseMandatory("parentOrganization",
+                                                           "parent organization",
+                                                           Organization_Id.TryParse,
+                                                           out Organization_Id parentOrganizationId,
+                                                           out errorResponse))
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode              = HTTPStatusCode.BadRequest,
+                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Date                        = Timestamp.Now,
+                                                 AccessControlAllowOrigin    = "*",
+                                                 AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 Content                     = JSONObject.Create(
+                                                                                   new JProperty("description", errorResponse)
+                                                                               ).ToUTF8Bytes(),
+                                                 Connection                  = "close"
+                                             }.AsImmutable;
+
+                                  }
+
+                                  if (!organizations.TryGetValue(parentOrganizationId, out var parentOrganization) || parentOrganization is null)
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                              Server                     = HTTPServer.DefaultServerName,
+                                              Date                       = Timestamp.Now,
+                                              AccessControlAllowOrigin   = "*",
+                                              AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                              ContentType                = HTTPContentType.JSON_UTF8,
+                                              Content                    = JSONObject.Create(
+                                                                               new JProperty("description",  "Unknown parent organization!")
+                                                                           ).ToUTF8Bytes(),
+                                              Connection                 = "close"
+                                          }.AsImmutable;
+
+                                  }
+
+                                  #endregion
+
+                                  #endregion
+
+
+                                  var result = await AddOrganization(newOrganization,
+                                                                     parentOrganization,
+                                                                     null,
+                                                                     Request.EventTrackingId,
+                                                                     httpUser.Id);
+
+
+                                  return result.Result == CommandResult.Success
+
+                                             ? new HTTPResponse.Builder(Request) {
+                                                   HTTPStatusCode              = HTTPStatusCode.Created,
+                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Date                        = Timestamp.Now,
+                                                   AccessControlAllowOrigin    = "*",
+                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                   AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   Content                     = result.Organization.ToJSON(false).ToUTF8Bytes(),
+                                                   Connection                  = "close"
+                                               }.AsImmutable
+
+                                             : new HTTPResponse.Builder(Request) {
+                                                   HTTPStatusCode              = HTTPStatusCode.BadRequest,
+                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Date                        = Timestamp.Now,
+                                                   AccessControlAllowOrigin    = "*",
+                                                   AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
+                                                   AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   Content                     = result.ToJSON().ToUTF8Bytes(),
+                                                   Connection                  = "close"
+                                               }.AsImmutable;
 
                               });
 
@@ -8649,8 +8064,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             #region GET         ~/organizations/{OrganizationId}
-
-            #region JSON
 
             // -------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/organizations/214080158
@@ -8663,25 +8076,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  TryGetHTTPUser(Request,
-                                                 out var HTTPUser,
-                                                 out var HTTPOrganizations,
-                                                 out var Response,
-                                                 Recursive: true);
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
+                                  {
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                  }
 
                                   #endregion
 
                                   #region Check OrganizationId URL parameter
 
                                   if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
+                                                                 out var organizationId,
+                                                                 out var organization,
+                                                                 out httpResponseBuilder) ||
+                                      !organizationId.HasValue ||
+                                       organization is null)
                                   {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
+
 
                                   var showMgt                 = Request.QueryString.GetBoolean("showMgt", false);
 
@@ -8695,7 +8118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return Task.FromResult(
                                              (//Organization.PrivacyLevel == PrivacyLevel.Private &&
-                                              !HTTPOrganizations.Contains(Organization))
+                                              !httpOrganizations.Contains(organization))
 
                                                  ? new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.Unauthorized,
@@ -8716,14 +8139,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                        ContentType                = HTTPContentType.JSON_UTF8,
                                                        Content                    = (showMgt == true
-                                                                                         ? new OrganizationInfo2(Organization,
-                                                                                                                 HTTPUser).ToJSON(false,
+                                                                                         ? new OrganizationInfo2(organization,
+                                                                                                                 httpUser).ToJSON(false,
                                                                                                                                   expandMembers,
                                                                                                                                   expandParents,
                                                                                                                                   expandSubOrganizations,
                                                                                                                                   expandTags,
                                                                                                                                   includeCryptoHash)
-                                                                                         : Organization.ToJSON(false,
+                                                                                         : organization.ToJSON(false,
                                                                                                                expandMembers,
                                                                                                                expandParents,
                                                                                                                expandSubOrganizations,
@@ -8734,80 +8157,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    }.AsImmutable);
 
                               });
-
-            #endregion
-
-            #region HTML
-
-            // ------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/organizations/GraphDefined
-            // ------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check OrganizationId URL parameter
-
-                                  if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  if (Organization != null && HTTPOrganizations.Contains(Organization))
-                                  {
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = MixWithHTMLTemplate("organization.organization.shtml").ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
-
-                                  }
-
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable);
-
-                              });
-
-            #endregion
 
             #endregion
 
@@ -8823,22 +8172,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Try to get HTTP user and its organizations
 
-                                  TryGetHTTPUser(Request,
-                                                 out var HTTPUser,
-                                                 out var HTTPOrganizations,
-                                                 out var Response,
-                                                 Recursive: true);
+                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                  if (!TryGetHTTPUser(Request,
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadOnly,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
+                                  {
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
+                                  }
 
                                   #endregion
 
                                   #region Check OrganizationId URL parameter
 
                                   if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
+                                                                 out var organizationId,
+                                                                 out var organization,
+                                                                 out httpResponseBuilder) ||
+                                      !organizationId.HasValue ||
+                                       organization is null)
                                   {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
+                                      return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
 
                                   #endregion
@@ -8866,23 +8224,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //      -H "Accept:       application/json; charset=utf-8" \
             //      -H "Content-Type: application/json; charset=utf-8" \
             //      -d "{ \
-            //              \"@id\" :             \"214080158\", \
-            //              \"@context\" :        \"https://opendata.social/contexts/usersAPI/user+json\", \
-            //              \"description\" :     { \"deu\" : \"Test AED in Erlangen Raum Yavin 4\" },\
-            //              \"dataLicenseIds\" :  [ \"ODbL\" ],\
-            //              \"ownerId\" :         \"Organization\", \
-            //              \"address\" :         { \
-            //                                      \"country\" :      \"Germany\",
-            //                                      \"postalCode\" :   \"91052\",
-            //                                      \"city\" :         { \"deu\": \"Erlangen\" },
-            //                                      \"street\" :       \"Henkestraße\",
-            //                                      \"houseNumber\" :  \"91\",
-            //                                      \"floorLevel\" :   \"1\"
-            //                                    }, \
-            //              \"geoLocation\" :     { \"lat\": 49.594760, \"lng\": 11.019356 }, \
-            //              \"privacyLevel\" :    \"Public\" \
+            //             \"@id\":                             \"testOrg2\",
+            //             \"@context\":                        \"https://opendata.social/contexts/UsersAPI+json/organization\",
+            //             \"parentOrganization\":              \"testOrg1\",
+            //             \"name\":                            { \"en\": \"Test Org #2\" },
+            //             \"admins\": [{
+            //                 \"@id\":       \"ahzf\",
+            //                 \"@context\":  \"https://opendata.social/contexts/UsersAPI/user+json\",
+            //                 \"name\":      \"Achim Friedland\",
+            //                 \"email\":     \"nospam@graphdefined.com\",
+            //             }],
+            //             \"members\":                         [],
+            //             \"youAreMember\":                    true,
+            //             \"youCanAddMembers\":                true,
+            //             \"youCanCreateChildOrganizations\":  true,
+            //             \"childs\":                          []
             //          }" \
-            //      http://127.0.0.1:2000/users/214080158
+            //      http://127.0.0.1:2000/organizations/214080158
             // ---------------------------------------------------------------------------------------------
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
@@ -8892,17 +8250,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
                               HTTPDelegate:       async Request => {
 
-                                  #region Get HTTP user and its organizations
+                                  #region Try to get HTTP user and its organizations
 
                                   // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                   if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadWrite,
-                                                      Recursive:    true))
+                                                      out var httpUser,
+                                                      out var httpOrganizations,
+                                                      out var httpResponseBuilder,
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true) ||
+                                      httpUser is null ||
+                                     !httpOrganizations.Any())
                                   {
-                                      return Response;
+                                      return httpResponseBuilder!.AsImmutable;
                                   }
 
                                   #endregion
@@ -8910,24 +8270,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   #region Check OrganizationId URL parameter
 
                                   if (!Request.ParseOrganizationId(this,
-                                                                   out var OrganizationIdURL,
-                                                                   out var HTTPResponse))
+                                                                   out var organizationIdURL,
+                                                                   out httpResponseBuilder) ||
+                                      !organizationIdURL.HasValue)
                                   {
-                                      return HTTPResponse;
+                                      return httpResponseBuilder!;
                                   }
 
                                   #endregion
 
+
                                   #region Parse JSON and create the new child organization...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var JSONObj, out HTTPResponse))
-                                      return HTTPResponse;
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out httpResponseBuilder) || json is null)
+                                      return httpResponseBuilder!;
 
-                                  if (!Organization.TryParseJSON(JSONObj,
-                                                                 out var NewChildOrganization,
-                                                                 out var ErrorResponse,
-                                                                 OrganizationIdURL))
+                                  #region Parse new child organization
+
+                                  if (!Organization.TryParseJSON(json,
+                                                                 out var newChildOrganization,
+                                                                 out var errorResponse,
+                                                                 organizationIdURL) || newChildOrganization is null)
                                   {
+
                                       return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
                                              Server                     = HTTPServer.DefaultServerName,
@@ -8937,59 +8302,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                              ContentType                = HTTPContentType.JSON_UTF8,
                                              Content                    = JSONObject.Create(
-                                                                              new JProperty("description",  "Could not parse the given child organization data!")
+                                                                              new JProperty("description",  $"Could not parse the given child organization data: {errorResponse}")
                                                                           ).ToUTF8Bytes()
                                          }.AsImmutable;
+
                                   }
 
                                   #endregion
 
-                                  // {
-                                  //     "@id":                             newChildOrganizationId,
-                                  //     "@context":                        "https://opendata.social/contexts/HTTPExtAPI+json/organization",
-                                  //     "parentOrganization":              organization["@id"],
-                                  //     "name":                            { "eng": newChildOrganizationName != "" ? newChildOrganizationName : newChildOrganizationId },
-                                  //     "admins": [{
-                                  //         "@id":       SignInUser,
-                                  //         "@context":  "https://opendata.social/contexts/usersAPI/user+json",
-                                  //         "name":      Username,
-                                  //         "email":     UserEMail
-                                  //     }],
-                                  //     "members":                         [],
-                                  //     "youAreMember":                    true,
-                                  //     "youCanAddMembers":                true,
-                                  //     "youCanCreateChildOrganizations":  true,
-                                  //     "childs":                          []
-                                  // }
-
                                   #region Parse parent organization
 
-                                  if (!JSONObj.ParseMandatory("parentOrganization",
-                                                             "parent organization",
-                                                             HTTPServer.DefaultHTTPServerName,
-                                                             Organization_Id.TryParse,
-                                                             out Organization_Id ParentOrganizationId,
-                                                             Request,
-                                                             out HTTPResponse))
-                                  {
-                                      return HTTPResponse;
-                                  }
-
-                                  if (!_TryGetOrganization(ParentOrganizationId, out var ParentOrganization))
+                                  if (!json.ParseMandatory("parentOrganization",
+                                                           "parent organization",
+                                                           Organization_Id.TryParse,
+                                                           out Organization_Id parentOrganizationId,
+                                                           out errorResponse))
                                   {
 
                                       return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "GET", "SET" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                              Content                    = JSONObject.Create(
-                                                                                  new JProperty("description",  "Unknown parent organization!")
+                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "GET", "SET" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description",  $"Invalid parent organization identification '{json["parentOrganization"]}'!")
                                                                               ).ToUTF8Bytes()
-                                          }.AsImmutable;
+                                             }.AsImmutable;
+
+                                  }
+
+                                  if (!_TryGetOrganization(parentOrganizationId, out var parentOrganization) || parentOrganization is null)
+                                  {
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "GET", "SET" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description",  $"Unknown parent organization '{parentOrganizationId}'!")
+                                                                              ).ToUTF8Bytes()
+                                             }.AsImmutable;
 
                                   }
 
@@ -8997,23 +8356,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Parse admins
 
-                                  if (!JSONObj.ParseMandatory("admins",
-                                                              "organization admins",
-                                                              HTTPServer.DefaultHTTPServerName,
-                                                              out JArray AdminsJSON,
-                                                              Request,
-                                                              out HTTPResponse))
+                                  if (!json.ParseMandatory("admins",
+                                                           "organization admins",
+                                                           out JArray AdminsJSON,
+                                                           out errorResponse))
                                   {
-                                      return HTTPResponse;
+
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "GET", "SET" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+                                                                                  new JProperty("description",  "Invalid organization admins!")
+                                                                              ).ToUTF8Bytes()
+                                             }.AsImmutable;
+
                                   }
 
+                                  #endregion
+
+                                  #region Validate admins
 
                                   IUser? Admin    = null;
                                   var Admins      = new List<IUser>();
-                                  var AdminNames  = AdminsJSON.Select(admin => (admin as JObject)).
-                                                              Where(admin => admin != null).
-                                                              Select(admin => User_Id.TryParse(admin["@id"].Value<String>())).
-                                                              ToArray();
+                                  var AdminNames  = AdminsJSON.Select(admin => admin as JObject).
+                                                               Where(admin => admin != null).
+                                                               Select(admin => User_Id.TryParse(admin["@id"].Value<String>())).
+                                                               ToArray();
 
                                   foreach (var admin in AdminNames)
                                   {
@@ -9062,62 +8435,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #endregion
 
+                                  #endregion
 
-                                  try
-                                  {
 
-                                      var result = await AddOrganization(new Organization(NewChildOrganization.Id,
-                                                                                          NewChildOrganization.Name,
-                                                                                          NewChildOrganization.Description
-                                                                                          //Website,
-                                                                                          //EMail,
-                                                                                          //Telephone,
-                                                                                          //Address,
-                                                                                          //GeoLocation,
-                                                                                          //Tags,
-                                                                                          //IsDisabled,
-                                                                                          //DataSource: DataSource
-                                                                                          ),
-                                                                         ParentOrganization,
-                                                                         async (_organization, _eventTrackingId) => {
+                                  var result = await AddOrganization(newChildOrganization,
+                                                                     parentOrganization,
+                                                                     async (_organization, _eventTrackingId) => {
 
-                                                                             foreach (var admin in Admins)
-                                                                                 await _AddUserToOrganization(admin,
-                                                                                                              User2OrganizationEdgeLabel.IsAdmin,
-                                                                                                              _organization);
+                                                                         foreach (var admin in Admins)
+                                                                             await addUserToOrganization(admin,
+                                                                                                         User2OrganizationEdgeLabel.IsAdmin,
+                                                                                                         _organization);
 
-                                                                         },
-                                                                         Request.EventTrackingId,
-                                                                         HTTPUser.Id);
+                                                                     },
+                                                                     Request.EventTrackingId,
+                                                                     httpUser.Id);
 
-                                      return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.Created,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              Connection                  = "close"
-                                          }.AsImmutable;
-
-                                  }
-                                  catch (Exception e)
-                                  {
-
-                                      return new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "GET", "SET" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
-                                              Content                    = JSONObject.Create(
-                                                                                  new JProperty("description",  "Could not create the given child organization! " + e.Message)
-                                                                              ).ToUTF8Bytes()
-                                          }.AsImmutable;
-
-                                  }
+                                  return new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode              = HTTPStatusCode.Created,
+                                          Server                      = HTTPServer.DefaultServerName,
+                                          Date                        = Timestamp.Now,
+                                          AccessControlAllowOrigin    = "*",
+                                          AccessControlAllowMethods   = new[] { "GET", "SET" },
+                                          AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
+                                          Connection                  = "close"
+                                      }.AsImmutable;
 
                               });
 
@@ -9131,7 +8473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //      -H "Content-Type: application/json; charset=utf-8" \
             //      -d "{ \
             //              \"@id\" :             \"214080158\", \
-            //              \"@context\" :        \"https://opendata.social/contexts/HTTPExtAPI+json/organization\", \
+            //              \"@context\" :        \"https://opendata.social/contexts/UsersAPI+json/organization\", \
             //              \"description\" :     { \"deu\" : \"Test AED in Erlangen Raum Yavin 4\" },\
             //              \"address\" :         { \
             //                                      \"country\" :      \"Germany\",
@@ -9161,8 +8503,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.ReadWrite,
-                                                      Recursive:    true))
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true))
                                   {
                                       return Response;
                                   }
@@ -9289,8 +8631,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response;
                                   }
@@ -9362,152 +8704,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            #region GET         ~/organizations/{OrganizationId}/address
-
-            // --------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/organizations/GraphDefined/address
-            // --------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}/address",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadOnly,
-                                                      Recursive:    true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check OrganizationId URL parameter
-
-                                  if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  if (Organization != null && HTTPOrganizations.Contains(Organization))
-                                  {
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = MixWithHTMLTemplate("organization.address.shtml").ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
-
-                                  }
-
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region GET         ~/organizations/{OrganizationId}/members
-
-            // -----------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/organizations/GraphDefined/members
-            // -----------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}/members",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadOnly,
-                                                      Recursive:    true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check OrganizationId URL parameter
-
-                                  if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  if (Organization != null && HTTPOrganizations.Contains(Organization))
-                                  {
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = MixWithHTMLTemplate("organization.members.shtml").ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
-
-                                  }
-
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable);
-
-                              });
-
-            #endregion
-
             #region ADD         ~/organizations/{OrganizationId}/admins/{UserId}
 
             // -----------------------------------------------------------------------------------------------------------
@@ -9526,8 +8722,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -9627,8 +8823,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -9728,8 +8924,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -9829,8 +9025,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -9929,8 +9125,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -10030,8 +9226,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -10131,8 +9327,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Response.AsImmutable;
                                   }
@@ -10209,222 +9405,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                                    Connection                  = "close"
                                                }.AsImmutable;
-
-                              });
-
-            #endregion
-
-            #region GET         ~/organizations/{OrganizationId}/newMember
-
-            // -----------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/organizations/GraphDefined/newMember
-            // -----------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}/newMember",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check OrganizationId URL parameter
-
-                                  if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  if (Organization != null && HTTPOrganizations.Contains(Organization))
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = MixWithHTMLTemplate("organization.newMember.shtml").ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
-
-
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region GET         ~/organizations/{OrganizationId}/subOrganizations
-
-            // -----------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/organizations/GraphDefined/subOrganizations
-            // -----------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}/subOrganizations",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.ReadOnly,
-                                                      Recursive:    true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check OrganizationId URL parameter
-
-                                  if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  if (Organization != null && HTTPOrganizations.Contains(Organization))
-                                  {
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = MixWithHTMLTemplate("organization.subOrganizations.shtml").ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
-
-                                  }
-
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region GET         ~/organizations/{OrganizationId}/newSubOrganization
-
-            // -----------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/organizations/GraphDefined/newSubOrganization
-            // -----------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizations/{OrganizationId}/newSubOrganization",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Check OrganizationId URL parameter
-
-                                  if (!Request.ParseOrganization(this,
-                                                                 out var OrganizationId,
-                                                                 out var Organization,
-                                                                 out var HTTPResponse))
-                                  {
-                                      return Task.FromResult(HTTPResponse.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  if (Organization != null && HTTPOrganizations.Contains(Organization))
-                                  {
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                              Server                      = HTTPServer.DefaultServerName,
-                                              Date                        = Timestamp.Now,
-                                              AccessControlAllowOrigin    = "*",
-                                              AccessControlAllowMethods   = new[] { "GET" },
-                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                 = HTTPContentType.HTML_UTF8,
-                                              Content                     = MixWithHTMLTemplate("organization.newSubOrganization.shtml").ToUTF8Bytes(),
-                                              Connection                  = "close",
-                                              Vary                        = "Accept"
-                                          }.AsImmutable);
-
-                                  }
-
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "GET" },
-                                                 AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 Connection                  = "close"
-                                             }.AsImmutable);
 
                               });
 
@@ -10510,8 +9490,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var HTTPResponse,
-                                                      AccessLevel:  Access_Levels.ReadWrite,
-                                                      Recursive:    true))
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true))
                                   {
                                       return HTTPResponse;
                                   }
@@ -10696,8 +9676,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var HTTPUser,
                                                       out var HTTPOrganizations,
                                                       out var HTTPResponse,
-                                                      AccessLevel:  Access_Levels.ReadWrite,
-                                                      Recursive:    true))
+                                                      Access_Levels.ReadWrite,
+                                                      Recursive: true))
                                   {
                                       return HTTPResponse;
                                   }
@@ -10863,51 +9843,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region GET         ~/organizationGroups
 
-            #region HTML
-
-            // --------------------------------------------------------------------------------
-            // curl -v -H "Accept: application/json" http://127.0.0.1:3001/organizationGroups
-            // --------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "organizationGroups",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP organization and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP organization is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                              Server                     = HTTPServer.DefaultServerName,
-                                              Date                       = Timestamp.Now,
-                                              AccessControlAllowOrigin   = "*",
-                                              AccessControlAllowMethods  = new[] { "GET" },
-                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.HTML_UTF8,
-                                              Content                    = MixWithHTMLTemplate("organization.organizationGroups.shtml").ToUTF8Bytes(),
-                                              Connection                 = "close",
-                                              Vary                       = "Accept"
-                                          }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region JSON
-
             // --------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/organizationGroups
             // --------------------------------------------------------------------------------
@@ -10988,14 +9923,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #endregion
-
 
             #region ~/notifications
 
             #region GET         ~/notifications
-
-            #region JSON
 
             // ---------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/notifications
@@ -11042,162 +9973,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region HTML
-
-            // ----------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/notifications
-            // ----------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "notifications",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPServer.DefaultServerName,
-                                          Date                        = Timestamp.Now,
-                                          AccessControlAllowOrigin    = "*",
-                                          AccessControlAllowMethods   = new[] { "GET" },
-                                          AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.HTML_UTF8,
-                                          Content                     = MixWithHTMLTemplate("notification.messages.shtml").ToUTF8Bytes(),
-                                          Connection                  = "close",
-                                          Vary                        = "Accept"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #endregion
-
-            #region GET         ~/notifications/{notificationId}
-
-            // ------------------------------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/notifications/{notificationId}
-            // ------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "notifications/{notificationId}",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-                                  #region Get notificationId URL parameter
-
-                                  if (Request.ParsedURLParameters.Length < 1 ||
-                                      !UInt32.TryParse(Request.ParsedURLParameters[0], out UInt32 NotificationId))
-                                  {
-
-                                      return Task.FromResult(
-                                                 new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                     Server          = HTTPServer.DefaultServerName,
-                                                     Date            = Timestamp.Now,
-                                                     Connection      = "close"
-                                                 }.AsImmutable);
-
-                                  }
-
-                                  #endregion
-
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPServer.DefaultServerName,
-                                          Date                        = Timestamp.Now,
-                                          AccessControlAllowOrigin    = "*",
-                                          AccessControlAllowMethods   = new[] { "GET" },
-                                          AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.HTML_UTF8,
-                                          Content                     = MixWithHTMLTemplate("notification.editNotification.shtml").ToUTF8Bytes(),
-                                          Connection                  = "close",
-                                          Vary                        = "Accept"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
-            #region GET         ~/notificationSettings
-
-            // ---------------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/notificationSettings
-            // ---------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "notificationSettings",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPServer.DefaultServerName,
-                                          Date                        = Timestamp.Now,
-                                          AccessControlAllowOrigin    = "*",
-                                          AccessControlAllowMethods   = new[] { "GET" },
-                                          AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.HTML_UTF8,
-                                          Content                     = MixWithHTMLTemplate("notification.settings.shtml").ToUTF8Bytes(),
-                                          Connection                  = "close",
-                                          Vary                        = "Accept"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
-
-
             #region GET         ~/newNotification
-
-            #region JSON
 
             // -----------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/newNotification
@@ -11246,7 +10022,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                                   )),
                                                                                   new JProperty("notificationGroups", new JArray(
-                                                                                       _NotificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
+                                                                                       notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
                                                                                   ))
                                                                                ).ToUTF8Bytes(),
                                                  Connection                 = "close",
@@ -11254,52 +10030,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              }.AsImmutable);
 
             });
-
-            #endregion
-
-            #region HTML
-
-            // ----------------------------------------------------------------------
-            // curl -v -H "Accept: text/html" http://127.0.0.1:3001/newNotification
-            // ----------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "newNotification",
-                              HTTPContentType.HTML_UTF8,
-                              HTTPDelegate: Request => {
-
-                                  #region Get HTTP user and its organizations
-
-                                  // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                  if (!TryGetHTTPUser(Request,
-                                                      out var HTTPUser,
-                                                      out var HTTPOrganizations,
-                                                      out var Response,
-                                                      Recursive: true))
-                                  {
-                                      return Task.FromResult(Response.AsImmutable);
-                                  }
-
-                                  #endregion
-
-
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPServer.DefaultServerName,
-                                          Date                        = Timestamp.Now,
-                                          AccessControlAllowOrigin    = "*",
-                                          AccessControlAllowMethods   = new[] { "GET" },
-                                          AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.HTML_UTF8,
-                                          Content                     = MixWithHTMLTemplate("notification.editNotification.shtml").ToUTF8Bytes(),
-                                          Connection                  = "close",
-                                          Vary                        = "Accept"
-                                      }.AsImmutable);
-
-                              });
-
-            #endregion
 
             #endregion
 
@@ -11806,8 +10536,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var       httpUser,
                                                       out var       httpOrganizations,
                                                       out var       httpResponseBuilder,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -11849,8 +10579,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var       httpUser,
                                                       out var       httpOrganizations,
                                                       out var       httpResponseBuilder,
-                                                      AccessLevel:  Access_Levels.Admin,
-                                                      Recursive:    true))
+                                                      Access_Levels.Admin,
+                                                      Recursive: true))
                                   {
                                       return Task.FromResult(httpResponseBuilder!.AsImmutable);
                                   }
@@ -11872,6 +10602,112 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               });
 
             #endregion
+
+
+            #region OPTIONS     ~/changeSets
+
+            // -----------------------------------------------------
+            // curl -X OPTIONS -v http://127.0.0.1:3004/changeSets
+            // -----------------------------------------------------
+            AddMethodCallback(Hostname,
+                              HTTPMethod.OPTIONS,
+                              URLPathPrefix + "changeSets",
+                              HTTPDelegate: Request => {
+
+                                  return Task.FromResult(
+                                      new HTTPResponse.Builder(Request) {
+                                          HTTPStatusCode             = HTTPStatusCode.OK,
+                                          Server                     = HTTPServer.DefaultServerName,
+                                          Date                       = Timestamp.Now,
+                                          AccessControlAllowOrigin   = "*",
+                                          AccessControlAllowMethods  = new[] { "GET", "OPTIONS" },
+                                          AccessControlAllowHeaders  = new[] { "Authorization", "X-App-Version" },
+                                          Connection                 = "close"
+                                      }.AsImmutable);
+
+                              });
+
+            #endregion
+
+            #region GET         ~/changeSets
+
+            // ---------------------------------------------------------------------------------------------------------------
+            // curl -v -H "Accept: application/json" -H "API-Key: xxx" http://127.0.0.1:3004/changeSets?withMetadata\&take=2
+            // ---------------------------------------------------------------------------------------------------------------
+            AddMethodCallback(Hostname,
+                              HTTPMethod.GET,
+                              URLPathPrefix + "changeSets",
+                              HTTPContentType.JSON_UTF8,
+                              HTTPDelegate: async Request => {
+
+                                  #region Check API Key...
+
+                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
+                                      return new HTTPResponse.Builder(Request) {
+                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Date                       = Timestamp.Now,
+                                                 AccessControlAllowOrigin   = "*",
+                                                 AccessControlAllowMethods  = new[] { "GET" },
+                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
+                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 Content                    = JSONObject.Create(
+
+                                                                                  Request.API_Key.HasValue
+                                                                                      ? new JProperty("apiKey",  Request.API_Key?.ToString() ?? "")
+                                                                                      : null,
+
+                                                                                  new JProperty("description",  "Please use a valid API key!")
+
+                                                                              ).ToUTF8Bytes(),
+                                                 Connection                 = "close"
+                                             }.AsImmutable;
+
+                                  #endregion
+
+                                  var withMetadata                            = Request.QueryString.GetBoolean ("withMetadata", false);
+                                  var since                                   = Request.QueryString.GetDateTime("since");
+                                  var skipUntil                               = Request.QueryString.GetString  ("skipUntil");
+                                  var skip                                    = Request.QueryString.GetUInt64  ("skip");
+                                  var take                                    = Request.QueryString.GetUInt64  ("take");
+                                  var match                                   = Request.QueryString.GetString  ("match");
+
+                                  var (filteredChangeSets, totalCount, ETag)  = await LoadChangeSetsFromDisc(since,
+                                                                                                             skipUntil,
+                                                                                                             match is not null
+                                                                                                               ? line => line.Contains(match)
+                                                                                                               : null,
+                                                                                                             skip,
+                                                                                                             take);
+                                  var filteredCount                           = filteredChangeSets.ULongCount();
+
+                                  var JSONResults                             = new JArray(filteredChangeSets);
+
+
+                                  return new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode                = HTTPStatusCode.OK,
+                                             Server                        = HTTPServer.DefaultServerName,
+                                             Date                          = Timestamp.Now,
+                                             AccessControlAllowOrigin      = "*",
+                                             AccessControlAllowMethods     = new[] { "GET", "OPTIONS" },
+                                             AccessControlAllowHeaders     = new[] { "Authorization", "X-App-Version" },
+                                             ETag                          = ETag,
+                                             ContentType                   = HTTPContentType.JSON_UTF8,
+                                             Content                       = withMetadata
+                                                                                 ? JSONObject.Create(
+                                                                                       new JProperty("totalCount",    totalCount),
+                                                                                       new JProperty("filteredCount", filteredCount),
+                                                                                       new JProperty("changeSets",    JSONResults)
+                                                                                   ).ToUTF8Bytes()
+                                                                                 : JSONResults.ToUTF8Bytes(),
+                                             X_ExpectedTotalNumberOfItems  = filteredCount,
+                                             Connection                    = "close"
+                                         }.AsImmutable;
+
+                              });
+
+            #endregion
+
 
         }
 
@@ -12001,10 +10837,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             if (!loginPasswords.ContainsKey(Login))
                                             {
 
-                                                loginPasswords.Add(Login,
-                                                                    new LoginPassword(Login,
-                                                                                      Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                         JSONObject["newPassword"]["passwordHash"].Value<String>())));
+                                                loginPasswords.TryAdd(Login,
+                                                                      new LoginPassword(Login,
+                                                                                        Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                           JSONObject["newPassword"]["passwordHash"].Value<String>())));
 
                                             }
 
@@ -12046,12 +10882,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         case "ResetPassword":
 
                                             if (loginPasswords.ContainsKey(Login))
-                                                loginPasswords.Remove(Login);
+                                                loginPasswords.TryRemove(Login, out _);
 
-                                            loginPasswords.Add(Login,
-                                                                new LoginPassword(Login,
-                                                                                  Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                     JSONObject["newPassword"]["passwordHash"].Value<String>())));
+                                            loginPasswords.TryAdd(Login,
+                                                                  new LoginPassword(Login,
+                                                                                    Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                       JSONObject["newPassword"]["passwordHash"].Value<String>())));
 
                                             break;
 
@@ -12115,10 +10951,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 expires > Timestamp.Now)
                             {
 
-                                httpCookies.Add(securityTokenId,
-                                                 new SecurityToken(userId,
-                                                                   expires,
-                                                                   superUserId));
+                                httpCookies.TryAdd(securityTokenId,
+                                                   new SecurityToken(userId,
+                                                                     expires,
+                                                                     superUserId));
 
                             }
 
@@ -12206,8 +11042,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             {
                                                 if (Now - _PasswordReset.Timestamp <= MaxAge)
                                                 {
-                                                    passwordResets.Add(_PasswordReset.SecurityToken1,
-                                                                        _PasswordReset);
+                                                    passwordResets.TryAdd(_PasswordReset.SecurityToken1,
+                                                                          _PasswordReset);
                                                 }
                                             }
 
@@ -12221,7 +11057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         #region remove
 
                                         case "remove":
-                                            passwordResets.Remove(_PasswordReset.SecurityToken1);
+                                            passwordResets.TryRemove(_PasswordReset.SecurityToken1, out _);
                                             break;
 
                                         #endregion
@@ -12571,17 +11407,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return;
 
             User_Id          userId;
-            IUser            user;
-            User             user2;
-            IUserGroup       userGroup;
-            UserGroup        userGroup2;
-            APIKey           apiKey;
+            IUser?           user;
+            User?            user2;
+            IUserGroup?      userGroup;
+            UserGroup?       userGroup2;
+            APIKey?          apiKey;
             Organization_Id  organizationId;
-            IOrganization    organization;
-            Organization     organization2;
-            //NewsPosting      newsPosting;
-            //NewsBanner       newsBanner;
-            //FAQ              faq;
+            IOrganization?   organization;
+            Organization?    organization2;
+            String?          errorResponse;
 
             #endregion
 
@@ -12594,7 +11428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out String  ErrorResponse))
+                                          out errorResponse) && user2 is not null)
                     {
 
                         user = user2;
@@ -12605,7 +11439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12617,7 +11451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out ErrorResponse))
+                                          out errorResponse) && user2 is not null)
                     {
 
                         user = user2;
@@ -12627,7 +11461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12639,7 +11473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out ErrorResponse))
+                                          out errorResponse) && user2 is not null)
                     {
 
                         user = user2;
@@ -12653,7 +11487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12665,24 +11499,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out ErrorResponse))
+                                          out errorResponse) && user2 is not null)
                     {
 
                         user = user2;
 
                         if (users.TryGetValue(user.Id, out var OldUser))
                         {
-                            users.Remove(OldUser.Id);
+                            users.TryRemove(OldUser.Id, out _);
                             user.CopyAllLinkedDataFrom(OldUser);
                         }
 
-                        users.Add(user.Id, user);
+                        users.TryAdd(user.Id, user);
                         user.API = this;
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12694,7 +11528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out ErrorResponse))
+                                          out errorResponse) && user2 is not null)
                     {
 
                         user = user2;
@@ -12702,18 +11536,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (users.TryGetValue(user.Id, out var OldUser))
                         {
 
-                            users.Remove(OldUser.Id);
+                            users.TryRemove(OldUser.Id, out _);
                             user.API = this;
                             user.CopyAllLinkedDataFrom(OldUser);
 
-                            users.Add(user.Id, user);
+                            users.TryAdd(user.Id, user);
 
                         }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12725,7 +11559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (User.TryParseJSON(Data,
                                           out user2,
-                                          out ErrorResponse))
+                                          out errorResponse) && user2 is not null)
                     {
 
                         user = user2;
@@ -12739,45 +11573,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         }
 
-                        users.Remove(user.Id);
+                        users.TryRemove(user.Id, out _);
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
-
-                #endregion
-
-                #region Remove user id
-
-                //case "removeUserId":
-
-                //    if (Data.ParseOptional("@id",
-                //                                 "User identification to remove",
-                //                                 User_Id.TryParse,
-                //                                 out userId,
-                //                                 out ErrorResponse))
-                //    {
-
-                //        if (TryGetUser(userId, out User __User))
-                //        {
-
-                //            // this --edge--> organization
-                //            foreach (var edge in __User.User2Organization_OutEdges)
-                //                edge.Target.RemoveInEdge(edge);
-
-                //        }
-
-                //        _Users.Remove(userId);
-
-                //    }
-
-                //    else
-                //        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
-
-                //    break;
 
                 #endregion
 
@@ -12789,13 +11592,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out ErrorResponse))
+                                        out errorResponse) && apiKey is not null)
                     {
                         apiKeys.AddAndReturnValue(apiKey.Id, apiKey);
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12808,7 +11611,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out ErrorResponse))
+                                        out errorResponse) && apiKey is not null)
                     {
 
                         if (!apiKeys.ContainsKey(apiKey.Id))
@@ -12820,7 +11623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12833,7 +11636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out ErrorResponse))
+                                        out errorResponse) && apiKey is not null)
                     {
 
                         if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))
@@ -12847,7 +11650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12860,7 +11663,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out ErrorResponse))
+                                        out errorResponse) && apiKey is not null)
                     {
 
                         if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))
@@ -12873,7 +11676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12886,13 +11689,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (APIKey.TryParse(Data,
                                         users.TryGetValue,
                                         out apiKey,
-                                        out ErrorResponse))
+                                        out errorResponse) && apiKey is not null)
                     {
                         apiKeys.Remove(apiKey.Id);
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12905,7 +11708,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out ErrorResponse))
+                                                  out errorResponse) && organization2 is not null)
                     {
 
                         organization = organization2;
@@ -12913,7 +11716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (!organizations.ContainsKey(organization.Id))
                         {
                             organization.API = this;
-                            organizations.Add(organization.Id, organization);
+                            organizations.TryAdd(organization.Id, organization);
                         }
 
                         else
@@ -12922,7 +11725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12934,7 +11737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out ErrorResponse))
+                                                  out errorResponse) && organization2 is not null)
                     {
 
                         organization = organization2;
@@ -12948,7 +11751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12960,25 +11763,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out ErrorResponse))
+                                                  out errorResponse) && organization2 is not null)
                     {
 
                         organization = organization2;
 
                         if (organizations.TryGetValue(organization.Id, out var OldOrganization))
                         {
-                            organizations.Remove(OldOrganization.Id);
+                            organizations.TryRemove(OldOrganization.Id, out _);
                             organization.API = this;
                             organization.CopyAllLinkedDataFrom(OldOrganization);
                         }
 
-                        organizations.Add(organization.Id, organization);
+                        organizations.TryAdd(organization.Id, organization);
                         organization.API = this;
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -12990,7 +11793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out ErrorResponse))
+                                                  out errorResponse) && organization2 is not null)
                     {
 
                         organization = organization2;
@@ -12998,18 +11801,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (organizations.TryGetValue(organization.Id, out var OldOrganization))
                         {
 
-                            organizations.Remove(OldOrganization.Id);
+                            organizations.TryRemove(OldOrganization.Id, out _);
                             organization.API = this;
                             organization.CopyAllLinkedDataFrom(OldOrganization);
 
-                            organizations.Add(organization.Id, organization);
+                            organizations.TryAdd(organization.Id, organization);
 
                         }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -13021,7 +11824,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Organization.TryParseJSON(Data,
                                                   out organization2,
-                                                  out ErrorResponse))
+                                                  out errorResponse) && organization2 is not null)
                     {
 
                         organization = organization2;
@@ -13043,53 +11846,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         }
 
-                        organizations.Remove(organization.Id);
+                        organizations.TryRemove(organization.Id, out _);
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
-
-                #endregion
-
-                #region Remove organization id
-
-                //case "removeOrganizationId":
-
-                //    if (Data.ParseOptional("@id",
-                //                                 "Organization identification to remove",
-                //                                 Organization_Id.TryParse,
-                //                                 out organizationId,
-                //                                 out ErrorResponse))
-                //    {
-
-                //        if (TryGetOrganization(organizationId, out Organization __Organization))
-                //        {
-
-                //            // this --edge--> other_organization
-                //            foreach (var edge in __Organization.Organization2OrganizationOutEdges)
-                //                edge.Target.RemoveInEdge(edge);
-
-                //            // this <--edge-- other_organization
-                //            foreach (var edge in __Organization.Organization2OrganizationInEdges)
-                //                edge.Source.RemoveOutEdge(edge);
-
-                //            // this <--edge-- user
-                //            foreach (var edge in __Organization.User2OrganizationEdges)
-                //                edge.Source.RemoveOutEdge(edge);
-
-                //        }
-
-                //        _Organizations.Remove(organizationId);
-
-                //    }
-
-                //    else
-                //        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
-
-                //    break;
 
                 #endregion
 
@@ -13295,7 +12059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                userGroups.TryGetValue,
                                                users.TryGetValue,
                                                out userGroup2,
-                                               out ErrorResponse))
+                                               out errorResponse) && userGroup2 is not null)
                     {
 
                         userGroup = userGroup2;
@@ -13312,7 +12076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -13326,7 +12090,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                userGroups.TryGetValue,
                                                users.TryGetValue,
                                                out userGroup2,
-                                               out ErrorResponse))
+                                               out errorResponse) && userGroup2 is not null)
                     {
 
                         userGroup = userGroup2;
@@ -13340,7 +12104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", ErrorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
 
                     break;
 
@@ -13857,10 +12621,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DatabaseFile">An optional database file.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task WriteCommentToDatabaseFile(String            Comment           = null,
-                                                     String            DatabaseFile      = null,
-                                                     EventTracking_Id? EventTrackingId   = null,
-                                                     User_Id?          CurrentUserId     = null)
+        public async Task WriteCommentToDatabaseFile(String?            Comment           = null,
+                                                     String?            DatabaseFile      = null,
+                                                     EventTracking_Id?  EventTrackingId   = null,
+                                                     User_Id?           CurrentUserId     = null)
         {
 
             if (!DisableLogging || !DisableNotifications)
@@ -14599,10 +13363,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 lock (httpCookies)
                                 {
                                     if (!httpCookies.ContainsKey(SecurityTokenId))
-                                        httpCookies.Add(SecurityTokenId,
-                                                         new SecurityToken(userId.Value,
-                                                                           expires.Value,
-                                                                           superuserId));
+                                        httpCookies.TryAdd(SecurityTokenId,
+                                                           new SecurityToken(userId.Value,
+                                                                             expires.Value,
+                                                                             superuserId));
                                 }
 
                                 break;
@@ -14712,39 +13476,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all users.
         /// </summary>
-        protected internal readonly Dictionary<User_Id, IUser> users;
+        protected internal readonly  ConcurrentDictionary<User_Id, IUser>                    users                = new ();
+
+        /// <summary>
+        /// All logins and passwords.
+        /// </summary>
+        protected          readonly  ConcurrentDictionary<User_Id, LoginPassword>            loginPasswords       = new ();
+
+        /// <summary>
+        /// All verification tokens.
+        /// </summary>
+        protected          readonly  ConcurrentDictionary<VerificationToken, IUser>          verificationTokens   = new ();
+
+        /// <summary>
+        /// All HTTP cookies.
+        /// </summary>
+        protected          readonly  ConcurrentDictionary<SecurityToken_Id, SecurityToken>   httpCookies          = new ();
+
+        /// <summary>
+        /// All password resets.
+        /// </summary>
+        protected          readonly  ConcurrentDictionary<SecurityToken_Id, PasswordReset>   passwordResets       = new ();
+
 
         /// <summary>
         /// An enumeration of all users.
         /// </summary>
         public IEnumerable<IUser> Users
-        {
-            get
-            {
-
-                if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
-                {
-                    try
-                    {
-
-                        return users.Values.ToArray();
-
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            UsersSemaphore.Release();
-                        }
-                        catch
-                        { }
-                    }
-                }
-
-                return Array.Empty<IUser>();
-
-            }
-        }
+            => users.Values;
 
         #endregion
 
@@ -15383,10 +14142,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a user was added.
         /// </summary>
-        public event OnUserAddedDelegate OnUserAdded;
+        public event OnUserAddedDelegate? OnUserAdded;
 
 
-        #region (protected internal) _AddUser(User,                            SkipDefaultNotifications = false, OnAdded = null, ...)
+        #region (protected internal) addUser(User,                            SkipDefaultNotifications = false, OnAdded = null, ...)
 
         /// <summary>
         /// Add the given user to the API.
@@ -15400,7 +14159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddUserResult>
 
-            _AddUser(IUser                 User,
+            addUser(IUser                 User,
                      Boolean               SkipDefaultNotifications   = false,
                      Boolean               SkipNewUserEMail           = false,
                      Boolean               SkipNewUserNotifications   = false,
@@ -15465,7 +14224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            users.Add(User.Id, User);
+            users.TryAdd(User.Id, User);
             var now = Timestamp.Now;
 
             #region Register 'New User Default'-Notifications
@@ -15473,14 +14232,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!SkipDefaultNotifications)
             {
 
-                var newUserDefaultNotificationMessageGroups = _NotificationGroups.Values.
+                var newUserDefaultNotificationMessageGroups = notificationGroups.Values.
                                                                   SelectMany(group       => group.Notifications).
                                                                   Where     (description => description.Tags.Contains(NotificationTag.NewUserDefault)).
                                                                   SelectMany(description => description.Messages).
                                                                   ToSafeHashSet();
 
                 if (newUserDefaultNotificationMessageGroups.Any())
-                    await _AddNotification(User,
+                    await addNotification(User,
                                            new EMailNotification(User.EMail,
                                                                  "",
                                                                  "",
@@ -15566,7 +14325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddUser(User,
+                    return await addUser(User,
                                           SkipDefaultNotifications,
                                           SkipNewUserEMail,
                                           SkipNewUserNotifications,
@@ -15647,13 +14406,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var result = await _AddUser(User,
+                        var result = await addUser(User,
                                                     SkipDefaultNotifications,
                                                     SkipNewUserEMail,
                                                     SkipNewUserNotifications,
                                                     async(_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                        await _AddUserToOrganization(_user,
+                                                        await addUserToOrganization(_user,
                                                                                      AccessRight,
                                                                                      Organization,
                                                                                      _eventTrackingId,
@@ -15772,14 +14531,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var result = await _AddUser(User,
+                        var result = await addUser(User,
                                                     SkipDefaultNotifications,
                                                     SkipNewUserEMail,
                                                     SkipNewUserNotifications,
                                                     async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
                                                         foreach (var accessRight in AccessRights)
-                                                            await _AddUserToOrganization(_user,
+                                                            await addUserToOrganization(_user,
                                                                                          accessRight.Item1,
                                                                                          accessRight.Item2,
                                                                                          _eventTrackingId,
@@ -15860,7 +14619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddUserIfNotExists(User,      (Membership, Organization), ..., OnAdded = null, ...)
 
-        #region (protected internal) _AddUserIfNotExists(User,                            SkipDefaultNotifications = false, OnAdded = null, ...)
+        #region (protected internal) addUserIfNotExists(User,                            SkipDefaultNotifications = false, OnAdded = null, ...)
 
         /// <summary>
         /// When it has not been created before, add the given user to the API.
@@ -15874,7 +14633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddUserResult>
 
-            _AddUserIfNotExists(IUser                 User,
+            addUserIfNotExists(IUser                 User,
                                 Boolean               SkipDefaultNotifications   = false,
                                 Boolean               SkipNewUserEMail           = false,
                                 Boolean               SkipNewUserNotifications   = false,
@@ -15938,21 +14697,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            users.Add(User.Id, User);
+            users.TryAdd(User.Id, User);
 
             #region Register 'New User Default'-Notifications
 
             if (!SkipDefaultNotifications)
             {
 
-                var newUserDefaultNotificationMessageGroups = _NotificationGroups.Values.
+                var newUserDefaultNotificationMessageGroups = notificationGroups.Values.
                                                                     SelectMany(group       => group.Notifications).
                                                                     Where     (description => description.Tags.Contains(NotificationTag.NewUserDefault)).
                                                                     SelectMany(description => description.Messages).
                                                                     ToSafeHashSet();
 
                 if (newUserDefaultNotificationMessageGroups.Any())
-                    await _AddNotification(User,
+                    await addNotification(User,
                                            new EMailNotification(User.EMail,
                                                                  "",
                                                                  "",
@@ -16042,7 +14801,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddUserIfNotExists(User,
+                    return await addUserIfNotExists(User,
                                                      SkipDefaultNotifications,
                                                      SkipNewUserEMail,
                                                      SkipNewUserNotifications,
@@ -16123,13 +14882,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var result = await _AddUserIfNotExists(User,
+                        var result = await addUserIfNotExists(User,
                                                                SkipDefaultNotifications,
                                                                SkipNewUserEMail,
                                                                SkipNewUserNotifications,
                                                                async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                                   await _AddUserToOrganization(_user,
+                                                                   await addUserToOrganization(_user,
                                                                                                AccessRight,
                                                                                                Organization,
                                                                                                _eventTrackingId,
@@ -16248,14 +15007,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var result = await _AddUserIfNotExists(User,
+                        var result = await addUserIfNotExists(User,
                                                                SkipDefaultNotifications,
                                                                SkipNewUserEMail,
                                                                SkipNewUserNotifications,
                                                                async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
                                                                    foreach (var accessRight in AccessRights)
-                                                                       await _AddUserToOrganization(_user,
+                                                                       await addUserToOrganization(_user,
                                                                                                     accessRight.Item1,
                                                                                                     accessRight.Item2,
                                                                                                     _eventTrackingId,
@@ -16337,7 +15096,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateUser   (User,      (Membership, Organization), ..., OnAdded = null, OnUpdated = null, ...)
 
-        #region (protected internal) _AddOrUpdateUser(User,                            SkipDefaultNotifications = false, OnAdded = null, OnUpdated = null, ...)
+        #region (protected internal) addOrUpdateUser(User,                            SkipDefaultNotifications = false, OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given user to/within the API.
@@ -16353,7 +15112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddOrUpdateUserResult>
 
-            _AddOrUpdateUser(IUser                   User,
+            addOrUpdateUser(IUser                   User,
                              Boolean                 SkipDefaultNotifications       = false,
                              Boolean                 SkipNewUserEMail               = false,
                              Boolean                 SkipNewUserNotifications       = false,
@@ -16413,11 +15172,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (users.TryGetValue(User.Id, out var oldUser) && oldUser is not null)
             {
-                users.Remove(oldUser.Id);
+                users.TryRemove(oldUser.Id, out _);
                 User.CopyAllLinkedDataFrom(oldUser);
             }
 
-            users.Add(User.Id, User);
+            users.TryAdd(User.Id, User);
             var now = Timestamp.Now;
 
             if (oldUser is null)
@@ -16428,14 +15187,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!SkipDefaultNotifications)
                 {
 
-                    var newUserDefaultNotificationMessageGroups = _NotificationGroups.Values.
+                    var newUserDefaultNotificationMessageGroups = notificationGroups.Values.
                                                                         SelectMany(group       => group.Notifications).
                                                                         Where     (description => description.Tags.Contains(NotificationTag.NewUserDefault)).
                                                                         SelectMany(description => description.Messages).
                                                                         ToSafeHashSet();
 
                     if (newUserDefaultNotificationMessageGroups.Any())
-                        await _AddNotification(User,
+                        await addNotification(User,
                                                new EMailNotification(User.EMail,
                                                                      "",
                                                                      "",
@@ -16557,7 +15316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddOrUpdateUser(User,
+                    return await addOrUpdateUser(User,
                                                   SkipDefaultNotifications,
                                                   SkipNewUserEMail,
                                                   SkipNewUserNotifications,
@@ -16641,14 +15400,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        var result = await _AddOrUpdateUser(User,
+                        var result = await addOrUpdateUser(User,
                                                             SkipDefaultNotifications,
                                                             SkipNewUserEMail,
                                                             SkipNewUserNotifications,
                                                             SkipUserUpdatedNotifications,
                                                             async (_timestamp, _user, _eventTrackingId, _currentUserId) => {
 
-                                                                await _AddUserToOrganization(_user,
+                                                                await addUserToOrganization(_user,
                                                                                              AccessRight,
                                                                                              Organization,
                                                                                              _eventTrackingId,
@@ -16744,10 +15503,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a user was updated.
         /// </summary>
-        public event OnUserUpdatedDelegate OnUserUpdated;
+        public event OnUserUpdatedDelegate? OnUserUpdated;
 
 
-        #region (protected internal) _UpdateUser(NewUser,                 SkipUserUpdatedNotifications = false, OnUpdated = null, ...)
+        #region (protected internal) updateUser(NewUser,                 SkipUserUpdatedNotifications = false, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given user to/within the API.
@@ -16759,7 +15518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<UpdateUserResult>
 
-            _UpdateUser(IUser                   NewUser,
+            updateUser(IUser                   NewUser,
                         Boolean                 SkipUserUpdatedNotifications   = false,
                         OnUserUpdatedDelegate?  OnUpdated                      = null,
                         EventTracking_Id?       EventTrackingId                = null,
@@ -16795,9 +15554,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            users.Remove(OldUser.Id);
+            users.TryRemove(OldUser.Id, out _);
             NewUser.CopyAllLinkedDataFrom(OldUser);
-            users.Add(NewUser.Id, NewUser);
+            users.TryAdd(NewUser.Id, NewUser);
 
             var now = Timestamp.Now;
 
@@ -16860,7 +15619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateUser(NewUser,
+                    return await updateUser(NewUser,
                                              SkipUserUpdatedNotifications,
                                              OnUpdated,
                                              EventTrackingId,
@@ -16903,7 +15662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected internal) _UpdateUser(User,    UpdateDelegate, SkipUserUpdatedNotifications = false, OnUpdated = null, ...)
+        #region (protected internal) updateUser(User,    UpdateDelegate, SkipUserUpdatedNotifications = false, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given user.
@@ -16916,7 +15675,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<UpdateUserResult>
 
-            _UpdateUser(IUser                   User,
+            updateUser(IUser                   User,
                         Action<User.Builder>    UpdateDelegate,
                         Boolean                 SkipUserUpdatedNotifications   = false,
                         OnUserUpdatedDelegate?  OnUpdated                      = null,
@@ -16964,9 +15723,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            users.Remove(User.Id);
+            users.TryRemove(User.Id, out _);
             updatedUser.CopyAllLinkedDataFrom(User);
-            users.Add(updatedUser.Id, updatedUser);
+            users.TryAdd(updatedUser.Id, updatedUser);
 
             var now = Timestamp.Now;
 
@@ -17031,7 +15790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateUser(User,
+                    return await updateUser(User,
                                              UpdateDelegate,
                                              SkipUserUpdatedNotifications,
                                              OnUpdated,
@@ -17093,16 +15852,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a user was deleted.
         /// </summary>
-        public event OnUserDeletedDelegate OnUserDeleted;
+        public event OnUserDeletedDelegate? OnUserDeleted;
 
 
-        #region (protected internal virtual) _CanDeleteUser(User)
+        #region (protected internal virtual) canDeleteUser(User)
 
         /// <summary>
         /// Determines whether the user can safely be deleted from the API.
         /// </summary>
         /// <param name="User">The user to be deleted.</param>
-        protected internal virtual I18NString? _CanDeleteUser(IUser User)
+        protected internal virtual I18NString? canDeleteUser(IUser User)
         {
 
             if (User.User2Organization_OutEdges.Any())
@@ -17114,7 +15873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected internal) _DeleteUser(User, SkipUserDeletedNotifications = false, OnDeleted = null, ...)
+        #region (protected internal) deleteUser(User, SkipUserDeletedNotifications = false, OnDeleted = null, ...)
 
         /// <summary>
         /// Delete the given user.
@@ -17123,7 +15882,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnDeleted">A delegate run whenever the user has been deleted successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<DeleteUserResult> _DeleteUser(IUser                             User,
+        protected internal async Task<DeleteUserResult> deleteUser(IUser                             User,
                                                                     Boolean                           SkipUserDeletedNotifications   = false,
                                                                     Action<IUser, EventTracking_Id>?  OnDeleted                      = null,
                                                                     EventTracking_Id?                 EventTrackingId                = null,
@@ -17151,7 +15910,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        );
 
 
-            var veto = _CanDeleteUser(User);
+            var veto = canDeleteUser(User);
 
             if (veto is not null)
                 return DeleteUserResult.CanNotBeRemoved(
@@ -17178,7 +15937,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ToDo: Remove incoming edges
 
 
-            users.Remove(User.Id);
+            users.TryRemove(User.Id, out _);
 
             OnDeleted?.Invoke(User,
                               eventTrackingId);
@@ -17232,7 +15991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _DeleteUser(User,
+                    return await deleteUser(User,
                                              SkipUserDeletedNotifications,
                                              OnDeleted,
                                              eventTrackingId,
@@ -17855,7 +16614,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           eventTrackingId,
                                           CurrentUserId);
 
-                loginPasswords.Add(User.Id, new LoginPassword(User.Id, NewPassword));
+                loginPasswords.TryAdd(User.Id,
+                                      new LoginPassword(
+                                          User.Id,
+                                          NewPassword
+                                      ));
 
                 if (!SuppressNotifications)
                     await SMTPClient.Send(PasswordChangedEMailCreator(User,
@@ -18180,7 +16943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            var result = await _AddPasswordReset(
+            var result = await addPasswordReset(
                                    new PasswordReset(
                                        User,
                                        SecurityToken_Id.Random(40),
@@ -18281,7 +17044,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            var result = await _AddPasswordReset(
+            var result = await addPasswordReset(
                                    new PasswordReset(
                                        Users,
                                        SecurityToken_Id.Random(40),
@@ -18375,7 +17138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="PasswordReset">A password reset.</param>
         /// <param name="SuppressNotifications">Do not send 'Reset Password e-mails/SMSs'.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        protected internal async Task<AddPasswordResetResult> _AddPasswordReset(PasswordReset     PasswordReset,
+        protected internal async Task<AddPasswordResetResult> addPasswordReset(PasswordReset     PasswordReset,
                                                                                 Boolean           SuppressNotifications   = false,
                                                                                 EventTracking_Id? EventTrackingId         = null)
         {
@@ -18387,8 +17150,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       PasswordReset.ToJSON(),
                                       eventTrackingId);
 
-            this.passwordResets.Add(PasswordReset.SecurityToken1,
-                                     PasswordReset);
+            this.passwordResets.TryAdd(PasswordReset.SecurityToken1,
+                                       PasswordReset);
 
 
             foreach (var user in PasswordReset.Users)
@@ -18441,7 +17204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddPasswordReset(PasswordReset,
+                    return await addPasswordReset(PasswordReset,
                                                    SuppressNotifications,
                                                    eventTrackingId);
 
@@ -18591,7 +17354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            await _RemovePasswordReset(passwordReset,
+            await deletePasswordReset(passwordReset,
                                        eventTrackingId);
 
             return ResetPasswordResult.Success(
@@ -18676,7 +17439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="PasswordReset">A password reset.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<Boolean> _RemovePasswordReset(PasswordReset     PasswordReset,
+        protected internal async Task<Boolean> deletePasswordReset(PasswordReset     PasswordReset,
                                                                     EventTracking_Id? EventTrackingId   = null,
                                                                     User_Id?          CurrentUserId     = null)
         {
@@ -18687,7 +17450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       EventTrackingId ?? EventTracking_Id.New,
                                       CurrentUserId);
 
-            passwordResets.Remove(PasswordReset.SecurityToken1);
+            passwordResets.TryRemove(PasswordReset.SecurityToken1, out _);
 
             return true;
 
@@ -18712,7 +17475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _RemovePasswordReset(PasswordReset,
+                    return await deletePasswordReset(PasswordReset,
                                                       eventTrackingId,
                                                       CurrentUserId);
 
@@ -18750,7 +17513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all API keys.
         /// </summary>
-        protected internal readonly Dictionary<APIKey_Id, APIKey> apiKeys;
+        protected internal readonly Dictionary<APIKey_Id, APIKey> apiKeys = new ();
 
         /// <summary>
         /// An enumeration of all API keys.
@@ -18920,10 +17683,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a API key was added.
         /// </summary>
-        public event OnAPIKeyAddedDelegate OnAPIKeyAdded;
+        public event OnAPIKeyAddedDelegate? OnAPIKeyAdded;
 
 
-        #region (protected internal) _AddAPIKey(APIKey, OnAdded = null, ...)
+        #region (protected internal) addAPIKey(APIKey, OnAdded = null, ...)
 
         /// <summary>
         /// Add the given API key to the API.
@@ -18932,7 +17695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the API key has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<AddAPIKeyResult> _AddAPIKey(APIKey                             APIKey,
+        protected internal async Task<AddAPIKeyResult> addAPIKey(APIKey                             APIKey,
                                                                   Action<APIKey, EventTracking_Id>?  OnAdded           = null,
                                                                   EventTracking_Id?                  EventTrackingId   = null,
                                                                   User_Id?                           CurrentUserId     = null)
@@ -19026,7 +17789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddAPIKey(APIKey,
+                    return await addAPIKey(APIKey,
                                             OnAdded,
                                             eventTrackingId,
                                             CurrentUserId);
@@ -19071,7 +17834,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddAPIKeyIfNotExists(APIKey, OnAdded = null,                   CurrentUserId = null)
 
-        #region (protected internal) _AddAPIKeyIfNotExists(APIKey, OnAdded = null, ...)
+        #region (protected internal) addAPIKeyIfNotExists(APIKey, OnAdded = null, ...)
 
         /// <summary>
         /// When it has not been created before, add the given API key to the API.
@@ -19080,7 +17843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the API key has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<AddAPIKeyResult> _AddAPIKeyIfNotExists(APIKey                             APIKey,
+        protected internal async Task<AddAPIKeyResult> addAPIKeyIfNotExists(APIKey                             APIKey,
                                                                              Action<APIKey, EventTracking_Id>?  OnAdded           = null,
                                                                              EventTracking_Id?                  EventTrackingId   = null,
                                                                              User_Id?                           CurrentUserId     = null)
@@ -19173,7 +17936,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddAPIKeyIfNotExists(APIKey,
+                    return await addAPIKeyIfNotExists(APIKey,
                                                        OnAdded,
                                                        eventTrackingId,
                                                        CurrentUserId);
@@ -19218,7 +17981,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateAPIKey   (APIKey, OnAdded = null, OnUpdated = null, ...)
 
-        #region (protected internal) _AddOrUpdateAPIKey(APIKey, OnAdded = null, OnUpdated = null, ...)
+        #region (protected internal) addOrUpdateAPIKey(APIKey, OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given API key to/within the API.
@@ -19228,7 +17991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the API key has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
-        protected internal async Task<AddOrUpdateAPIKeyResult> _AddOrUpdateAPIKey(APIKey                             APIKey,
+        protected internal async Task<AddOrUpdateAPIKeyResult> addOrUpdateAPIKey(APIKey                             APIKey,
                                                                                   Action<APIKey, EventTracking_Id>?  OnAdded           = null,
                                                                                   Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
                                                                                   EventTracking_Id?                  EventTrackingId   = null,
@@ -19353,7 +18116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddOrUpdateAPIKey(APIKey,
+                    return await addOrUpdateAPIKey(APIKey,
                                                     OnAdded,
                                                     OnUpdated,
                                                     eventTrackingId,
@@ -19416,10 +18179,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a API key was updated.
         /// </summary>
-        public event OnAPIKeyUpdatedDelegate OnAPIKeyUpdated;
+        public event OnAPIKeyUpdatedDelegate? OnAPIKeyUpdated;
 
 
-        #region (protected internal) _UpdateAPIKey(APIKey,                 OnUpdated = null, ...)
+        #region (protected internal) updateAPIKey(APIKey,                 OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given API key to/within the API.
@@ -19428,7 +18191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the API key has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
-        protected internal async Task<UpdateAPIKeyResult> _UpdateAPIKey(APIKey                             APIKey,
+        protected internal async Task<UpdateAPIKeyResult> updateAPIKey(APIKey                             APIKey,
                                                                         Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
                                                                         EventTracking_Id?                  EventTrackingId   = null,
                                                                         User_Id?                           CurrentUserId     = null)
@@ -19503,10 +18266,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the API key has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
-        public async Task<UpdateAPIKeyResult> UpdateAPIKey(APIKey                            APIKey,
-                                                           Action<APIKey, EventTracking_Id>  OnUpdated         = null,
-                                                           EventTracking_Id?                 EventTrackingId   = null,
-                                                           User_Id?                          CurrentUserId     = null)
+        public async Task<UpdateAPIKeyResult> UpdateAPIKey(APIKey                             APIKey,
+                                                           Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
+                                                           EventTracking_Id?                  EventTrackingId   = null,
+                                                           User_Id?                           CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -19516,7 +18279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateAPIKey(APIKey,
+                    return await updateAPIKey(APIKey,
                                                OnUpdated,
                                                EventTrackingId,
                                                CurrentUserId);
@@ -19558,7 +18321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected internal) _UpdateAPIKey(APIKey, UpdateDelegate, OnUpdated = null, ...)
+        #region (protected internal) updateAPIKey(APIKey, UpdateDelegate, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given API key.
@@ -19568,7 +18331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the API key has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
-        protected internal async Task<UpdateAPIKeyResult> _UpdateAPIKey(APIKey                             APIKey,
+        protected internal async Task<UpdateAPIKeyResult> updateAPIKey(APIKey                             APIKey,
                                                                         Action<APIKey.Builder>             UpdateDelegate,
                                                                         Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
                                                                         EventTracking_Id?                  EventTrackingId   = null,
@@ -19656,11 +18419,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the API key has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
-        public async Task<UpdateAPIKeyResult> UpdateAPIKey(APIKey                            APIKey,
-                                                           Action<APIKey.Builder>            UpdateDelegate,
-                                                           Action<APIKey, EventTracking_Id>  OnUpdated         = null,
-                                                           EventTracking_Id?                 EventTrackingId   = null,
-                                                           User_Id?                          CurrentUserId     = null)
+        public async Task<UpdateAPIKeyResult> UpdateAPIKey(APIKey                             APIKey,
+                                                           Action<APIKey.Builder>             UpdateDelegate,
+                                                           Action<APIKey, EventTracking_Id>?  OnUpdated         = null,
+                                                           EventTracking_Id?                  EventTrackingId   = null,
+                                                           User_Id?                           CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -19670,7 +18433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateAPIKey(APIKey,
+                    return await updateAPIKey(APIKey,
                                                UpdateDelegate,
                                                OnUpdated,
                                                eventTrackingId,
@@ -19731,10 +18494,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a API key was removed.
         /// </summary>
-        public event OnAPIKeyRemovedDelegate OnAPIKeyRemoved;
+        public event OnAPIKeyRemovedDelegate? OnAPIKeyRemoved;
 
 
-        #region (protected internal) _RemoveAPIKey(APIKey, OnRemoved = null, ...)
+        #region (protected internal) deleteAPIKey(APIKey, OnRemoved = null, ...)
 
         /// <summary>
         /// Remove the given API key from the API.
@@ -19743,7 +18506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnRemoved">A delegate run whenever the API key has been removed successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional API key identification initiating this command/request.</param>
-        protected internal async Task<DeleteAPIKeyResult> _RemoveAPIKey(APIKey                             APIKey,
+        protected internal async Task<DeleteAPIKeyResult> deleteAPIKey(APIKey                             APIKey,
                                                                         Action<APIKey, EventTracking_Id>?  OnRemoved         = null,
                                                                         EventTracking_Id?                  EventTrackingId   = null,
                                                                         User_Id?                           CurrentUserId     = null)
@@ -19826,7 +18589,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _RemoveAPIKey(APIKey,
+                    return await deleteAPIKey(APIKey,
                                                OnRemoved,
                                                eventTrackingId,
                                                CurrentUserId);
@@ -20473,39 +19236,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all user groups.
         /// </summary>
-        protected internal readonly Dictionary<UserGroup_Id, IUserGroup> userGroups;
+        protected internal readonly ConcurrentDictionary<UserGroup_Id, IUserGroup> userGroups = new ();
 
         /// <summary>
         /// An enumeration of all user groups.
         /// </summary>
         public IEnumerable<IUserGroup> UserGroups
-        {
-            get
-            {
-
-                if (UserGroupsSemaphore.Wait(SemaphoreSlimTimeout))
-                {
-                    try
-                    {
-
-                        return userGroups.Values.ToArray();
-
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            UserGroupsSemaphore.Release();
-                        }
-                        catch
-                        { }
-                    }
-                }
-
-                return Array.Empty<IUserGroup>();
-
-            }
-        }
+            => userGroups.Values;
 
         #endregion
 
@@ -20874,10 +19611,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a user group was added.
         /// </summary>
-        public event OnUserGroupAddedDelegate OnUserGroupAdded;
+        public event OnUserGroupAddedDelegate? OnUserGroupAdded;
 
 
-        #region (protected internal) _AddUserGroup(UserGroup, OnAdded = null, ...)
+        #region (protected internal) addUserGroup(UserGroup, OnAdded = null, ...)
 
         /// <summary>
         /// Add the given user group to the API.
@@ -20886,7 +19623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the user group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<AddUserGroupResult> _AddUserGroup(IUserGroup                             UserGroup,
+        protected internal async Task<AddUserGroupResult> addUserGroup(IUserGroup                             UserGroup,
                                                                         Action<IUserGroup, EventTracking_Id>?  OnAdded           = null,
                                                                         EventTracking_Id?                      EventTrackingId   = null,
                                                                         User_Id?                               CurrentUserId     = null)
@@ -20941,7 +19678,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            userGroups.Add(UserGroup.Id, UserGroup);
+            userGroups.TryAdd(UserGroup.Id, UserGroup);
 
 
             OnAdded?.Invoke(UserGroup,
@@ -20994,7 +19731,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddUserGroup(UserGroup,
+                    return await addUserGroup(UserGroup,
                                                OnAdded,
                                                eventTrackingId,
                                                CurrentUserId);
@@ -21039,7 +19776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddUserGroupIfNotExists(UserGroup, OnAdded = null, ...)
 
-        #region (protected internal) _AddUserGroupIfNotExists(UserGroup,                                OnAdded = null, ...)
+        #region (protected internal) addUserGroupIfNotExists(UserGroup,                                OnAdded = null, ...)
 
         /// <summary>
         /// When it has not been created before, add the given user group to the API.
@@ -21050,7 +19787,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task<AddUserGroupResult>
 
-            _AddUserGroupIfNotExists(IUserGroup                             UserGroup,
+            addUserGroupIfNotExists(IUserGroup                             UserGroup,
                                      Action<IUserGroup, EventTracking_Id>?  OnAdded           = null,
                                      EventTracking_Id?                      EventTrackingId   = null,
                                      User_Id?                               CurrentUserId     = null)
@@ -21106,7 +19843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            userGroups.Add(UserGroup.Id, UserGroup);
+            userGroups.TryAdd(UserGroup.Id, UserGroup);
 
             OnAdded?.Invoke(UserGroup,
                             eventTrackingId);
@@ -21161,7 +19898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddUserGroupIfNotExists(UserGroup,
+                    return await addUserGroupIfNotExists(UserGroup,
                                                           OnAdded,
                                                           eventTrackingId,
                                                           CurrentUserId);
@@ -21206,7 +19943,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateUserGroup   (UserGroup, OnAdded = null, OnUpdated = null, ...)
 
-        #region (protected internal) _AddOrUpdateUserGroup   (UserGroup,   OnAdded = null, OnUpdated = null, ...)
+        #region (protected internal) addOrUpdateUserGroup   (UserGroup,   OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given user group to/within the API.
@@ -21218,7 +19955,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user group identification initiating this command/request.</param>
         protected internal async Task<AddOrUpdateUserGroupResult>
 
-            _AddOrUpdateUserGroup(IUserGroup                             UserGroup,
+            addOrUpdateUserGroup(IUserGroup                             UserGroup,
                                   Action<IUserGroup, EventTracking_Id>?  OnAdded           = null,
                                   Action<IUserGroup, EventTracking_Id>?  OnUpdated         = null,
                                   EventTracking_Id?                      EventTrackingId   = null,
@@ -21268,11 +20005,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (userGroups.TryGetValue(UserGroup.Id, out var OldUserGroup))
             {
-                userGroups.Remove(OldUserGroup.Id);
+                userGroups.TryRemove(OldUserGroup.Id, out _);
                 UserGroup.CopyAllLinkedDataFrom(OldUserGroup);
             }
 
-            userGroups.Add(UserGroup.Id, UserGroup);
+            userGroups.TryAdd(UserGroup.Id, UserGroup);
 
             if (OldUserGroup is null)
             {
@@ -21358,7 +20095,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddOrUpdateUserGroup(UserGroup,
+                    return await addOrUpdateUserGroup(UserGroup,
                                                        OnAdded,
                                                        OnUpdated,
                                                        eventTrackingId,
@@ -21421,10 +20158,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a user group was updated.
         /// </summary>
-        public event OnUserGroupUpdatedDelegate OnUserGroupUpdated;
+        public event OnUserGroupUpdatedDelegate? OnUserGroupUpdated;
 
 
-        #region (protected internal) _UpdateUserGroup(UserGroup,                 OnUpdated = null, ...)
+        #region (protected internal) updateUserGroup(UserGroup,                 OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given user group to/within the API.
@@ -21435,7 +20172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user group identification initiating this command/request.</param>
         protected internal async Task<UpdateUserGroupResult>
 
-            _UpdateUserGroup(IUserGroup                             UserGroup,
+            updateUserGroup(IUserGroup                             UserGroup,
                              Action<IUserGroup, EventTracking_Id>?  OnUpdated         = null,
                              EventTracking_Id?                      EventTrackingId   = null,
                              User_Id?                               CurrentUserId     = null)
@@ -21470,9 +20207,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            userGroups.Remove(OldUserGroup.Id);
+            userGroups.TryRemove(OldUserGroup.Id, out _);
             UserGroup.CopyAllLinkedDataFrom(OldUserGroup);
-            userGroups.Add(UserGroup.Id, UserGroup);
+            userGroups.TryAdd(UserGroup.Id, UserGroup);
 
             OnUpdated?.Invoke(UserGroup,
                               eventTrackingId);
@@ -21527,7 +20264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateUserGroup(UserGroup,
+                    return await updateUserGroup(UserGroup,
                                                   OnUpdated,
                                                   EventTrackingId,
                                                   CurrentUserId);
@@ -21569,7 +20306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected internal) _UpdateUserGroup(UserGroup, UpdateDelegate, OnUpdated = null, ...)
+        #region (protected internal) updateUserGroup(UserGroup, UpdateDelegate, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given user group.
@@ -21581,7 +20318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user group identification initiating this command/request.</param>
         protected internal async Task<UpdateUserGroupResult>
 
-            _UpdateUserGroup(IUserGroup                             UserGroup,
+            updateUserGroup(IUserGroup                             UserGroup,
                              Action<UserGroup.Builder>              UpdateDelegate,
                              Action<IUserGroup, EventTracking_Id>?  OnUpdated         = null,
                              EventTracking_Id?                      EventTrackingId   = null,
@@ -21628,9 +20365,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            userGroups.Remove(UserGroup.Id);
+            userGroups.TryRemove(UserGroup.Id, out _);
             updatedUserGroup.CopyAllLinkedDataFrom(UserGroup);
-            userGroups.Add(updatedUserGroup.Id, updatedUserGroup);
+            userGroups.TryAdd(updatedUserGroup.Id,
+                              updatedUserGroup);
 
             OnUpdated?.Invoke(updatedUserGroup,
                               eventTrackingId);
@@ -21687,7 +20425,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateUserGroup(UserGroup,
+                    return await updateUserGroup(UserGroup,
                                                   UpdateDelegate,
                                                   OnUpdated,
                                                   eventTrackingId,
@@ -21748,23 +20486,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a user group was deleted.
         /// </summary>
-        public event OnUserGroupDeletedDelegate OnUserGroupDeleted;
+        public event OnUserGroupDeletedDelegate? OnUserGroupDeleted;
 
 
-        #region (protected internal virtual) _CanDeleteUserGroup(UserGroup)
+        #region (protected internal virtual) canDeleteUserGroup(UserGroup)
 
         /// <summary>
         /// Determines whether the user group can safely be removed from the API.
         /// </summary>
         /// <param name="UserGroup">The user group to be deleted.</param>
-        protected internal virtual I18NString _CanDeleteUserGroup(IUserGroup UserGroup)
+        protected internal virtual I18NString canDeleteUserGroup(IUserGroup UserGroup)
         {
-            return new I18NString(Languages.en, "Currently not possible!");
+            return "Currently not possible!".ToI18NString();
         }
 
         #endregion
 
-        #region (protected internal) _DeleteUserGroup(UserGroup, OnDeleted = null, ...)
+        #region (protected internal) deleteUserGroup(UserGroup, OnDeleted = null, ...)
 
         /// <summary>
         /// Delete the given user group.
@@ -21775,10 +20513,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user group identification initiating this command/request.</param>
         protected internal async Task<DeleteUserGroupResult>
 
-            _DeleteUserGroup(IUserGroup                             UserGroup,
-                             Action<IUserGroup, EventTracking_Id>?  OnDeleted         = null,
-                             EventTracking_Id?                      EventTrackingId   = null,
-                             User_Id?                               CurrentUserId     = null)
+            deleteUserGroup(IUserGroup                             UserGroup,
+                            Action<IUserGroup, EventTracking_Id>?  OnDeleted         = null,
+                            EventTracking_Id?                      EventTrackingId   = null,
+                            User_Id?                               CurrentUserId     = null)
 
         {
 
@@ -21803,7 +20541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        );
 
 
-            var veto = _CanDeleteUserGroup(UserGroup);
+            var veto = canDeleteUserGroup(UserGroup);
 
             if (veto is not null)
                 return DeleteUserGroupResult.CanNotBeRemoved(
@@ -21844,7 +20582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            userGroups.Remove(UserGroup.Id);
+            userGroups.TryRemove(UserGroup.Id, out _);
 
             OnDeleted?.Invoke(UserGroup,
                               eventTrackingId);
@@ -21875,7 +20613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region DeleteUserGroup                      (UserGroup, OnDeleted = null, ...)
+        #region DeleteUserGroup                     (UserGroup, OnDeleted = null, ...)
 
         /// <summary>
         /// Delete the given user group.
@@ -21900,7 +20638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _DeleteUserGroup(UserGroup,
+                    return await deleteUserGroup(UserGroup,
                                                   OnDeleted,
                                                   eventTrackingId,
                                                   CurrentUserId);
@@ -22361,20 +21099,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var notificationsJSON = User.GetNotificationInfos();
 
             notificationsJSON.AddFirst(new JProperty("notificationGroups", new JArray(
-                                           _NotificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
+                                           notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
                                       )));
 
             return notificationsJSON;
 
         }
 
-        private JObject GetNotification(IUser User, UInt32 NotificationId)
+        private JObject GetNotification (IUser User, UInt32 NotificationId)
         {
 
             var notificationJSON = User.GetNotificationInfo(NotificationId);
 
             notificationJSON.AddFirst(new JProperty("notificationGroups", new JArray(
-                                          _NotificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
+                                          notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
                                      )));
 
             return notificationJSON;
@@ -22387,7 +21125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var notificationsJSON = Organization.GetNotificationInfos();
 
             notificationsJSON.AddFirst(new JProperty("notificationGroups", new JArray(
-                                           _NotificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
+                                           notificationGroups.Values.Select(notificationGroup => notificationGroup.ToJSON())
                                       )));
 
             return notificationsJSON;
@@ -22402,7 +21140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddNotification(User,           NotificationType,                           CurrentUserId = null)
 
-        protected async Task _AddNotification<T>(IUser              User,
+        protected async Task addNotification<T>(IUser              User,
                                                  T                  NotificationType,
                                                  EventTracking_Id?  EventTrackingId   = null,
                                                  User_Id?           CurrentUserId     = null)
@@ -22434,7 +21172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 await UsersSemaphore.WaitAsync();
 
-                await _AddNotification(User,
+                await addNotification(User,
                                        NotificationType,
                                        EventTrackingId,
                                        CurrentUserId);
@@ -23404,7 +22142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all notification groups.
         /// </summary>
-        protected readonly Dictionary<NotificationGroup_Id, NotificationGroup> _NotificationGroups = new();
+        protected readonly Dictionary<NotificationGroup_Id, NotificationGroup> notificationGroups = new();
 
         /// <summary>
         /// An enumeration of all notification groups.
@@ -23419,7 +22157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return _NotificationGroups.Values.ToArray();
+                        return notificationGroups.Values.ToArray();
 
                     }
                     finally
@@ -23441,9 +22179,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        protected Boolean _AddNotificationGroup(NotificationGroup NotificationGroup)
+        protected Boolean addNotificationGroup(NotificationGroup NotificationGroup)
         {
-            _NotificationGroups.Add(NotificationGroup.Id, NotificationGroup);
+            notificationGroups.Add(NotificationGroup.Id, NotificationGroup);
             return true;
         }
 
@@ -23455,7 +22193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 await UsersSemaphore.WaitAsync();
 
-                return _AddNotificationGroup(NotificationGroup);
+                return addNotificationGroup(NotificationGroup);
 
             }
             finally
@@ -23474,7 +22212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all notification messages.
         /// </summary>
-        protected readonly Dictionary<NotificationMessage_Id, NotificationMessage> _NotificationMessages;
+        protected readonly Dictionary<NotificationMessage_Id, NotificationMessage> notificationMessages;
 
         /// <summary>
         /// An enumeration of all notification messages.
@@ -23486,7 +22224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
                     return NotificationMessagesSemaphore.Wait(SemaphoreSlimTimeout)
-                               ? _NotificationMessages.Values.ToArray()
+                               ? notificationMessages.Values.ToArray()
                                : new NotificationMessage[0];
                 }
                 finally
@@ -23514,11 +22252,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldNotificationMessage">The old/updated notification message.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected async Task WriteToDatabaseFileAndNotify(NotificationMessage              NotificationMessage,
+        protected async Task WriteToDatabaseFileAndNotify(NotificationMessage      NotificationMessage,
                                                           NotificationMessageType  MessageType,
-                                                          NotificationMessage              OldNotificationMessage    = null,
-                                                          EventTracking_Id?        EventTrackingId   = null,
-                                                          User_Id?                 CurrentUserId     = null)
+                                                          NotificationMessage?     OldNotificationMessage   = null,
+                                                          EventTracking_Id?        EventTrackingId          = null,
+                                                          User_Id?                 CurrentUserId            = null)
         {
 
             if (NotificationMessage is null)
@@ -23555,11 +22293,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldNotificationMessage">The old/updated notification message.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected async Task SendNotifications(NotificationMessage              NotificationMessage,
+        protected async Task SendNotifications(NotificationMessage      NotificationMessage,
                                                NotificationMessageType  MessageType,
-                                               NotificationMessage              OldNotificationMessage    = null,
-                                               EventTracking_Id?        EventTrackingId   = null,
-                                               User_Id?                 CurrentUserId     = null)
+                                               NotificationMessage?     OldNotificationMessage   = null,
+                                               EventTracking_Id?        EventTrackingId          = null,
+                                               User_Id?                 CurrentUserId            = null)
         {
 
             if (NotificationMessage is null)
@@ -23586,11 +22324,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldNotificationMessage">The old/updated notification message.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected async Task SendNotifications(NotificationMessage                           NotificationMessage,
+        protected async Task SendNotifications(NotificationMessage                   NotificationMessage,
                                                IEnumerable<NotificationMessageType>  MessageTypes,
-                                               NotificationMessage                           OldNotificationMessage    = null,
-                                               EventTracking_Id?                     EventTrackingId   = null,
-                                               User_Id?                              CurrentUserId     = null)
+                                               NotificationMessage?                  OldNotificationMessage   = null,
+                                               EventTracking_Id?                     EventTrackingId          = null,
+                                               User_Id?                              CurrentUserId            = null)
         {
 
             if (NotificationMessage is null)
@@ -23667,10 +22405,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a notification message was added.
         /// </summary>
-        public event OnNotificationMessageAddedDelegate OnNotificationMessageAdded;
+        public event OnNotificationMessageAddedDelegate? OnNotificationMessageAdded;
 
 
-        #region (protected) _AddNotificationMessage(NotificationMessage,                                OnAdded = null, ...)
+        #region (protected) addNotificationMessage(NotificationMessage,                                OnAdded = null, ...)
 
         /// <summary>
         /// Add the given notification message to the API.
@@ -23679,10 +22417,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the notification message had been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected async Task<NotificationMessage> _AddNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                          Action<NotificationMessage, EventTracking_Id>  OnAdded           = null,
-                                                          EventTracking_Id?                      EventTrackingId   = null,
-                                                          User_Id?                               CurrentUserId     = null)
+        protected async Task<NotificationMessage> addNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                         Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                         EventTracking_Id?                               EventTrackingId   = null,
+                                                                         User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -23693,7 +22431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
-            if (_NotificationMessages.ContainsKey(NotificationMessage.Id))
+            if (notificationMessages.ContainsKey(NotificationMessage.Id))
                 throw new ArgumentException    ("User group identification '" + NotificationMessage.Id + "' already exists!",
                                                 nameof(NotificationMessage));
 
@@ -23711,7 +22449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            _NotificationMessages.Add(NotificationMessage.Id, NotificationMessage);
+            notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
 
             var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
@@ -23745,10 +22483,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the notification message had been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<NotificationMessage> AddNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                      Action<NotificationMessage, EventTracking_Id>  OnAdded           = null,
-                                                      EventTracking_Id?                      EventTrackingId   = null,
-                                                      User_Id?                               CurrentUserId     = null)
+        public async Task<NotificationMessage> AddNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                      Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                      EventTracking_Id?                               EventTrackingId   = null,
+                                                                      User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -23759,7 +22497,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _AddNotificationMessage(NotificationMessage,
+                            ? await addNotificationMessage(NotificationMessage,
                                                     OnAdded,
                                                     EventTrackingId,
                                                     CurrentUserId)
@@ -23785,7 +22523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddNotificationMessageIfNotExists(NotificationMessage, OnAdded = null,                   CurrentUserId = null)
 
-        #region (protected) _AddNotificationMessageIfNotExists(NotificationMessage,                                OnAdded = null, ...)
+        #region (protected) addNotificationMessageIfNotExists(NotificationMessage,                                OnAdded = null, ...)
 
         /// <summary>
         /// When it has not been created before, add the given notification message to the API.
@@ -23794,10 +22532,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the notification message had been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected async Task<NotificationMessage> _AddNotificationMessageIfNotExists(NotificationMessage                            NotificationMessage,
-                                                                     Action<NotificationMessage, EventTracking_Id>  OnAdded           = null,
-                                                                     EventTracking_Id?                      EventTrackingId   = null,
-                                                                     User_Id?                               CurrentUserId     = null)
+        protected async Task<NotificationMessage> addNotificationMessageIfNotExists(NotificationMessage                             NotificationMessage,
+                                                                                    Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                                    EventTracking_Id?                               EventTrackingId   = null,
+                                                                                    User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -23808,8 +22546,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
-            if (_NotificationMessages.ContainsKey(NotificationMessage.Id))
-                return _NotificationMessages[NotificationMessage.Id];
+            if (notificationMessages.ContainsKey(NotificationMessage.Id))
+                return notificationMessages[NotificationMessage.Id];
 
             if (NotificationMessage.Id.Length < MinNotificationMessageIdLength)
                 throw new ArgumentException    ("User group identification '" + NotificationMessage.Id + "' is too short!",
@@ -23825,7 +22563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            _NotificationMessages.Add(NotificationMessage.Id, NotificationMessage);
+            notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
             var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
             if (OnNotificationMessageAddedLocal is not null)
@@ -23858,10 +22596,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the notification message had been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<NotificationMessage> AddNotificationMessageIfNotExists(NotificationMessage                            NotificationMessage,
-                                                                 Action<NotificationMessage, EventTracking_Id>  OnAdded           = null,
-                                                                 EventTracking_Id?                      EventTrackingId   = null,
-                                                                 User_Id?                               CurrentUserId     = null)
+        public async Task<NotificationMessage> AddNotificationMessageIfNotExists(NotificationMessage                             NotificationMessage,
+                                                                                 Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                                 EventTracking_Id?                               EventTrackingId   = null,
+                                                                                 User_Id?                                        CurrentUserId     = null)
         {
 
             try
@@ -23869,7 +22607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _AddNotificationMessageIfNotExists(NotificationMessage,
+                            ? await addNotificationMessageIfNotExists(NotificationMessage,
                                                              OnAdded,
                                                              EventTrackingId,
                                                              CurrentUserId)
@@ -23895,7 +22633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateNotificationMessage   (NotificationMessage, OnAdded = null, OnUpdated = null, ...)
 
-        #region (protected) _AddOrUpdateNotificationMessage   (NotificationMessage,   OnAdded = null, OnUpdated = null, ...)
+        #region (protected) addOrUpdateNotificationMessage   (NotificationMessage,   OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given notification message to/within the API.
@@ -23905,11 +22643,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        protected async Task<NotificationMessage> _AddOrUpdateNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                                  Action<NotificationMessage, EventTracking_Id>  OnAdded           = null,
-                                                                  Action<NotificationMessage, EventTracking_Id>  OnUpdated         = null,
-                                                                  EventTracking_Id?                      EventTrackingId   = null,
-                                                                  User_Id?                               CurrentUserId     = null)
+        protected async Task<NotificationMessage> addOrUpdateNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                                 Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                                 Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                                 EventTracking_Id?                               EventTrackingId   = null,
+                                                                                 User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -23920,8 +22658,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
-            if (_NotificationMessages.ContainsKey(NotificationMessage.Id))
-                return _NotificationMessages[NotificationMessage.Id];
+            if (notificationMessages.ContainsKey(NotificationMessage.Id))
+                return notificationMessages[NotificationMessage.Id];
 
             if (NotificationMessage.Id.Length < MinNotificationMessageIdLength)
                 throw new ArgumentException    ("NotificationMessage identification '" + NotificationMessage.Id + "' is too short!",
@@ -23937,13 +22675,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            if (_NotificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
+            if (notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
             {
-                _NotificationMessages.Remove(OldNotificationMessage.Id);
+                notificationMessages.Remove(OldNotificationMessage.Id);
                 NotificationMessage.CopyAllLinkedDataFrom(OldNotificationMessage);
             }
 
-            _NotificationMessages.Add(NotificationMessage.Id, NotificationMessage);
+            notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
             if (OldNotificationMessage != null)
             {
@@ -24003,11 +22741,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<NotificationMessage> AddOrUpdateNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                              Action<NotificationMessage, EventTracking_Id>  OnAdded           = null,
-                                                              Action<NotificationMessage, EventTracking_Id>  OnUpdated         = null,
-                                                              EventTracking_Id?                      EventTrackingId   = null,
-                                                              User_Id?                               CurrentUserId     = null)
+        public async Task<NotificationMessage> AddOrUpdateNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                              Action<NotificationMessage, EventTracking_Id>?  OnAdded           = null,
+                                                                              Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                              EventTracking_Id?                               EventTrackingId   = null,
+                                                                              User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -24018,7 +22756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _AddOrUpdateNotificationMessage(NotificationMessage,
+                            ? await addOrUpdateNotificationMessage(NotificationMessage,
                                                             OnAdded,
                                                             OnUpdated,
                                                             EventTrackingId,
@@ -24062,10 +22800,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a notification message was updated.
         /// </summary>
-        public event OnNotificationMessageUpdatedDelegate OnNotificationMessageUpdated;
+        public event OnNotificationMessageUpdatedDelegate? OnNotificationMessageUpdated;
 
 
-        #region (protected) _UpdateNotificationMessage(NotificationMessage, OnUpdated = null, ...)
+        #region (protected) updateNotificationMessage(NotificationMessage, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given notification message to/within the API.
@@ -24074,10 +22812,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        protected async Task<NotificationMessage> _UpdateNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                             Action<NotificationMessage, EventTracking_Id>  OnUpdated         = null,
-                                                             EventTracking_Id?                      EventTrackingId   = null,
-                                                             User_Id?                               CurrentUserId     = null)
+        protected async Task<NotificationMessage> updateNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                            Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                            EventTracking_Id?                               EventTrackingId   = null,
+                                                                            User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -24088,7 +22826,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
-            if (!_NotificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
+            if (!notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
                 throw new ArgumentException    ("The given notification message '" + NotificationMessage.Id + "' does not exists in this API!",
                                                 nameof(NotificationMessage));
 
@@ -24102,7 +22840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            _NotificationMessages.Remove(OldNotificationMessage.Id);
+            notificationMessages.Remove(OldNotificationMessage.Id);
             NotificationMessage.CopyAllLinkedDataFrom(OldNotificationMessage);
 
 
@@ -24138,10 +22876,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<NotificationMessage> UpdateNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                         Action<NotificationMessage, EventTracking_Id>  OnUpdated         = null,
-                                                         EventTracking_Id?                      EventTrackingId   = null,
-                                                         User_Id?                               CurrentUserId     = null)
+        public async Task<NotificationMessage> UpdateNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                         Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                         EventTracking_Id?                               EventTrackingId   = null,
+                                                                         User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessage is null)
@@ -24152,7 +22890,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _UpdateNotificationMessage(NotificationMessage,
+                            ? await updateNotificationMessage(NotificationMessage,
                                                        OnUpdated,
                                                        EventTrackingId,
                                                        CurrentUserId)
@@ -24175,7 +22913,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _UpdateNotificationMessage(NotificationMessageId, UpdateDelegate, OnUpdated = null, ...)
+        #region (protected) updateNotificationMessage(NotificationMessageId, UpdateDelegate, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given notification message.
@@ -24185,11 +22923,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        protected async Task<NotificationMessage> _UpdateNotificationMessage(NotificationMessage_Id                         NotificationMessageId,
-                                                             Action<NotificationMessage.Builder>            UpdateDelegate,
-                                                             Action<NotificationMessage, EventTracking_Id>  OnUpdated         = null,
-                                                             EventTracking_Id?                      EventTrackingId   = null,
-                                                             User_Id?                               CurrentUserId     = null)
+        protected async Task<NotificationMessage> updateNotificationMessage(NotificationMessage_Id                          NotificationMessageId,
+                                                                            Action<NotificationMessage.Builder>             UpdateDelegate,
+                                                                            Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                            EventTracking_Id?                               EventTrackingId   = null,
+                                                                            User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessageId.IsNullOrEmpty)
@@ -24200,7 +22938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(UpdateDelegate),
                                                 "The given update delegate must not be null!");
 
-            if (!_NotificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage OldNotificationMessage))
+            if (!notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage OldNotificationMessage))
                 throw new ArgumentException    ("The given notification message '" + NotificationMessageId + "' does not exists in this API!",
                                                 nameof(NotificationMessageId));
 
@@ -24216,7 +22954,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            _NotificationMessages.Remove(OldNotificationMessage.Id);
+            notificationMessages.Remove(OldNotificationMessage.Id);
             NewNotificationMessage.CopyAllLinkedDataFrom(OldNotificationMessage);
 
 
@@ -24253,11 +22991,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the notification message had been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<NotificationMessage> UpdateNotificationMessage(NotificationMessage_Id                         NotificationMessageId,
-                                                         Action<NotificationMessage.Builder>            UpdateDelegate,
-                                                         Action<NotificationMessage, EventTracking_Id>  OnUpdated         = null,
-                                                         EventTracking_Id?                      EventTrackingId   = null,
-                                                         User_Id?                               CurrentUserId     = null)
+        public async Task<NotificationMessage> UpdateNotificationMessage(NotificationMessage_Id                          NotificationMessageId,
+                                                                         Action<NotificationMessage.Builder>             UpdateDelegate,
+                                                                         Action<NotificationMessage, EventTracking_Id>?  OnUpdated         = null,
+                                                                         EventTracking_Id?                               EventTrackingId   = null,
+                                                                         User_Id?                                        CurrentUserId     = null)
         {
 
             if (NotificationMessageId.IsNullOrEmpty)
@@ -24268,7 +23006,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _UpdateNotificationMessage(NotificationMessageId,
+                            ? await updateNotificationMessage(NotificationMessageId,
                                                        UpdateDelegate,
                                                        OnUpdated,
                                                        EventTrackingId,
@@ -24276,6 +23014,201 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             : null;
 
+            }
+            finally
+            {
+                try
+                {
+                    NotificationMessagesSemaphore.Release();
+                }
+                catch
+                { }
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region RemoveNotificationMessage(NotificationMessage, OnRemoved = null, ...)
+
+        /// <summary>
+        /// A delegate called whenever a notification message was removed.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp when the notification message was removed.</param>
+        /// <param name="NotificationMessage">The removed notification message.</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">The invoking notification message identification</param>
+        public delegate Task OnNotificationMessageRemovedDelegate(DateTime             Timestamp,
+                                                                  NotificationMessage  NotificationMessage,
+                                                                  EventTracking_Id?    EventTrackingId   = null,
+                                                                  User_Id?             CurrentUserId     = null);
+
+        /// <summary>
+        /// An event fired whenever a notification message was removed.
+        /// </summary>
+        public event OnNotificationMessageRemovedDelegate? OnNotificationMessageRemoved;
+
+
+        #region (class) DeleteNotificationMessageResult
+
+        public class DeleteNotificationMessageResult
+        {
+
+            public Boolean     IsSuccess           { get; }
+
+            public I18NString  ErrorDescription    { get; }
+
+
+            private DeleteNotificationMessageResult(Boolean      IsSuccess,
+                                                    I18NString?  ErrorDescription  = null)
+            {
+                this.IsSuccess         = IsSuccess;
+                this.ErrorDescription  = ErrorDescription;
+            }
+
+
+            public static DeleteNotificationMessageResult Success
+
+                => new DeleteNotificationMessageResult(true);
+
+            public static DeleteNotificationMessageResult Failed(I18NString Reason)
+
+                => new DeleteNotificationMessageResult(false,
+                                             Reason);
+
+            public static DeleteNotificationMessageResult Failed(Exception Exception)
+
+                => new DeleteNotificationMessageResult(false,
+                                             I18NString.Create(Languages.en,
+                                                               Exception.Message));
+
+            public override String ToString()
+
+                => IsSuccess
+                       ? "Success"
+                       : "Failed" + (ErrorDescription.IsNullOrEmpty()
+                                         ? ": " + ErrorDescription.FirstText()
+                                         : "!");
+
+        }
+
+        #endregion
+
+        #region (protected virtual) CanDeleteNotificationMessage(NotificationMessage)
+
+        /// <summary>
+        /// Determines whether the notification message can safely be removed from the API.
+        /// </summary>
+        /// <param name="NotificationMessage">The notification message to be removed.</param>
+        protected virtual I18NString CanDeleteNotificationMessage(NotificationMessage NotificationMessage)
+        {
+            return new I18NString(Languages.en, "Currently not possible!");
+        }
+
+        #endregion
+
+
+        #region (protected) deleteNotificationMessage(NotificationMessage, OnRemoved = null, ...)
+
+        /// <summary>
+        /// Remove the given notification message from the API.
+        /// </summary>
+        /// <param name="NotificationMessage">The notification message to be removed from this API.</param>
+        /// <param name="OnRemoved">A delegate run whenever the notification message had been removed successfully.</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
+        protected async Task<DeleteNotificationMessageResult> deleteNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                                        Action<NotificationMessage, EventTracking_Id>?  OnRemoved         = null,
+                                                                                        EventTracking_Id?                               EventTrackingId   = null,
+                                                                                        User_Id?                                        CurrentUserId     = null)
+        {
+
+            if (NotificationMessage is null)
+                throw new ArgumentNullException(nameof(NotificationMessage),
+                                                "The given notification message must not be null!");
+
+            if (NotificationMessage.API != this || !notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage NotificationMessageToBeRemoved))
+                throw new ArgumentException    ("The given notification message '" + NotificationMessage.Id + "' does not exists in this API!",
+                                                nameof(NotificationMessage));
+
+
+            var result = CanDeleteNotificationMessage(NotificationMessage);
+
+            if (result == null)
+            {
+
+                var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
+                await WriteToDatabaseFile(removeNotificationMessage_MessageType,
+                                          NotificationMessage.ToJSON(false),
+                                          eventTrackingId,
+                                          CurrentUserId);
+
+                notificationMessages.Remove(NotificationMessage.Id);
+
+
+                var OnNotificationMessageRemovedLocal = OnNotificationMessageRemoved;
+                if (OnNotificationMessageRemovedLocal is not null)
+                    await OnNotificationMessageRemovedLocal?.Invoke(Timestamp.Now,
+                                                            NotificationMessage,
+                                                            eventTrackingId,
+                                                            CurrentUserId);
+
+                await SendNotifications(NotificationMessage,
+                                        removeNotificationMessage_MessageType,
+                                        null,
+                                        eventTrackingId,
+                                        CurrentUserId);
+
+                OnRemoved?.Invoke(NotificationMessage,
+                                  eventTrackingId);
+
+                return DeleteNotificationMessageResult.Success;
+
+            }
+            else
+                return DeleteNotificationMessageResult.Failed(result);
+
+        }
+
+        #endregion
+
+        #region RemoveNotificationMessage             (NotificationMessage, OnRemoved = null, ...)
+
+        /// <summary>
+        /// Remove the given notification message from the API.
+        /// </summary>
+        /// <param name="NotificationMessage">The notification message to be removed from this API.</param>
+        /// <param name="OnRemoved">A delegate run whenever the notification message had been removed successfully.</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
+        public async Task<DeleteNotificationMessageResult> RemoveNotificationMessage(NotificationMessage                             NotificationMessage,
+                                                                                     Action<NotificationMessage, EventTracking_Id>?  OnRemoved         = null,
+                                                                                     EventTracking_Id?                               EventTrackingId   = null,
+                                                                                     User_Id?                                        CurrentUserId     = null)
+        {
+
+            if (NotificationMessage is null)
+                throw new ArgumentNullException(nameof(NotificationMessage), "The given notification message must not be null!");
+
+            try
+            {
+
+                return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
+
+                            ? await deleteNotificationMessage(NotificationMessage,
+                                                       OnRemoved,
+                                                       EventTrackingId,
+                                                       CurrentUserId)
+
+                            : null;
+
+            }
+            catch (Exception e)
+            {
+                return DeleteNotificationMessageResult.Failed(e);
             }
             finally
             {
@@ -24302,7 +23235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NotificationMessageId">The unique identification of an notification message.</param>
         protected Boolean _NotificationMessageExists(NotificationMessage_Id NotificationMessageId)
 
-            => !NotificationMessageId.IsNullOrEmpty && _NotificationMessages.ContainsKey(NotificationMessageId);
+            => !NotificationMessageId.IsNullOrEmpty && notificationMessages.ContainsKey(NotificationMessageId);
 
 
         /// <summary>
@@ -24349,7 +23282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected NotificationMessage _GetNotificationMessage(NotificationMessage_Id NotificationMessageId)
         {
 
-            if (!NotificationMessageId.IsNullOrEmpty && _NotificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage notificationMessage))
+            if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage notificationMessage))
                 return notificationMessage;
 
             return null;
@@ -24399,7 +23332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected Boolean _TryGetNotificationMessage(NotificationMessage_Id NotificationMessageId, out NotificationMessage NotificationMessage)
         {
 
-            if (!NotificationMessageId.IsNullOrEmpty && _NotificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage notificationMessage))
+            if (!NotificationMessageId.IsNullOrEmpty && notificationMessages.TryGetValue(NotificationMessageId, out NotificationMessage notificationMessage))
             {
                 NotificationMessage = notificationMessage;
                 return true;
@@ -24463,7 +23396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var UserOrganizations = User.Organizations(Access_Levels.ReadOnly, Recursive: true).SafeSelect(org => org.Id).ToArray();
 
-                return _NotificationMessages.Values.Where(message => message.Owners.Intersect(UserOrganizations).Any()).ToArray();
+                return notificationMessages.Values.Where(message => message.Owners.Intersect(UserOrganizations).Any()).ToArray();
 
             }
             finally
@@ -24472,202 +23405,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
         }
-
-        #endregion
-
-
-        #region RemoveNotificationMessage(NotificationMessage, OnRemoved = null, ...)
-
-        /// <summary>
-        /// A delegate called whenever a notification message was removed.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp when the notification message was removed.</param>
-        /// <param name="NotificationMessage">The removed notification message.</param>
-        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="CurrentUserId">The invoking notification message identification</param>
-        public delegate Task OnNotificationMessageRemovedDelegate(DateTime          Timestamp,
-                                                          NotificationMessage       NotificationMessage,
-                                                          EventTracking_Id? EventTrackingId   = null,
-                                                          User_Id?          CurrentUserId     = null);
-
-        /// <summary>
-        /// An event fired whenever a notification message was removed.
-        /// </summary>
-        public event OnNotificationMessageRemovedDelegate OnNotificationMessageRemoved;
-
-
-        #region (class) DeleteNotificationMessageResult
-
-        public class DeleteNotificationMessageResult
-        {
-
-            public Boolean     IsSuccess           { get; }
-
-            public I18NString  ErrorDescription    { get; }
-
-
-            private DeleteNotificationMessageResult(Boolean     IsSuccess,
-                                          I18NString  ErrorDescription  = null)
-            {
-                this.IsSuccess         = IsSuccess;
-                this.ErrorDescription  = ErrorDescription;
-            }
-
-
-            public static DeleteNotificationMessageResult Success
-
-                => new DeleteNotificationMessageResult(true);
-
-            public static DeleteNotificationMessageResult Failed(I18NString Reason)
-
-                => new DeleteNotificationMessageResult(false,
-                                             Reason);
-
-            public static DeleteNotificationMessageResult Failed(Exception Exception)
-
-                => new DeleteNotificationMessageResult(false,
-                                             I18NString.Create(Languages.en,
-                                                               Exception.Message));
-
-            public override String ToString()
-
-                => IsSuccess
-                       ? "Success"
-                       : "Failed" + (ErrorDescription.IsNullOrEmpty()
-                                         ? ": " + ErrorDescription.FirstText()
-                                         : "!");
-
-        }
-
-        #endregion
-
-        #region (protected virtual) CanDeleteNotificationMessage(NotificationMessage)
-
-        /// <summary>
-        /// Determines whether the notification message can safely be removed from the API.
-        /// </summary>
-        /// <param name="NotificationMessage">The notification message to be removed.</param>
-        protected virtual I18NString CanDeleteNotificationMessage(NotificationMessage NotificationMessage)
-        {
-            return new I18NString(Languages.en, "Currently not possible!");
-        }
-
-        #endregion
-
-
-        #region (protected) _RemoveNotificationMessage(NotificationMessage, OnRemoved = null, ...)
-
-        /// <summary>
-        /// Remove the given notification message from the API.
-        /// </summary>
-        /// <param name="NotificationMessage">The notification message to be removed from this API.</param>
-        /// <param name="OnRemoved">A delegate run whenever the notification message had been removed successfully.</param>
-        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        protected async Task<DeleteNotificationMessageResult> _RemoveNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                                         Action<NotificationMessage, EventTracking_Id>  OnRemoved         = null,
-                                                                         EventTracking_Id?                      EventTrackingId   = null,
-                                                                         User_Id?                               CurrentUserId     = null)
-        {
-
-            if (NotificationMessage is null)
-                throw new ArgumentNullException(nameof(NotificationMessage),
-                                                "The given notification message must not be null!");
-
-            if (NotificationMessage.API != this || !_NotificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage NotificationMessageToBeRemoved))
-                throw new ArgumentException    ("The given notification message '" + NotificationMessage.Id + "' does not exists in this API!",
-                                                nameof(NotificationMessage));
-
-
-            var result = CanDeleteNotificationMessage(NotificationMessage);
-
-            if (result == null)
-            {
-
-                var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
-
-                await WriteToDatabaseFile(removeNotificationMessage_MessageType,
-                                          NotificationMessage.ToJSON(false),
-                                          eventTrackingId,
-                                          CurrentUserId);
-
-                _NotificationMessages.Remove(NotificationMessage.Id);
-
-
-                var OnNotificationMessageRemovedLocal = OnNotificationMessageRemoved;
-                if (OnNotificationMessageRemovedLocal is not null)
-                    await OnNotificationMessageRemovedLocal?.Invoke(Timestamp.Now,
-                                                            NotificationMessage,
-                                                            eventTrackingId,
-                                                            CurrentUserId);
-
-                await SendNotifications(NotificationMessage,
-                                        removeNotificationMessage_MessageType,
-                                        null,
-                                        eventTrackingId,
-                                        CurrentUserId);
-
-                OnRemoved?.Invoke(NotificationMessage,
-                                  eventTrackingId);
-
-                return DeleteNotificationMessageResult.Success;
-
-            }
-            else
-                return DeleteNotificationMessageResult.Failed(result);
-
-        }
-
-        #endregion
-
-        #region RemoveNotificationMessage             (NotificationMessage, OnRemoved = null, ...)
-
-        /// <summary>
-        /// Remove the given notification message from the API.
-        /// </summary>
-        /// <param name="NotificationMessage">The notification message to be removed from this API.</param>
-        /// <param name="OnRemoved">A delegate run whenever the notification message had been removed successfully.</param>
-        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="CurrentUserId">An optional notification message identification initiating this command/request.</param>
-        public async Task<DeleteNotificationMessageResult> RemoveNotificationMessage(NotificationMessage                            NotificationMessage,
-                                                                     Action<NotificationMessage, EventTracking_Id>  OnRemoved         = null,
-                                                                     EventTracking_Id?                      EventTrackingId   = null,
-                                                                     User_Id?                               CurrentUserId     = null)
-        {
-
-            if (NotificationMessage is null)
-                throw new ArgumentNullException(nameof(NotificationMessage), "The given notification message must not be null!");
-
-            try
-            {
-
-                return (await NotificationMessagesSemaphore.WaitAsync(SemaphoreSlimTimeout))
-
-                            ? await _RemoveNotificationMessage(NotificationMessage,
-                                                       OnRemoved,
-                                                       EventTrackingId,
-                                                       CurrentUserId)
-
-                            : null;
-
-            }
-            catch (Exception e)
-            {
-                return DeleteNotificationMessageResult.Failed(e);
-            }
-            finally
-            {
-                try
-                {
-                    NotificationMessagesSemaphore.Release();
-                }
-                catch
-                { }
-            }
-
-        }
-
-        #endregion
 
         #endregion
 
@@ -24681,39 +23418,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all organizations.
         /// </summary>
-        protected internal readonly Dictionary<Organization_Id, IOrganization> organizations;
+        protected internal readonly ConcurrentDictionary<Organization_Id, IOrganization> organizations = new ();
 
         /// <summary>
         /// An enumeration of all organizations.
         /// </summary>
         public IEnumerable<IOrganization> Organizations
-        {
-            get
-            {
-
-                if (OrganizationsSemaphore.Wait(SemaphoreSlimTimeout))
-                {
-                    try
-                    {
-
-                        return organizations.Values.ToArray();
-
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            OrganizationsSemaphore.Release();
-                        }
-                        catch
-                        { }
-                    }
-                }
-
-                return Array.Empty<IOrganization>();
-
-            }
-        }
+            => organizations.Values;
 
         #endregion
 
@@ -25229,10 +23940,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a organization was added.
         /// </summary>
-        public event OnOrganizationAddedDelegate OnOrganizationAdded;
+        public event OnOrganizationAddedDelegate? OnOrganizationAdded;
 
 
-        #region (protected internal) _AddOrganization(Organization,                            OnAdded = null, ...)
+        #region (protected internal) addOrganization(Organization,                            OnAdded = null, ...)
 
         /// <summary>
         /// Add the given organization to the API.
@@ -25241,7 +23952,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<AddOrganizationResult> _AddOrganization(IOrganization                             Organization,
+        protected internal async Task<AddOrganizationResult> addOrganization(IOrganization                             Organization,
                                                                               Action<IOrganization, EventTracking_Id>?  OnAdded           = null,
                                                                               EventTracking_Id?                         EventTrackingId   = null,
                                                                               User_Id?                                  CurrentUserId     = null)
@@ -25249,7 +23960,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -25298,7 +24009,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizations.Add(Organization.Id, Organization);
+            organizations.TryAdd(Organization.Id, Organization);
 
             OnAdded?.Invoke(Organization,
                             eventTrackingId);
@@ -25327,7 +24038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddOrganization                      (Organization, ParentOrganization = null, OnAdded = null, ...)
+        #region AddOrganization                     (Organization, ParentOrganization = null, OnAdded = null, ...)
 
         /// <summary>
         /// Add the given organization and add him/her to the given organization.
@@ -25385,7 +24096,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
 
-                    var result = await _AddOrganization(Organization,
+                    var result = await addOrganization(Organization,
                                                         async (_organization, _eventTrackingId) => {
 
                                                             await _LinkOrganizations(_organization,
@@ -25461,7 +24172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrganizationIfNotExists(Organization, (ParentOrganization), OnAdded = null, ...)
 
-        #region (protected internal) _AddOrganizationIfNotExists(Organization,                     OnAdded = null, ...)
+        #region (protected internal) addOrganizationIfNotExists(Organization,                     OnAdded = null, ...)
 
         /// <summary>
         /// When it has not been created before, add the given organization to the API.
@@ -25470,15 +24181,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<AddOrganizationResult> _AddOrganizationIfNotExists(IOrganization                             Organization,
-                                                                                         Action<IOrganization, EventTracking_Id>?  OnAdded           = null,
-                                                                                         EventTracking_Id?                         EventTrackingId   = null,
-                                                                                         User_Id?                                  CurrentUserId     = null)
+        protected internal async Task<AddOrganizationResult> addOrganizationIfNotExists(IOrganization                             Organization,
+                                                                                        Action<IOrganization, EventTracking_Id>?  OnAdded           = null,
+                                                                                        EventTracking_Id?                         EventTrackingId   = null,
+                                                                                        User_Id?                                  CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -25526,7 +24237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizations.Add(Organization.Id, Organization);
+            organizations.TryAdd(Organization.Id, Organization);
 
             OnAdded?.Invoke(Organization,
                             eventTrackingId);
@@ -25555,7 +24266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddOrganizationIfNotExists                      (Organization, ParentOrganization, OnAdded = null, ...)
+        #region AddOrganizationIfNotExists                     (Organization, ParentOrganization, OnAdded = null, ...)
 
         /// <summary>
         /// Add the given organization and add him/her to the given organization.
@@ -25616,7 +24327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
 
-                    var result = await _AddOrganizationIfNotExists(Organization,
+                    var result = await addOrganizationIfNotExists(Organization,
                                                                    async (_organization, _eventTrackingId) => {
 
                                                                        await _LinkOrganizations(_organization,
@@ -25692,7 +24403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateOrganization   (Organization, (ParentOrganization), OnAdded = null, OnUpdated = null, ...)
 
-        #region (protected internal) _AddOrUpdateOrganization(Organization,                     OnAdded = null, OnUpdated = null, ...)
+        #region (protected internal) addOrUpdateOrganization(Organization,                     OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given organization to/within the API.
@@ -25702,7 +24413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<AddOrUpdateOrganizationResult> _AddOrUpdateOrganization(IOrganization                             Organization,
+        protected internal async Task<AddOrUpdateOrganizationResult> addOrUpdateOrganization(IOrganization                             Organization,
                                                                                               Action<IOrganization, EventTracking_Id>?  OnAdded           = null,
                                                                                               Action<IOrganization, EventTracking_Id>?  OnUpdated         = null,
                                                                                               EventTracking_Id?                         EventTrackingId   = null,
@@ -25711,7 +24422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddOrUpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -25754,11 +24465,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (organizations.TryGetValue(Organization.Id, out var OldOrganization))
             {
-                organizations.Remove(OldOrganization.Id);
+                organizations.TryRemove(OldOrganization.Id, out _);
                 Organization.CopyAllLinkedDataFrom(OldOrganization);
             }
 
-            organizations.Add(Organization.Id, Organization);
+            organizations.TryAdd(Organization.Id, Organization);
 
             if (OldOrganization is null)
             {
@@ -25794,11 +24505,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var OnOrganizationUpdatedLocal = OnOrganizationUpdated;
             if (OnOrganizationUpdatedLocal is not null)
-                await OnOrganizationUpdatedLocal?.Invoke(Timestamp.Now,
-                                                         Organization,
-                                                         OldOrganization,
-                                                         eventTrackingId,
-                                                         CurrentUserId);
+                await OnOrganizationUpdatedLocal.Invoke(Timestamp.Now,
+                                                        Organization,
+                                                        OldOrganization,
+                                                        eventTrackingId,
+                                                        CurrentUserId);
 
             await SendNotifications(Organization,
                                     updateOrganization_MessageType,
@@ -25817,7 +24528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddOrUpdateOrganization                      (Organization,                     OnAdded = null, OnUpdated = null, ...)
+        #region AddOrUpdateOrganization                     (Organization,                     OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given organization to/within the API.
@@ -25841,7 +24552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _AddOrUpdateOrganization(Organization,
+                    return await addOrUpdateOrganization(Organization,
                                                           OnAdded,
                                                           OnUpdated,
                                                           eventTrackingId,
@@ -25883,7 +24594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddOrUpdateOrganization                      (Organization, ParentOrganization, OnAdded = null, OnUpdated = null, ...)
+        #region AddOrUpdateOrganization                     (Organization, ParentOrganization, OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given organization to/within the API.
@@ -25945,7 +24656,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     #endregion
 
 
-                    var result = await _AddOrUpdateOrganization(Organization,
+                    var result = await addOrUpdateOrganization(Organization,
                                                                 async (_organization, _eventTrackingId) => {
 
                                                                     await _LinkOrganizations(_organization,
@@ -26039,10 +24750,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a organization was updated.
         /// </summary>
-        public event OnOrganizationUpdatedDelegate OnOrganizationUpdated;
+        public event OnOrganizationUpdatedDelegate? OnOrganizationUpdated;
 
 
-        #region (protected internal) _UpdateOrganization(Organization,                 OnUpdated = null, ...)
+        #region (protected internal) updateOrganization(Organization,                 OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given organization to/within the API.
@@ -26051,10 +24762,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<UpdateOrganizationResult> _UpdateOrganization(IOrganization                             Organization,
-                                                                                    Action<IOrganization, EventTracking_Id>?  OnUpdated         = null,
-                                                                                    EventTracking_Id?                         EventTrackingId   = null,
-                                                                                    User_Id?                                  CurrentUserId     = null)
+        protected internal async Task<UpdateOrganizationResult> updateOrganization(IOrganization                             Organization,
+                                                                                   Action<IOrganization, EventTracking_Id>?  OnUpdated         = null,
+                                                                                   EventTracking_Id?                         EventTrackingId   = null,
+                                                                                   User_Id?                                  CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -26068,7 +24779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return UpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -26085,9 +24796,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizations.Remove(OldOrganization.Id);
+            organizations.TryRemove(OldOrganization.Id, out _);
             Organization.CopyAllLinkedDataFrom(OldOrganization);
-            organizations.Add(Organization.Id, Organization);
+            organizations.TryAdd(Organization.Id, Organization);
 
             OnUpdated?.Invoke(Organization,
                               eventTrackingId);
@@ -26117,7 +24828,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region UpdateOrganization                      (Organization,                 OnUpdated = null, ...)
+        #region UpdateOrganization                     (Organization,                 OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given organization to/within the API.
@@ -26139,7 +24850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateOrganization(Organization,
+                    return await updateOrganization(Organization,
                                                      OnUpdated,
                                                      eventTrackingId,
                                                      CurrentUserId);
@@ -26181,7 +24892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected internal) _UpdateOrganization(Organization, UpdateDelegate, OnUpdated = null, ...)
+        #region (protected internal) updateOrganization(Organization, UpdateDelegate, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given organization.
@@ -26191,11 +24902,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        protected internal async Task<UpdateOrganizationResult> _UpdateOrganization(IOrganization                             Organization,
-                                                                                    Action<Organization.Builder>              UpdateDelegate,
-                                                                                    Action<IOrganization, EventTracking_Id>?  OnUpdated         = null,
-                                                                                    EventTracking_Id?                         EventTrackingId   = null,
-                                                                                    User_Id?                                  CurrentUserId     = null)
+        protected internal async Task<UpdateOrganizationResult> updateOrganization(IOrganization                             Organization,
+                                                                                   Action<Organization.Builder>              UpdateDelegate,
+                                                                                   Action<IOrganization, EventTracking_Id>?  OnUpdated         = null,
+                                                                                   EventTracking_Id?                         EventTrackingId   = null,
+                                                                                   User_Id?                                  CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -26237,9 +24948,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizations.Remove(Organization.Id);
+            organizations.TryRemove(Organization.Id, out _);
             updatedOrganization.CopyAllLinkedDataFrom(Organization);
-            organizations.Add(updatedOrganization.Id, updatedOrganization);
+            organizations.TryAdd(updatedOrganization.Id, updatedOrganization);
 
             OnUpdated?.Invoke(updatedOrganization,
                               eventTrackingId);
@@ -26269,7 +24980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region UpdateOrganization                      (Organization, UpdateDelegate, OnUpdated = null, ...)
+        #region UpdateOrganization                     (Organization, UpdateDelegate, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given organization.
@@ -26293,7 +25004,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _UpdateOrganization(Organization,
+                    return await updateOrganization(Organization,
                                                      UpdateDelegate,
                                                      OnUpdated,
                                                      eventTrackingId,
@@ -26354,16 +25065,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a organization was deleted.
         /// </summary>
-        public event OnOrganizationDeletedDelegate OnOrganizationDeleted;
+        public event OnOrganizationDeletedDelegate? OnOrganizationDeleted;
 
 
-        #region (protected internal virtual) _CanDeleteOrganization(Organization)
+        #region (protected internal virtual) canDeleteOrganization(Organization)
 
         /// <summary>
         /// Determines whether the organization can safely be deleted from the API.
         /// </summary>
         /// <param name="Organization">The organization to be deleted.</param>
-        protected internal virtual I18NString? _CanDeleteOrganization(IOrganization Organization)
+        protected internal virtual I18NString? canDeleteOrganization(IOrganization Organization)
         {
 
             if (Organization.Users.Any())
@@ -26378,7 +25089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected internal) _DeleteOrganization(Organization, OnDeleted = null, ...)
+        #region (protected internal) deleteOrganization(Organization, OnDeleted = null, ...)
 
         /// <summary>
         /// Delete the given organization.
@@ -26387,10 +25098,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnDeleted">A delegate run whenever the organization has been deleted successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<DeleteOrganizationResult> _DeleteOrganization(IOrganization                             Organization,
-                                                                                    Action<IOrganization, EventTracking_Id>?  OnDeleted         = null,
-                                                                                    EventTracking_Id?                         EventTrackingId   = null,
-                                                                                    User_Id?                                  CurrentUserId     = null)
+        protected internal async Task<DeleteOrganizationResult> deleteOrganization(IOrganization                             Organization,
+                                                                                   Action<IOrganization, EventTracking_Id>?  OnDeleted         = null,
+                                                                                   EventTracking_Id?                         EventTrackingId   = null,
+                                                                                   User_Id?                                  CurrentUserId     = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -26414,7 +25125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        );
 
 
-            var veto = _CanDeleteOrganization(Organization);
+            var veto = canDeleteOrganization(Organization);
 
             if (veto is not null)
                 return DeleteOrganizationResult.CanNotBeRemoved(
@@ -26457,7 +25168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizations.Remove(Organization.Id);
+            organizations.TryRemove(Organization.Id, out _);
 
             OnDeleted?.Invoke(Organization,
                               eventTrackingId);
@@ -26487,7 +25198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region DeleteOrganization                      (Organization, OnDeleted = null, ...)
+        #region DeleteOrganization                     (Organization, OnDeleted = null, ...)
 
         /// <summary>
         /// Delete the given organization.
@@ -26509,7 +25220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    return await _DeleteOrganization(Organization,
+                    return await deleteOrganization(Organization,
                                                      OnDeleted,
                                                      eventTrackingId,
                                                      CurrentUserId);
@@ -27205,32 +25916,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all organization groups.
         /// </summary>
-        protected internal readonly Dictionary<OrganizationGroup_Id, OrganizationGroup> organizationGroups;
+        protected internal readonly ConcurrentDictionary<OrganizationGroup_Id, OrganizationGroup> organizationGroups = new ();
 
         /// <summary>
         /// An enumeration of all organization groups.
         /// </summary>
         public IEnumerable<OrganizationGroup> OrganizationGroups
-        {
-            get
-            {
-                try
-                {
-                    return OrganizationGroupsSemaphore.Wait(SemaphoreSlimTimeout)
-                               ? organizationGroups.Values.ToArray()
-                               : new OrganizationGroup[0];
-                }
-                finally
-                {
-                    try
-                    {
-                        OrganizationGroupsSemaphore.Release();
-                    }
-                    catch
-                    { }
-                }
-            }
-        }
+            => organizationGroups.Values;
 
         #endregion
 
@@ -27247,7 +25939,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task WriteToDatabaseFileAndNotify(OrganizationGroup        OrganizationGroup,
                                                                    NotificationMessageType  MessageType,
-                                                                   OrganizationGroup        OldOrganizationGroup   = null,
+                                                                   OrganizationGroup?       OldOrganizationGroup   = null,
                                                                    EventTracking_Id?        EventTrackingId        = null,
                                                                    User_Id?                 CurrentUserId          = null)
         {
@@ -27288,7 +25980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task SendNotifications(OrganizationGroup        OrganizationGroup,
                                                         NotificationMessageType  MessageType,
-                                                        OrganizationGroup        OldOrganizationGroup   = null,
+                                                        OrganizationGroup?       OldOrganizationGroup   = null,
                                                         EventTracking_Id?        EventTrackingId        = null,
                                                         User_Id?                 CurrentUserId          = null)
         {
@@ -27319,7 +26011,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         protected internal async Task SendNotifications(OrganizationGroup                     OrganizationGroup,
                                                         IEnumerable<NotificationMessageType>  MessageTypes,
-                                                        OrganizationGroup                     OldOrganizationGroup   = null,
+                                                        OrganizationGroup?                    OldOrganizationGroup   = null,
                                                         EventTracking_Id?                     EventTrackingId        = null,
                                                         User_Id?                              CurrentUserId          = null)
         {
@@ -27402,10 +26094,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a organization group was added.
         /// </summary>
-        public event OnOrganizationGroupAddedDelegate OnOrganizationGroupAdded;
+        public event OnOrganizationGroupAddedDelegate? OnOrganizationGroupAdded;
 
 
-        #region (protected internal) _AddOrganizationGroup(OrganizationGroup,                                OnAdded = null, ...)
+        #region (protected internal) addOrganizationGroup(OrganizationGroup,                                OnAdded = null, ...)
 
         /// <summary>
         /// Add the given organization group to the API.
@@ -27414,10 +26106,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<OrganizationGroup> _AddOrganizationGroup(OrganizationGroup                            OrganizationGroup,
-                                                                               Action<OrganizationGroup, EventTracking_Id>  OnAdded           = null,
-                                                                               EventTracking_Id?                            EventTrackingId   = null,
-                                                                               User_Id?                                     CurrentUserId     = null)
+        protected internal async Task<OrganizationGroup> addOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                              Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                              EventTracking_Id?                             EventTrackingId   = null,
+                                                                              User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27446,15 +26138,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizationGroups.Add(OrganizationGroup.Id, OrganizationGroup);
+            organizationGroups.TryAdd(OrganizationGroup.Id, OrganizationGroup);
 
 
             var OnOrganizationGroupAddedLocal = OnOrganizationGroupAdded;
             if (OnOrganizationGroupAddedLocal is not null)
-                await OnOrganizationGroupAddedLocal?.Invoke(Timestamp.Now,
-                                                            OrganizationGroup,
-                                                            eventTrackingId,
-                                                            CurrentUserId);
+                await OnOrganizationGroupAddedLocal.Invoke(Timestamp.Now,
+                                                           OrganizationGroup,
+                                                           eventTrackingId,
+                                                           CurrentUserId);
 
             await SendNotifications(OrganizationGroup,
                                     addUser_MessageType,
@@ -27480,10 +26172,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> AddOrganizationGroup(OrganizationGroup                            OrganizationGroup,
-                                                                  Action<OrganizationGroup, EventTracking_Id>  OnAdded           = null,
-                                                                  EventTracking_Id?                            EventTrackingId   = null,
-                                                                  User_Id?                                     CurrentUserId     = null)
+        public async Task<OrganizationGroup> AddOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                  Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                  EventTracking_Id?                             EventTrackingId   = null,
+                                                                  User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27494,7 +26186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _AddOrganizationGroup(OrganizationGroup,
+                            ? await addOrganizationGroup(OrganizationGroup,
                                                           OnAdded,
                                                           EventTrackingId,
                                                           CurrentUserId)
@@ -27520,7 +26212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrganizationGroupIfNotExists(OrganizationGroup, OnAdded = null,                   CurrentUserId = null)
 
-        #region (protected internal) _AddOrganizationGroupIfNotExists(OrganizationGroup,                                OnAdded = null, ...)
+        #region (protected internal) addOrganizationGroupIfNotExists(OrganizationGroup,                                OnAdded = null, ...)
 
         /// <summary>
         /// When it has not been created before, add the given organization group to the API.
@@ -27529,10 +26221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        protected internal async Task<OrganizationGroup> _AddOrganizationGroupIfNotExists(OrganizationGroup                            OrganizationGroup,
-                                                                                          Action<OrganizationGroup, EventTracking_Id>  OnAdded           = null,
-                                                                                          EventTracking_Id?                            EventTrackingId   = null,
-                                                                                          User_Id?                                     CurrentUserId     = null)
+        protected internal async Task<OrganizationGroup> addOrganizationGroupIfNotExists(OrganizationGroup                             OrganizationGroup,
+                                                                                         Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                                         EventTracking_Id?                             EventTrackingId   = null,
+                                                                                         User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27560,14 +26252,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizationGroups.Add(OrganizationGroup.Id, OrganizationGroup);
+            organizationGroups.TryAdd(OrganizationGroup.Id, OrganizationGroup);
 
             var OnOrganizationGroupAddedLocal = OnOrganizationGroupAdded;
             if (OnOrganizationGroupAddedLocal is not null)
-                await OnOrganizationGroupAddedLocal?.Invoke(Timestamp.Now,
-                                                            OrganizationGroup,
-                                                            eventTrackingId,
-                                                            CurrentUserId);
+                await OnOrganizationGroupAddedLocal.Invoke(Timestamp.Now,
+                                                           OrganizationGroup,
+                                                           eventTrackingId,
+                                                           CurrentUserId);
 
             await SendNotifications(OrganizationGroup,
                                     addOrganizationGroupIfNotExists_MessageType,
@@ -27593,10 +26285,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnAdded">A delegate run whenever the organization group has been added successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> AddOrganizationGroupIfNotExists(OrganizationGroup                            OrganizationGroup,
-                                                                             Action<OrganizationGroup, EventTracking_Id>  OnAdded           = null,
-                                                                             EventTracking_Id?                            EventTrackingId   = null,
-                                                                             User_Id?                                     CurrentUserId     = null)
+        public async Task<OrganizationGroup> AddOrganizationGroupIfNotExists(OrganizationGroup                             OrganizationGroup,
+                                                                             Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                             EventTracking_Id?                             EventTrackingId   = null,
+                                                                             User_Id?                                      CurrentUserId     = null)
         {
 
             try
@@ -27604,7 +26296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _AddOrganizationGroupIfNotExists(OrganizationGroup,
+                            ? await addOrganizationGroupIfNotExists(OrganizationGroup,
                                                                      OnAdded,
                                                                      EventTrackingId,
                                                                      CurrentUserId)
@@ -27630,7 +26322,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddOrUpdateOrganizationGroup   (OrganizationGroup, OnAdded = null, OnUpdated = null, ...)
 
-        #region (protected internal) _AddOrUpdateOrganizationGroup   (OrganizationGroup,   OnAdded = null, OnUpdated = null, ...)
+        #region (protected internal) addOrUpdateOrganizationGroup   (OrganizationGroup,   OnAdded = null, OnUpdated = null, ...)
 
         /// <summary>
         /// Add or update the given organization group to/within the API.
@@ -27640,11 +26332,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        protected internal async Task<OrganizationGroup> _AddOrUpdateOrganizationGroup(OrganizationGroup                            OrganizationGroup,
-                                                                                       Action<OrganizationGroup, EventTracking_Id>  OnAdded           = null,
-                                                                                       Action<OrganizationGroup, EventTracking_Id>  OnUpdated         = null,
-                                                                                       EventTracking_Id?                            EventTrackingId   = null,
-                                                                                       User_Id?                                     CurrentUserId     = null)
+        protected internal async Task<OrganizationGroup> addOrUpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                                      Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                                      Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                                      EventTracking_Id?                             EventTrackingId   = null,
+                                                                                      User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27672,24 +26364,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            if (organizationGroups.TryGetValue(OrganizationGroup.Id, out OrganizationGroup OldOrganizationGroup))
+            if (organizationGroups.TryGetValue(OrganizationGroup.Id, out var OldOrganizationGroup))
             {
-                organizationGroups.Remove(OldOrganizationGroup.Id);
+                organizationGroups.TryRemove(OldOrganizationGroup.Id, out _);
                 OrganizationGroup.CopyAllLinkedDataFrom(OldOrganizationGroup);
             }
 
-            organizationGroups.Add(OrganizationGroup.Id, OrganizationGroup);
+            organizationGroups.TryAdd(OrganizationGroup.Id, OrganizationGroup);
 
-            if (OldOrganizationGroup != null)
+            if (OldOrganizationGroup is not null)
             {
 
                 var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
                 if (OnOrganizationGroupUpdatedLocal is not null)
-                    await OnOrganizationGroupUpdatedLocal?.Invoke(Timestamp.Now,
-                                                                  OrganizationGroup,
-                                                                  OldOrganizationGroup,
-                                                                  eventTrackingId,
-                                                                  CurrentUserId);
+                    await OnOrganizationGroupUpdatedLocal.Invoke(Timestamp.Now,
+                                                                 OrganizationGroup,
+                                                                 OldOrganizationGroup,
+                                                                 eventTrackingId,
+                                                                 CurrentUserId);
 
                 await SendNotifications(OrganizationGroup,
                                         updateOrganizationGroup_MessageType,
@@ -27706,10 +26398,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var OnOrganizationGroupAddedLocal = OnOrganizationGroupAdded;
                 if (OnOrganizationGroupAddedLocal is not null)
-                    await OnOrganizationGroupAddedLocal?.Invoke(Timestamp.Now,
-                                                                OrganizationGroup,
-                                                                eventTrackingId,
-                                                                CurrentUserId);
+                    await OnOrganizationGroupAddedLocal.Invoke(Timestamp.Now,
+                                                               OrganizationGroup,
+                                                               eventTrackingId,
+                                                               CurrentUserId);
 
                 await SendNotifications(OrganizationGroup,
                                         addOrganizationGroup_MessageType,
@@ -27738,11 +26430,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> AddOrUpdateOrganizationGroup(OrganizationGroup                            OrganizationGroup,
-                                                                          Action<OrganizationGroup, EventTracking_Id>  OnAdded           = null,
-                                                                          Action<OrganizationGroup, EventTracking_Id>  OnUpdated         = null,
-                                                                          EventTracking_Id?                            EventTrackingId   = null,
-                                                                          User_Id?                                     CurrentUserId     = null)
+        public async Task<OrganizationGroup> AddOrUpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                          Action<OrganizationGroup, EventTracking_Id>?  OnAdded           = null,
+                                                                          Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                          EventTracking_Id?                             EventTrackingId   = null,
+                                                                          User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27753,7 +26445,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _AddOrUpdateOrganizationGroup(OrganizationGroup,
+                            ? await addOrUpdateOrganizationGroup(OrganizationGroup,
                                                                   OnAdded,
                                                                   OnUpdated,
                                                                   EventTrackingId,
@@ -27797,10 +26489,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event fired whenever a organization group was updated.
         /// </summary>
-        public event OnOrganizationGroupUpdatedDelegate OnOrganizationGroupUpdated;
+        public event OnOrganizationGroupUpdatedDelegate? OnOrganizationGroupUpdated;
 
 
-        #region (protected internal) _UpdateOrganizationGroup(OrganizationGroup, OnUpdated = null, ...)
+        #region (protected internal) updateOrganizationGroup(OrganizationGroup, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given organization group to/within the API.
@@ -27809,10 +26501,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        protected internal async Task<OrganizationGroup> _UpdateOrganizationGroup(OrganizationGroup                            OrganizationGroup,
-                                                                                  Action<OrganizationGroup, EventTracking_Id>  OnUpdated         = null,
-                                                                                  EventTracking_Id?                            EventTrackingId   = null,
-                                                                                  User_Id?                                     CurrentUserId     = null)
+        protected internal async Task<OrganizationGroup> updateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                                 Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                                 EventTracking_Id?                             EventTrackingId   = null,
+                                                                                 User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27823,7 +26515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentException    ("The given organization group is already attached to another API!",
                                                 nameof(OrganizationGroup));
 
-            if (!organizationGroups.TryGetValue(OrganizationGroup.Id, out OrganizationGroup OldOrganizationGroup))
+            if (!organizationGroups.TryGetValue(OrganizationGroup.Id, out var OldOrganizationGroup))
                 throw new ArgumentException    ("The given organization group '" + OrganizationGroup.Id + "' does not exists in this API!",
                                                 nameof(OrganizationGroup));
 
@@ -27837,17 +26529,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizationGroups.Remove(OldOrganizationGroup.Id);
+            organizationGroups.TryRemove(OldOrganizationGroup.Id, out _);
             OrganizationGroup.CopyAllLinkedDataFrom(OldOrganizationGroup);
 
 
             var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
             if (OnOrganizationGroupUpdatedLocal is not null)
-                await OnOrganizationGroupUpdatedLocal?.Invoke(Timestamp.Now,
-                                                              OrganizationGroup,
-                                                              OldOrganizationGroup,
-                                                              eventTrackingId,
-                                                              CurrentUserId);
+                await OnOrganizationGroupUpdatedLocal.Invoke(Timestamp.Now,
+                                                             OrganizationGroup,
+                                                             OldOrganizationGroup,
+                                                             eventTrackingId,
+                                                             CurrentUserId);
 
             await SendNotifications(OrganizationGroup,
                                     updateOrganizationGroup_MessageType,
@@ -27873,10 +26565,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> UpdateOrganizationGroup(OrganizationGroup                            OrganizationGroup,
-                                                                     Action<OrganizationGroup, EventTracking_Id>  OnUpdated         = null,
-                                                                     EventTracking_Id?                            EventTrackingId   = null,
-                                                                     User_Id?                                     CurrentUserId     = null)
+        public async Task<OrganizationGroup> UpdateOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                                                     Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                     EventTracking_Id?                             EventTrackingId   = null,
+                                                                     User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroup is null)
@@ -27887,7 +26579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _UpdateOrganizationGroup(OrganizationGroup,
+                            ? await updateOrganizationGroup(OrganizationGroup,
                                                              OnUpdated,
                                                              EventTrackingId,
                                                              CurrentUserId)
@@ -27910,7 +26602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected internal) _UpdateOrganizationGroup(OrganizationGroupId, UpdateDelegate, OnUpdated = null, ...)
+        #region (protected internal) updateOrganizationGroup(OrganizationGroupId, UpdateDelegate, OnUpdated = null, ...)
 
         /// <summary>
         /// Update the given organization group.
@@ -27920,11 +26612,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        protected internal async Task<OrganizationGroup> _UpdateOrganizationGroup(OrganizationGroup_Id                         OrganizationGroupId,
-                                                                                  Action<OrganizationGroup.Builder>            UpdateDelegate,
-                                                                                  Action<OrganizationGroup, EventTracking_Id>  OnUpdated         = null,
-                                                                                  EventTracking_Id?                            EventTrackingId   = null,
-                                                                                  User_Id?                                     CurrentUserId     = null)
+        protected internal async Task<OrganizationGroup> updateOrganizationGroup(OrganizationGroup_Id                          OrganizationGroupId,
+                                                                                 Action<OrganizationGroup.Builder>             UpdateDelegate,
+                                                                                 Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                                 EventTracking_Id?                             EventTrackingId   = null,
+                                                                                 User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroupId.IsNullOrEmpty)
@@ -27935,7 +26627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(UpdateDelegate),
                                                 "The given update delegate must not be null!");
 
-            if (!organizationGroups.TryGetValue(OrganizationGroupId, out OrganizationGroup OldOrganizationGroup))
+            if (!organizationGroups.TryGetValue(OrganizationGroupId, out var OldOrganizationGroup))
                 throw new ArgumentException    ("The given organization group '" + OrganizationGroupId + "' does not exists in this API!",
                                                 nameof(OrganizationGroupId));
 
@@ -27951,17 +26643,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       eventTrackingId,
                                       CurrentUserId);
 
-            organizationGroups.Remove(OldOrganizationGroup.Id);
+            organizationGroups.TryRemove(OldOrganizationGroup.Id, out _);
             NewOrganizationGroup.CopyAllLinkedDataFrom(OldOrganizationGroup);
 
 
             var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
             if (OnOrganizationGroupUpdatedLocal is not null)
-                await OnOrganizationGroupUpdatedLocal?.Invoke(Timestamp.Now,
-                                                              NewOrganizationGroup,
-                                                              OldOrganizationGroup,
-                                                              eventTrackingId,
-                                                              CurrentUserId);
+                await OnOrganizationGroupUpdatedLocal.Invoke(Timestamp.Now,
+                                                             NewOrganizationGroup,
+                                                             OldOrganizationGroup,
+                                                             eventTrackingId,
+                                                             CurrentUserId);
 
             await SendNotifications(NewOrganizationGroup,
                                     updateOrganizationGroup_MessageType,
@@ -27988,11 +26680,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OnUpdated">A delegate run whenever the organization group has been updated successfully.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<OrganizationGroup> UpdateOrganizationGroup(OrganizationGroup_Id                         OrganizationGroupId,
-                                                                     Action<OrganizationGroup.Builder>            UpdateDelegate,
-                                                                     Action<OrganizationGroup, EventTracking_Id>  OnUpdated         = null,
-                                                                     EventTracking_Id?                            EventTrackingId   = null,
-                                                                     User_Id?                                     CurrentUserId     = null)
+        public async Task<OrganizationGroup> UpdateOrganizationGroup(OrganizationGroup_Id                          OrganizationGroupId,
+                                                                     Action<OrganizationGroup.Builder>             UpdateDelegate,
+                                                                     Action<OrganizationGroup, EventTracking_Id>?  OnUpdated         = null,
+                                                                     EventTracking_Id?                             EventTrackingId   = null,
+                                                                     User_Id?                                      CurrentUserId     = null)
         {
 
             if (OrganizationGroupId.IsNullOrEmpty)
@@ -28003,13 +26695,188 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
 
-                            ? await _UpdateOrganizationGroup(OrganizationGroupId,
+                            ? await updateOrganizationGroup(OrganizationGroupId,
                                                              UpdateDelegate,
                                                              OnUpdated,
                                                              EventTrackingId,
                                                              CurrentUserId)
 
                             : null;
+
+            }
+            finally
+            {
+                try
+                {
+                    OrganizationGroupsSemaphore.Release();
+                }
+                catch
+                { }
+            }
+
+        }
+
+        #endregion
+
+        #endregion
+
+        #region DeleteOrganizationGroup(OrganizationGroup, OnRemoved = null, ...)
+
+        /// <summary>
+        /// A delegate called whenever a organization group was removed.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp when the organization group was removed.</param>
+        /// <param name="OrganizationGroup">The removed organization group.</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">The invoking organization group identification</param>
+        public delegate Task OnOrganizationGroupRemovedDelegate(DateTime           Timestamp,
+                                                                OrganizationGroup  OrganizationGroup,
+                                                                EventTracking_Id?  EventTrackingId   = null,
+                                                                User_Id?           CurrentUserId     = null);
+
+        /// <summary>
+        /// An event fired whenever a organization group was removed.
+        /// </summary>
+        public event OnOrganizationGroupRemovedDelegate? OnOrganizationGroupRemoved;
+
+
+        #region (protected internal virtual) canDeleteOrganizationGroup(OrganizationGroup)
+
+        /// <summary>
+        /// Determines whether the organization group can safely be removed from the API.
+        /// </summary>
+        /// <param name="OrganizationGroup">The organization group to be removed.</param>
+        protected internal virtual I18NString canDeleteOrganizationGroup(OrganizationGroup OrganizationGroup)
+        {
+            return new I18NString(Languages.en, "Currently not possible!");
+        }
+
+        #endregion
+
+        #region (protected internal) deleteOrganizationGroup(OrganizationGroup, OnRemoved = null, ...)
+
+        /// <summary>
+        /// Remove the given organization group from the API.
+        /// </summary>
+        /// <param name="OrganizationGroup">The organization group to be removed from this API.</param>
+        /// <param name="OnRemoved">A delegate run whenever the organization group has been removed successfully.</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
+        protected internal async Task<DeleteOrganizationGroupResult>
+
+            deleteOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                    Action<OrganizationGroup, EventTracking_Id>?  OnRemoved         = null,
+                                    EventTracking_Id?                             EventTrackingId   = null,
+                                    User_Id?                                      CurrentUserId     = null)
+
+        {
+
+            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
+            if (OrganizationGroup is null)
+                throw new ArgumentNullException(nameof(OrganizationGroup),
+                                                "The given organization group must not be null!");
+
+            if (OrganizationGroup.API != this || !organizationGroups.TryGetValue(OrganizationGroup.Id, out var OrganizationGroupToBeRemoved))
+                throw new ArgumentException    ("The given organization group '" + OrganizationGroup.Id + "' does not exists in this API!",
+                                                nameof(OrganizationGroup));
+
+
+            var veto = canDeleteOrganizationGroup(OrganizationGroup);
+
+            if (veto is null)
+            {
+
+                await WriteToDatabaseFile(removeOrganizationGroup_MessageType,
+                                          OrganizationGroup.ToJSON(false),
+                                          eventTrackingId,
+                                          CurrentUserId);
+
+                organizationGroups.TryRemove(OrganizationGroup.Id, out _);
+
+
+                var OnOrganizationGroupRemovedLocal = OnOrganizationGroupRemoved;
+                if (OnOrganizationGroupRemovedLocal is not null)
+                    await OnOrganizationGroupRemovedLocal.Invoke(Timestamp.Now,
+                                                                 OrganizationGroup,
+                                                                 eventTrackingId,
+                                                                 CurrentUserId);
+
+                await SendNotifications(OrganizationGroup,
+                                        removeOrganizationGroup_MessageType,
+                                        null,
+                                        eventTrackingId,
+                                        CurrentUserId);
+
+                OnRemoved?.Invoke(OrganizationGroup,
+                                  eventTrackingId);
+
+                return DeleteOrganizationGroupResult.Success(OrganizationGroup,
+                                                             eventTrackingId);
+
+            }
+            else
+                return DeleteOrganizationGroupResult.CanNotBeRemoved(
+                           OrganizationGroup,
+                           eventTrackingId,
+                           SystemId,
+                           this,
+                           veto
+                       );
+
+        }
+
+        #endregion
+
+        #region DeleteOrganizationGroup(OrganizationGroup, OnRemoved = null, ...)
+
+        /// <summary>
+        /// Delete the given organization group from the API.
+        /// </summary>
+        /// <param name="OrganizationGroup">The organization group to be removed from this API.</param>
+        /// <param name="OnRemoved">A delegate run whenever the organization group has been removed successfully.</param>
+        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
+        public async Task<DeleteOrganizationGroupResult>
+
+            DeleteOrganizationGroup(OrganizationGroup                             OrganizationGroup,
+                                    Action<OrganizationGroup, EventTracking_Id>?  OnRemoved         = null,
+                                    EventTracking_Id?                             EventTrackingId   = null,
+                                    User_Id?                                      CurrentUserId     = null)
+
+        {
+
+            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+
+            try
+            {
+
+                return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
+
+                            ? await deleteOrganizationGroup(OrganizationGroup,
+                                                             OnRemoved,
+                                                             eventTrackingId,
+                                                             CurrentUserId)
+
+                            : DeleteOrganizationGroupResult.LockTimeout(
+                                  OrganizationGroup,
+                                  SemaphoreSlimTimeout,
+                                  eventTrackingId,
+                                  SystemId,
+                                  this
+                              );
+
+            }
+            catch (Exception e)
+            {
+
+                return DeleteOrganizationGroupResult.Error(
+                           OrganizationGroup,
+                           e,
+                           eventTrackingId,
+                           SystemId,
+                           this
+                       );
 
             }
             finally
@@ -28312,182 +27179,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region RemoveOrganizationGroup(OrganizationGroup, OnRemoved = null, ...)
-
-        /// <summary>
-        /// A delegate called whenever a organization group was removed.
-        /// </summary>
-        /// <param name="Timestamp">The timestamp when the organization group was removed.</param>
-        /// <param name="OrganizationGroup">The removed organization group.</param>
-        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="CurrentUserId">The invoking organization group identification</param>
-        public delegate Task OnOrganizationGroupRemovedDelegate(DateTime           Timestamp,
-                                                                OrganizationGroup  OrganizationGroup,
-                                                                EventTracking_Id?  EventTrackingId   = null,
-                                                                User_Id?           CurrentUserId     = null);
-
-        /// <summary>
-        /// An event fired whenever a organization group was removed.
-        /// </summary>
-        public event OnOrganizationGroupRemovedDelegate OnOrganizationGroupRemoved;
-
-
-        #region (protected internal virtual) CanDeleteOrganizationGroup(OrganizationGroup)
-
-        /// <summary>
-        /// Determines whether the organization group can safely be removed from the API.
-        /// </summary>
-        /// <param name="OrganizationGroup">The organization group to be removed.</param>
-        protected internal virtual I18NString CanDeleteOrganizationGroup(OrganizationGroup OrganizationGroup)
-        {
-            return new I18NString(Languages.en, "Currently not possible!");
-        }
-
-        #endregion
-
-        #region (protected internal) _RemoveOrganizationGroup(OrganizationGroup, OnRemoved = null, ...)
-
-        /// <summary>
-        /// Remove the given organization group from the API.
-        /// </summary>
-        /// <param name="OrganizationGroup">The organization group to be removed from this API.</param>
-        /// <param name="OnRemoved">A delegate run whenever the organization group has been removed successfully.</param>
-        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        protected internal async Task<DeleteOrganizationGroupResult>
-
-            _RemoveOrganizationGroup(OrganizationGroup                             OrganizationGroup,
-                                     Action<OrganizationGroup, EventTracking_Id>?  OnRemoved         = null,
-                                     EventTracking_Id?                             EventTrackingId   = null,
-                                     User_Id?                                      CurrentUserId     = null)
-
-        {
-
-            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
-
-            if (OrganizationGroup is null)
-                throw new ArgumentNullException(nameof(OrganizationGroup),
-                                                "The given organization group must not be null!");
-
-            if (OrganizationGroup.API != this || !organizationGroups.TryGetValue(OrganizationGroup.Id, out var OrganizationGroupToBeRemoved))
-                throw new ArgumentException    ("The given organization group '" + OrganizationGroup.Id + "' does not exists in this API!",
-                                                nameof(OrganizationGroup));
-
-
-            var veto = CanDeleteOrganizationGroup(OrganizationGroup);
-
-            if (veto is null)
-            {
-
-                await WriteToDatabaseFile(removeOrganizationGroup_MessageType,
-                                          OrganizationGroup.ToJSON(false),
-                                          eventTrackingId,
-                                          CurrentUserId);
-
-                organizationGroups.Remove(OrganizationGroup.Id);
-
-
-                var OnOrganizationGroupRemovedLocal = OnOrganizationGroupRemoved;
-                if (OnOrganizationGroupRemovedLocal is not null)
-                    await OnOrganizationGroupRemovedLocal.Invoke(Timestamp.Now,
-                                                                 OrganizationGroup,
-                                                                 eventTrackingId,
-                                                                 CurrentUserId);
-
-                await SendNotifications(OrganizationGroup,
-                                        removeOrganizationGroup_MessageType,
-                                        null,
-                                        eventTrackingId,
-                                        CurrentUserId);
-
-                OnRemoved?.Invoke(OrganizationGroup,
-                                  eventTrackingId);
-
-                return DeleteOrganizationGroupResult.Success(OrganizationGroup,
-                                                             eventTrackingId);
-
-            }
-            else
-                return DeleteOrganizationGroupResult.CanNotBeRemoved(
-                           OrganizationGroup,
-                           eventTrackingId,
-                           SystemId,
-                           this,
-                           veto
-                       );
-
-        }
-
-        #endregion
-
-        #region RemoveOrganizationGroup(OrganizationGroup, OnRemoved = null, ...)
-
-        /// <summary>
-        /// Remove the given organization group from the API.
-        /// </summary>
-        /// <param name="OrganizationGroup">The organization group to be removed from this API.</param>
-        /// <param name="OnRemoved">A delegate run whenever the organization group has been removed successfully.</param>
-        /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="CurrentUserId">An optional organization group identification initiating this command/request.</param>
-        public async Task<DeleteOrganizationGroupResult>
-
-            RemoveOrganizationGroup(OrganizationGroup                             OrganizationGroup,
-                                    Action<OrganizationGroup, EventTracking_Id>?  OnRemoved         = null,
-                                    EventTracking_Id?                             EventTrackingId   = null,
-                                    User_Id?                                      CurrentUserId     = null)
-
-        {
-
-            var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
-
-            try
-            {
-
-                return (await OrganizationGroupsSemaphore.WaitAsync(SemaphoreSlimTimeout))
-
-                            ? await _RemoveOrganizationGroup(OrganizationGroup,
-                                                             OnRemoved,
-                                                             eventTrackingId,
-                                                             CurrentUserId)
-
-                            : DeleteOrganizationGroupResult.LockTimeout(
-                                  OrganizationGroup,
-                                  SemaphoreSlimTimeout,
-                                  eventTrackingId,
-                                  SystemId,
-                                  this
-                              );
-
-            }
-            catch (Exception e)
-            {
-
-                return DeleteOrganizationGroupResult.Error(
-                           OrganizationGroup,
-                           e,
-                           eventTrackingId,
-                           SystemId,
-                           this
-                       );
-
-            }
-            finally
-            {
-                try
-                {
-                    OrganizationGroupsSemaphore.Release();
-                }
-                catch
-                { }
-            }
-
-        }
-
-        #endregion
-
-        #endregion
-
         #endregion
 
         #region Users         <> UserGroups
@@ -28737,9 +27428,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _AddUserToUserGroup     (User, EdgeLabel, UserGroup, SuppressNotifications = false, CurrentUserId  = null)
+        #region (protected) addUserToUserGroup     (User, EdgeLabel, UserGroup, SuppressNotifications = false, CurrentUserId  = null)
 
-        protected async Task<AddUserToUserGroupResult> _AddUserToUserGroup(User                     User,
+        protected async Task<AddUserToUserGroupResult> addUserToUserGroup(User                     User,
                                                                            User2UserGroupEdgeLabel  EdgeLabel,
                                                                            UserGroup                UserGroup,
                                                                            EventTracking_Id?        EventTrackingId         = null,
@@ -28870,7 +27561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return await _AddUserToUserGroup(User,
+                        return await addUserToUserGroup(User,
                                                          EdgeLabel,
                                                          UserGroup,
                                                          eventTrackingId,
@@ -28922,9 +27613,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _RemoveUserFromUserGroup(User, EdgeLabel, UserGroup, SuppressNotifications = false, ...)
+        #region (protected) deleteUserFromUserGroup(User, EdgeLabel, UserGroup, SuppressNotifications = false, ...)
 
-        protected async Task<RemoveUserFromUserGroupResult> _RemoveUserFromUserGroup(User                     User,
+        protected async Task<RemoveUserFromUserGroupResult> deleteUserFromUserGroup(User                     User,
                                                                                      User2UserGroupEdgeLabel  EdgeLabel,
                                                                                      UserGroup                UserGroup,
                                                                                      EventTracking_Id?        EventTrackingId         = null,
@@ -29062,7 +27753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return await _RemoveUserFromUserGroup(User,
+                        return await deleteUserFromUserGroup(User,
                                                               EdgeLabel,
                                                               UserGroup,
                                                               EventTrackingId,
@@ -29114,9 +27805,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _RemoveUserFromUserGroup(User,            UserGroup, SuppressNotifications = false, ...)
+        #region (protected) deleteUserFromUserGroup(User,            UserGroup, SuppressNotifications = false, ...)
 
-        protected async Task<RemoveUserFromUserGroupResult> _RemoveUserFromUserGroup(User              User,
+        protected async Task<RemoveUserFromUserGroupResult> deleteUserFromUserGroup(User              User,
                                                                                      UserGroup         UserGroup,
                                                                                      EventTracking_Id? EventTrackingId         = null,
                                                                                      Boolean           SuppressNotifications   = false,
@@ -29234,7 +27925,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return await _RemoveUserFromUserGroup(User,
+                        return await deleteUserFromUserGroup(User,
                                                               UserGroup,
                                                               EventTrackingId,
                                                               SuppressNotifications:  false,
@@ -29336,14 +28027,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region CanImpersonate(Astronaut, Member, RequestedAccessLevel = Access_Levels.ReadWrite)
+        #region CanImpersonate(SuperUser, Member, RequestedAccessLevel = Access_Levels.ReadWrite)
 
-        public Boolean CanImpersonate(IUser          Astronaut,
+        public Boolean CanImpersonate(IUser          SuperUser,
                                       IUser          Member,
                                       Access_Levels  RequestedAccessLevel = Access_Levels.ReadWrite)
         {
 
-            if (Astronaut == Member)
+            if (SuperUser == Member)
                 return false;
 
             var adminOrganization = GetOrganization(AdminOrganizationId);
@@ -29356,11 +28047,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
 
             // API admins can impersonate everyone!
-            if (Astronaut.HasAccessToOrganization(Access_Levels.Admin, AdminOrganizationId))
+            if (SuperUser.HasAccessToOrganization(Access_Levels.Admin, AdminOrganizationId))
                 return true;
 
             // An astronaut must be at least an admin of some parent organization!
-            if (!Astronaut.User2Organization_OutEdges.Any(edge => edge.EdgeLabel == User2OrganizationEdgeLabel.IsAdmin))
+            if (!SuperUser.User2Organization_OutEdges.Any(edge => edge.EdgeLabel == User2OrganizationEdgeLabel.IsAdmin))
                 return false;
 
             var VetoUsers             = new HashSet<IUser>();
@@ -29368,7 +28059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var CurrentOrganizations  = new HashSet<IOrganization>(Organizations.Where(org => !org.Organization2OrganizationOutEdges.
                                                                                                    Any(edge => edge.EdgeLabel == Organization2OrganizationEdgeLabel.IsChildOf)));
 
-            var childResults = CurrentOrganizations.Select(org => CheckImpersonate(org, Astronaut, AstronautFound, Member, VetoUsers)).ToArray();
+            var childResults = CurrentOrganizations.Select(org => CheckImpersonate(org, SuperUser, AstronautFound, Member, VetoUsers)).ToArray();
 
             return childResults.Any(result => result == true);
 
@@ -29673,11 +28364,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _AddUserToOrganization     (User, EdgeLabel, Organization, SuppressNotifications = false, CurrentUserId  = null)
+        #region (protected) addUserToOrganization     (User, EdgeLabel, Organization, SuppressNotifications = false, CurrentUserId  = null)
 
         protected async Task<AddUserToOrganizationResult>
 
-            _AddUserToOrganization(IUser                       User,
+            addUserToOrganization(IUser                       User,
                                    User2OrganizationEdgeLabel  EdgeLabel,
                                    IOrganization               Organization,
                                    EventTracking_Id?           EventTrackingId         = null,
@@ -29730,7 +28421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  nameof(Organization),
                                                                  "The given organization must not be null!");
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return AddUserToOrganizationResult.ArgumentError(User,
                                                                  EdgeLabel,
                                                                  Organization,
@@ -29812,7 +28503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return await _AddUserToOrganization(User,
+                        return await addUserToOrganization(User,
                                                             EdgeLabel,
                                                             Organization,
                                                             eventTrackingId,
@@ -29864,11 +28555,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _RemoveUserFromOrganization(User, EdgeLabel, Organization, SuppressNotifications = false, ...)
+        #region (protected) deleteUserFromOrganization(User, EdgeLabel, Organization, SuppressNotifications = false, ...)
 
         protected async Task<RemoveUserFromOrganizationResult>
 
-            _RemoveUserFromOrganization(IUser                       User,
+            deleteUserFromOrganization(IUser                       User,
                                         User2OrganizationEdgeLabel  EdgeLabel,
                                         IOrganization               Organization,
                                         EventTracking_Id?           EventTrackingId         = null,
@@ -29921,7 +28612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(Organization),
                                                                       "The given organization must not be null!");
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       EdgeLabel,
                                                                       Organization,
@@ -30010,7 +28701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return await _RemoveUserFromOrganization(User,
+                        return await deleteUserFromOrganization(User,
                                                                  EdgeLabel,
                                                                  Organization,
                                                                  EventTrackingId,
@@ -30062,11 +28753,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected) _RemoveUserFromOrganization(User,            Organization, SuppressNotifications = false, ...)
+        #region (protected) deleteUserFromOrganization(User,            Organization, SuppressNotifications = false, ...)
 
         protected async Task<RemoveUserFromOrganizationResult>
 
-            _RemoveUserFromOrganization(IUser              User,
+            deleteUserFromOrganization(IUser              User,
                                         IOrganization      Organization,
                                         EventTracking_Id?  EventTrackingId         = null,
                                         Boolean            SuppressNotifications   = false,
@@ -30097,7 +28788,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(Organization),
                                                                       "The given organization must not be null!");
 
-            if (Organization.API != null && Organization.API != this)
+            if (Organization.API is not null && Organization.API != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       Organization,
                                                                       eventTrackingId,
@@ -30181,7 +28872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        return await _RemoveUserFromOrganization(User,
+                        return await deleteUserFromOrganization(User,
                                                                  Organization,
                                                                  EventTrackingId,
                                                                  SuppressNotifications:  false,
@@ -30756,13 +29447,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DataLicenses
 
-        protected internal readonly Dictionary<OpenDataLicense_Id, OpenDataLicense> dataLicenses;
+        #region Data
+
+        /// <summary>
+        /// An enumeration of all data licenses.
+        /// </summary>
+        protected internal readonly ConcurrentDictionary<OpenDataLicense_Id, OpenDataLicense> dataLicenses = new ();
 
         /// <summary>
         /// Return an enumeration of all data licenses.
         /// </summary>
         public IEnumerable<OpenDataLicense> DataLicenses
             => dataLicenses.Values;
+
+        #endregion
 
 
         #region CreateDataLicense           (Id, Description, params URLs)
