@@ -109,16 +109,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static readonly SemaphoreSlim          LogfileLock  = new SemaphoreSlim(1,1);
 
         private        readonly Func<T, String>        DataSerializer;
-        private        readonly Func<String, T>        DataDeserializer;
+        private        readonly Func<String, T?>       DataDeserializer;
 
         #endregion
 
         #region Properties
 
         /// <summary>
+        /// The attached HTTP API.
+        /// </summary>
+        public HTTPAPI                          HTTPAPI                    { get; }
+
+        /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public HTTPEventSource_Id              EventIdentification        { get; }
+        public HTTPEventSource_Id               EventIdentification        { get; }
 
         /// <summary>
         /// Maximum number of cached events.
@@ -129,17 +134,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The retry intervall of this HTTP event.
         /// </summary>
-        public TimeSpan                        RetryIntervall             { get; set; }
+        public TimeSpan                         RetryIntervall             { get; set; }
 
         /// <summary>
         /// The path to the log file.
         /// </summary>
-        public String                          LogfilePath                { get; }
+        public String                           LogfilePath                { get; }
 
         /// <summary>
         /// The delegate to create a filename for storing and reloading events.
         /// </summary>
-        public Func<String, DateTime, String>  LogfileName                { get; }
+        public Func<String, DateTime, String>?  LogfileName                { get; }
 
         #endregion
 
@@ -161,13 +166,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                UInt64                           MaxNumberOfCachedEvents      = 500,
                                TimeSpan?                        RetryIntervall               = null,
                                Func<T, String>?                 DataSerializer               = null,
-                               Func<String, T>?                 DataDeserializer             = null,
+                               Func<String, T?>?                DataDeserializer             = null,
                                Boolean                          EnableLogging                = true,
                                String?                          LogfilePath                  = null,
                                Func<String, DateTime, String>?  LogfileName                  = null,
                                String?                          LogfileReloadSearchPattern   = null)
         {
 
+            this.HTTPAPI              = HTTPAPI;
             this.EventIdentification  = EventIdentification;
             this.QueueOfEvents        = new TSQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
             this.RetryIntervall       = RetryIntervall   ?? TimeSpan.FromSeconds(30);
@@ -185,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (LogfileReloadSearchPattern != null)
                 {
 
-                    var HTTPSSEs = new List<String[]>();
+                    var httpSSEs = new List<String[]>();
 
                     foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
                                                                          LogfileReloadSearchPattern,
@@ -200,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Where  (line => line.IsNotNullOrEmpty() &&
                                             !line.StartsWith("//")   &&
                                             !line.StartsWith("#")).
-                             Take   ((Int64) MaxNumberOfCachedEvents - HTTPSSEs.Count).
+                             Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
                              Select (line => line.Split(RS)).
                              ForEach(line => {
 
@@ -209,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      line[0].IsNotNullOrEmpty() &&
                                                      line[2].IsNotNullOrEmpty())
                                                  {
-                                                     HTTPSSEs.Add(line);
+                                                     httpSSEs.Add(line);
                                                  }
 
                                                  else
@@ -217,14 +223,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              });
 
-                        if (HTTPSSEs.ULongCount() >= MaxNumberOfCachedEvents)
+                        if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
                             break;
 
                     }
 
-                    HTTPSSEs.Reverse();
+                    httpSSEs.Reverse();
 
-                    HTTPSSEs.ForEach(line => {
+                    httpSSEs.ForEach(line => {
 
                                          try
                                          {
@@ -256,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Write new data to logfile(s)...
 
-                if (LogfileName != null)
+                if (LogfileName is not null)
                 {
 
                     // Note: Do not attach this event handler before the data

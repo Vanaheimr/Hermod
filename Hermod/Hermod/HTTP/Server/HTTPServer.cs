@@ -1028,8 +1028,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static readonly  IPPort           DefaultHTTPServerPort   = IPPort.HTTP;
 
-        private readonly        Dictionary<HTTPHostname,       HostnameNode>      hostnameNodes;
-        private readonly        Dictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources;
+        private readonly        ConcurrentDictionary<HTTPHostname,       HostnameNode>      hostnameNodes;
+        private readonly        ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources;
 
         private const    UInt32 ReadTimeout           = 180000U;
 
@@ -1142,8 +1142,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.DefaultServerName  = DefaultServerName ?? DefaultHTTPServerName;
-            this.hostnameNodes      = new Dictionary<HTTPHostname,       HostnameNode>();
-            this.eventSources       = new Dictionary<HTTPEventSource_Id, IHTTPEventSource>();
+            this.hostnameNodes      = new ConcurrentDictionary<HTTPHostname,       HostnameNode>();
+            this.eventSources       = new ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>();
 
             AttachTCPPort(HTTPPort ?? (ServerCertificateSelector is null
                                            ? IPPort.HTTP
@@ -2795,34 +2795,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (hostnameNodes)
-            {
+            if (eventSources.ContainsKey(EventIdentification))
+                throw new ArgumentException("Duplicate event identification!");
 
-                if (eventSources.ContainsKey(EventIdentification))
-                    throw new ArgumentException("Duplicate event identification!");
+            var eventSource = new HTTPEventSource<T>(
+                                  EventIdentification,
+                                  HTTPAPI,
+                                  MaxNumberOfCachedEvents,
+                                  RetryIntervall,
+                                  DataSerializer,
+                                  DataDeserializer,
+                                  EnableLogging,
+                                  LogfilePath,
+                                  EnableLogging || LogfileName is not null
+                                      ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
+                                                                                         eventid, "_",
+                                                                                         time.Year, "-", time.Month.ToString("D2"),
+                                                                                         ".log"))
+                                      : null,
+                                  LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log")
+                              );
 
-                var eventSource = new HTTPEventSource<T>(EventIdentification,
-                                                         HTTPAPI,
-                                                         MaxNumberOfCachedEvents,
-                                                         RetryIntervall,
-                                                         DataSerializer,
-                                                         DataDeserializer,
-                                                         EnableLogging,
-                                                         LogfilePath,
-                                                         EnableLogging || LogfileName is not null
-                                                             ? LogfileName ?? ((eventid, time) => String.Concat(LogfilePrefix ?? "",
-                                                                                                                eventid, "_",
-                                                                                                                time.Year, "-", time.Month.ToString("D2"),
-                                                                                                                ".log"))
-                                                             : null,
-                                                         LogfileReloadSearchPattern ?? String.Concat(LogfilePrefix ?? "", EventIdentification, "_*.log"));
+            eventSources.TryAdd(EventIdentification,
+                                eventSource);
 
-                eventSources.Add(EventIdentification,
-                                 eventSource);
-
-                return eventSource;
-
-            }
+            return eventSource;
 
         }
 
@@ -2880,69 +2877,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (eventSources)
-            {
+            var eventSource = AddEventSource(
+                                  EventIdentification,
+                                  HTTPAPI,
+                                  MaxNumberOfCachedEvents,
+                                  RetryIntervall,
+                                  DataSerializer,
+                                  DataDeserializer,
+                                  EnableLogging,
+                                  LogfilePath,
+                                  LogfilePrefix,
+                                  LogfileName,
+                                  LogfileReloadSearchPattern
+                              );
 
-                var eventSource = AddEventSource(EventIdentification,
-                                                 HTTPAPI,
-                                                 MaxNumberOfCachedEvents,
-                                                 RetryIntervall,
-                                                 DataSerializer,
-                                                 DataDeserializer,
-                                                 EnableLogging,
-                                                 LogfilePath,
-                                                 LogfilePrefix,
-                                                 LogfileName,
-                                                 LogfileReloadSearchPattern);
+            IncludeFilterAtRuntime ??= httpEvent => true;
 
-                if (IncludeFilterAtRuntime is null)
-                    IncludeFilterAtRuntime = httpEvent => true;
+            AddHandler(HTTPAPI,
+                       request => {
 
-                AddHandler(HTTPAPI,
-                           request => {
-
-                              var _HTTPEvents = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                            Where(IncludeFilterAtRuntime).
-                                                            Aggregate(new StringBuilder(),
-                                                                      (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
-                                                                                                                  AppendLine(httpEvent.SerializedData).
-                                                                                                                  AppendLine()).
-                                                            Append(Environment.NewLine).
-                                                            Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
-                                                            Append(Environment.NewLine).
-                                                            Append(Environment.NewLine).
-                                                            ToString();
+                           var httpEvents = eventSource.GetAllEventsGreater(request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+                                                        Where(IncludeFilterAtRuntime).
+                                                        Aggregate(new StringBuilder(),
+                                                                  (stringBuilder, httpEvent) => stringBuilder.Append    (httpEvent.SerializedHeader).
+                                                                                                              AppendLine(httpEvent.SerializedData).
+                                                                                                              AppendLine()).
+                                                        Append(Environment.NewLine).
+                                                        Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                        Append(Environment.NewLine).
+                                                        Append(Environment.NewLine).
+                                                        ToString();
 
 
-                               return Task.FromResult(
-                                   new HTTPResponse.Builder(request) {
-                                       HTTPStatusCode  = HTTPStatusCode.OK,
-                                       Server          = HTTPServer.DefaultHTTPServerName,
-                                       ContentType     = HTTPContentType.EVENTSTREAM,
-                                       CacheControl    = "no-cache",
-                                       Connection      = "keep-alive",
-                                       KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
-                                       Content         = _HTTPEvents.ToUTF8Bytes()
-                                   }.AsImmutable);
+                           return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.OK,
+                                   Server          = HTTPServer.DefaultHTTPServerName,
+                                   ContentType     = HTTPContentType.EVENTSTREAM,
+                                   CacheControl    = "no-cache",
+                                   Connection      = "keep-alive",
+                                   KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                   Content         = httpEvents.ToUTF8Bytes()
+                               }.AsImmutable);
 
-                           },
-                           Hostname,
-                           URLTemplate,
-                           HttpMethod      ?? HTTPMethod.GET,
-                           HTTPContentType ?? HTTPContentType.EVENTSTREAM,
+                       },
+                       Hostname,
+                       URLTemplate,
+                       HttpMethod      ?? HTTPMethod.GET,
+                       HTTPContentType ?? HTTPContentType.EVENTSTREAM,
 
-                           URLAuthentication,
-                           HTTPMethodAuthentication,
-                           null,
+                       URLAuthentication,
+                       HTTPMethodAuthentication,
+                       null,
 
-                           null,
-                           null,
+                       null,
+                       null,
 
-                           DefaultErrorHandler);
+                       DefaultErrorHandler);
 
-                return eventSource;
-
-            }
+            return eventSource;
 
         }
 
@@ -2955,14 +2948,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource Get(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
         {
 
             lock (eventSources)
             {
 
-                if (eventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
-                    return _HTTPEventSource;
+                if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                    return httpEventSource;
 
                 return null;
 
@@ -2975,14 +2968,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the event source identified by the given event source identification.
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
-        public IHTTPEventSource<TData> Get<TData>(HTTPEventSource_Id EventSourceIdentification)
+        public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
         {
 
             lock (eventSources)
             {
 
-                if (eventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource _HTTPEventSource))
-                    return _HTTPEventSource as IHTTPEventSource<TData>;
+                if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                    return httpEventSource as IHTTPEventSource<TData>;
 
                 return null;
 
@@ -2999,15 +2992,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource EventSource)
-        {
+        public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
 
-            lock (eventSources)
-            {
-                return eventSources.TryGetValue(EventSourceIdentification, out EventSource);
-            }
-
-        }
+            => eventSources.TryGetValue(EventSourceIdentification,
+                                        out EventSource);
 
 
         /// <summary>
@@ -3015,22 +3003,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventSourceIdentification">A string to identify an event source.</param>
         /// <param name="EventSource">The event source.</param>
-        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData> EventSource)
+        public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
         {
 
-            lock (eventSources)
+            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource))
             {
-
-                if (eventSources.TryGetValue(EventSourceIdentification, out IHTTPEventSource eventSource))
-                {
-                    EventSource = eventSource as IHTTPEventSource<TData>;
-                    return EventSource != null;
-                }
-
-                EventSource = null;
-                return false;
-
+                EventSource = eventSource as IHTTPEventSource<TData>;
+                return EventSource is not null;
             }
+
+            EventSource = null;
+            return false;
 
         }
 
@@ -3043,18 +3026,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
         public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
-        {
 
-            lock (hostnameNodes)
-            {
+            => eventSources.Values.Where(IncludeEventSource ?? (eventSource => true));
 
-                IncludeEventSource ??= eventSource => true;
-
-                return eventSources.Values.Where(IncludeEventSource);
-
-            }
-
-        }
 
 
         /// <summary>
@@ -3064,26 +3038,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
         {
 
-            lock (hostnameNodes)
+            var filteredEventSources = new List<IHTTPEventSource<TData>>();
+
+            foreach (var eventSource in eventSources.Values.
+                                            Where (IncludeEventSource ?? (eventSource => true)).
+                                            Select(eventSource => eventSource as IHTTPEventSource<TData>))
             {
 
-                IncludeEventSource ??= eventSource => true;
-
-                var filteredEventSources = new List<IHTTPEventSource<TData>>();
-
-                foreach (var eventSource in eventSources.Values.
-                                                Where (IncludeEventSource).
-                                                Select(eventSource => eventSource as IHTTPEventSource<TData>))
-                {
-
-                    if (eventSource is not null)
-                        filteredEventSources.Add(eventSource);
-
-                }
-
-                return filteredEventSources;
+                if (eventSource is not null)
+                    filteredEventSources.Add(eventSource);
 
             }
+
+            return filteredEventSources;
 
         }
 
