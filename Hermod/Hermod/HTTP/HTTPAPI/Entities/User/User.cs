@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default JSON-LD context of users.
         /// </summary>
-        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/user");
+        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/user");
 
         #endregion
 
@@ -1076,17 +1076,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse Name             [mandatory]
 
-                if (!JSONObject.ParseMandatoryText("name",
-                                                   "Username",
-                                                   out String Name,
-                                                   out ErrorResponse))
+                if (!JSONObject.ParseMandatory("name",
+                                               "Username",
+                                               out I18NString Name,
+                                               out ErrorResponse))
                 {
                     return false;
                 }
 
-                if (Name.Length < MinUserNameLength)
+                if (Name.FirstText().Length < MinUserNameLength)
                 {
-                    ErrorResponse = "The given user name '" + Name + "' is too short!";
+                    ErrorResponse = "The given user name '" + Name.FirstText() + "' is too short!";
                     return false;
                 }
 
@@ -1302,7 +1302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 User = new User(
                            userId,
-                           Name.ToI18NString(),
+                           Name,
                            EMail,
                            Description,
                            PublicKeyRing,
@@ -1381,13 +1381,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    null,
                                    new JProperty?[] {
 
-                                       new JProperty("name",                   Name),
+                                             new JProperty("name",             Name.                      ToJSON()),
 
                                        Description.IsNotNullOrEmpty()
-                                           ? new JProperty("description",      Description.ToJSON())
+                                           ? new JProperty("description",      Description.               ToJSON())
                                            : null,
 
-                                       new JProperty("email",                  EMail.Address.ToString()),
+                                       new JProperty("email",                  EMail.Address.             ToString()),
 
                                        PublicKeyRing is not null
                                            ? new JProperty("publicKeyRing",    PublicKeyRing.GetEncoded().ToHexString())
@@ -1397,18 +1397,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            ? new JProperty("secretKeyRing",    SecretKeyRing.GetEncoded().ToHexString())
                                            : null,
 
-                                       new JProperty("language",               UserLanguage.AsText()),
+                                       new JProperty("language",               UserLanguage.              AsText()),
 
                                        Telephone.HasValue
-                                           ? new JProperty("telephone",        Telephone.ToString())
+                                           ? new JProperty("telephone",        Telephone.                 ToString())
                                            : null,
 
                                        MobilePhone.HasValue
-                                           ? new JProperty("mobilePhone",      MobilePhone.ToString())
+                                           ? new JProperty("mobilePhone",      MobilePhone.               ToString())
                                            : null,
 
                                        Use2AuthFactor != Use2AuthFactor.None
-                                           ? new JProperty("use2AuthFactor",   Use2AuthFactor.ToString())
+                                           ? new JProperty("use2AuthFactor",   Use2AuthFactor.            ToString())
                                            : null,
 
                                        Telegram.IsNotNullOrEmpty()
@@ -1416,13 +1416,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            : null,
 
                                        Homepage is not null && Homepage.IsNotNullOrEmpty()
-                                           ? new JProperty("homepage",         Homepage.ToString())
+                                           ? new JProperty("homepage",         Homepage.                  ToString())
                                            : null,
 
-                                       PrivacyLevel.ToJSON(),
+                                       PrivacyLevel.                                                      ToJSON(),
 
                                        AcceptedEULA.HasValue
-                                           ? new JProperty("acceptedEULA",     AcceptedEULA.Value.ToIso8601())
+                                           ? new JProperty("acceptedEULA",     AcceptedEULA.Value.        ToIso8601())
                                            : null,
 
                                        new JProperty("isAuthenticated",        IsAuthenticated),
@@ -1488,9 +1488,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CopyAllLinkedDataFrom(OldUser)
 
         public void CopyAllLinkedDataFrom(IUser OldUser)
-            => CopyAllLinkedDataFrom(OldUser as User);
+            => CopyAllLinkedDataFromBase(OldUser as User);
 
-        public override void CopyAllLinkedDataFrom(User OldUser)
+        public override void CopyAllLinkedDataFromBase(User OldUser)
         {
 
             if (OldUser.__User2UserEdges.Any() && !__User2UserEdges.Any())
@@ -2543,9 +2543,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region CopyAllLinkedDataFrom(OldUser)
 
             public void CopyAllLinkedDataFrom(IUser OldUser)
-                => CopyAllLinkedDataFrom(OldUser as User);
+                => CopyAllLinkedDataFromBase(OldUser as User);
 
-            public override void CopyAllLinkedDataFrom(User OldUser)
+            public override void CopyAllLinkedDataFromBase(User OldUser)
             {
 
                 if (OldUser.__User2UserEdges.Any() && !__User2UserEdges.Any())

@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         User2UserGroupEdge AddUser(User2UserGroupEdgeLabel EdgeLabel, IUser Source, PrivacyLevel PrivacyLevel = PrivacyLevel.Private);
         UserGroup AddUsers(IEnumerable<User2UserGroupEdge> Edges);
         //int CompareTo(UserGroup UserGroup);
-        void CopyAllLinkedDataFrom(IUserGroup OldGroup);
+        void CopyAllLinkedDataFromBase(IUserGroup OldGroup);
         IEnumerable<User2UserGroupEdgeLabel> EdgeLabels(IUser User);
         IEnumerable<UserGroup2UserGroupEdgeLabel> EdgeLabels(UserGroup UserGroup);
         IEnumerable<User2UserGroupEdge> Edges(IUser User);

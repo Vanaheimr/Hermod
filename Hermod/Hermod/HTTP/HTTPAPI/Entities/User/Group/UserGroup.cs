@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default JSON-LD context of user groups.
         /// </summary>
-        public new readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/userGroup");
+        public new readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/userGroup");
 
         #endregion
 
@@ -856,7 +856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CopyAllLinkedDataFrom(OldGroup)
 
-        public override void CopyAllLinkedDataFrom(IUserGroup OldGroup)
+        public override void CopyAllLinkedDataFromBase(IUserGroup OldGroup)
         {
 
             if (OldGroup.User2UserGroupEdges.Any() && !User2UserGroupEdges.Any())
@@ -1207,7 +1207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region CopyAllLinkedDataFrom(OldGroup)
 
-            public override void CopyAllLinkedDataFrom(IUserGroup OldGroup)
+            public override void CopyAllLinkedDataFromBase(IUserGroup OldGroup)
             {
 
                 //if (OldGroup._User2GroupEdges.Any() && !_User2GroupEdges.Any())

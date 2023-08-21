@@ -815,32 +815,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI       HTTPExtAPI,
-                                                               User_Id             Id,
-                                                               I18NString          Name,
-                                                               SimpleEMailAddress  EMail,
-                                                               Password?           Password                   = null,
-                                                               I18NString?         Description                = null,
-                                                               PgpPublicKeyRing?   PublicKeyRing              = null,
-                                                               PgpSecretKeyRing?   SecretKeyRing              = null,
-                                                               Languages           UserLanguage               = Languages.en,
-                                                               PhoneNumber?        Telephone                  = null,
-                                                               PhoneNumber?        MobilePhone                = null,
-                                                               Use2AuthFactor      Use2AuthFactor             = Use2AuthFactor.None,
-                                                               String?             Telegram                   = null,
-                                                               String?             Homepage                   = null,
-                                                               GeoCoordinate?      GeoLocation                = null,
-                                                               Address?            Address                    = null,
-                                                               Boolean             SkipDefaultNotifications   = false,
-                                                               Boolean             SkipNewUserEMail           = false,
-                                                               Boolean             SkipNewUserNotifications   = false,
-                                                               DateTime?           AcceptedEULA               = null,
-                                                               Boolean             IsAuthenticated            = false,
-                                                               Boolean             IsDisabled                 = false,
+        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI      HTTPExtAPI,
+                                                               User_Id              Id,
+                                                               I18NString           Name,
+                                                               SimpleEMailAddress   EMail,
+                                                               Password?            Password                   = null,
+                                                               I18NString?          Description                = null,
+                                                               PgpPublicKeyRing?    PublicKeyRing              = null,
+                                                               PgpSecretKeyRing?    SecretKeyRing              = null,
+                                                               Languages            UserLanguage               = Languages.en,
+                                                               PhoneNumber?         Telephone                  = null,
+                                                               PhoneNumber?         MobilePhone                = null,
+                                                               Use2AuthFactor       Use2AuthFactor             = Use2AuthFactor.None,
+                                                               String?              Telegram                   = null,
+                                                               String?              Homepage                   = null,
+                                                               GeoCoordinate?       GeoLocation                = null,
+                                                               Address?             Address                    = null,
+                                                               Boolean              SkipDefaultNotifications   = false,
+                                                               Boolean              SkipNewUserEMail           = false,
+                                                               Boolean              SkipNewUserNotifications   = false,
+                                                               DateTime?            AcceptedEULA               = null,
+                                                               Boolean              IsAuthenticated            = false,
+                                                               Boolean              IsDisabled                 = false,
 
-                                                               String              DataSource                 = "",
-                                                               EventTracking_Id?   EventTrackingId            = null,
-                                                               User_Id?            CurrentUserId              = null)
+                                                               String               DataSource                 = "",
+                                                               EventTracking_Id?    EventTrackingId            = null,
+                                                               User_Id?             CurrentUserId              = null)
         {
 
             var addUserResult = await HTTPExtAPI.AddUserIfNotExists(new User(
@@ -921,34 +921,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI               HTTPExtAPI,
-                                                               User_Id                     Id,
-                                                               I18NString                  Name,
-                                                               SimpleEMailAddress          EMail,
-                                                               User2OrganizationEdgeLabel  AccessRight,
-                                                               Organization                Organization,
-                                                               Password?                   Password                   = null,
-                                                               I18NString?                 Description                = null,
-                                                               PgpPublicKeyRing?           PublicKeyRing              = null,
-                                                               PgpSecretKeyRing?           SecretKeyRing              = null,
-                                                               Languages                   UserLanguage               = Languages.en,
-                                                               PhoneNumber?                Telephone                  = null,
-                                                               PhoneNumber?                MobilePhone                = null,
-                                                               Use2AuthFactor              Use2AuthFactor             = Use2AuthFactor.None,
-                                                               String?                     Telegram                   = null,
-                                                               String?                     Homepage                   = null,
-                                                               GeoCoordinate?              GeoLocation                = null,
-                                                               Address?                    Address                    = null,
-                                                               Boolean                     SkipDefaultNotifications   = false,
-                                                               Boolean                     SkipNewUserEMail           = false,
-                                                               Boolean                     SkipNewUserNotifications   = false,
-                                                               DateTime?                   AcceptedEULA               = null,
-                                                               Boolean                     IsAuthenticated            = false,
-                                                               Boolean                     IsDisabled                 = false,
+        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI              HTTPExtAPI,
+                                                               User_Id                      Id,
+                                                               I18NString                   Name,
+                                                               SimpleEMailAddress           EMail,
+                                                               User2OrganizationEdgeLabel   AccessRight,
+                                                               IOrganization                Organization,
+                                                               Password?                    Password                   = null,
+                                                               I18NString?                  Description                = null,
+                                                               PgpPublicKeyRing?            PublicKeyRing              = null,
+                                                               PgpSecretKeyRing?            SecretKeyRing              = null,
+                                                               Languages                    UserLanguage               = Languages.en,
+                                                               PhoneNumber?                 Telephone                  = null,
+                                                               PhoneNumber?                 MobilePhone                = null,
+                                                               Use2AuthFactor               Use2AuthFactor             = Use2AuthFactor.None,
+                                                               String?                      Telegram                   = null,
+                                                               String?                      Homepage                   = null,
+                                                               GeoCoordinate?               GeoLocation                = null,
+                                                               Address?                     Address                    = null,
+                                                               Boolean                      SkipDefaultNotifications   = false,
+                                                               Boolean                      SkipNewUserEMail           = false,
+                                                               Boolean                      SkipNewUserNotifications   = false,
+                                                               DateTime?                    AcceptedEULA               = null,
+                                                               Boolean                      IsAuthenticated            = false,
+                                                               Boolean                      IsDisabled                 = false,
 
-                                                               String                      DataSource                 = "",
-                                                               EventTracking_Id?           EventTrackingId            = null,
-                                                               User_Id?                    CurrentUserId              = null)
+                                                               String                       DataSource                 = "",
+                                                               EventTracking_Id?            EventTrackingId            = null,
+                                                               User_Id?                     CurrentUserId              = null)
         {
 
             var addUserResult = await HTTPExtAPI.AddUserIfNotExists(new User(
@@ -1065,7 +1065,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                Func<Tags.Builder, Tags>?  Tags                 = null,
                                                                                Boolean                    IsDisabled           = false,
 
-                                                                               Organization?              ParentOrganization   = null,
+                                                                               IOrganization?             ParentOrganization   = null,
 
                                                                                String                     DataSource           = "",
                                                                                EventTracking_Id?          EventTrackingId      = null,
@@ -2254,7 +2254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPI_DatabaseFileName);
 
-            this.HTTPAPIPath                  = this.LoggingPath + "HTTPExtAPI"     + Path.DirectorySeparatorChar;
+            this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
             this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
             this.SMTPLoggingPath                 = this.LoggingPath + "SMTPClient"     + Path.DirectorySeparatorChar;
 
@@ -2640,12 +2640,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A delegate for sending a sign-up e-mail to a new user.
         /// </summary>
-        public virtual EMail NewUserSignUpEMailCreator(IUser             User,
-                                                       EMailAddressList  EMailRecipients,
-                                                       SecurityToken_Id  SecurityToken,
-                                                       Boolean           Use2FactorAuth,
-                                                       Languages         Language,
-                                                       EventTracking_Id? EventTrackingId)
+        public virtual EMail NewUserSignUpEMailCreator(IUser              User,
+                                                       EMailAddressList   EMailRecipients,
+                                                       SecurityToken_Id   SecurityToken,
+                                                       Boolean            Use2FactorAuth,
+                                                       Languages          Language,
+                                                       EventTracking_Id?  EventTrackingId)
 
             =>  new HTMLEMailBuilder() {
 
@@ -5889,10 +5889,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Check JSON body...
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var loginDataJSON, out var httpResponseBuilder))
+                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out var httpResponseBuilder) || json is null)
                                       return httpResponseBuilder!;
 
-                                  if (!loginDataJSON.HasValues)
+                                  if (!json.HasValues)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
@@ -5932,13 +5932,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  loginDataJSON["username"] = login;
+                                  json["username"] = login;
 
                                   #endregion
 
                                   #region Verify password
 
-                                  var password = loginDataJSON.GetString("password") ?? "";
+                                  var password = json.GetString("password") ?? "";
 
                                   if (password.IsNullOrEmpty())
                                   {
@@ -5980,7 +5980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   }
 
-                                  loginDataJSON["passwordQuality"] = passwordQuality;
+                                  json["passwordQuality"] = passwordQuality;
 
                                   #endregion
 
@@ -6027,8 +6027,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   foreach (var possibleUser in possibleUsers)
                                   {
-                                      if (loginPasswords.TryGetValue(possibleUser.Id, out var _loginPassword) &&
-                                          _loginPassword.VerifyPassword(password))
+                                      if (loginPasswords.TryGetValue(possibleUser.Id, out loginPassword) &&
+                                          loginPassword.VerifyPassword(password))
                                       {
                                           validUsers.Add(possibleUser);
                                       }
@@ -6086,7 +6086,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region Check EULA
 
-                                  var acceptsEULA = loginDataJSON["acceptsEULA"]?.Value<Boolean>();
+                                  var acceptsEULA = json["acceptsEULA"]?.Value<Boolean>();
 
                                   if (!validUser.AcceptedEULA.HasValue)
                                   {
@@ -6131,17 +6131,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
 
-                                  lock (httpCookies)
-                                  {
+                                  httpCookies.TryAdd(securityTokenId,
+                                                     new SecurityToken(validUser.Id,
+                                                                       expires));
 
-                                      httpCookies.TryAdd(securityTokenId,
-                                                         new SecurityToken(validUser.Id,
-                                                                           expires));
-
-                                      File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                         securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
-
-                                  }
+                                  await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
+                                                                securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
 
                                   #endregion
 
@@ -6151,8 +6146,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              ContentType     = HTTPContentType.TEXT_UTF8,
                                              Content         = new JObject(
                                                                    new JProperty("@context",  SignInOutContext),
-                                                                   new JProperty("login",     validUser.Id.ToString()),
-                                                                   new JProperty("username",  validUser.Name),
+                                                                   new JProperty("login",     validUser.Id.           ToString()),
+                                                                   new JProperty("username",  validUser.Name.         ToJSON()),
                                                                    new JProperty("email",     validUser.EMail.Address.ToString())
                                                                ).ToUTF8Bytes(),
                                              CacheControl    = "private",
@@ -10028,7 +10023,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  ETag                       = "1",
                                                  ContentType                = HTTPContentType.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
-                                                                                  new JProperty("@context",  "https://opendata.social/contexts/HTTPExtAPI/newNotification"),
+                                                                                  new JProperty("@context",  "https://opendata.social/contexts/UsersAPI/newNotification"),
                                                                                   new JProperty("user",      JSONObject.Create(
 
                                                                                       new JProperty("name",  HTTPUser.EMail.OwnerName),
@@ -10661,17 +10656,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (DisableLogging)
                 return;
 
-            String databaseFileName = DatabaseFileName ?? this.DatabaseFileName;
+            #region Reloading database file
+
+            var databaseFileName = DatabaseFileName ?? this.DatabaseFileName;
 
             DebugX.Log("Reloading database file '" + databaseFileName + "'...");
 
             try
             {
 
-                JObject JSONLine;
-                String  JSONCommand;
+                JObject jsonLine;
+                String  jsonCommand;
 
-                File.ReadLines(databaseFileName).ForEachCounted(async (line, lineNumber) => {
+                var lines = await File.ReadAllLinesAsync(databaseFileName);
+
+                lines.ForEachCounted(async (line, lineNumber) => {
 
                     if (line.IsNeitherNullNorEmpty() &&
                        !line.StartsWith("#") &&
@@ -10681,20 +10680,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            JSONLine  = JObject.Parse(line);
+                            jsonLine  = JObject.Parse(line);
 
-                            if (JSONLine.First is JProperty jsonProperty)
+                            if (jsonLine.First is JProperty jsonProperty)
                             {
 
-                                JSONCommand  = jsonProperty.Name;
+                                jsonCommand = jsonProperty.Name;
 
-                                if (JSONCommand.IsNotNullOrEmpty() &&
+                                if (jsonCommand.IsNotNullOrEmpty() &&
                                     jsonProperty.Value is JObject jsonObject)
                                 {
 
-                                    CurrentDatabaseHashValue = JSONLine?["sha256hash"]?["hashValue"]?.Value<String>() ?? "";
+                                    CurrentDatabaseHashValue = jsonLine?["sha256hash"]?["hashValue"]?.Value<String>() ?? "";
 
-                                    await ProcessEventDelegate(JSONCommand,
+                                    await ProcessEventDelegate(jsonCommand,
                                                                jsonObject,
                                                                databaseFileName,
                                                                lineNumber);
@@ -10723,7 +10722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DebugX.LogT("Could not (re-)load database file '" + databaseFileName + "': " + e.Message);
             }
 
-
+            #endregion
 
             DebugX.Log("Reloading all HTTPExtAPI database helper files...");
 
@@ -10732,12 +10731,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                JObject JSONLine;
-                String  JSONCommand;
-                JObject JSONObject;
+                JObject?  jsonLine;
+                String?   jsonCommand;
+                JObject?  jsonObject;
 
                 // Info: File.Exists(...) is harmful!
-                File.ReadLines(HTTPAPIPath + DefaultPasswordFile).ForEachCounted((line, linenumber) => {
+                var lines = await File.ReadAllLinesAsync(HTTPAPIPath + DefaultPasswordFile);
+
+                lines.ForEachCounted((line, linenumber) => {
 
                     if (line.IsNeitherNullNorEmpty() &&
                        !line.StartsWith("#")         &&
@@ -10747,17 +10748,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            JSONLine                  = JObject.Parse(line);
-                            JSONCommand               = (JSONLine.First as JProperty)?.Name;
-                            JSONObject                = (JSONLine.First as JProperty)?.Value as JObject;
-                            CurrentDatabaseHashValue  =  JSONLine["sha256hash"]?["hashValue"]?.Value<String>();
+                            jsonLine                  = JObject.Parse(line);
+                            jsonCommand               = (jsonLine.First as JProperty)?.Name;
+                            jsonObject                = (jsonLine.First as JProperty)?.Value as JObject;
+                            CurrentDatabaseHashValue  =  jsonLine["sha256hash"]?["hashValue"]?.Value<String>();
 
-                            if (JSONCommand.IsNotNullOrEmpty() &&
-                                JSONObject  != null            &&
-                                User_Id.TryParse(JSONObject["login"].Value<String>(), out User_Id Login))
+                            if (jsonCommand is not null &&
+                                jsonCommand.IsNotNullOrEmpty() &&
+                                jsonObject is not null &&
+                                User_Id.TryParse(jsonObject["login"]?.Value<String>() ?? "", out var login))
                             {
 
-                                switch (JSONCommand)
+                                switch (jsonCommand)
                                 {
 
                                     #region add
@@ -10766,13 +10768,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         case "addPassword":
                                         case "AddPassword":
 
-                                            if (!loginPasswords.ContainsKey(Login))
+                                            if (!loginPasswords.ContainsKey(login))
                                             {
 
-                                                loginPasswords.TryAdd(Login,
-                                                                      new LoginPassword(Login,
-                                                                                        Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                           JSONObject["newPassword"]["passwordHash"].Value<String>())));
+                                                loginPasswords.TryAdd(login,
+                                                                      new LoginPassword(login,
+                                                                                        Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                           jsonObject["newPassword"]["passwordHash"].Value<String>())));
 
                                             }
 
@@ -10789,14 +10791,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         case "changePassword":
                                         case "ChangePassword":
 
-                                            if (loginPasswords.TryGetValue(Login, out LoginPassword _LoginPassword) &&
-                                                _LoginPassword.Password.     UnsecureString   == JSONObject["currentPassword"]["passwordHash"].Value<String>() &&
-                                                _LoginPassword.Password.Salt.UnsecureString() == JSONObject["currentPassword"]["salt"].        Value<String>())
+                                            if (loginPasswords.TryGetValue(login, out var loginPassword) &&
+                                                loginPassword.Password.     UnsecureString   == jsonObject["currentPassword"]["passwordHash"].Value<String>() &&
+                                                loginPassword.Password.Salt.UnsecureString() == jsonObject["currentPassword"]["salt"].        Value<String>())
                                             {
 
-                                                loginPasswords[Login] = new LoginPassword(Login,
-                                                                                           Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                              JSONObject["newPassword"]["passwordHash"].Value<String>()));
+                                                loginPasswords[login] = new LoginPassword(login,
+                                                                                          Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                             jsonObject["newPassword"]["passwordHash"].Value<String>()));
 
                                             }
 
@@ -10813,20 +10815,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         case "resetPassword":
                                         case "ResetPassword":
 
-                                            if (loginPasswords.ContainsKey(Login))
-                                                loginPasswords.TryRemove(Login, out _);
+                                            if (loginPasswords.ContainsKey(login))
+                                                loginPasswords.TryRemove(login, out _);
 
-                                            loginPasswords.TryAdd(Login,
-                                                                  new LoginPassword(Login,
-                                                                                    Password.ParseHash(JSONObject["newPassword"]["salt"].        Value<String>(),
-                                                                                                       JSONObject["newPassword"]["passwordHash"].Value<String>())));
+                                            loginPasswords.TryAdd(login,
+                                                                  new LoginPassword(login,
+                                                                                    Password.ParseHash(jsonObject["newPassword"]["salt"].        Value<String>(),
+                                                                                                       jsonObject["newPassword"]["passwordHash"].Value<String>())));
 
                                             break;
 
                                         #endregion
 
                                     default:
-                                        DebugX.Log("Unknown command '" + JSONCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
+                                        DebugX.Log("Unknown command '" + jsonCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordFile + "' line " + linenumber + "!");
                                         break;
 
                                 }
@@ -10856,88 +10858,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region Read HTTPCookiesFile file...
-
-            lock (httpCookies)
-            {
-
-                try
-                {
-
-                    File.ReadLines(HTTPAPIPath + DefaultHTTPCookiesFile).ForEachCounted((line, linenumber) => {
-
-                        try
-                        {
-
-                            var elements         = line.Split(new Char[] { ';' }, StringSplitOptions.None);
-
-                            var securityTokenId  = SecurityToken_Id.Parse(elements[0]);
-                            var userId           = User_Id.         Parse(elements[1]);
-                            var expires          = DateTime.        Parse(elements[2]);
-                            var superUserId      = elements.Length == 4
-                                                       ? new User_Id?(User_Id.Parse(elements[3]))
-                                                       : null;
-
-                            if (!httpCookies.ContainsKey(securityTokenId) &&
-                                loginPasswords.ContainsKey(userId) &&
-                                expires > Timestamp.Now)
-                            {
-
-                                httpCookies.TryAdd(securityTokenId,
-                                                   new SecurityToken(userId,
-                                                                     expires,
-                                                                     superUserId));
-
-                            }
-
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.Log("Could not read HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "' line " + linenumber + ": " + e.Message);
-                        }
-
-                    });
-
-                }
-                catch (FileNotFoundException)
-                { }
-                catch (Exception e)
-                {
-                    DebugX.Log("Could not read HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "': " + e.Message);
-                }
-
-
-                // Write filtered (no invalid users, no expired tokens) tokens back to file...
-                try
-                {
-
-                    File.WriteAllLines(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                       httpCookies.Select(token => token.Key + ";" + token.Value.ToLogLine()));
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log("Could not update HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "': " + e.Message);
-                }
-
-            }
-
-            #endregion
-
-            #region Read PasswordResets file...
+            #region Read HTTP Cookies file...
 
             try
             {
 
-                JObject  JSONLine;
-                String   JSONCommand;
-                JObject  JSONObject;
+                var lines = await File.ReadAllLinesAsync(HTTPAPIPath + DefaultHTTPCookiesFile);
 
-                var Now     = Timestamp.Now;
-                var MaxAge  = TimeSpan.FromDays(7);
+                lines.ForEachCounted((line, linenumber) => {
+
+                    try
+                    {
+
+                        var elements         = line.Split(new Char[] { ';' }, StringSplitOptions.None);
+
+                        var securityTokenId  = SecurityToken_Id.Parse(elements[0]);
+                        var userId           = User_Id.         Parse(elements[1]);
+                        var expires          = DateTime.        Parse(elements[2]);
+                        var superUserId      = elements.Length == 4
+                                                    ? new User_Id?(User_Id.Parse(elements[3]))
+                                                    : null;
+
+                        if (!httpCookies.ContainsKey(securityTokenId) &&
+                            loginPasswords.ContainsKey(userId) &&
+                            expires > Timestamp.Now)
+                        {
+
+                            httpCookies.TryAdd(securityTokenId,
+                                                new SecurityToken(userId,
+                                                                    expires,
+                                                                    superUserId));
+
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.Log("Could not read HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "' line " + linenumber + ": " + e.Message);
+                    }
+
+                });
+
+            }
+            catch (FileNotFoundException)
+            { }
+            catch (Exception e)
+            {
+                DebugX.Log("Could not read HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "': " + e.Message);
+            }
+
+
+            // Write filtered (no invalid users, no expired tokens) tokens back to file...
+            try
+            {
+
+                File.WriteAllLines(HTTPAPIPath + DefaultHTTPCookiesFile,
+                                    httpCookies.Select(token => token.Key + ";" + token.Value.ToLogLine()));
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log("Could not update HTTP cookies file '" + this.HTTPAPIPath + DefaultHTTPCookiesFile + "': " + e.Message);
+            }
+
+            #endregion
+
+            #region Read Password Resets file...
+
+            try
+            {
+
+                JObject  jsonLine;
+                String?  jsonCommand;
+                JObject? jsonObject;
+
+                var now     = Timestamp.Now;
+                var maxAge  = TimeSpan.FromDays(7);
 
                 // Info: File.Exists(...) is harmful!
-                File.ReadLines(HTTPAPIPath + DefaultPasswordResetsFile).ForEachCounted((line, linenumber) => {
+                var lines = await File.ReadAllLinesAsync(HTTPAPIPath + DefaultPasswordResetsFile);
+
+                lines.ForEachCounted((line, linenumber) => {
 
                     if (line.IsNeitherNullNorEmpty() &&
                        !line.StartsWith("#")         &&
@@ -10947,35 +10948,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            JSONLine                  = JObject.Parse(line);
-                            JSONCommand               = (JSONLine.First as JProperty)?.Name;
-                            JSONObject                = (JSONLine.First as JProperty)?.Value as JObject;
+                            jsonLine                  = JObject.Parse(line);
+                            jsonCommand               = (jsonLine.First as JProperty)?.Name;
+                            jsonObject                = (jsonLine.First as JProperty)?.Value as JObject;
                             //CurrentDatabaseHashValue  =  JSONLine["sha256hash"]?["hashValue"]?.Value<String>();
 
-                            if (JSONCommand.IsNotNullOrEmpty() &&
-                                JSONObject  != null &&
-                                PasswordReset.TryParseJSON(JSONObject,
+                            if (jsonCommand is not null &&
+                                jsonCommand.IsNotNullOrEmpty() &&
+                                jsonObject is not null &&
+                                PasswordReset.TryParseJSON(jsonObject,
                                                            users.TryGetValue,
-                                                           out PasswordReset _PasswordReset,
-                                                           out String        ErrorResponse))
+                                                           out var passwordReset,
+                                                           out var errorResponse) &&
+                                passwordReset is not null)
                             {
 
-                                if (ErrorResponse == null)
+                                if (errorResponse is null)
                                 {
 
-                                    switch (JSONCommand.ToLower())
+                                    switch (jsonCommand.ToLower())
                                     {
 
                                         #region add
 
                                         case "add":
 
-                                            if (!passwordResets.ContainsKey(_PasswordReset.SecurityToken1))
+                                            if (!passwordResets.ContainsKey(passwordReset.SecurityToken1))
                                             {
-                                                if (Now - _PasswordReset.Timestamp <= MaxAge)
+                                                if (now - passwordReset.Timestamp <= maxAge)
                                                 {
-                                                    passwordResets.TryAdd(_PasswordReset.SecurityToken1,
-                                                                          _PasswordReset);
+                                                    passwordResets.TryAdd(passwordReset.SecurityToken1,
+                                                                          passwordReset);
                                                 }
                                             }
 
@@ -10989,13 +10992,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         #region remove
 
                                         case "remove":
-                                            passwordResets.TryRemove(_PasswordReset.SecurityToken1, out _);
+                                            passwordResets.TryRemove(passwordReset.SecurityToken1, out _);
                                             break;
 
                                         #endregion
 
                                         default:
-                                            DebugX.Log("Unknown command '" + JSONCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "' line " + linenumber + "!");
+                                            DebugX.Log("Unknown command '" + jsonCommand + "' in password file '" + this.HTTPAPIPath + DefaultPasswordResetsFile + "' line " + linenumber + "!");
                                             break;
 
                                     }
@@ -11032,7 +11035,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
-
 
 
         #region (protected) LoadChangeSetsFromAPI(ProcessEventDelegate, LastKnownSHA256HashValue = null)
@@ -14795,7 +14797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             AddUserIfNotExists(IUser                       User,
                                User2OrganizationEdgeLabel  AccessRight,
-                               Organization                Organization,
+                               IOrganization               Organization,
                                Boolean                     SkipDefaultNotifications   = false,
                                Boolean                     SkipNewUserEMail           = false,
                                Boolean                     SkipNewUserNotifications   = false,
@@ -14909,14 +14911,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
         public async Task<AddUserResult>
 
-            AddUserIfNotExists(IUser                                                         User,
-                               IEnumerable<Tuple<User2OrganizationEdgeLabel, Organization>>  AccessRights,
-                               Boolean                                                       SkipDefaultNotifications   = false,
-                               Boolean                                                       SkipNewUserEMail           = false,
-                               Boolean                                                       SkipNewUserNotifications   = false,
-                               OnUserAddedDelegate?                                          OnAdded                    = null,
-                               EventTracking_Id?                                             EventTrackingId            = null,
-                               User_Id?                                                      CurrentUserId              = null)
+            AddUserIfNotExists(IUser                                                          User,
+                               IEnumerable<Tuple<User2OrganizationEdgeLabel, IOrganization>>  AccessRights,
+                               Boolean                                                        SkipDefaultNotifications   = false,
+                               Boolean                                                        SkipNewUserEMail           = false,
+                               Boolean                                                        SkipNewUserNotifications   = false,
+                               OnUserAddedDelegate?                                           OnAdded                    = null,
+                               EventTracking_Id?                                              EventTrackingId            = null,
+                               User_Id?                                                       CurrentUserId              = null)
         {
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -19938,7 +19940,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (userGroups.TryGetValue(UserGroup.Id, out var OldUserGroup))
             {
                 userGroups.TryRemove(OldUserGroup.Id, out _);
-                UserGroup.CopyAllLinkedDataFrom(OldUserGroup);
+                UserGroup.CopyAllLinkedDataFromBase(OldUserGroup);
             }
 
             userGroups.TryAdd(UserGroup.Id, UserGroup);
@@ -20140,7 +20142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       CurrentUserId);
 
             userGroups.TryRemove(OldUserGroup.Id, out _);
-            UserGroup.CopyAllLinkedDataFrom(OldUserGroup);
+            UserGroup.CopyAllLinkedDataFromBase(OldUserGroup);
             userGroups.TryAdd(UserGroup.Id, UserGroup);
 
             OnUpdated?.Invoke(UserGroup,
@@ -20298,7 +20300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       CurrentUserId);
 
             userGroups.TryRemove(UserGroup.Id, out _);
-            updatedUserGroup.CopyAllLinkedDataFrom(UserGroup);
+            updatedUserGroup.CopyAllLinkedDataFromBase(UserGroup);
             userGroups.TryAdd(updatedUserGroup.Id,
                               updatedUserGroup);
 
@@ -22610,7 +22612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (notificationMessages.TryGetValue(NotificationMessage.Id, out NotificationMessage OldNotificationMessage))
             {
                 notificationMessages.Remove(OldNotificationMessage.Id);
-                NotificationMessage.CopyAllLinkedDataFrom(OldNotificationMessage);
+                NotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
             }
 
             notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
@@ -22773,7 +22775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       CurrentUserId);
 
             notificationMessages.Remove(OldNotificationMessage.Id);
-            NotificationMessage.CopyAllLinkedDataFrom(OldNotificationMessage);
+            NotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
 
 
             var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
@@ -22887,7 +22889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       CurrentUserId);
 
             notificationMessages.Remove(OldNotificationMessage.Id);
-            NewNotificationMessage.CopyAllLinkedDataFrom(OldNotificationMessage);
+            NewNotificationMessage.CopyAllLinkedDataFromBase(OldNotificationMessage);
 
 
             var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
@@ -26299,7 +26301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (organizationGroups.TryGetValue(OrganizationGroup.Id, out var OldOrganizationGroup))
             {
                 organizationGroups.TryRemove(OldOrganizationGroup.Id, out _);
-                OrganizationGroup.CopyAllLinkedDataFrom(OldOrganizationGroup);
+                OrganizationGroup.CopyAllLinkedDataFromBase(OldOrganizationGroup);
             }
 
             organizationGroups.TryAdd(OrganizationGroup.Id, OrganizationGroup);
@@ -26462,7 +26464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       CurrentUserId);
 
             organizationGroups.TryRemove(OldOrganizationGroup.Id, out _);
-            OrganizationGroup.CopyAllLinkedDataFrom(OldOrganizationGroup);
+            OrganizationGroup.CopyAllLinkedDataFromBase(OldOrganizationGroup);
 
 
             var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;
@@ -26576,7 +26578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       CurrentUserId);
 
             organizationGroups.TryRemove(OldOrganizationGroup.Id, out _);
-            NewOrganizationGroup.CopyAllLinkedDataFrom(OldOrganizationGroup);
+            NewOrganizationGroup.CopyAllLinkedDataFromBase(OldOrganizationGroup);
 
 
             var OnOrganizationGroupUpdatedLocal = OnOrganizationGroupUpdated;

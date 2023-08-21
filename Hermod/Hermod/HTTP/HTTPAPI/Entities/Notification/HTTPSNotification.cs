@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// The JSON-LD context of this object.
         /// </summary>
-        public const String JSONLDContext = "https://opendata.social/contexts/HTTPExtAPI/HTTPSNotification";
+        public const String JSONLDContext = "https://opendata.social/contexts/UsersAPI/HTTPSNotification";
 
         #endregion
 

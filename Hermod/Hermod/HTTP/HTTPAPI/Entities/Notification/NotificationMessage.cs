@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <summary>
         /// The default JSON-LD context of organizations.
         /// </summary>
-        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/notificationMessage");
+        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/notificationMessage");
 
         #endregion
 
@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region CopyAllLinkedDataFrom(OldNotificationMessage)
 
-        public override void CopyAllLinkedDataFrom(NotificationMessage OldNotificationMessage)
+        public override void CopyAllLinkedDataFromBase(NotificationMessage OldNotificationMessage)
         {
 
             //if (_User2Organization_InEdges.Any() && !NewGroup._User2Organization_InEdges.Any())
@@ -791,7 +791,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             //}
 
 
-            public override void CopyAllLinkedDataFrom(NotificationMessage OldEnity)
+            public override void CopyAllLinkedDataFromBase(NotificationMessage OldEnity)
             {
             }
 

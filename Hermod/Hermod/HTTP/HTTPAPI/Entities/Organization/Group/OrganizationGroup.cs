@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default JSON-LD context of organization groups.
         /// </summary>
-        public new readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/organizationGroup");
+        public new readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/organizationGroup");
 
         #endregion
 
@@ -460,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CopyAllLinkedDataFrom(OldOrganizationGroup)
 
-        public override void CopyAllLinkedDataFrom(IOrganizationGroup OldOrganizationGroup)
+        public override void CopyAllLinkedDataFromBase(IOrganizationGroup OldOrganizationGroup)
         {
 
         }
@@ -776,7 +776,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region CopyAllLinkedDataFrom(OldOrganizationGroup)
 
-            public override void CopyAllLinkedDataFrom(IOrganizationGroup OldOrganizationGroup)
+            public override void CopyAllLinkedDataFromBase(IOrganizationGroup OldOrganizationGroup)
             {
 
             }

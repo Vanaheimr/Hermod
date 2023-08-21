@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default JSON-LD context of users.
         /// </summary>
-        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/APIKey");
+        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/APIKey");
 
         #endregion
 
@@ -477,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CopyAllLinkedDataFrom(OldAPIKey)
 
-        public override void CopyAllLinkedDataFrom(APIKey OldAPIKey)
+        public override void CopyAllLinkedDataFromBase(APIKey OldAPIKey)
         {
 
         }
@@ -829,7 +829,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region CopyAllLinkedDataFrom(OldAPIKey)
 
-            public override void CopyAllLinkedDataFrom(APIKey OldAPIKey)
+            public override void CopyAllLinkedDataFromBase(APIKey OldAPIKey)
             {
 
             }

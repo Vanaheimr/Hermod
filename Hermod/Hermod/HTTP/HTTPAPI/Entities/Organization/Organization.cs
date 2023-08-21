@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default JSON-LD context of organizations.
         /// </summary>
-        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/HTTPExtAPI/organization");
+        public readonly static JSONLDContext DefaultJSONLDContext = JSONLDContext.Parse("https://opendata.social/contexts/UsersAPI/organization");
 
         #endregion
 
@@ -1192,9 +1192,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CopyAllLinkedDataFrom(OldOrganization)
 
         public void CopyAllLinkedDataFrom(IOrganization OldOrganization)
-            => CopyAllLinkedDataFrom(OldOrganization as Organization);
+            => CopyAllLinkedDataFromBase(OldOrganization as Organization);
 
-        public override void CopyAllLinkedDataFrom(Organization OldOrganization)
+        public override void CopyAllLinkedDataFromBase(Organization OldOrganization)
         {
 
             if (OldOrganization._User2Organization_Edges.Any() && !_User2Organization_Edges.Any())
@@ -2030,7 +2030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region CopyAllLinkedDataFrom(OldOrganization)
 
-            public override void CopyAllLinkedDataFrom(Organization OldOrganization)
+            public override void CopyAllLinkedDataFromBase(Organization OldOrganization)
             {
 
                 if (OldOrganization._User2Organization_Edges.Any() && !_User2Organization_Edges.Any())
