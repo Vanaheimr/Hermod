@@ -528,25 +528,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
         /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
-        private HTTPResponse(DateTime            Timestamp,
-                             HTTPSource          HTTPSource,
-                             IPSocket            LocalSocket,
-                             IPSocket            RemoteSocket,
-                             String              HTTPHeader,
-                             HTTPRequest?        HTTPRequest                 = null,
-                             Byte[]?             HTTPBody                    = null,
-                             Stream?             HTTPBodyStream              = null,
-                             UInt32?             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                             Object?             SubprotocolResponse         = null,
+        /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
+        private HTTPResponse(DateTime           Timestamp,
+                             HTTPSource         HTTPSource,
+                             IPSocket           LocalSocket,
+                             IPSocket           RemoteSocket,
+                             String             HTTPHeader,
+                             HTTPRequest?       HTTPRequest                 = null,
+                             Byte[]?            HTTPBody                    = null,
+                             Stream?            HTTPBodyStream              = null,
+                             UInt32?            HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                             Object?            SubprotocolResponse         = null,
 
-                             CancellationToken?  CancellationToken           = null,
-                             EventTracking_Id?   EventTrackingId             = null,
-                             TimeSpan?           Runtime                     = null,
-                             Byte                NumberOfRetries             = 0)
+                             EventTracking_Id?  EventTrackingId             = null,
+                             TimeSpan?          Runtime                     = null,
+                             Byte               NumberOfRetries             = 0,
+                             CancellationToken  CancellationToken           = default)
+
 
             : base(Timestamp,
                    HTTPSource,
@@ -556,8 +557,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBody,
                    HTTPBodyStream,
                    HTTPBodyReceiveBufferSize,
-                   CancellationToken,
-                   EventTrackingId)
+
+                   EventTrackingId,
+                   CancellationToken)
 
         {
 
@@ -629,10 +631,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     null,
                     SubprotocolResponse,
-                    CancellationToken,
+
                     EventTrackingId,
                     Runtime,
-                    NumberOfRetries);
+                    NumberOfRetries,
+                    CancellationToken);
 
         #endregion
 
@@ -666,10 +669,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     null,
                     SubprotocolResponse,
-                    CancellationToken,
+
                     EventTrackingId,
                     Runtime,
-                    NumberOfRetries);
+                    NumberOfRetries,
+                    CancellationToken);
 
         #endregion
 
@@ -683,15 +687,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseBodyStream">The HTTP body of the response as stream of bytes.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
-        public static HTTPResponse Parse(String              ResponseHeader,
-                                         Stream              ResponseBodyStream,
-                                         HTTPRequest?        Request               = null,
-                                         Object?             SubprotocolResponse   = null,
+        public static HTTPResponse Parse(String             ResponseHeader,
+                                         Stream             ResponseBodyStream,
+                                         HTTPRequest?       Request               = null,
+                                         Object?            SubprotocolResponse   = null,
 
-                                         EventTracking_Id?   EventTrackingId       = null,
-                                         TimeSpan?           Runtime               = null,
-                                         Byte                NumberOfRetries       = 0,
-                                         CancellationToken   CancellationToken     = default)
+                                         EventTracking_Id?  EventTrackingId       = null,
+                                         TimeSpan?          Runtime               = null,
+                                         Byte               NumberOfRetries       = 0,
+                                         CancellationToken  CancellationToken     = default)
 
             => new (Illias.Timestamp.Now,
                     new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
@@ -704,8 +708,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     SubprotocolResponse,
 
-                    Request?.CancellationToken,
-                    Request?.EventTrackingId);
+                    EventTrackingId,
+                    Runtime,
+                    NumberOfRetries,
+                    CancellationToken);
 
         #endregion
 
@@ -722,27 +728,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventTrackingId">The optional event tracking identification of the response.</param>
         /// <param name="Request">The HTTP request for this HTTP response.</param>
         public static HTTPResponse Parse(IEnumerable<String>  Text,
-                                         DateTime?            Timestamp         = null,
-                                         HTTPSource?          HTTPSource        = null,
-                                         IPSocket?            LocalSocket       = null,
-                                         IPSocket?            RemoteSocket      = null,
-                                         EventTracking_Id?    EventTrackingId   = null,
-                                         HTTPRequest?         Request           = null)
+                                         DateTime?            Timestamp           = null,
+                                         HTTPSource?          HTTPSource          = null,
+                                         IPSocket?            LocalSocket         = null,
+                                         IPSocket?            RemoteSocket        = null,
+
+                                         HTTPRequest?         Request             = null,
+
+                                         EventTracking_Id?    EventTrackingId     = null,
+                                         TimeSpan?            Runtime             = null,
+                                         Byte                 NumberOfRetries     = 0,
+                                         CancellationToken    CancellationToken   = default)
         {
 
                 Timestamp ??= Illias.Timestamp.Now;
-            var Header      = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
-            var Body        = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
+            var header      = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
+            var body        = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
 
-            return new HTTPResponse(Timestamp    ?? Illias.Timestamp.Now,
-                                    HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                    LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                    RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                    Header,
-                                    Request,
-                                    Body.ToUTF8Bytes(),
-                                    EventTrackingId:  EventTrackingId,
-                                    Runtime:          Request is not null ? Timestamp - Request.Timestamp : TimeSpan.Zero);
+            return new HTTPResponse(
+                       Timestamp    ?? Illias.Timestamp.Now,
+                       HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                       LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                       RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                       header,
+                       Request,
+                       body.ToUTF8Bytes(),
+
+                       null,
+                       null,
+                       null,
+
+                       EventTrackingId,
+                       Runtime ?? (Request is not null
+                                       ? Timestamp - Request.Timestamp
+                                       : TimeSpan.Zero),
+                       NumberOfRetries,
+                       CancellationToken
+                   );
 
         }
 

@@ -1079,21 +1079,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        internal HTTPRequest(DateTime            Timestamp,
-                             HTTPSource          HTTPSource,
-                             IPSocket            LocalSocket,
-                             IPSocket            RemoteSocket,
-                             HTTPServer          HTTPServer,
+        internal HTTPRequest(DateTime           Timestamp,
+                             HTTPSource         HTTPSource,
+                             IPSocket           LocalSocket,
+                             IPSocket           RemoteSocket,
+                             HTTPServer         HTTPServer,
 
-                             String              HTTPHeader,
-                             Byte[]?             HTTPBody                    = null,
-                             Stream?             HTTPBodyStream              = null,
-                             X509Certificate2?   ServerCertificate           = null,
-                             X509Certificate2?   ClientCertificate           = null,
+                             String             HTTPHeader,
+                             Byte[]?            HTTPBody                    = null,
+                             Stream?            HTTPBodyStream              = null,
+                             X509Certificate2?  ServerCertificate           = null,
+                             X509Certificate2?  ClientCertificate           = null,
 
-                             UInt32              HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                             CancellationToken?  CancellationToken           = null,
-                             EventTracking_Id?   EventTrackingId             = null)
+                             UInt32             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                             EventTracking_Id?  EventTrackingId             = null,
+                             CancellationToken  CancellationToken           = default)
 
             : base(Timestamp,
                    HTTPSource,
@@ -1103,8 +1103,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPBody,
                    HTTPBodyStream,
                    HTTPBodyReceiveBufferSize,
-                   CancellationToken,
-                   EventTrackingId)
+
+                   EventTrackingId,
+                   CancellationToken)
 
         {
 
@@ -1277,7 +1278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken?   CancellationToken   = null,
+                                       CancellationToken    CancellationToken   = default,
                                        EventTracking_Id?    EventTrackingId     = null)
         {
 
@@ -1363,7 +1364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken?   CancellationToken   = null,
+                                       CancellationToken    CancellationToken   = default,
                                        EventTracking_Id?    EventTrackingId     = null)
         {
 
@@ -1429,7 +1430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken?   CancellationToken   = null,
+                                       CancellationToken    CancellationToken   = default,
                                        EventTracking_Id?    EventTrackingId     = null)
         {
 
@@ -1497,7 +1498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken?   CancellationToken   = null,
+                                       CancellationToken    CancellationToken   = default,
                                        EventTracking_Id?    EventTrackingId     = null)
         {
 
@@ -1563,7 +1564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken?   CancellationToken   = null,
+                                       CancellationToken    CancellationToken   = default,
                                        EventTracking_Id?    EventTrackingId     = null)
 
         {
@@ -1687,7 +1688,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken?   CancellationToken   = null,
+                                       CancellationToken    CancellationToken   = default,
                                        EventTracking_Id?    EventTrackingId     = null)
         {
 

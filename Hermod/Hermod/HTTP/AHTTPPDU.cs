@@ -571,16 +571,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        protected AHTTPPDU(DateTime            Timestamp,
-                           HTTPSource          HTTPSource,
-                           IPSocket            LocalSocket,
-                           IPSocket            RemoteSocket,
-                           String              HTTPHeader,
-                           Byte[]?             HTTPBody                    = null,
-                           Stream?             HTTPBodyStream              = null,
-                           UInt32?             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
-                           CancellationToken?  CancellationToken           = null,
-                           EventTracking_Id?   EventTrackingId             = null)
+        protected AHTTPPDU(DateTime           Timestamp,
+                           HTTPSource         HTTPSource,
+                           IPSocket           LocalSocket,
+                           IPSocket           RemoteSocket,
+                           String             HTTPHeader,
+                           Byte[]?            HTTPBody                    = null,
+                           Stream?            HTTPBodyStream              = null,
+                           UInt32?            HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                           EventTracking_Id?  EventTrackingId             = null,
+                           CancellationToken  CancellationToken           = default)
 
             : this()
 
@@ -598,8 +598,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         ? HTTPBodyReceiveBufferSize.Value
                                                         : DefaultHTTPBodyReceiveBufferSize
                                                   : DefaultHTTPBodyReceiveBufferSize;
-            this.CancellationToken          = CancellationToken ?? new CancellationTokenSource().Token;
-            this.EventTrackingId            = EventTrackingId   ?? EventTracking_Id.New;
+            this.CancellationToken          = CancellationToken;
+            this.EventTrackingId            = EventTrackingId ?? EventTracking_Id.New;
 
             #region Process first line...
 
