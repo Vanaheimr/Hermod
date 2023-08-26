@@ -1073,7 +1073,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetHashCode()
+        #region (override) GetHashCode()
 
         /// <summary>
         /// Get the hashcode of this object.
@@ -1455,7 +1455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region GetHashCode()
+            #region (override) GetHashCode()
 
             /// <summary>
             /// Get the hashcode of this object.
