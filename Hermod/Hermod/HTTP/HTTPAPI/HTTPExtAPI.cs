@@ -2358,9 +2358,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      From           = Robot.EMail,
                                                                      To             = EMailAddressList.Create(adminOrganization.Admins.Select(admin => admin.EMail)),
                                                                      Passphrase     = APIRobotGPGPassphrase,
-                                                                     Subject        = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
-                                                                     HTMLText       = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
-                                                                     PlainText      = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
+                                                                     Subject        = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
+                                                                     HTMLText       = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
+                                                                     PlainText      = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
                                                                      SecurityLevel  = EMailSecurity.autosign
                                                                  }).ConfigureAwait(false);
 
@@ -2884,12 +2884,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     From           = Robot.EMail,
                     To             = EMailRecipients,
                     Passphrase     = APIRobotGPGPassphrase,
-                    Subject        = "Your " + ServiceName + " account has been created",
+                    Subject        = "Your " + HTTPServiceName + " account has been created",
 
                     HTMLText       = String.Concat(
                                          HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System),
                                              "Dear ", User.Name, ",<br /><br />" + Environment.NewLine,
-                                             "your " + ServiceName + " account has been created!<br /><br />" + Environment.NewLine,
+                                             "your " + HTTPServiceName + " account has been created!<br /><br />" + Environment.NewLine,
                                              "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : "") + "...<br /><br />" + Environment.NewLine,
                                              "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : "") + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine,
                                          HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
@@ -2898,7 +2898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     PlainText      = String.Concat(
                                          TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
                                              "Dear ", User.Name, ", " + Environment.NewLine +
-                                             "your " + ServiceName + " account has been created!" + Environment.NewLine + Environment.NewLine +
+                                             "your " + HTTPServiceName + " account has been created!" + Environment.NewLine + Environment.NewLine +
                                              "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : "") + "..." + Environment.NewLine + Environment.NewLine +
                                              "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : "") +
                                          TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
@@ -2925,12 +2925,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    From           = Robot.EMail,
                    To             = EMailRecipients,
                    Passphrase     = APIRobotGPGPassphrase,
-                   Subject        = "Welcome to " + ServiceName + "...",
+                   Subject        = "Welcome to " + HTTPServiceName + "...",
 
                    HTMLText       = String.Concat(
                                         HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + ",<br /><br />" + Environment.NewLine +
-                                            "welcome to your new " + ServiceName + " account!<br /><br />" + Environment.NewLine +
+                                            "welcome to your new " + HTTPServiceName + " account!<br /><br />" + Environment.NewLine +
                                             "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/login\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Login</a>" + Environment.NewLine +
                                         HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
                                     ),
@@ -2938,7 +2938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    PlainText      = String.Concat(
                                         TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
                                             "Dear " + User.Name + "," + Environment.NewLine +
-                                            "welcome to your new " + ServiceName + " account!" + Environment.NewLine + Environment.NewLine +
+                                            "welcome to your new " + HTTPServiceName + " account!" + Environment.NewLine + Environment.NewLine +
                                             "Please login via: https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/login" + Environment.NewLine + Environment.NewLine +
                                         TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
                                     ),
@@ -2967,7 +2967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    From           = Robot.EMail,
                    To             = EMailRecipients,
                    Passphrase     = APIRobotGPGPassphrase,
-                   Subject        = ServiceName + " password reset...",
+                   Subject        = HTTPServiceName + " password reset...",
 
                    HTMLText       = String.Concat(
                                         HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
@@ -3008,7 +3008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    From           = Robot.EMail,
                    To             = EMailRecipients,
                    Passphrase     = APIRobotGPGPassphrase,
-                   Subject        = "Your " + ServiceName + " password changed...",
+                   Subject        = "Your " + HTTPServiceName + " password changed...",
 
                    HTMLText       = String.Concat(
                                         HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
@@ -3968,6 +3968,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override Stream? GetResourceStream(String ResourceName)
 
             => GetResourceStream(ResourceName,
+                                 new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                  new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3977,6 +3978,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override MemoryStream? GetResourceMemoryStream(String ResourceName)
 
             => GetResourceMemoryStream(ResourceName,
+                                       new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                        new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3986,6 +3988,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override String GetResourceString(String ResourceName)
 
             => GetResourceString(ResourceName,
+                                 new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                  new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -3995,6 +3998,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override Byte[] GetResourceBytes(String ResourceName)
 
             => GetResourceBytes(ResourceName,
+                                new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                 new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
@@ -4004,6 +4008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override String MixWithHTMLTemplate(String ResourceName)
 
             => MixWithHTMLTemplate(ResourceName,
+                                   new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
                                    new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion

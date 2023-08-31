@@ -1026,7 +1026,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP API.
     /// </summary>
-    public class HTTPAPI
+    public class HTTPAPI : AHTTPAPIBase
     {
 
         #region Data
@@ -1068,11 +1068,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  static readonly    HTTPPath                DefaultURLPathPrefix            = HTTPPath.Parse("/");
 
 
-        public  const              String                  DefaultHTTPAPI_LoggingPath      = "default";
-
-        public  const              String                  DefaultHTTPAPI_LogfileName      = "HTTPAPI.log";
-
-
         /// <summary>
         /// The HTTP root for embedded ressources.
         /// </summary>
@@ -1090,17 +1085,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         protected static readonly  SemaphoreSlim           MaintenanceSemaphore            = new (1, 1);
 
-
-        ///// <summary>
-        ///// The performance counter to measure the total RAM usage.
-        ///// </summary>
-        //protected readonly         PerformanceCounter      totalRAM_PerformanceCounter;
-
-        ///// <summary>
-        ///// The performance counter to measure the total CPU usage.
-        ///// </summary>
-        //protected readonly         PerformanceCounter      totalCPU_PerformanceCounter;
-
         #endregion
 
         #region Properties
@@ -1116,24 +1100,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname             Hostname                    { get; }
 
         /// <summary>
-        /// The name of the HTTP API service.
-        /// </summary>
-        public String                   ServiceName                 { get; }
-
-        /// <summary>
         /// The offical URL/DNS name of this service, e.g. for sending e-mails.
         /// </summary>
         public String                   ExternalDNSName             { get; }
-
-        /// <summary>
-        /// The optional URL path prefix, used when defining URL templates.
-        /// </summary>
-        public HTTPPath                 URLPathPrefix               { get; }
-
-        /// <summary>
-        /// When the API is served from an optional subdirectory path.
-        /// </summary>
-        public HTTPPath?                BasePath                    { get; }
 
         /// <summary>
         /// The default request timeout for incoming HTTP requests.
@@ -1152,11 +1121,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The unqiue identification of this HTTP API instance.
         /// </summary>
         public System_Id                SystemId                    { get; }
-
-        /// <summary>
-        /// An optional HTML template.
-        /// </summary>
-        public String?                  HTMLTemplate                { get; protected set; }
 
 
         public X509Certificate?         ServerCert                  { get; }
@@ -1180,15 +1144,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        /// <summary>
-        /// This HTTP API runs in development mode.
-        /// </summary>
-        public Boolean                  IsDevelopment               { get; }
-
-        /// <summary>
-        /// The enumeration of server names which will imply to run this service in development mode.
-        /// </summary>
-        public HashSet<String>          DevelopmentServers          { get; }
 
 
         public String                   HTTPRequestsPath            { get; }
@@ -1199,21 +1154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public String                   MetricsPath                 { get; }
 
-        /// <summary>
-        /// Disable any logging.
-        /// </summary>
-        public Boolean                  DisableLogging              { get; }
 
-        //public String                   LoggingContext              { get; }
-
-        /// <summary>
-        /// The path for all logfiles.
-        /// </summary>
-        public String                   LoggingPath                 { get; }
-
-        public String                   LogfileName                 { get; }
-
-        public LogfileCreatorDelegate   LogfileCreator              { get; }
 
 
         /// <summary>
@@ -1427,6 +1368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LoggingPath">The path for all logfiles.</param>
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
+        /// 
         /// <param name="AutoStart">Whether to start the API automatically.</param>
         public HTTPAPI(HTTPServer               HTTPServer,
                        HTTPHostname?            HTTPHostname              = null,
@@ -1452,23 +1394,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        String?                  LoggingPath               = null,
                        String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
                        LogfileCreatorDelegate?  LogfileCreator            = null,
+
                        Boolean                  AutoStart                 = false)
+
+            : base(HTTPServiceName ?? DefaultHTTPServiceName,
+                   URLPathPrefix,
+                   BasePath,
+                   HTMLTemplate,
+
+                   IsDevelopment,
+                   DevelopmentServers,
+                   DisableLogging,
+                   LoggingPath,
+                   LogfileName,
+                   LogfileCreator)
 
         {
 
             this.HTTPServer               = HTTPServer      ?? throw new ArgumentNullException(nameof(HTTPServer), "The given HTTP server must not be null!");
             this.Hostname                 = HTTPHostname    ?? HTTP.HTTPHostname.Any;
             this.ExternalDNSName          = ExternalDNSName ?? "";
-            this.ServiceName              = HTTPServiceName ?? DefaultHTTPServiceName;
-            this.BasePath                 = BasePath;
 
-            this.URLPathPrefix            = URLPathPrefix   ?? DefaultURLPathPrefix;
-            this.HTMLTemplate             = HTMLTemplate    ?? "";
             this.APIVersionHash           = APIVersionHashes?[nameof(HTTPAPI)]?.Value<String>()?.Trim();
-            this.LoggingPath              = LoggingPath     ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath);
-
-            if (this.LoggingPath[^1] != Path.DirectorySeparatorChar)
-                this.LoggingPath += Path.DirectorySeparatorChar;
 
             this.HTTPRequestsPath         = this.LoggingPath + "HTTPRequests"   + Path.DirectorySeparatorChar;
             this.HTTPResponsesPath        = this.LoggingPath + "HTTPResponses"  + Path.DirectorySeparatorChar;
@@ -1477,22 +1424,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.RunType                  = ApplicationRunType.GetRunType();
             this.SystemId                 = System_Id.Parse(Environment.MachineName.Replace("/", "") + "/" + HTTPServer.DefaultHTTPServerPort);
-            this.IsDevelopment            = IsDevelopment ?? false;
-            this.DevelopmentServers       = DevelopmentServers is not null
-                                                ? new HashSet<String>(DevelopmentServers)
-                                                : new HashSet<String>();
-
-            if (this.DevelopmentServers.Contains(Environment.MachineName))
-                this.IsDevelopment = true;
-
-            this.DisableLogging           = DisableLogging ?? false;
-            this.LogfileName              = LogfileName    ?? DefaultHTTPAPI_LogfileName;
-            this.LogfileCreator           = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                                    context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : "",
-                                                                                                                    logfileName.Replace(".log", ""), "_",
-                                                                                                                    DateTime.Now.Year, "-",
-                                                                                                                    DateTime.Now.Month.ToString("D2"),
-                                                                                                                    ".log"));
 
             if (this.DisableLogging == false)
             {
@@ -1513,10 +1444,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Setup Maintenance Task
             this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
             this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
-            this.MaintenanceTimer         = new Timer(DoMaintenanceSync,
-                                                      null,
-                                                      this.MaintenanceEvery,
-                                                      this.MaintenanceEvery);
+            this.MaintenanceTimer         = new Timer(
+                                                DoMaintenanceSync,
+                                                null,
+                                                this.MaintenanceEvery,
+                                                this.MaintenanceEvery
+                                            );
 
             // Setup Warden
             this.Warden = new Warden.Warden(WardenInitialDelay ?? TimeSpan.FromMinutes(3),
@@ -1604,7 +1537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             : this(HTTPServer:               HTTPAPI.HTTPServer,
                    HTTPHostname:             HTTPAPI.Hostname,
                    ExternalDNSName:          HTTPAPI.ExternalDNSName,
-                   HTTPServiceName:          HTTPAPI.ServiceName,
+                   HTTPServiceName:          HTTPAPI.HTTPServiceName,
                    BasePath:                 HTTPAPI.BasePath,
 
                    URLPathPrefix:            HTTPAPI.URLPathPrefix,
@@ -2068,239 +2001,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected virtual) GetResourceStream      (ResourceName, ResourceAssemblies)
-
-        protected virtual Stream? GetResourceStream(String ResourceName)
-
-            => GetResourceStream(ResourceName,
-                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
-
-        protected virtual Stream? GetResourceStream(String                            ResourceName,
-                                                    params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
-
-            foreach (var resourceAssembly in ResourceAssemblies)
-            {
-                try
-                {
-
-                    var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
-
-                    if (resourceStream is not null)
-                        return resourceStream;
-
-                }
-                catch
-                { }
-            }
-
-            return null;
-
-        }
-
-        #endregion
-
-        #region (protected virtual) GetResourceMemoryStream(ResourceName, ResourceAssemblies)
-
-        protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
-
-            => GetResourceMemoryStream(ResourceName,
-                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
-
-        protected virtual MemoryStream? GetResourceMemoryStream(String                            ResourceName,
-                                                                params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
-
-            try
-            {
-
-                var resourceStream = GetResourceStream(ResourceName,
-                                                       ResourceAssemblies);
-
-                if (resourceStream is not null)
-                {
-
-                    var outputStream = new MemoryStream();
-                    resourceStream.CopyTo(outputStream);
-                    outputStream.Seek(0, SeekOrigin.Begin);
-
-                    return outputStream;
-
-                }
-
-            }
-            catch
-            { }
-
-            return null;
-
-        }
-
-        #endregion
-
-        #region (protected virtual) GetResourceString      (ResourceName, ResourceAssemblies)
-
-        protected virtual String GetResourceString(String ResourceName)
-
-            => GetResourceString(ResourceName,
-                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
-
-        protected virtual String GetResourceString(String                            ResourceName,
-                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
-
-            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
-
-        #endregion
-
-        #region (protected virtual) GetResourceBytes       (ResourceName, ResourceAssemblies)
-
-        protected virtual Byte[] GetResourceBytes(String ResourceName)
-
-            => GetResourceBytes(ResourceName,
-                                new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
-
-        protected virtual Byte[] GetResourceBytes(String                            ResourceName,
-                                                  params Tuple<String, Assembly>[]  ResourceAssemblies)
-
-            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? Array.Empty<Byte>();
-
-        #endregion
-
-        #region (protected virtual) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
-
-        protected virtual String MixWithHTMLTemplate(String ResourceName)
-
-            => MixWithHTMLTemplate(ResourceName,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
-
-        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
-                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
-
-            if (HTMLTemplate is not null)
-            {
-
-                var htmlStream = new MemoryStream();
-
-                foreach (var assembly in ResourceAssemblies)
-                {
-
-                    var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
-                    if (resourceStream is not null)
-                    {
-
-                        resourceStream.Seek(3, SeekOrigin.Begin);
-                        resourceStream.CopyTo(htmlStream);
-
-                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
-
-                    }
-
-                }
-
-                return HTMLTemplate.Replace("<%= content %>",  "").
-                                    Replace("{{BasePath}}",    "");
-
-            }
-
-            return String.Empty;
-
-        }
-
-        #endregion
-
-        #region (protected virtual) MixWithHTMLTemplate    (ResourceName, HTMLConverter, ResourceAssemblies)
-
-        protected virtual String MixWithHTMLTemplate(String                ResourceName,
-                                                     Func<String, String>  HTMLConverter)
-
-            => MixWithHTMLTemplate(ResourceName,
-                                   HTMLConverter,
-                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
-
-        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
-                                                     Func<String, String>              HTMLConverter,
-                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
-        {
-
-            if (HTMLTemplate is not null)
-            {
-
-                var htmlStream = new MemoryStream();
-
-                foreach (var assembly in ResourceAssemblies)
-                {
-
-                    var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
-                    if (resourceStream is not null)
-                    {
-
-                        resourceStream.Seek(3, SeekOrigin.Begin);
-                        resourceStream.CopyTo(htmlStream);
-
-                        return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                                          Replace("{{BasePath}}",    BasePath?.ToString() ?? ""));
-
-                    }
-
-                }
-
-                return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  "").
-                                                  Replace("{{BasePath}}",    ""));
-
-            }
-
-            return String.Empty;
-
-        }
-
-        #endregion
-
-        #region (protected virtual) MixWithHTMLTemplate    (Template, ResourceName, ResourceAssemblies)
-
-        protected virtual String MixWithHTMLTemplate(String   Template,
-                                                     String   ResourceName,
-                                                     String?  Content   = null)
-
-            => MixWithHTMLTemplate(Template,
-                                   ResourceName,
-                                   new Tuple<String, Assembly>[] { new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) },
-                                   Content);
-
-        protected virtual String MixWithHTMLTemplate(String                     Template,
-                                                     String                     ResourceName,
-                                                     Tuple<String, Assembly>[]  ResourceAssemblies,
-                                                     String?                    Content   = null)
-        {
-
-            var htmlStream = new MemoryStream();
-
-            foreach (var assembly in ResourceAssemblies)
-            {
-
-                var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
-                if (resourceStream is not null)
-                {
-
-                    resourceStream.Seek(3, SeekOrigin.Begin);
-                    resourceStream.CopyTo(htmlStream);
-
-                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
-                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
-
-                }
-
-            }
-
-            return Template.Replace("<%= content %>",  "").
-                            Replace("{{BasePath}}",    "");
-
-        }
-
-        #endregion
-
-
         #region (Timer) DoMaintenance(State)
 
         private void DoMaintenanceSync(Object State)
@@ -2329,7 +2029,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 catch (Exception e)
                 {
 
-                    while (e.InnerException != null)
+                    while (e.InnerException is not null)
                         e = e.InnerException;
 
                     DebugX.LogException(e);

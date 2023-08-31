@@ -30,11 +30,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The common interface of all HTTP API extensions.
     /// </summary>
-    public interface IHTTPAPIExtension
+    public interface IHTTPAPIExtension<THTTPAPI>
+
+        where THTTPAPI : HTTPAPI
+
     {
 
+        /// <summary>
+        /// The extended HTTP API.
+        /// </summary>
+        THTTPAPI  HTTPBaseAPI      { get; }
 
-        HTTPPath URLPathPrefix { get; }
+
+
+        HTTPPath  URLPathPrefix    { get; }
 
 
     }
