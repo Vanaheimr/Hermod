@@ -851,9 +851,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         Array.Resize(ref buffer, pos);
 
                                         if (TryParse(buffer,
-                                                     out WebSocketFrame?  frame,
-                                                     out UInt64           frameLength,
-                                                     out String?          errorResponse) &&
+                                                     out var frame,
+                                                     out var frameLength,
+                                                     out var errorResponse) &&
                                             frame is not null)
                                         {
 
