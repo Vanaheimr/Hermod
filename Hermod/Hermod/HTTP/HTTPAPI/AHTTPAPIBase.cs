@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPPath?               BasePath              { get; }
 
 
-        public String                  HTMLTemplate          { get; }
+        public String                  HTMLTemplate          { get; set; }
 
 
         /// <summary>
