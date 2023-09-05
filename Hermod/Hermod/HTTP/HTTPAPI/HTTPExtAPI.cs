@@ -13150,10 +13150,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region VerifyMessageSignatures(JSONMessage, AllMustBeValid = true)
+        #region (static) VerifyMessageSignatures(JSONMessage, AllMustBeValid = true)
 
-        public Boolean VerifyMessageSignatures(JObject JSONMessage,
-                                               Boolean AllMustBeValid = true)
+        public static Boolean VerifyMessageSignatures(JObject  JSONMessage,
+                                                      Boolean  AllMustBeValid   = true)
         {
 
             if (JSONMessage is null)
@@ -13218,7 +13218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var ecParams      = new ECDomainParameters(ecp.Curve, ecp.G, ecp.N, ecp.H, ecp.GetSeed());
                     var pubKeyParams  = new ECPublicKeyParameters("ECDSA", ecParams.Curve.DecodePoint(publicKey), ecParams);
 
-                    var SHA256Hash    = SHA256.Create().ComputeHash(plainText);
+                    var SHA256Hash    = SHA256.HashData(plainText);
                     var BlockSize     = 32;
 
                     var verifier      = SignerUtilities.GetSigner("NONEwithECDSA");
@@ -13244,9 +13244,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SignMessage(JSONMessage, params KeyPairs)
+        #region (static) SignMessage(JSONMessage, params KeyPairs)
 
-        public Boolean SignMessage(JObject JSONMessage, params AsymmetricCipherKeyPair[] KeyPairs)
+        public static Boolean SignMessage(JObject JSONMessage, params AsymmetricCipherKeyPair[] KeyPairs)
         {
 
             if (JSONMessage is null || KeyPairs is null || !KeyPairs.Any())
@@ -13258,15 +13258,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (KeyPair is null)
                     continue;
 
-                var privateKey  = KeyPair?.Private as ECPrivateKeyParameters;
-                var publicKey   = KeyPair?.Public  as ECPublicKeyParameters;
-
-                if (privateKey == null)
+                if (KeyPair?.Private is not ECPrivateKeyParameters privateKey)
                     continue;
 
-                if (publicKey == null)
+                if (KeyPair?.Public  is not ECPublicKeyParameters  publicKey)
                     continue;
-
 
                 if (JSONMessage["signatures"] is not null &&
                     JSONMessage["signatures"]?.Type != JTokenType.Array)
