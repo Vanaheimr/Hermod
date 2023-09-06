@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public NetworkStream      NetworkStream        { get; }
 
         /// <summary>
-        /// An optional SSL/TLS server certificate.
+        /// An optional TLS server certificate.
         /// </summary>
         public X509Certificate2?  ServerCertificate    { get; }
 
@@ -74,12 +74,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public X509Certificate2?  ClientCertificate    { get; }
 
         /// <summary>
-        /// The SSL/TLS protocol(s) to use.
+        /// The TLS protocol(s) to use.
         /// </summary>
         public SslProtocols       TLSProtocols         { get; }
 
         /// <summary>
-        /// The underlying SSL/TLS stream.
+        /// The underlying TLS stream.
         /// </summary>
         public SslStream?         SSLStream            { get; }
 
@@ -229,10 +229,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="TCPServer">A TCP server.</param>
         /// <param name="TCPClient">A TCP client.</param>
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         public TCPConnection(TCPServer                             TCPServer,
                              TcpClient                             TCPClient,
                              ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,

@@ -96,10 +96,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="TCPPort">The listening port</param>
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An array of delimiters to split the incoming CSV line into individual elements.</param>
@@ -165,10 +165,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
@@ -247,10 +247,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>

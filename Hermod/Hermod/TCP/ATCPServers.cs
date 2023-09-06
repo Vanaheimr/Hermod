@@ -52,32 +52,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public DNSClient                             DNSClient                       { get; }
 
         /// <summary>
-        /// The optional delegate to select a SSL/TLS server certificate.
+        /// The optional delegate to select a TLS server certificate.
         /// </summary>
         public ServerCertificateSelectorDelegate?    ServerCertificateSelector       { get; }
 
         /// <summary>
-        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
         public RemoteCertificateValidationHandler?  ClientCertificateValidator      { get; }
 
         /// <summary>
-        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
         public LocalCertificateSelectionHandler?    ClientCertificateSelector       { get; }
 
         /// <summary>
-        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// The TLS protocol(s) allowed for this connection.
         /// </summary>
         public SslProtocols                          AllowedTLSProtocols             { get; }
 
         /// <summary>
-        /// Whether a SSL/TLS client certificate is required.
+        /// Whether a TLS client certificate is required.
         /// </summary>
         public Boolean                               ClientCertificateRequired       { get; }
 
         /// <summary>
-        /// Whether the SSL/TLS client certificate should be checked for revocation.
+        /// Whether the TLS client certificate should be checked for revocation.
         /// </summary>
         public Boolean                               CheckCertificateRevocation      { get; }
 
@@ -396,12 +396,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">The service banner transmitted to a TCP client after connection initialization.</param>
         /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
-        /// <param name="ClientCertificateRequired">Whether a SSL/TLS client certificate is required.</param>
-        /// <param name="CheckCertificateRevocation">Whether the SSL/TLS client certificate should be checked for revocation.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ClientCertificateRequired">Whether a TLS client certificate is required.</param>
+        /// <param name="CheckCertificateRevocation">Whether the TLS client certificate should be checked for revocation.</param>
         /// 
         /// <param name="ServerThreadName">An optional name of the TCP server threads.</param>
         /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>

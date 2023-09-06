@@ -97,17 +97,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public IPSocket                          IPSocket                               { get; }
 
         /// <summary>
-        /// The optional SSL/TLS certificate.
+        /// The optional TLS certificate.
         /// </summary>
         //public X509Certificate2                  ServerCertificate                      { get; }
 
         /// <summary>
-        /// Whether SSL/TLS client certification is required.
+        /// Whether TLS client certification is required.
         /// </summary>
         public Boolean                           ClientCertificateRequired              { get; }
 
         /// <summary>
-        /// Whether SSL/TLS client certificate revokation should be verified.
+        /// Whether TLS client certificate revokation should be verified.
         /// </summary>
         public Boolean                           CheckCertificateRevocation             { get; }
 
@@ -232,10 +232,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="Port">The listening port</param>
         /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">The TCP service banner.</param>
@@ -301,10 +301,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="IIPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">The TCP service banner.</param>
@@ -576,10 +576,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Initialize the TCP server using IPAddress.Any and the given parameters.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen.</param>
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">The TCP service banner.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>

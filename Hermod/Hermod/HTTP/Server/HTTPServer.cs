@@ -78,25 +78,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => httpServer.HTTPSecurity;
 
         /// <summary>
-        /// The optional delegate to select a SSL/TLS server certificate.
+        /// The optional delegate to select a TLS server certificate.
         /// </summary>
         public ServerCertificateSelectorDelegate?    ServerCertificateSelector
             => httpServer.ServerCertificateSelector;
 
         /// <summary>
-        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
         public RemoteCertificateValidationHandler?  ClientCertificateValidator
             => httpServer.ClientCertificateValidator;
 
         /// <summary>
-        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
         public LocalCertificateSelectionHandler?    ClientCertificateSelector
             => httpServer.ClientCertificateSelector;
 
         /// <summary>
-        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// The TLS protocol(s) allowed for this connection.
         /// </summary>
         public SslProtocols                          AllowedTLSProtocols
             => httpServer.AllowedTLSProtocols;
@@ -151,10 +151,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServerThreadNameCreator">Sets the optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPrioritySetter">Sets the optional priority of the TCP server thread.</param>
@@ -1082,10 +1082,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a SSL/TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the SSL/TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The SSL/TLS protocol(s) allowed for this connection.</param>
+        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
+        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
+        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -2602,27 +2602,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-
             #region HTTP request logger
 
-            if (RequestLogger is not null)
+            var now = Timestamp.Now;
+
+            var requestLogger = RequestLogger;
+            if (requestLogger is not null)
             {
+
+                var requestLoggerTasks = requestLogger.GetInvocationList().
+                                                       OfType<RequestLogHandler>().
+                                                       Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                     now,
+                                                                                     this,
+                                                                                     Request
+                                                                                 )).
+                                                       ToArray();
+
                 try
                 {
-
-                    var HTTPRequestLoggerTask = RequestLogger(Timestamp.Now,
-                                                              this,
-                                                              Request);
-
-                    // RequestLog wrappers might return null!
-                    if (HTTPRequestLoggerTask is not null)
-                        await HTTPRequestLoggerTask;
-
+                    await Task.WhenAll(requestLoggerTasks);
                 }
                 catch (Exception e)
                 {
+                    //await HandleErrors(
+                    //          nameof(TestChargingStation),
+                    //          nameof(OnRequestStartTransactionRequest),
+                    //          e
+                    //      );
                     DebugX.LogT("HTTP server request logger exception: " + e.Message);
                 }
+
             }
 
             #endregion
@@ -2634,105 +2644,119 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpRequestHandle is not null)
             {
 
-                #region HTTP request logger
+                #region URL specific HTTP request logger
 
-                if (httpRequestHandle.HTTPRequestLogger is not null)
+                now = Timestamp.Now;
+
+                var requestLoggerURL = httpRequestHandle.HTTPRequestLogger;
+                if (requestLoggerURL is not null)
                 {
+
+                    var requestLoggerTasks = requestLoggerURL.GetInvocationList().
+                                                              OfType <HTTPRequestLogHandler>().
+                                                              Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                                             now,
+                                                                                             httpRequestHandle.HTTPAPI,
+                                                                                             Request
+                                                                                         )).
+                                                              ToArray();
+
                     try
                     {
-
-                        var HTTPRequestLoggerTask = httpRequestHandle.HTTPRequestLogger(Timestamp.Now,
-                                                                                        null,
-                                                                                        Request);
-
-                        // RequestLog wrappers might return null!
-                        if (HTTPRequestLoggerTask is not null)
-                            await HTTPRequestLoggerTask;
-
+                        await Task.WhenAll(requestLoggerTasks);
                     }
                     catch (Exception e)
                     {
+                        //await HandleErrors(
+                        //          nameof(TestChargingStation),
+                        //          nameof(OnRequestStartTransactionRequest),
+                        //          e
+                        //      );
                         DebugX.LogT("HTTP server request logger exception: " + e.Message);
                     }
+
                 }
 
                 #endregion
 
-                try
+                #region Process HTTP request
+
+                var httpDelegate = httpRequestHandle.RequestHandler;
+                if (httpDelegate is not null)
                 {
 
-                    if (httpRequestHandle is not null)
+                    try
+                    {
+                         httpResponse = await httpDelegate(Request);
+                    }
+                    catch (Exception e)
                     {
 
-                        var requestHandler = httpRequestHandle.RequestHandler;
+                        DebugX.LogT("HTTP server request processing exception: " + e.Message);
 
-                        if (requestHandler is not null)
-                            httpResponse = await requestHandler(Request);
-
-                    }
-                    else
                         httpResponse = new HTTPResponse.Builder(Request) {
                                            HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                           Server          = DefaultServerName,
                                            ContentType     = HTTPContentType.JSON_UTF8,
                                            Content         = JSONObject.Create(
-                                                                 new JProperty("description", "HTTP request handle must not be null!")
+                                                                 new JProperty("request",      Request.FirstPDULine),
+                                                                 new JProperty("description",  e.Message),
+                                                                 new JProperty("stacktrace",   e.StackTrace),
+                                                                 new JProperty("source",       e.TargetSite?.Module.Name),
+                                                                 new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
                                                              ).ToUTF8Bytes(),
-                                           Server          = DefaultServerName,
                                            Connection      = "close"
                                        };
 
-                }
-                catch (Exception e)
-                {
-
-                    DebugX.LogT("HTTP server request processing exception: " + e.Message);
-
-                    httpResponse = new HTTPResponse.Builder(Request) {
-                                       HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                       ContentType     = HTTPContentType.JSON_UTF8,
-                                       Content         = JSONObject.Create(
-                                                             new JProperty("description", e.Message),
-                                                             new JProperty("stacktrace",  e.StackTrace),
-                                                             new JProperty("source",      e.TargetSite?.Module.Name),
-                                                             new JProperty("type",        e.TargetSite?.ReflectedType?.Name)
-                                                         ).ToUTF8Bytes(),
-                                       Server          = DefaultServerName,
-                                       Connection      = "close"
-                                   };
+                    }
 
                 }
 
                 httpResponse ??= new HTTPResponse.Builder(Request) {
-                                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                     Server          = Request.Host.ToString(),
-                                     Date            = Timestamp.Now,
-                                     ContentType     = HTTPContentType.TEXT_UTF8,
-                                     Content         = "Error 404 - Not Found!".ToUTF8Bytes(),
+                                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                     Server          = DefaultServerName,
+                                     ContentType     = HTTPContentType.JSON_UTF8,
+                                     Content         = JSONObject.Create(
+                                                             new JProperty("request",       Request.FirstPDULine),
+                                                             new JProperty("description",  "HTTP request handler must not be null!")
+                                                         ).ToUTF8Bytes(),
                                      Connection      = "close"
                                  };
 
-                #region HTTP response logger
+                #endregion
 
-                if (httpRequestHandle?.HTTPResponseLogger is not null)
+                #region URL specific HTTP response logger
+
+                now = Timestamp.Now;
+
+                var responseLoggerURL = httpRequestHandle.HTTPResponseLogger;
+                if (responseLoggerURL is not null)
                 {
+
+                    var responseLoggerTasks = responseLoggerURL.GetInvocationList().
+                                                                OfType <HTTPResponseLogHandler>().
+                                                                Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                                               now,
+                                                                                               httpRequestHandle.HTTPAPI,
+                                                                                               Request,
+                                                                                               httpResponse
+                                                                                           )).
+                                                                ToArray();
+
                     try
                     {
-
-                        var HTTPResponseLoggerTask = httpRequestHandle.HTTPResponseLogger(Timestamp.Now,
-                                                                                          null,
-                                                                                          Request,
-                                                                                          httpResponse);
-
-                        // ResponseLog wrappers might return null!
-                        if (HTTPResponseLoggerTask is not null)
-                            await HTTPResponseLoggerTask;
-
-
+                        await Task.WhenAll(responseLoggerTasks);
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogT("HTTP server request logger exception: " + e.Message);
+                        //await HandleErrors(
+                        //          nameof(TestChargingStation),
+                        //          nameof(OnRequestStartTransactionRequest),
+                        //          e
+                        //      );
+                        DebugX.LogT("HTTP server response logger exception: " + e.Message);
                     }
+
                 }
 
                 #endregion
@@ -2750,14 +2774,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Connection      = "close"
                                };
 
-            return httpResponse ?? new HTTPResponse.Builder(Request) {
-                                       HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                       Server          = Request.Host.ToString(),
-                                       Date            = Timestamp.Now,
-                                       ContentType     = HTTPContentType.TEXT_UTF8,
-                                       Content         = (errorResponse ?? "Error 404 - No HTTP handler found!").ToUTF8Bytes(),
-                                       Connection      = "close"
-                                   };
+             httpResponse ??= new HTTPResponse.Builder(Request) {
+                                  HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                  Server          = DefaultServerName,
+                                  ContentType     = HTTPContentType.JSON_UTF8,
+                                  Content         = JSONObject.Create(
+                                                          new JProperty("request",       Request.FirstPDULine),
+                                                          new JProperty("description",  "HTTP request handler must not be null!")
+                                                      ).ToUTF8Bytes(),
+                                  Connection      = "close"
+                              };
+
+
+            #region HTTP response logger
+
+            now = Timestamp.Now;
+
+            var responseLogger = ResponseLogger;
+            if (responseLogger is not null)
+            {
+
+                var responseLoggerTasks = responseLogger.GetInvocationList().
+                                                         OfType<AccessLogHandler>().
+                                                         Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                       now,
+                                                                                       this,
+                                                                                       Request,
+                                                                                       httpResponse
+                                                                                   )).
+                                                         ToArray();
+
+                try
+                {
+                    await Task.WhenAll(responseLoggerTasks);
+                }
+                catch (Exception e)
+                {
+                    //await HandleErrors(
+                    //          nameof(TestChargingStation),
+                    //          nameof(OnRequestStartTransactionRequest),
+                    //          e
+                    //      );
+                    DebugX.LogT("HTTP server response logger exception: " + e.Message);
+                }
+
+            }
+
+            #endregion
+
+            return httpResponse;
 
         }
 

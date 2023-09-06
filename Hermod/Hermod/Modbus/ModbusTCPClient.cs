@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public String?                               Description                   { get; set; }
 
         /// <summary>
-        /// The remote SSL/TLS certificate validator.
+        /// The remote TLS certificate validator.
         /// </summary>
         public RemoteCertificateValidationHandler?  RemoteCertificateValidator    { get; }
 
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         public LocalCertificateSelectionHandler?    ClientCertificateSelector     { get; }
 
         /// <summary>
-        /// The SSL/TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
         public X509Certificate?                      ClientCert                    { get; }
 
@@ -314,9 +314,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="RemoteTCPPort">An optional remote TCP port to connect to.</param>
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use of Modbus/TLS authentication.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
@@ -383,9 +383,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="RemoteTCPPort">An optional remote TCP port to connect to.</param>
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use of Modbus/TLS authentication.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
@@ -451,9 +451,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="RemoteURL">The remote URL of the Modbus/TCP device to connect to.</param>
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of Modbus/TLS authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use of Modbus/TLS authentication.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>

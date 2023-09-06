@@ -50,12 +50,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         String?                               Description                   { get; set; }
 
         /// <summary>
-        /// The remote SSL/TLS certificate validator.
+        /// The remote TLS certificate validator.
         /// </summary>
         RemoteCertificateValidationHandler?  RemoteCertificateValidator    { get; }
 
         /// <summary>
-        /// The SSL/TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
         X509Certificate?                      ClientCert                    { get; }
 

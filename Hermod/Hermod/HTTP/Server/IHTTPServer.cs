@@ -139,22 +139,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         HTTPSecurity?                        HTTPSecurity                  { get; }
 
         /// <summary>
-        /// The optional delegate to select a SSL/TLS server certificate.
+        /// The optional delegate to select a TLS server certificate.
         /// </summary>
         ServerCertificateSelectorDelegate?   ServerCertificateSelector     { get; }
 
         /// <summary>
-        /// The optional delegate to verify the SSL/TLS client certificate used for authentication.
+        /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
         RemoteCertificateValidationHandler?  ClientCertificateValidator    { get; }
 
         /// <summary>
-        /// The optional delegate to select the SSL/TLS client certificate used for authentication.
+        /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
         LocalCertificateSelectionHandler?    ClientCertificateSelector     { get; }
 
         /// <summary>
-        /// The SSL/TLS protocol(s) allowed for this connection.
+        /// The TLS protocol(s) allowed for this connection.
         /// </summary>
         SslProtocols                         AllowedTLSProtocols           { get; }
 

@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         /// <summary>
         /// The server supports the STARTTLS extension (rfc3207), allowing clients
-        /// to switch to an encrypted SSL/TLS connection after connecting.
+        /// to switch to an encrypted TLS connection after connecting.
         /// </summary>
         StartTLS                = 256,
 

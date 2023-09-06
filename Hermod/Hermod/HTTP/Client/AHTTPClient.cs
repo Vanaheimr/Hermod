@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname?                         VirtualHostname               { get; }
 
         /// <summary>
-        /// The remote SSL/TLS certificate validator.
+        /// The remote TLS certificate validator.
         /// </summary>
         public RemoteCertificateValidationHandler?   RemoteCertificateValidator    { get; }
 
@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public LocalCertificateSelectionHandler?     ClientCertificateSelector     { get; }
 
         /// <summary>
-        /// The SSL/TLS client certificate to use of HTTP authentication.
+        /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
         public X509Certificate?                      ClientCert                    { get; }
 
@@ -524,9 +524,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this HTTP client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="RemoteCertificateValidator">The remote SSL/TLS certificate validator.</param>
+        /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
-        /// <param name="ClientCert">The SSL/TLS client certificate to use of HTTP authentication.</param>
+        /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use.</param>

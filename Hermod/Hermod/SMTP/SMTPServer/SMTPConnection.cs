@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
         /// <summary>
-        /// Allow to start SSL/TLS via the 'STARTTLS' SMTP command.
+        /// Allow to start TLS via the 'STARTTLS' SMTP command.
         /// </summary>
         public Boolean  AllowStartTLS   { get; }
 
@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// decode the transmitted data as SMTP requests.
         /// </summary>
         /// <param name="DefaultServername">The default SMTP servername.</param>
-        /// <param name="AllowStartTLS">>Allow to start SSL/TLS via the 'STARTTLS' SMTP command.</param>
+        /// <param name="AllowStartTLS">>Allow to start TLS via the 'STARTTLS' SMTP command.</param>
         public SMTPConnection(String  DefaultServername  = SMTPServer.__DefaultServerName,
                               Boolean AllowStartTLS      = true)
         {
