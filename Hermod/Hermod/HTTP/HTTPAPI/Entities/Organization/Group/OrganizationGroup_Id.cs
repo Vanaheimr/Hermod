@@ -48,10 +48,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IsNullOrEmpty();
 
         /// <summary>
+        /// Indicates whether this identification is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => InternalId.IsNotNullOrEmpty();
+
+        /// <summary>
         /// The length of the organization group identificator.
         /// </summary>
         public UInt64 Length
-            => (UInt64) InternalId?.Length;
+            => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
 

@@ -27,9 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique identification of an attached file.
     /// </summary>
-    public struct AttachedFile_Id : IId,
-                                    IEquatable<AttachedFile_Id>,
-                                    IComparable<AttachedFile_Id>
+    public readonly struct AttachedFile_Id : IId,
+                                             IEquatable<AttachedFile_Id>,
+                                             IComparable<AttachedFile_Id>
     {
 
         #region Data
@@ -50,10 +50,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IsNullOrEmpty();
 
         /// <summary>
+        /// Indicates whether this identification is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => InternalId.IsNotNullOrEmpty();
+
+        /// <summary>
         /// The length of the attached file identificator.
         /// </summary>
         public UInt64 Length
-            => (UInt64) InternalId?.Length;
+            => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
 

@@ -27,9 +27,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
     /// <summary>
     /// A unique identification of an e-mail message.
     /// </summary>
-    public struct Message_Id : IId,
-                               IEquatable<Message_Id>,
-                               IComparable<Message_Id>
+    public readonly struct Message_Id : IId,
+                                        IEquatable<Message_Id>,
+                                        IComparable<Message_Id>
     {
 
         #region Properties
@@ -48,7 +48,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Indicates whether this identification is null or empty.
         /// </summary>
         public Boolean IsNullOrEmpty
-            => RandomPart.IsNullOrEmpty() || DomainPart.IsNullOrEmpty();
+            => RandomPart.IsNullOrEmpty() ||
+               DomainPart.IsNullOrEmpty();
+
+        /// <summary>
+        /// Indicates whether this identification is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => RandomPart.IsNotNullOrEmpty() &&
+               DomainPart.IsNotNullOrEmpty();
 
         /// <summary>
         /// The length of the e-mail message identificator.

@@ -2240,8 +2240,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (APIRobotEMailAddress is null)
                 throw new ArgumentNullException(nameof(APIRobotEMailAddress),   "The given API robot e-mail address must not be null!");
 
-            if (APIRobotGPGPassphrase is null)
-                throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
+            //if (APIRobotGPGPassphrase is null)
+            //    throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
 
             #endregion
 
