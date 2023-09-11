@@ -17,11 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -38,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Data
 
-        private readonly List<SOAPDispatch> _SOAPDispatches;
+        private readonly List<SOAPDispatch> soapDispatches;
 
         #endregion
 
@@ -58,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// All registeres SOAP dispatches.
         /// </summary>
         public IEnumerable<SOAPDispatch>  SOAPDispatches
-            => _SOAPDispatches;
+            => soapDispatches;
 
         #endregion
 
@@ -75,7 +70,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             this.URITemplate      = URITemplate;
             this.SOAPContentType  = SOAPContentType;
-            this._SOAPDispatches  = new List<SOAPDispatch>();
+
+            this.soapDispatches   = new List<SOAPDispatch>();
 
         }
 
@@ -95,7 +91,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                          SOAPBodyDelegate  SOAPBodyDelegate)
         {
 
-            _SOAPDispatches.Add(new SOAPDispatch(Description, SOAPMatch, SOAPBodyDelegate));
+            soapDispatches.Add(new SOAPDispatch(
+                                   Description,
+                                   SOAPMatch,
+                                   SOAPBodyDelegate
+                               ));
 
         }
 
@@ -114,7 +114,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                          SOAPHeaderAndBodyDelegate  SOAPHeaderAndBodyDelegate)
         {
 
-            _SOAPDispatches.Add(new SOAPDispatch(Description, SOAPMatch, SOAPHeaderAndBodyDelegate));
+            soapDispatches.Add(new SOAPDispatch(
+                                   Description,
+                                   SOAPMatch,
+                                   SOAPHeaderAndBodyDelegate
+                               ));
 
         }
 
@@ -137,25 +141,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (XMLRequest.HasErrors)
                 return XMLRequest.Error;
 
-            var SOAPDispatch = _SOAPDispatches.
+            var soapDispatch = soapDispatches.
                                     Select(dispatch => new {
                                         dispatch    = dispatch,
                                         SOAPHeader  = XMLRequest.Data.Root.Descendants(v1_2.NS.SOAPEnvelope + "Header").FirstOrDefault(),
                                         SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
                                     }).
-                                    FirstOrDefault(match => match.SOAPBody != null);
+                                    FirstOrDefault(match => match.SOAPBody is not null);
 
-            if (SOAPDispatch != null)
+            if (soapDispatch is not null)
             {
 
-                if (SOAPDispatch.dispatch.BodyDelegate          != null)
-                    return await SOAPDispatch.dispatch.BodyDelegate(Request,
-                                                                    SOAPDispatch.SOAPBody);
+                if (soapDispatch.dispatch.BodyDelegate          is not null)
+                    return await soapDispatch.dispatch.BodyDelegate(Request,
+                                                                    soapDispatch.SOAPBody);
 
-                if (SOAPDispatch.dispatch.HeaderAndBodyDelegate != null)
-                    return await SOAPDispatch.dispatch.HeaderAndBodyDelegate(Request,
-                                                                             SOAPDispatch.SOAPHeader,
-                                                                             SOAPDispatch.SOAPBody);
+                if (soapDispatch.dispatch.HeaderAndBodyDelegate is not null)
+                    return await soapDispatch.dispatch.HeaderAndBodyDelegate(Request,
+                                                                             soapDispatch.SOAPHeader,
+                                                                             soapDispatch.SOAPBody);
 
                 return new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
@@ -192,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 Content         = ("Welcome at " + Request.HTTPServer.DefaultServerName + Environment.NewLine +
                                    "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
                                    "Defined SOAP meassages: " + Environment.NewLine +
-                                   _SOAPDispatches.
+                                   soapDispatches.
                                        Select(dispatch => " - " + dispatch.Description).
                                        AggregateWith(Environment.NewLine)
                                   ).ToUTF8Bytes(),
@@ -209,7 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => _SOAPDispatches.Select(item => item.Description).AggregateWith(", ");
+
+            => soapDispatches.Select(item => item.Description).AggregateWith(", ");
 
         #endregion
 

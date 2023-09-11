@@ -70,17 +70,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The HTTP/SOAP server.
         /// </summary>
-        public SOAPServer  SOAPServer   { get; }
+        public SOAPServer         SOAPServer    { get; }
 
         /// <summary>
         /// The common URL prefix for this HTTP/SOAP service.
         /// </summary>
-        public HTTPPath    URLPrefix    { get; }
+        public HTTPPath           URLPrefix     { get; }
 
         /// <summary>
         /// The DNS client used by this server.
         /// </summary>
-        public DNSClient   DNSClient    { get; }
+        public DNSClient          DNSClient     { get; }
 
         /// <summary>
         /// All TCP ports this SOAP server listens on.
