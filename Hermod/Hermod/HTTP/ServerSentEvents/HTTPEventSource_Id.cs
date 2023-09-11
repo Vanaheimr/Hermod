@@ -29,9 +29,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique identification of a HTTP Event Source.
     /// </summary>
-    public struct HTTPEventSource_Id : IId,
-                                       IEquatable<HTTPEventSource_Id>,
-                                       IComparable<HTTPEventSource_Id>
+    public readonly struct HTTPEventSource_Id : IId,
+                                                IEquatable<HTTPEventSource_Id>,
+                                                IComparable<HTTPEventSource_Id>
 
     {
 
@@ -53,10 +53,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IsNullOrEmpty();
 
         /// <summary>
+        /// Indicates whether this identification is NOT null or empty.
+        /// </summary>
+        public Boolean IsNotNullOrEmpty
+            => InternalId.IsNotNullOrEmpty();
+
+        /// <summary>
         /// The length of the HTTP Event Source identification.
         /// </summary>
         public UInt64 Length
-            => (UInt64) InternalId?.Length;
+            => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
 
