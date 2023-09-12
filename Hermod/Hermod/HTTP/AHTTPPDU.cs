@@ -977,14 +977,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return (T) value;
                     }
 
-                    if (HeaderField.StringParser is not null &&
-                        HeaderField.StringParser(text, out var valueT))
+                    if (HeaderField.StringParser is not null           &&
+                        HeaderField.StringParser(text, out var valueT) &&
+                        valueT is not null)
                     {
-                        headerFieldsParsed.Add(HeaderField.Name, valueT);
+                        headerFieldsParsed.Remove(HeaderField.Name);
+                        headerFieldsParsed.TryAdd(HeaderField.Name, valueT);
                         return valueT;
                     }
 
                 }
+
             }
 
             return default;
