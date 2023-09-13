@@ -206,20 +206,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public event OnWebSocketFrameDelegate?                OnWebSocketFrameReceived;
 
-        ///// <summary>
-        ///// An event sent whenever the response to a web socket frame was sent.
-        ///// </summary>
-        //public event OnWebSocketResponseFrameDelegate?            OnWebSocketFrameResponseSent;
-
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
         public event OnWebSocketFrameDelegate?                OnWebSocketFrameSent;
-
-        ///// <summary>
-        ///// An event sent whenever the response to a web socket frame was received.
-        ///// </summary>
-        //public event OnWebSocketResponseFrameDelegate?            OnWebSocketFrameResponseReceived;
 
 
         /// <summary>
