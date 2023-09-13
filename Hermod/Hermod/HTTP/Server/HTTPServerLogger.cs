@@ -44,8 +44,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            private readonly Dictionary<LogTargets, RequestLogHandler>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                        _SubscriptionStatus;
+            private readonly ConcurrentDictionary<LogTargets, RequestLogHandler>  subscriptionDelegates = new();
+            private readonly HashSet<LogTargets>                                  _SubscriptionStatus;
 
             #endregion
 
@@ -94,13 +94,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
+                    throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                if (SubscribeToEventDelegate     is null)
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                if (UnsubscribeFromEventDelegate is null)
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
@@ -109,7 +109,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, RequestLogHandler>();
                 this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
@@ -129,18 +128,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
 
-                #region Initial checks
-
-                if (HTTPRequestDelegate == null)
-                    throw new ArgumentNullException(nameof(HTTPRequestDelegate),  "The given delegate must not be null!");
-
-                #endregion
-
-                if (_SubscriptionDelegates.ContainsKey(LogTarget))
+                if (subscriptionDelegates.ContainsKey(LogTarget))
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
-                _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
+                subscriptionDelegates.TryAdd(LogTarget,
+                                             (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
 
                 return this;
 
@@ -161,10 +153,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out RequestLogHandler _RequestLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var requestLogHandler))
                 {
-                    SubscribeToEventDelegate(_RequestLogHandler);
+                    SubscribeToEventDelegate(requestLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -200,10 +192,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out RequestLogHandler _RequestLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                       out var requestLogHandler))
                 {
-                    UnsubscribeFromEventDelegate(_RequestLogHandler);
+                    UnsubscribeFromEventDelegate(requestLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -229,8 +221,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            private readonly Dictionary<LogTargets, HTTPRequestLogHandler>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                        _SubscriptionStatus;
+            private readonly ConcurrentDictionary<LogTargets, HTTPRequestLogHandler>  subscriptionDelegates = new();
+            private readonly HashSet<LogTargets>                                      _SubscriptionStatus;
 
             #endregion
 
@@ -279,13 +271,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
+                    throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked HTTP API event must not be null!");
+                if (SubscribeToEventDelegate     is null)
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                if (UnsubscribeFromEventDelegate is null)
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
@@ -294,7 +286,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, HTTPRequestLogHandler>();
                 this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
@@ -311,21 +302,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
             /// <returns>A HTTP request logger.</returns>
             public HTTPServerRequestLogger2 RegisterLogTarget(LogTargets                 LogTarget,
-                                                             HTTPRequestLoggerDelegate  HTTPRequestDelegate)
+                                                              HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
 
-                #region Initial checks
-
-                if (HTTPRequestDelegate == null)
-                    throw new ArgumentNullException(nameof(HTTPRequestDelegate),  "The given delegate must not be null!");
-
-                #endregion
-
-                if (_SubscriptionDelegates.ContainsKey(LogTarget))
+                if (subscriptionDelegates.ContainsKey(LogTarget))
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
-                _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
+                subscriptionDelegates.TryAdd(LogTarget,
+                                             (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
 
                 return this;
 
@@ -346,10 +330,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPRequestLogHandler _RequestLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var requestLogHandler))
                 {
-                    SubscribeToEventDelegate(_RequestLogHandler);
+                    SubscribeToEventDelegate(requestLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -385,10 +369,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPRequestLogHandler _RequestLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var requestLogHandler))
                 {
-                    UnsubscribeFromEventDelegate(_RequestLogHandler);
+                    UnsubscribeFromEventDelegate(requestLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -414,8 +398,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            private readonly Dictionary<LogTargets, AccessLogHandler>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                       _SubscriptionStatus;
+            private readonly ConcurrentDictionary<LogTargets, AccessLogHandler>  subscriptionDelegates = new();
+            private readonly HashSet<LogTargets>                                 _SubscriptionStatus;
 
             #endregion
 
@@ -464,13 +448,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
+                    throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
+                if (SubscribeToEventDelegate     is null)
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked  HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                if (UnsubscribeFromEventDelegate is null)
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
@@ -479,7 +463,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, AccessLogHandler>();
                 this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
@@ -499,18 +482,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
 
-                #region Initial checks
-
-                if (HTTPResponseDelegate == null)
-                    throw new ArgumentNullException(nameof(HTTPResponseDelegate), "The given delegate must not be null!");
-
-                #endregion
-
-                if (_SubscriptionDelegates.ContainsKey(LogTarget))
+                if (subscriptionDelegates.ContainsKey(LogTarget))
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
-                _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
+                subscriptionDelegates.TryAdd(LogTarget,
+                                             (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
 
                 return this;
 
@@ -531,10 +507,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out AccessLogHandler _AccessLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var accessLogHandler))
                 {
-                    SubscribeToEventDelegate(_AccessLogHandler);
+                    SubscribeToEventDelegate(accessLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -570,10 +546,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out AccessLogHandler _AccessLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var accessLogHandler))
                 {
-                    UnsubscribeFromEventDelegate(_AccessLogHandler);
+                    UnsubscribeFromEventDelegate(accessLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -599,24 +575,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            private readonly Dictionary<LogTargets, HTTPResponseLogHandler>  _SubscriptionDelegates;
-            private readonly HashSet<LogTargets>                       _SubscriptionStatus;
+            private readonly ConcurrentDictionary<LogTargets, HTTPResponseLogHandler>  subscriptionDelegates = new();
+            private readonly HashSet<LogTargets>                                       _SubscriptionStatus;
 
             #endregion
 
             #region Properties
 
-            public String                    LoggingPath                     { get; }
+            public String                          LoggingPath                     { get; }
 
             /// <summary>
             /// The context of the event to be logged.
             /// </summary>
-            public String                    Context                         { get; }
+            public String                          Context                         { get; }
 
             /// <summary>
             /// The name of the event to be logged.
             /// </summary>
-            public String                    LogEventName                    { get; }
+            public String                          LogEventName                    { get; }
 
             /// <summary>
             /// A delegate called whenever the event is subscriped to.
@@ -649,13 +625,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Initial checks
 
                 if (LogEventName.IsNullOrEmpty())
-                    throw new ArgumentNullException(nameof(LogEventName),                 "The given log event name must not be null or empty!");
+                    throw new ArgumentNullException(nameof(LogEventName),                  "The given log event name must not be null or empty!");
 
-                if (SubscribeToEventDelegate == null)
-                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),     "The given delegate for subscribing to the linked  HTTP API event must not be null!");
+                if (SubscribeToEventDelegate     is null)
+                    throw new ArgumentNullException(nameof(SubscribeToEventDelegate),      "The given delegate for subscribing to the linked  HTTP API event must not be null!");
 
-                if (UnsubscribeFromEventDelegate == null)
-                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate), "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
+                if (UnsubscribeFromEventDelegate is null)
+                    throw new ArgumentNullException(nameof(UnsubscribeFromEventDelegate),  "The given delegate for unsubscribing from the linked HTTP API event must not be null!");
 
                 #endregion
 
@@ -664,7 +640,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionDelegates        = new Dictionary<LogTargets, HTTPResponseLogHandler>();
                 this._SubscriptionStatus           = new HashSet<LogTargets>();
 
             }
@@ -684,18 +659,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
 
-                #region Initial checks
-
-                if (HTTPResponseDelegate == null)
-                    throw new ArgumentNullException(nameof(HTTPResponseDelegate), "The given delegate must not be null!");
-
-                #endregion
-
-                if (_SubscriptionDelegates.ContainsKey(LogTarget))
+                if (subscriptionDelegates.ContainsKey(LogTarget))
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
-                _SubscriptionDelegates.Add(LogTarget,
-                                           (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
+                subscriptionDelegates.TryAdd(LogTarget,
+                                             (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
 
                 return this;
 
@@ -716,10 +684,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPResponseLogHandler _AccessLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var accessLogHandler))
                 {
-                    SubscribeToEventDelegate(_AccessLogHandler);
+                    SubscribeToEventDelegate(accessLogHandler);
                     _SubscriptionStatus.Add(LogTarget);
                     return true;
                 }
@@ -755,10 +723,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!IsSubscribed(LogTarget))
                     return true;
 
-                if (_SubscriptionDelegates.TryGetValue(LogTarget,
-                                                       out HTTPResponseLogHandler _AccessLogHandler))
+                if (subscriptionDelegates.TryGetValue(LogTarget,
+                                                      out var accessLogHandler))
                 {
-                    UnsubscribeFromEventDelegate(_AccessLogHandler);
+                    UnsubscribeFromEventDelegate(accessLogHandler);
                     _SubscriptionStatus.Remove(LogTarget);
                     return true;
                 }
@@ -788,7 +756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP server of this logger.
         /// </summary>
-        public IHTTPServer  HTTPServer   { get; }
+        public IHTTPServer  HTTPServer    { get; }
 
         #endregion
 
