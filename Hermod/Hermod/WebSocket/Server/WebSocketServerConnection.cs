@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The HTTP web socket server.
         /// </summary>
-        public AWebSocketServer          WebSocketServer               { get; }
+        public AWebSocketServer         WebSocketServer               { get; }
 
         /// <summary>
         /// The local TCP socket.

@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -315,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -517,7 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -721,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -741,42 +741,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
                 httpResponses.Add(httpResponse);
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
                 messageRequests.       Add(requestFrame);
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame) => {
                 messageResponses.      Add(responseFrame);
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage) => {
                 textMessageRequests.   Add(textMessage);
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage) => {
                 textMessageResponses.  Add(textMessage ?? "-");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
                 binaryMessageRequests. Add(binaryMessage);
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
                 binaryMessageResponses.Add(binaryMessage);
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             #endregion
@@ -924,7 +924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -1125,7 +1125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -1344,7 +1344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {

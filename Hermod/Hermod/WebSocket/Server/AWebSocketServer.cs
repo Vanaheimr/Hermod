@@ -579,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region OnValidateTCPConnection
 
-                    var validatedTCPConnection = true;
+                    var validatedTCPConnection = ConnectionFilterResponse.Accepted();
 
                     var OnValidateTCPConnectionLocal = OnValidateTCPConnection;
                     if (OnValidateTCPConnectionLocal is not null)
@@ -589,11 +589,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                               this,
                                                                               newTCPConnection,
                                                                               EventTracking_Id.New,
-                                                                              token).Result ?? false;
+                                                                              token).Result;
 
                     }
 
-                    if (!validatedTCPConnection)
+                    if (validatedTCPConnection == ConnectionFilterResponse.Rejected())
                         newTCPConnection.Close();
 
                     else
@@ -1237,8 +1237,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             {
 
                                                 var success = await SendWebSocketFrame(webSocketConnection,
-                                                                                responseFrame,
-                                                                                eventTrackingId);
+                                                                                       responseFrame,
+                                                                                       eventTrackingId);
 
                                                 if (success == SendStatus.Success)
                                                 {

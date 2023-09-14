@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             webSocketChatServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP.Add($"{validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketChatServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {

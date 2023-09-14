@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP            = true;
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
@@ -204,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
             webSocketServer.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
                 validatedTCP            = true;
-                return Task.FromResult<Boolean?>(true);
+                return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
             webSocketServer.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken) => {

@@ -25,11 +25,26 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+    /// <summary>
+    /// A delegate called whenever the WebSocket server started.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the WebSocket server start.</param>
+    /// <param name="Server">The WebSocket server.</param>
+    /// <param name="EventTrackingId">The unique event tracking identification.</param>
     public delegate Task                                 OnServerStartedDelegate                 (DateTime                           Timestamp,
                                                                                                   AWebSocketServer                   Server,
                                                                                                   EventTracking_Id                   EventTrackingId);
 
-    public delegate Task<Boolean?>                       OnValidateTCPConnectionDelegate         (DateTime                           Timestamp,
+    /// <summary>
+    /// A delegate called whenever a new TCP connection was accepted and needs to be accepted
+    /// or rejected based on TCP information. This acts like a simple firewall.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the new TCP connection.</param>
+    /// <param name="Server">The WebSocket server.</param>
+    /// <param name="Connection">The TCP connection.</param>
+    /// <param name="EventTrackingId">The unique event tracking identification.</param>
+    /// <param name="CancellationToken"></param>
+    public delegate Task<ConnectionFilterResponse>       OnValidateTCPConnectionDelegate         (DateTime                           Timestamp,
                                                                                                   AWebSocketServer                   Server,
                                                                                                   System.Net.Sockets.TcpClient       Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
@@ -42,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   CancellationToken                  CancellationToken);
 
     /// <summary>
-    /// The delegate for HTTP request logging.
+    /// A delegate for logging the initial WebSocket HTTP request.
     /// </summary>
     /// <param name="Timestamp">The timestamp of the incoming HTTP request.</param>
     /// <param name="Server">The sending web socket server.</param>
@@ -58,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   CancellationToken                  CancellationToken);
 
     /// <summary>
-    /// The delegate for HTTP response logging.
+    /// A delegate for logging the initial WebSocket HTTP response.
     /// </summary>
     /// <param name="Timestamp">The timestamp of the outgoing HTTP response.</param>
     /// <param name="Server">The sending web socket server.</param>
