@@ -18,6 +18,9 @@
 #region Usings
 
 using System.Net.Sockets;
+using System.Collections.Concurrent;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -28,22 +31,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// A HTTP web socket server connection.
+    /// A HTTP WebSocket server connection.
     /// </summary>
     public class WebSocketServerConnection : IEquatable<WebSocketServerConnection>
     {
 
         #region Data
 
-        private readonly  Dictionary<String, Object?>  customData;
+        private readonly  ConcurrentDictionary<String, Object?>  customData             = new ();
 
-        private readonly  TcpClient                    tcpClient;
+        private readonly  TcpClient                              tcpClient;
 
-        private readonly  NetworkStream                tcpStream;
+        private readonly  NetworkStream                          tcpStream;
 
-        public  volatile  Boolean                      IsClosed;
+        public  volatile  Boolean                                IsClosed;
 
-        private readonly  SemaphoreSlim                socketWriteSemaphore = new (1, 1);
+        private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
         #endregion
 
@@ -181,11 +184,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
             this.HTTPRequest                 = HTTPRequest;
             this.HTTPResponse                = HTTPResponse;
-            this.customData                  = CustomData is not null
-                                                   ? CustomData. ToDictionary(kvp => kvp.Key,
-                                                                              kvp => kvp.Value)
-                                                   : new Dictionary<String, Object?>();
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+
+            if (CustomData is not null)
+            {
+                foreach (var customData in CustomData)
+                {
+                    this.customData.TryAdd(customData.Key,
+                                           customData.Value);
+                }
+            }
 
         }
 
@@ -394,41 +402,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Custom data
 
-        #region AddCustomData(Key, Value)
+        #region TryAddCustomData  (Key, Value)
 
         /// <summary>
         /// Add custom data to this HTTP web socket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A value.</param>
-        public void AddCustomData(String Key, Object? Value)
-        {
-            lock (customData)
-            {
+        public Boolean TryAddCustomData(String Key, Object? Value)
 
-                if (customData.ContainsKey(Key))
-                    customData[Key] = Value;
-
-                else
-                    customData.Add(Key, Value);
-
-            }
-        }
+            => customData.TryAdd(Key,
+                                 Value);
 
         #endregion
 
+        #region TryAddCustomData  (Key, NewValue, ComparisonValue)
 
-        #region HasCustomData(Key)
+        /// <summary>
+        /// Add custom data to this HTTP web socket server connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        /// <param name="Value">A new value.</param>
+        /// <param name="ComparisonValue">The old value to be updated.</param>
+        public Boolean TryAddCustomData(String   Key,
+                                        Object?  NewValue,
+                                        Object?  ComparisonValue)
+
+            => customData.TryUpdate(Key,
+                                    NewValue,
+                                    ComparisonValue);
+
+        #endregion
+
+        #region HasCustomData     (Key)
 
         /// <summary>
         /// Checks whether the given data key is present within this HTTP web socket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         public Boolean HasCustomData(String Key)
+
             => customData.ContainsKey(Key);
 
         #endregion
-
 
         #region TryGetCustomData  (Key)
 
@@ -467,7 +483,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
-
 
         #region TryGetCustomData  (Key, out Value)
 
@@ -516,6 +531,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region ToJSON(CustomWebSocketServerConnectionSerializer = null)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP WebSocket server connections.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketServerConnection>? CustomWebSocketServerConnectionSerializer = null)
+        {
+
+            var json = JSONObject.Create(
+
+                                 new JProperty("localSocket",    LocalSocket.ToString()),
+                                 new JProperty("remoteSocket",   RemoteSocket.ToString()),
+
+                           customData.Any()
+                               ? new JProperty("customData",     JSONObject.Create(
+                                                                     customData.Select(kvp => kvp.Value is not null
+                                                                                                  ? new JProperty(kvp.Key,  kvp.Value.ToString())
+                                                                                                  : null)
+                                                                 ))
+                               : null
+
+                       );
+
+            return CustomWebSocketServerConnectionSerializer is not null
+                       ? CustomWebSocketServerConnectionSerializer(this, json)
+                       : json;
+
+        }
+
+        #endregion
+
+
         #region Operator overloading
 
         #region Operator == (WebSocketConnection1, WebSocketConnection2)
@@ -526,8 +574,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (WebSocketServerConnection WebSocketConnection1,
-                                           WebSocketServerConnection WebSocketConnection2)
+        public static Boolean operator == (WebSocketServerConnection? WebSocketConnection1,
+                                           WebSocketServerConnection? WebSocketConnection2)
         {
 
             // If both are null, or both are same instance, return true.
@@ -552,8 +600,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (WebSocketServerConnection WebSocketConnection1,
-                                           WebSocketServerConnection WebSocketConnection2)
+        public static Boolean operator != (WebSocketServerConnection? WebSocketConnection1,
+                                           WebSocketServerConnection? WebSocketConnection2)
 
             => !(WebSocketConnection1 == WebSocketConnection2);
 
@@ -567,8 +615,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (WebSocketServerConnection WebSocketConnection1,
-                                          WebSocketServerConnection WebSocketConnection2)
+        public static Boolean operator < (WebSocketServerConnection? WebSocketConnection1,
+                                          WebSocketServerConnection? WebSocketConnection2)
         {
 
             if (WebSocketConnection1 is null)
@@ -588,8 +636,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (WebSocketServerConnection WebSocketConnection1,
-                                           WebSocketServerConnection WebSocketConnection2)
+        public static Boolean operator <= (WebSocketServerConnection? WebSocketConnection1,
+                                           WebSocketServerConnection? WebSocketConnection2)
 
             => !(WebSocketConnection1 > WebSocketConnection2);
 
@@ -603,8 +651,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (WebSocketServerConnection WebSocketConnection1,
-                                          WebSocketServerConnection WebSocketConnection2)
+        public static Boolean operator > (WebSocketServerConnection? WebSocketConnection1,
+                                          WebSocketServerConnection? WebSocketConnection2)
         {
 
             if (WebSocketConnection1 is null)
@@ -624,8 +672,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (WebSocketServerConnection WebSocketConnection1,
-                                           WebSocketServerConnection WebSocketConnection2)
+        public static Boolean operator >= (WebSocketServerConnection? WebSocketConnection1,
+                                           WebSocketServerConnection? WebSocketConnection2)
 
             => !(WebSocketConnection1 < WebSocketConnection2);
 
