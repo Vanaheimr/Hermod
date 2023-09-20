@@ -27,6 +27,8 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using Microsoft.VisualBasic;
+using System.Collections.Generic;
 
 #endregion
 
@@ -831,22 +833,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             // 3. Compute SHA-1 and Base64 hash of the new value
                                             // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
 #pragma warning disable SCS0006 // Weak hashing function.
-                                            var swk       = webSocketConnection.HTTPRequest?.SecWebSocketKey;
-                                            var swka      = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                            var swkaSHA1  = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
+                                            var swk                 = webSocketConnection.HTTPRequest?.SecWebSocketKey;
+                                            var swka                = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                            var swkaSHA1            = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
+                                            var sharedSubprotocols  = SecWebSocketProtocols.
+                                                                          Intersect(httpRequest.SecWebSocketProtocol).
+                                                                          OrderByDescending(_ => _).
+                                                                          ToArray();
 #pragma warning restore SCS0006 // Weak hashing function.
 
-                                            var secWebSocketProtocols = new List<String>();
-
-                                            if (httpRequest.SecWebSocketProtocol. Any() &&
-                                                this.       SecWebSocketProtocols.Any())
-                                            {
-                                                foreach (var protocol in httpRequest.SecWebSocketProtocol)
-                                                {
-                                                    if (this.SecWebSocketProtocols.Contains(protocol))
-                                                        secWebSocketProtocols.Add(protocol);
-                                                }
-                                            }
 
                                             // HTTP/1.1 101 Switching Protocols
                                             // Connection:              Upgrade
@@ -860,7 +855,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  Connection            = "Upgrade",
                                                                  Upgrade               = "websocket",
                                                                  SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
-                                                                 SecWebSocketProtocol  = secWebSocketProtocols,
+                                                                 SecWebSocketProtocol  = sharedSubprotocols,
                                                                  SecWebSocketVersion   = "13"
                                                              }.AsImmutable;
 
