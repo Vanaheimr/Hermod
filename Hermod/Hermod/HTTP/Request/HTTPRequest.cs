@@ -1123,7 +1123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // e.g: PROPFIND /file/file Name HTTP/1.1
             if (httpMethodHeader.Length != 3)
-                throw new Exception("Invlaid first HTTP PDU line!");
+                throw new Exception("Invalid first HTTP PDU line!");
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
