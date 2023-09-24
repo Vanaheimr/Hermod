@@ -12936,11 +12936,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static AsymmetricCipherKeyPair GenerateKeys(X9ECParameters ECParameters)
         {
 
-            var ellipticCurveSpec = new ECDomainParameters(ECParameters.Curve,
-                                                           ECParameters.G,
-                                                           ECParameters.N,
-                                                           ECParameters.H,
-                                                           ECParameters.GetSeed());
+            var ellipticCurveSpec = new ECDomainParameters(
+                                        ECParameters.Curve,
+                                        ECParameters.G,
+                                        ECParameters.N,
+                                        ECParameters.H,
+                                        ECParameters.GetSeed()
+                                    );
 
             var g = GeneratorUtilities.GetKeyPairGenerator("ECDH");
             g.Init(new ECKeyGenerationParameters(ellipticCurveSpec, new SecureRandom()));
@@ -13032,11 +13034,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static ECPrivateKeyParameters ParsePrivateKeyBase64(X9ECParameters  ECParameters,
                                                                    String          PrivateKeyBase64)
 
-            => ParsePrivateKeyBase64(new ECDomainParameters(ECParameters.Curve,
-                                                            ECParameters.G,
-                                                            ECParameters.N,
-                                                            ECParameters.H,
-                                                            ECParameters.GetSeed()),
+            => ParsePrivateKeyBase64(new ECDomainParameters(
+                                         ECParameters.Curve,
+                                         ECParameters.G,
+                                         ECParameters.N,
+                                         ECParameters.H,
+                                         ECParameters.GetSeed()
+                                     ),
                                      PrivateKeyBase64);
 
         #endregion
@@ -13111,11 +13115,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new ("ECDSA",
                     ECParameters.Curve.DecodePoint(PublicKeyBase64.FromBase64()),
-                    new ECDomainParameters(ECParameters.Curve,
-                                           ECParameters.G,
-                                           ECParameters.N,
-                                           ECParameters.H,
-                                           ECParameters.GetSeed()));
+                    new ECDomainParameters(
+                        ECParameters.Curve,
+                        ECParameters.G,
+                        ECParameters.N,
+                        ECParameters.H,
+                        ECParameters.GetSeed()
+                    ));
 
         #endregion
 
