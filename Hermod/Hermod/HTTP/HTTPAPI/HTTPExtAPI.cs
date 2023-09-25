@@ -13181,7 +13181,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var results          = new List<Boolean>();
 
-                // loop!
                 foreach (var signatureJSON in signaturesJSON)
                 {
 
@@ -13224,12 +13223,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var ecParams      = new ECDomainParameters(ecp.Curve, ecp.G, ecp.N, ecp.H, ecp.GetSeed());
                     var pubKeyParams  = new ECPublicKeyParameters("ECDSA", ecParams.Curve.DecodePoint(publicKey), ecParams);
 
-                    var SHA256Hash    = SHA256.HashData(plainText);
-                    var BlockSize     = 32;
+                    var sha256Hash    = SHA256.HashData(plainText);
 
                     var verifier      = SignerUtilities.GetSigner("NONEwithECDSA");
                     verifier.Init(false, pubKeyParams);
-                    verifier.BlockUpdate(SHA256Hash, 0, BlockSize);
+                    verifier.BlockUpdate(sha256Hash);
                     var result        = verifier.VerifySignature(signature);
 
                     results.Add(result);
@@ -13286,7 +13284,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var plainText    = messageJSON.ToString(Newtonsoft.Json.Formatting.None, cc);
                 var sha256Hash   = SHA256.HashData(plainText.ToUTF8Bytes());
-                var blockSize    = 32;
 
                 if (JSONMessage["signatures"] is not JArray signaturesJSON)
                 {
@@ -13304,7 +13301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var signer       = SignerUtilities.GetSigner("NONEwithECDSA");
                 signer.Init(true, privateKey);
-                signer.BlockUpdate(sha256Hash, 0, blockSize);
+                signer.BlockUpdate(sha256Hash);
                 var signature    = signer.GenerateSignature();
                 signatureJSON.Add(new JProperty("signature",    Convert.ToBase64String(signature)));
                 signatureJSON.Add(new JProperty("signatureHEX", signature.ToHexString()));
@@ -13328,7 +13325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var pubKeyParams  = new ECPublicKeyParameters("ECDSA", ecParams.Curve.DecodePoint(publicKey_Bytes), ecParams);
                     var verifier      = SignerUtilities.GetSigner("NONEwithECDSA");
                     verifier.Init(false, pubKeyParams);
-                    verifier.BlockUpdate(sha256Hash, 0, blockSize);
+                    verifier.BlockUpdate(sha256Hash);
                     DebugX.Log("Signature Verification(2): " + (verifier.VerifySignature(signature) ? "ok" : "failed!"));
                 }
 
