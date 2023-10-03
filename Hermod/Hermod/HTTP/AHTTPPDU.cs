@@ -1260,6 +1260,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryReadHTTPBodyStream()
         {
 
+            if (httpBody is not null)
+                return true;
+
+            if (httpBodyStream is null ||
+               !ContentLength.HasValue ||
+                ContentLength.Value == 0)
+            {
+                httpBody = Array.Empty<Byte>();
+                return true;
+            }
+
+            lock (httpBodyStream)
+            {
+
+                if (httpBody is not null)
+                    return true;
+
+                httpBody      ??= new Byte[(Int32) ContentLength.Value];
+                var read        = 0;
+                var position    = 0;
+                var retry       = 0;
+                var maxRetries  = 20;
+
+                do
+                {
+
+                    try
+                    {
+
+                        read = httpBodyStream.Read(httpBody,
+                                                   position,
+                                                   httpBody.Length - position);
+
+                        if (read == 0) {
+                            Thread.Sleep(5);
+                            retry++;
+                        }
+
+                        if (read > 0)
+                            position += read;
+
+                        if (position >= httpBody.Length)
+                            return true;
+
+                    }
+                    catch (IOException ex)
+                    {
+                        // If the ReceiveTimeout is reached an IOException will be raised...
+                        // with an InnerException of type SocketException and ErrorCode 10060
+
+                        // If it's not the "expected" exception, let's not hide the error
+                        if (ex.InnerException is not SocketException socketException || socketException.ErrorCode != 10060)
+                            throw;
+
+                        // If it is the receive timeout, then reading ended
+                        break;
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogT(nameof(AHTTPPDU) + " could not read HTTP body (" + ContentLength.Value + " bytes): " + e.Message);
+                        return false;
+                    }
+
+                }
+                while (read > 0 || retry < maxRetries);
+
+                Array.Resize(ref httpBody, position);
+                return false;
+
+            }
+
+        }
+
+
+
+
+
+
+        public Boolean TryReadHTTPBodyStream2()
+        {
+
             if (httpBodyStream is null ||
                !ContentLength.HasValue ||
                 ContentLength.Value == 0)
