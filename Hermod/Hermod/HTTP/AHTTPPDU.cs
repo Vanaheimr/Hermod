@@ -205,7 +205,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                TryReadHTTPBodyStream();
+                if (httpBody is null)
+                    TryReadHTTPBodyStream();
 
                 if (httpBody?.Length > 0)
                     return RawHTTPHeader.Trim() + "\r\n\r\n" +
@@ -370,7 +371,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             get
             {
 
-                TryReadHTTPBodyStream();
+                if (httpBody is null)
+                    TryReadHTTPBodyStream();
 
                 return httpBody;
 
@@ -397,7 +399,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    TryReadHTTPBodyStream();
+                    if (httpBody is null)
+                        TryReadHTTPBodyStream();
 
                     return httpBody?.ToUTF8String();
 
@@ -425,13 +428,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    TryReadHTTPBodyStream();
+                    if (httpBody is null)
+                        TryReadHTTPBodyStream();
 
-                    if (httpBody is not null &&
-                        httpBody.Length > 0)
-                    {
+                    if (httpBody?.Length > 0)
                         return JObject.Parse(httpBody.ToUTF8String());
-                    }
 
                 }
                 catch
@@ -457,13 +458,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    TryReadHTTPBodyStream();
+                    if (httpBody is null)
+                        TryReadHTTPBodyStream();
 
-                    if (httpBody is not null &&
-                        httpBody.Length > 0)
-                    {
+                    if (httpBody?.Length > 0)
                         return JArray.Parse(httpBody.ToUTF8String());
-                    }
 
                 }
                 catch
@@ -1257,7 +1256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        public Boolean TryReadHTTPBodyStream()
+        public Boolean TryReadHTTPBodyStream2()
         {
 
             if (httpBody is not null)
@@ -1339,22 +1338,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        public Boolean TryReadHTTPBodyStream2()
+        public Boolean TryReadHTTPBodyStream()
         {
 
-            if (httpBodyStream is null ||
-               !ContentLength.HasValue ||
-                ContentLength.Value == 0)
-            {
-                httpBody = Array.Empty<Byte>();
-                return true;
-            }
-
-            lock (httpBodyStream)
+            lock (headerFields)
             {
 
                 if (httpBody is not null)
                     return true;
+
+                if (httpBodyStream is null ||
+                   !ContentLength.HasValue ||
+                    ContentLength.Value == 0)
+                {
+                    httpBody = Array.Empty<Byte>();
+                    return true;
+                }
 
                 httpBody      ??= new Byte[(Int32) ContentLength.Value];
                 var read        = 0;
