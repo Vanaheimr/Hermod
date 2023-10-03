@@ -1260,9 +1260,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryReadHTTPBodyStream()
         {
 
-            if (httpBody is not null)
-                return true;
-
             if (httpBodyStream is null ||
                !ContentLength.HasValue ||
                 ContentLength.Value == 0)
@@ -1283,7 +1280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var retry       = 0;
                 var maxRetries  = 20;
 
-                do
+                while (position < httpBody.Length && retry < maxRetries)
                 {
 
                     try
@@ -1296,13 +1293,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (read == 0) {
                             Thread.Sleep(5);
                             retry++;
+                            continue;
                         }
 
-                        if (read > 0)
-                            position += read;
-
-                        if (position >= httpBody.Length)
-                            return true;
+                        position += read;
+                        retry     = 0;
 
                     }
                     catch (IOException ex)
@@ -1320,15 +1315,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
                     catch (Exception e)
                     {
-                        DebugX.LogT(nameof(AHTTPPDU) + " could not read HTTP body (" + ContentLength.Value + " bytes): " + e.Message);
+                        DebugX.LogT($"{nameof(AHTTPPDU)} could not read HTTP body ({ContentLength.Value} bytes): {e.Message}");
                         return false;
                     }
 
                 }
-                while (read > 0 || retry < maxRetries);
 
-                Array.Resize(ref httpBody, position);
-                return false;
+
+                if (position == httpBody.Length)
+                    return true;
+
+                else
+                {
+                    Array.Resize(ref httpBody, position);
+                    return false;
+                }
 
             }
 
