@@ -123,13 +123,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => (UInt64) (InternalId?.Length ?? 0);
 
-        public URLProtocols  Protocol    { get; }
+        public URLProtocols  Protocol       { get; }
 
-        public HTTPHostname  Hostname    { get; }
+        public HTTPHostname  Hostname       { get; }
 
-        public IPPort?       Port        { get; }
+        public IPPort?       Port           { get; }
 
-        public HTTPPath      Path        { get; }
+        public HTTPPath      Path           { get; }
+
+        public QueryString?  QueryString    { get; }
 
         #endregion
 
@@ -143,14 +145,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     URLProtocols  Protocol,
                     HTTPHostname  Hostname,
                     IPPort?       Port,
-                    HTTPPath      Path)
+                    HTTPPath      Path,
+                    QueryString?  QueryString = null)
         {
 
-            this.InternalId  = String;
-            this.Protocol    = Protocol;
-            this.Hostname    = Hostname;
-            this.Port        = Port;
-            this.Path        = Path;
+            this.InternalId   = String;
+            this.Protocol     = Protocol;
+            this.Hostname     = Hostname;
+            this.Port         = Port;
+            this.Path         = Path;
+            this.QueryString  = QueryString;
 
         }
 
@@ -217,10 +221,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     var elements = Text.Split('/');
 
-                    URLProtocols  protocol  = URLProtocols.https;
+                    URLProtocols  protocol      = URLProtocols.https;
                     HTTPHostname  hostname;
-                    IPPort?       port      = default;
-                    HTTPPath?     path      = default;
+                    IPPort?       port          = null;
+                    HTTPPath?     path          = null;
+                    QueryString?  queryString   = null;
+
 
                     switch (elements[0])
                     {
@@ -269,8 +275,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return false;
 
                     if (elements.Length > 3)
-                        path = HTTPPath.TryParse(elements.Skip(3).AggregateWith("/"));
+                    {
 
+                        if (elements[^1].Contains('?'))
+                        {
+                            queryString   = QueryString.Parse(elements[^1][elements[^1].IndexOf('?')..]);
+                            var fullPath  = elements.Skip(3).AggregateWith("/");
+                            path          = HTTPPath.TryParse(fullPath[..fullPath.IndexOf('?')]);
+                        }
+
+                        else
+                            path          = HTTPPath.TryParse(elements.Skip(3).AggregateWith("/"));
+
+                    }
 
                     if (port is null)
                     {
@@ -296,11 +313,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
                     }
 
-                    URL = new URL(Text,
-                                  protocol,
-                                  hostname,
-                                  port,
-                                  path ?? HTTPPath.Parse("/"));
+                    URL = new URL(
+                              Text,
+                              protocol,
+                              hostname,
+                              port,
+                              path ?? HTTPPath.Parse("/"),
+                              queryString
+                          );
 
                     return true;
 
@@ -437,11 +457,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static URL operator + (URL       URL,
                                       HTTPPath  PathSuffix)
 
-            => new URL(URL.InternalId + "/" + PathSuffix.ToString(),
-                       URL.Protocol,
-                       URL.Hostname,
-                       URL.Port,
-                       URL.Path + PathSuffix);
+            => new (URL.InternalId + "/" + PathSuffix.ToString(),
+                    URL.Protocol,
+                    URL.Hostname,
+                    URL.Port,
+                    URL.Path + PathSuffix);
 
 
         /// <summary>
@@ -453,11 +473,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static URL operator + (URL     URL,
                                       String  PathSuffix)
 
-            => new URL(URL.InternalId + "/" + PathSuffix,
-                       URL.Protocol,
-                       URL.Hostname,
-                       URL.Port,
-                       URL.Path + PathSuffix);
+            => PathSuffix.StartsWith("?")
+
+                   ? new (URL.InternalId + PathSuffix,
+                          URL.Protocol,
+                          URL.Hostname,
+                          URL.Port,
+                          URL.Path + PathSuffix)
+
+                   : new (URL.InternalId + "/" + PathSuffix,
+                          URL.Protocol,
+                          URL.Hostname,
+                          URL.Port,
+                          URL.Path + PathSuffix);
 
         #endregion
 
