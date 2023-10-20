@@ -436,10 +436,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        public virtual Task ProcessWebSocketTextFrame(WebSocketFrame frame)
+        public virtual Task ProcessWebSocketTextFrame  (WebSocketFrame             WebSocketFrame,
+                                                        WebSocketClientConnection  WebSocketConnection)
             => Task.CompletedTask;
 
-        public virtual Task ProcessWebSocketBinaryFrame(WebSocketFrame frame)
+        public virtual Task ProcessWebSocketBinaryFrame(WebSocketFrame             WebSocketFrame,
+                                                        WebSocketClientConnection  WebSocketConnection)
             => Task.CompletedTask;
 
 
@@ -886,7 +888,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     #endregion
 
-                                                    await ProcessWebSocketTextFrame(frame);
+                                                    await ProcessWebSocketTextFrame(frame,
+                                                                                    webSocketClientConnection);
 
                                                 }
                                                 break;
@@ -919,7 +922,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     #endregion
 
-                                                    await ProcessWebSocketBinaryFrame(frame);
+                                                    await ProcessWebSocketBinaryFrame(frame,
+                                                                                      webSocketClientConnection);
 
                                                 }
                                                 break;

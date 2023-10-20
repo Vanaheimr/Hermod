@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         public static readonly XNamespace SOAPEnvelope   = "http://schemas.xmlsoap.org/soap/envelope/";
 
         /// <summary>
-        /// SOAP Adressing extentions.
+        /// SOAP Adressing extensions.
         /// </summary>
         public static readonly XNamespace SOAPAdressing  = "http://www.w3.org/2005/08/addressing";
 
@@ -336,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         public static readonly XNamespace SOAPEnvelope   = "http://www.w3.org/2003/05/soap-envelope";
 
         /// <summary>
-        /// SOAP Adressing extentions.
+        /// SOAP Adressing extensions.
         /// </summary>
         public static readonly XNamespace SOAPAdressing  = "http://www.w3.org/2005/08/addressing";
 

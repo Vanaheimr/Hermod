@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String?              CharSet          { get; }
 
         /// <summary>
-        /// Well-known file extentions using this HTTP content type.
+        /// Well-known file extensions using this HTTP content type.
         /// </summary>
         public IEnumerable<String>  FileExtensions
             => fileExtensions;
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String DebugView
             => ToString() +
-               (FileExtensions != null & FileExtensions.Any() ? ", file extentions: " + FileExtensions.Aggregate((a, b) => a + ", " + b) : "");
+               (FileExtensions != null & FileExtensions.Any() ? ", file extensions: " + FileExtensions.Aggregate((a, b) => a + ", " + b) : "");
 
         #endregion
 
@@ -102,12 +102,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         /// <summary>
         /// Creates a new HTTP content type based on the given media type,
-        /// character set and file extentions.
+        /// character set and file extensions.
         /// </summary>
         /// <param name="MediaMainType">The media main type for the HTTP content type.</param>
         /// <param name="MediaSubType">The media sub type for the HTTP content type.</param>
         /// <param name="CharSet">The char set of the HTTP content type.</param>
-        /// <param name="FileExtensions">Well-known file extentions using this HTTP content type.</param>
+        /// <param name="FileExtensions">Well-known file extensions using this HTTP content type.</param>
         public HTTPContentType(String           MediaMainType,
                                String           MediaSubType,
                                String?          CharSet,

@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceAssembly">The assembly where the resources are located.</param>
         /// <param name="ResourceFilename">The path to the file within the assembly.</param>
-        /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
+        /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extension.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterResourcesFile(this IHTTPServer  HTTPServer,
                                                  HTTPAPI           HTTPAPI,
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (fileStream is not null)
                 {
 
-                    #region Choose HTTP Content Type based on the file name extention...
+                    #region Choose HTTP Content Type based on the file name extension...
 
                     var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
 
@@ -449,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceFilenameBuilder">The path to the file within the assembly.</param>
         /// <param name="DefaultFile">If an error occures, return this file.</param>
-        /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extention.</param>
+        /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extension.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
         public static void RegisterFilesystemFile(this IHTTPServer         HTTPServer,
                                                   HTTPAPI                  HTTPAPI,
@@ -581,7 +581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          }.AsImmutable);
 
 
-                                                 #region Choose HTTP Content Type based on the file name extention...
+                                                 #region Choose HTTP Content Type based on the file name extension...
 
                                                  var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
 
@@ -757,7 +757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  if (fileStream is not null)
                                                  {
 
-                                                     #region Choose HTTP Content Type based on the file name extention...
+                                                     #region Choose HTTP Content Type based on the file name extension...
 
                                                      ResponseContentType = HTTPContentType.ForFileExtension(filePath.Remove(0, filePath.LastIndexOf(".", StringComparison.InvariantCulture) + 1),
                                                                                                             () => HTTPContentType.OCTETSTREAM).FirstOrDefault();

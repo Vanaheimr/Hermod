@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Array.Copy(TESourceBlock, Position, TEBlock, 0, TELength);
 
             var len = 0U;
-            Dictionary<String, List<String>>? extentions = null;
+            Dictionary<String, List<String>>? extensions = null;
 
             try
             {
@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (chunkHeader.Length > 1)
                     {
 
-                        extentions = new Dictionary<String, List<String>>();
+                        extensions = new Dictionary<String, List<String>>();
 
                         for (var i = 1; i < chunkHeader.Length; i++)
                         {
@@ -90,10 +90,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (tuple != null && tuple.Length > 0 && tuple[0].IsNotNullOrEmpty())
                             {
 
-                                if (!extentions.ContainsKey(tuple[0]))
-                                    extentions.Add(tuple[0], new List<String>());
+                                if (!extensions.ContainsKey(tuple[0]))
+                                    extensions.Add(tuple[0], new List<String>());
 
-                                extentions[tuple[0]]!.Add(tuple[1] ?? "");
+                                extensions[tuple[0]]!.Add(tuple[1] ?? "");
 
                             }
 
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             return new ChunkInfos(len,
-                                  extentions);
+                                  extensions);
 
         }
 

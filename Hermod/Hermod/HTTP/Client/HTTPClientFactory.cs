@@ -28,7 +28,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    public static class IHTTPClientCommandsExtentions
+    public static class IHTTPClientCommandsExtensions
     {
 
         #region GET    (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
