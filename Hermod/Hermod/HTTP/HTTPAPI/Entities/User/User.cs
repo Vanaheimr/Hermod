@@ -1455,7 +1455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => new (NewUserId ?? Id.Clone,
                     Name,
                     EMail.Address,
-                    Description?.Clone,
+                    Description.Clone(),
                     PublicKeyRing,
                     SecretKeyRing,
                     UserLanguage,

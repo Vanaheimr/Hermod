@@ -83,11 +83,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public User_Id                  UserId                      { get; }
 
         /// <summary>
-        /// An internationalized description of the API key.
-        /// </summary>
-        public I18NString               Description                 { get; }
-
-        /// <summary>
         /// The access rights of the API key.
         /// </summary>
         public APIKeyRights             AccessRights                { get; }
@@ -158,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             : base(Id,
                    JSONLDContext ?? DefaultJSONLDContext,
                    null,
-                   null,
+                   Description,
                    null,
                    CustomData,
                    null,
@@ -168,7 +163,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.UserId                  = UserId;
-            this.Description             = Description ?? I18NString.Empty;
             this.AccessRights            = AccessRights;
             this.Created                 = Created     ?? Timestamp.Now;
             this.NotBefore               = NotBefore;
@@ -418,10 +412,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    null,
                                    new JProperty?[] {
 
-                                       new JProperty("userId",                        UserId.         ToString()),
-                                       new JProperty("description",                   Description.    ToJSON()),
-                                       new JProperty("accessRights",                  AccessRights.   AsText()),
-                                       new JProperty("created",                       Created.        ToIso8601()),
+                                             new JProperty("userId",                  UserId.         ToString()),
+                                             new JProperty("description",             Description.    ToJSON()),
+                                             new JProperty("accessRights",            AccessRights.   AsText()),
+                                             new JProperty("created",                 Created.        ToIso8601()),
 
                                        NotBefore.HasValue
                                            ? new JProperty("notBefore",               NotBefore.Value.ToIso8601())
@@ -457,20 +451,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NewAPIKeyId">An optional new API key identification.</param>
         public APIKey Clone(APIKey_Id? NewAPIKeyId = null)
 
-            => new APIKey(NewAPIKeyId ?? Id.Clone,
-                          UserId,
-                          Description?.Clone,
-                          AccessRights,
-                          Created,
-                          NotBefore,
-                          NotAfter,
-                          ValidRemoteIPAddresses.ToArray(),
-                          IsDisabled,
+            => new (
+                   NewAPIKeyId ?? Id.Clone,
+                   UserId,
+                   Description.Clone(),
+                   AccessRights,
+                   Created,
+                   NotBefore,
+                   NotAfter,
+                   ValidRemoteIPAddresses.ToArray(),
+                   IsDisabled,
 
-                          CustomData,
-                          JSONLDContext,
-                          DataSource,
-                          LastChangeDate);
+                   CustomData,
+                   JSONLDContext,
+                   DataSource,
+                   LastChangeDate
+               );
 
         #endregion
 

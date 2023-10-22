@@ -323,9 +323,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public OpenDataLicense Clone()
 
-            => new (Id.         Clone,
-                    Description.Clone,
-                    URLs.Select(url => url.Clone).ToArray());
+            => new (
+                   Id.         Clone,
+                   Description.Clone(),
+                   URLs.Select(url => url.Clone).ToArray()
+               );
 
         #endregion
 
