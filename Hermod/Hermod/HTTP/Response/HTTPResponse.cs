@@ -22,6 +22,7 @@ using System.Collections.Concurrent;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
@@ -715,7 +716,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Parse(Text, Timestamp = null, HTTPSource = null, LocalSocket = null, EventTrackingId = null)
+
+        #region (static) TryParse(Text, Timestamp = null, HTTPSource = null, LocalSocket = null, EventTrackingId = null)
 
         /// <summary>
         /// Parse the given text as a HTTP response.
@@ -727,44 +729,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the response.</param>
         /// <param name="Request">The HTTP request for this HTTP response.</param>
-        public static HTTPResponse Parse(IEnumerable<String>  Text,
-                                         DateTime?            Timestamp           = null,
-                                         HTTPSource?          HTTPSource          = null,
-                                         IPSocket?            LocalSocket         = null,
-                                         IPSocket?            RemoteSocket        = null,
+        public static Boolean TryParse(IEnumerable<String>  Text,
+                                       out HTTPResponse?    HTTPResponse,
+                                       DateTime?            Timestamp           = null,
+                                       HTTPSource?          HTTPSource          = null,
+                                       IPSocket?            LocalSocket         = null,
+                                       IPSocket?            RemoteSocket        = null,
 
-                                         HTTPRequest?         Request             = null,
+                                       HTTPRequest?         Request             = null,
 
-                                         EventTracking_Id?    EventTrackingId     = null,
-                                         TimeSpan?            Runtime             = null,
-                                         Byte                 NumberOfRetries     = 0,
-                                         CancellationToken    CancellationToken   = default)
+                                       EventTracking_Id?    EventTrackingId     = null,
+                                       TimeSpan?            Runtime             = null,
+                                       Byte                 NumberOfRetries     = 0,
+                                       CancellationToken    CancellationToken   = default)
         {
 
-                Timestamp ??= Illias.Timestamp.Now;
-            var header      = Text.TakeWhile(line => line != "").AggregateWith("\r\n");
-            var body        = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
+            try
+            {
 
-            return new HTTPResponse(
-                       Timestamp    ?? Illias.Timestamp.Now,
-                       HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                       LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                       RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                       header,
-                       Request,
-                       body.ToUTF8Bytes(),
+                Timestamp   ??= Illias.Timestamp.Now;
 
-                       null,
-                       null,
-                       null,
+                var header    = Text.TakeWhile(line => line != "").        AggregateWith("\r\n");
+                var body      = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
 
-                       EventTrackingId,
-                       Runtime ?? (Request is not null
-                                       ? Timestamp - Request.Timestamp
-                                       : TimeSpan.Zero),
-                       NumberOfRetries,
-                       CancellationToken
-                   );
+                HTTPResponse  = new HTTPResponse(
+                                    Timestamp ?? Illias.Timestamp.Now,
+                                    HTTPSource ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                    LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                    RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                                    header,
+                                    Request,
+                                    body.ToUTF8Bytes(),
+
+                                    null,
+                                    null,
+                                    null,
+
+                                    EventTrackingId,
+                                    Runtime ?? (Request is not null
+                                                    ? Timestamp - Request.Timestamp
+                                                    : TimeSpan.Zero),
+                                    NumberOfRetries,
+                                    CancellationToken
+                                );
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                HTTPResponse = null;
+            }
+
+            return false;
 
         }
 
@@ -835,17 +852,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         else if (line == "--------------------------------------------------------------------------------")
                         {
 
-                            if ((FromTimestamp == null || ResponseTimestamp >= FromTimestamp.Value) &&
-                                (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
+                            if ((FromTimestamp is null || ResponseTimestamp >= FromTimestamp.Value) &&
+                                (  ToTimestamp is null || ResponseTimestamp <    ToTimestamp.Value))
                             {
 
-                                if (HTTPRequest.TryParse(_request, out HTTPRequest parsedHTTPRequest, Timestamp: RequestTimestamp))
+                                if (HTTPRequest. TryParse(_request,
+                                                          out var parsedHTTPRequest,
+                                                          Timestamp:  RequestTimestamp)  &&
+
+                                    HTTPResponse.TryParse(_response,
+                                                          out var parsedHTTPResponse,
+                                                          Timestamp:  ResponseTimestamp,
+                                                          Request:    parsedHTTPRequest) &&
+
+                                    parsedHTTPResponse is not null)
                                 {
-
-                                    _responses.Add(Parse(_response,
-                                                         Timestamp: ResponseTimestamp,
-                                                         Request:   parsedHTTPRequest));
-
+                                    _responses.Add(parsedHTTPResponse);
                                 }
 
                                 else
@@ -883,58 +905,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
 
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
-                                                                         String        FilePattern,
-                                                                         DateTime?     FromTimestamp  = null,
-                                                                         DateTime?     ToTimestamp    = null)
+        #region (static) LoadHTTPResponseLogfile (Filename,                                               FromTimestamp = null, ToTimestamp = null, CancellationToken = default)
 
-            => LoadHTTPResponseLogfiles(FilePath,
-                                        FilePattern,
-                                        SearchOption.TopDirectoryOnly,
-                                        FromTimestamp,
-                                        ToTimestamp);
-
-
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
-                                                                         String        FilePattern,
-                                                                         SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
-                                                                         DateTime?     FromTimestamp  = null,
-                                                                         DateTime?     ToTimestamp    = null)
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfile(String             Filename,
+                                                                        DateTime?          FromTimestamp       = null,
+                                                                        DateTime?          ToTimestamp         = null,
+                                                                        CancellationToken  CancellationToken   = default)
         {
 
-            var _responses  = new ConcurrentBag<HTTPResponse>();
+            var httpRresponses      = new List<HTTPResponse>();
+            var httpRequestLines    = new List<String>();
+            var httpResponseLines   = new List<String>();
+            var copy                = "none";
+            var relativelinenumber  = 0;
+            var httpSource          = new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS));
+            var requestTimestamp    = Illias.Timestamp.Now;
+            var responseTimestamp   = Illias.Timestamp.Now;
 
-            Parallel.ForEach(Directory.EnumerateFiles(FilePath,
-                                                      FilePattern,
-                                                      SearchOption).
-                                       OrderByDescending(file => file),
-                             new ParallelOptions() { MaxDegreeOfParallelism = 1 },
-                             file => {
+            try
+            {
 
-                var _request            = new List<String>();
-                var _response           = new List<String>();
-                var copy                = "none";
-                var relativelinenumber  = 0;
-                var HTTPSource          = new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS));
-                var RequestTimestamp    = Illias.Timestamp.Now;
-                var ResponseTimestamp   = Illias.Timestamp.Now;
-
-                foreach (var line in File.ReadLines(file))
+                foreach (var line in File.ReadLines(Filename))
                 {
 
                     try
                     {
 
-                        if      (relativelinenumber == 1 && copy == "request")
-                            HTTPSource        = new HTTPSource(IPSocket.Parse(line));
+                        if (relativelinenumber == 1 && copy == "request")
+                            httpSource          = line.Contains("->")
+                                                      ? new HTTPSource(IPSocket.Parse(line[..(line.IndexOf("->") - 1)]))
+                                                      : new HTTPSource(IPSocket.Parse(line));
 
                         else if (relativelinenumber == 2 && copy == "request")
-                            RequestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+                            requestTimestamp    = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
 
                         else if (relativelinenumber == 1 && copy == "response")
-                            ResponseTimestamp = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);//.Substring(0, line.IndexOf(" ")));
+                            responseTimestamp   = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);//.Substring(0, line.IndexOf(" ")));
 
                         else if (line == RequestMarker)//">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
@@ -951,21 +958,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         else if (line == EndMarker)// "--------------------------------------------------------------------------------")
                         {
 
-                            if ((FromTimestamp == null || ResponseTimestamp >= FromTimestamp.Value) &&
-                                (  ToTimestamp == null || ResponseTimestamp <    ToTimestamp.Value))
+                            if ((FromTimestamp is null || responseTimestamp >= FromTimestamp.Value) &&
+                                (ToTimestamp   is null || responseTimestamp <  ToTimestamp.  Value))
                             {
 
-                                if (HTTPRequest.TryParse(_request.Skip(1),
-                                                         out HTTPRequest parsedHTTPRequest,
-                                                         RequestTimestamp,
-                                                         HTTPSource,
-                                                         EventTrackingId: EventTracking_Id.Parse(_request[0])))
+                                if (HTTPRequest. TryParse(Lines:               httpRequestLines.Skip(1),
+                                                          Request:             out var parsedHTTPRequest,
+                                                          Timestamp:           requestTimestamp,
+                                                          HTTPSource:          httpSource,
+                                                          LocalSocket:         null,
+                                                          RemoteSocket:        null,
+                                                          HTTPServer:          null,
+                                                          EventTrackingId:     httpRequestLines[0] != ""
+                                                                                   ? EventTracking_Id.Parse(httpRequestLines[0])
+                                                                                   : null,
+                                                          CancellationToken:   CancellationToken) &&
+
+                                    HTTPResponse.TryParse(Text:                httpResponseLines,
+                                                          HTTPResponse:        out var parsedHTTPResponse,
+                                                          Timestamp:           responseTimestamp,
+                                                          HTTPSource:          httpSource,
+                                                          LocalSocket:         null,
+                                                          RemoteSocket:        null,
+                                                          Request:             parsedHTTPRequest,
+                                                          EventTrackingId:     null,
+                                                          Runtime:             null,
+                                                          NumberOfRetries:     0,
+                                                          CancellationToken:   CancellationToken) &&
+
+                                    parsedHTTPResponse is not null)
                                 {
 
-                                    _responses.Add(Parse(_response,
-                                                         ResponseTimestamp,
-                                                         HTTPSource,
-                                                         Request: parsedHTTPRequest));
+                                    httpRresponses.Add(parsedHTTPResponse);
 
                                 }
 
@@ -974,17 +998,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             }
 
-                            copy       = "none";
-                            _request   = new List<String>();
-                            _response  = new List<String>();
+                            copy               = "none";
+                            httpRequestLines   = new List<String>();
+                            httpResponseLines  = new List<String>();
 
                         }
 
                         else if (copy == "request")
-                            _request.Add(line);
+                            httpRequestLines.Add(line);
 
                         else if (copy == "response")
-                            _response.Add(line);
+                            httpResponseLines.Add(line);
 
                         relativelinenumber++;
 
@@ -996,9 +1020,54 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
+            }
+            catch (Exception e)
+            {
+
+                
+
+            }
+
+            return httpRresponses.OrderBy(httpResponse => httpResponse.Timestamp);
+
+        }
+
+        #endregion
+
+        #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
+                                                                         String        FilePattern,
+                                                                         SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
+                                                                         DateTime?     FromTimestamp  = null,
+                                                                         DateTime?     ToTimestamp    = null)
+        {
+
+            var httpRresponses  = new ConcurrentBag<HTTPResponse>();
+
+            Parallel.ForEach(
+                Directory.EnumerateFiles(
+                    FilePath,
+                    FilePattern,
+                    SearchOption
+                ).
+                OrderByDescending(file => file),
+                new ParallelOptions() {
+                    MaxDegreeOfParallelism = 1
+                },
+                filename =>
+            {
+
+                var httpResponseGroup = LoadHTTPResponseLogfile(filename,
+                                                                FromTimestamp,
+                                                                ToTimestamp);
+
+                foreach (var httpResponse in httpResponseGroup)
+                    httpRresponses.Add(httpResponse);
+
             });
 
-            return _responses.OrderBy(response => response.Timestamp);
+            return httpRresponses.OrderBy(httpResponse => httpResponse.Timestamp);
 
         }
 

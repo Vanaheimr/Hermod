@@ -1941,22 +1941,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
                     hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(HTTPAPI, hostname));
 
-                hostnameNode.AddHandler(HTTPAPI,
-                                        HTTPDelegate,
+                hostnameNode.AddHandler(
+                    HTTPAPI,
+                    HTTPDelegate,
 
-                                        URLTemplate,
-                                        HTTPMethod,
-                                        HTTPContentType,
+                    URLTemplate,
+                    HTTPMethod,
+                    HTTPContentType,
 
-                                        URLAuthentication,
-                                        HTTPMethodAuthentication,
-                                        ContentTypeAuthentication,
+                    URLAuthentication,
+                    HTTPMethodAuthentication,
+                    ContentTypeAuthentication,
 
-                                        HTTPRequestLogger,
-                                        HTTPResponseLogger,
+                    HTTPRequestLogger,
+                    HTTPResponseLogger,
 
-                                        DefaultErrorHandler,
-                                        AllowReplacement);
+                    DefaultErrorHandler,
+                    AllowReplacement
+                );
 
             }
 
@@ -2062,19 +2064,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            AddHandler(HTTPAPI,
-                       HTTPDelegate,
-                       Hostname,
-                       URLTemplate,
-                       HTTPMethod,
-                       HTTPContentType,
-                       URLAuthentication,
-                       HTTPMethodAuthentication,
-                       ContentTypeAuthentication,
-                       HTTPRequestLogger,
-                       HTTPResponseLogger,
-                       DefaultErrorHandler,
-                       AllowReplacement);
+            AddHandler(
+                HTTPAPI,
+                HTTPDelegate,
+                Hostname,
+                URLTemplate,
+                HTTPMethod,
+                HTTPContentType,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                AllowReplacement
+            );
 
         }
 

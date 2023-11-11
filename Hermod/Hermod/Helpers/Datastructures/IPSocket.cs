@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
     /// <summary>
-    /// An IP socket is a combination of an IP address and a layer4 port.
+    /// An IP socket: A combination of an IP address and an IP port.
     /// </summary>
     public readonly struct IPSocket : IEquatable <IPSocket>,
                                       IComparable<IPSocket>,
@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Constructor(s)
 
         /// <summary>
-        /// Generates a new IPSocket based on the given IPAddress and IPPort.
+        /// Create a new IP socket based on the given IP address and IP port.
         /// </summary>
         /// <param name="IPAddress">The IPAdress of the socket.</param>
         /// <param name="Port">The port of the socket.</param>
@@ -76,24 +76,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         IPPort      Port)
         {
 
-            //if (IPAddress == null)
-            //{
-
-            //    StackTrace stackTrace = new StackTrace();           // get call stack
-            //    StackFrame[] stackFrames = stackTrace.GetFrames();  // get method calls (frames)
-
-            //    // write call stack method names
-            //    foreach (StackFrame stackFrame in stackFrames)
-            //    {
-            //        Console.WriteLine(stackFrame.GetMethod().Name);   // write method name
-            //    }
-
-            //    DebugX.LogT(stackTrace.ToString());
-
-            //}
-
-            this.IPAddress  = IPAddress ?? throw new ArgumentNullException(nameof(IPAddress), "The given IP address must not be null!");
+            this.IPAddress  = IPAddress;
             this.Port       = Port;
+
         }
 
         #endregion
@@ -108,10 +93,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPSocket Parse(String Text)
         {
 
-            if (TryParse(Text, out IPSocket ipSocket))
+            if (TryParse(Text, out var ipSocket))
                 return ipSocket;
 
-            throw new ArgumentException("The given text is not a valid IP socket!", nameof(Text));
+            throw new ArgumentException("The given text is not a valid IP socket!",
+                                        nameof(Text));
 
         }
 
@@ -126,10 +112,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPSocket? TryParse(String Text)
         {
 
-            if (TryParse(Text, out IPSocket ipSocket))
+            if (TryParse(Text, out var ipSocket))
                 return ipSocket;
 
-            return default;
+            return null;
 
         }
 
@@ -155,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (Splitter < 4) // "1.2.3.4:8" or "::1:8" or "[::]:80"
                 return false;
 
-            var ipAddress    = Text.Substring(0, Splitter);
+            var ipAddress    = Text[..Splitter];
             var ipv4Address  = IPv4Address.TryParse(ipAddress);
             var ipv6Address  = IPv6Address.TryParse(ipAddress);
             var port         = IPPort.     TryParse(Text.Substring(Splitter + 1, Text.Length - Splitter - 1));
@@ -163,8 +149,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (ipv4Address.HasValue && port.HasValue)
             {
 
-                IPSocket = new IPSocket(ipv4Address.Value,
-                                        port.       Value);
+                IPSocket = new IPSocket(
+                               ipv4Address.Value,
+                               port.       Value
+                           );
 
                 return true;
 
@@ -173,8 +161,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (ipv6Address.HasValue && port.HasValue)
             {
 
-                IPSocket = new IPSocket(ipv6Address.Value,
-                                        port.       Value);
+                IPSocket = new IPSocket(
+                               ipv6Address.Value,
+                               port.       Value
+                           );
 
                 return true;
 
@@ -192,10 +182,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// A socket on IPv6 ::0 and port 0.
         /// </summary>
-        public static IPSocket Zero
+        public static IPSocket Zero { get; }
 
-            => new (IPv6Address.Any,
-                    IPPort.Zero);
+            = new (
+                  IPv6Address.Any,
+                  IPPort.Zero
+              );
 
         #endregion
 
@@ -207,8 +199,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket AnyV4(IPPort Port)
 
-            => new (IPv4Address.Any,
-                    Port);
+            => new (
+                   IPv4Address.Any,
+                   Port
+               );
 
         #endregion
 
@@ -220,8 +214,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket AnyV6(IPPort Port)
 
-            => new (IPv6Address.Any,
-                    Port);
+            => new (
+                   IPv6Address.Any,
+                   Port
+               );
 
         #endregion
 
@@ -233,8 +229,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket LocalhostV4(IPPort Port)
 
-            => new (IPv4Address.Localhost,
-                    Port);
+            => new (
+                   IPv4Address.Localhost,
+                   Port
+               );
 
         #endregion
 
@@ -246,8 +244,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Port">The IP port.</param>
         public static IPSocket LocalhostV6(IPPort Port)
 
-            => new (IPv6Address.Localhost,
-                    Port);
+            => new (
+                   IPv6Address.Localhost,
+                   Port
+               );
 
         #endregion
 
@@ -260,8 +260,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPEndPoint">A .NET IPEndPoint.</param>
         public static IPSocket FromIPEndPoint(IPEndPoint IPEndPoint)
 
-            => new (IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes()),
-                    IPPort.Parse(IPEndPoint.Port));
+            => new (
+                   IPAddressHelper.Build(IPEndPoint.Address.GetAddressBytes()),
+                   IPPort.         Parse(IPEndPoint.Port)
+               );
 
 
         /// <summary>
@@ -400,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var c = IPAddress.CompareTo(IPSocket.IPAddress);
 
             if (c == 0)
-                c = Port.CompareTo(IPSocket.Port);
+                c = Port.     CompareTo(IPSocket.Port);
 
             return c;
 
@@ -450,8 +452,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
             unchecked
             {
+
                 return IPAddress.GetHashCode() * 3 ^
                        Port.     GetHashCode();
+
             }
         }
 
@@ -465,11 +469,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
 
-            => String.Concat(IPAddress,
-                             ":",
-                             Port);
+            => $"{IPAddress}:{Port}";
 
         #endregion
+
 
     }
 

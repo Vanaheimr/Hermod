@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -39,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from HTTPMethods to HTTPMethodNodes.
         /// </summary>
-        private readonly Dictionary<HTTPMethod, HTTPMethodNode> httpMethodNodes;
+        private readonly ConcurrentDictionary<HTTPMethod, HTTPMethodNode> httpMethodNodes = new();
 
         #endregion
 
@@ -134,7 +135,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RequestHandler         = RequestHandler;
             this.DefaultErrorHandler    = DefaultErrorHandler;
             this.ErrorHandlers          = new Dictionary<HTTPStatusCode, HTTPDelegate>();
-            this.httpMethodNodes        = new Dictionary<HTTPMethod, HTTPMethodNode>();
 
             var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
             this.ParameterCount         = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
@@ -174,27 +174,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (!httpMethodNodes.TryGetValue(HTTPMethod, out var httpMethodNode))
-                {
+                    httpMethodNode = httpMethodNodes.AddAndReturnValue(
+                                         HTTPMethod,
+                                         new HTTPMethodNode(
+                                             HTTPAPI,
+                                             HTTPMethod,
+                                             HTTPMethodAuthentication
+                                         )
+                                     );
 
-                    httpMethodNode = httpMethodNodes.AddAndReturnValue(HTTPMethod,
-                                                                       new HTTPMethodNode(HTTPAPI,
-                                                                                          HTTPMethod,
-                                                                                          HTTPMethodAuthentication));
+                httpMethodNode.AddHandler(
+                    HTTPAPI,
+                    HTTPDelegate,
 
-                }
+                    HTTPContentType,
 
-                httpMethodNode.AddHandler(HTTPAPI,
-                                          HTTPDelegate,
+                    ContentTypeAuthentication,
 
-                                          HTTPContentType,
+                    HTTPRequestLogger,
+                    HTTPResponseLogger,
 
-                                          ContentTypeAuthentication,
-
-                                          HTTPRequestLogger,
-                                          HTTPResponseLogger,
-
-                                          DefaultErrorHandler,
-                                          AllowReplacement);
+                    DefaultErrorHandler,
+                    AllowReplacement
+                );
 
             }
 

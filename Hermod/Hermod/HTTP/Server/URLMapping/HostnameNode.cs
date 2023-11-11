@@ -141,29 +141,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     URLTemplate = HTTPPath.Parse("/");
 
                 if (!urlNodes.TryGetValue(URLTemplate.Value, out var urlNode))
-                {
+                    urlNode = urlNodes.AddAndReturnValue(
+                                  URLTemplate.Value,
+                                  new URL_Node(
+                                      HTTPAPI,
+                                      URLTemplate.Value,
+                                      URLAuthentication
+                                  )
+                              );
 
-                    urlNode = urlNodes.AddAndReturnValue(URLTemplate.Value,
-                                                         new URL_Node(HTTPAPI,
-                                                                      URLTemplate.Value,
-                                                                      URLAuthentication));
+                urlNode.AddHandler(
+                    HTTPAPI,
+                    HTTPDelegate,
 
-                }
+                    Method ?? HTTPMethod.GET,
+                    HTTPContentType,
 
-                urlNode.AddHandler(HTTPAPI,
-                                   HTTPDelegate,
+                    HTTPMethodAuthentication,
+                    ContentTypeAuthentication,
 
-                                   Method ?? HTTPMethod.GET,
-                                   HTTPContentType,
+                    HTTPRequestLogger,
+                    HTTPResponseLogger,
 
-                                   HTTPMethodAuthentication,
-                                   ContentTypeAuthentication,
-
-                                   HTTPRequestLogger,
-                                   HTTPResponseLogger,
-
-                                   DefaultErrorHandler,
-                                   AllowReplacement);
+                    DefaultErrorHandler,
+                    AllowReplacement
+                );
 
             }
 

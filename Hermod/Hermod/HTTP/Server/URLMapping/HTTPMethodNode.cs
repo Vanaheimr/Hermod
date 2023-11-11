@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Collections;
+using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -37,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
         /// </summary>
-        private readonly Dictionary<HTTPContentType, ContentTypeNode> contentTypeNodes;
+        private readonly ConcurrentDictionary<HTTPContentType, ContentTypeNode> contentTypeNodes = new();
 
         #endregion
 
@@ -121,7 +122,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPMethod                = HTTPMethod;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
             this.ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
-            this.contentTypeNodes          = new Dictionary<HTTPContentType, ContentTypeNode>();
 
         }
 
@@ -144,7 +144,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             lock (contentTypeNodes)
             {
 
-                // For ANY content type...
+                #region For ANY content type...
+
                 if (HTTPContentType is null)
                 {
 
@@ -164,30 +165,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                // For a specific content type...
+                #endregion
+
+                #region ...or for a specific content type
+
                 else
                 {
 
-                    // The content type already exists!
+                    #region The content type already exists...
+
                     if (contentTypeNodes.TryGetValue(HTTPContentType, out var contentTypeNode))
                     {
 
                         if (contentTypeNode.AllowReplacement == URLReplacement.Allow)
-                        {
-
-                            contentTypeNodes[HTTPContentType] = new ContentTypeNode(HTTPAPI,
-                                                                                    HTTPContentType,
-                                                                                    ContentTypeAuthentication,
-                                                                                    HTTPRequestLogger,
-                                                                                    RequestHandler,
-                                                                                    HTTPResponseLogger,
-                                                                                    DefaultErrorHandler,
-                                                                                    AllowReplacement);
-
-                        }
+                            contentTypeNodes[HTTPContentType] = new ContentTypeNode(
+                                                                    HTTPAPI,
+                                                                    HTTPContentType,
+                                                                    ContentTypeAuthentication,
+                                                                    HTTPRequestLogger,
+                                                                    RequestHandler,
+                                                                    HTTPResponseLogger,
+                                                                    DefaultErrorHandler,
+                                                                    AllowReplacement
+                                                                );
 
                         else if (contentTypeNode.AllowReplacement == URLReplacement.Ignore)
                         {
+                            DebugX.Log("HTTP API definition replaced!");
                         }
 
                         else
@@ -195,24 +199,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
+                    #endregion
 
-                    // A new content type to add...
+                    #region ...or a new content type to add
+
                     else
                     {
 
-                        contentTypeNodes.Add(HTTPContentType,
-                                             new ContentTypeNode(HTTPAPI,
-                                                                 HTTPContentType,
-                                                                 ContentTypeAuthentication,
-                                                                 HTTPRequestLogger,
-                                                                 RequestHandler,
-                                                                 HTTPResponseLogger,
-                                                                 DefaultErrorHandler,
-                                                                 AllowReplacement));
+                        if (!contentTypeNodes.TryAdd(
+                                                  HTTPContentType,
+                                                  new ContentTypeNode(
+                                                      HTTPAPI,
+                                                      HTTPContentType,
+                                                      ContentTypeAuthentication,
+                                                      HTTPRequestLogger,
+                                                      RequestHandler,
+                                                      HTTPResponseLogger,
+                                                      DefaultErrorHandler,
+                                                      AllowReplacement
+                                                  )
+                                              ))
+                        {
+                            throw new ArgumentException("Could not add the given HTTP API definition!");
+                        }
 
                     }
 
+                    #endregion
+
                 }
+
+                #endregion
 
             }
 

@@ -1487,8 +1487,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         public static Boolean TryParse(IEnumerable<String>  Lines,
                                        out HTTPRequest?     Request,
 
@@ -1498,11 +1498,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken    CancellationToken   = default,
-                                       EventTracking_Id?    EventTrackingId     = null)
+                                       EventTracking_Id?    EventTrackingId     = null,
+                                       CancellationToken    CancellationToken   = default)
         {
 
-            if (Lines.SafeAny())
+            if (Lines.Any())
             {
                 try
                 {
