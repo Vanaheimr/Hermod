@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a string represtentation of this object.
         /// </summary>
         public override String ToString()
-            => InternalId;
+            => InternalId ?? "";
 
         #endregion
 

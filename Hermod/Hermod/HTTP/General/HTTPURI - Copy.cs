@@ -545,7 +545,7 @@
 //        /// Return a text representation of this object.
 //        /// </summary>
 //        public override String ToString()
-//            => InternalId;
+//            => InternalId ?? "";
 
 //        #endregion
 

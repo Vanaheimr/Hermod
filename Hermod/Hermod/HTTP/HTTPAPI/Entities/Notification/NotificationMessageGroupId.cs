@@ -168,7 +168,7 @@
 //        /// Clone this notification identification.
 //        /// </summary>
 //        public NotificationMessageGroupId Clone
-//            => new NotificationMessageGroupId(new String(InternalId.ToCharArray()));
+//            => new NotificationMessageGroupId(new String(InternalId?.ToCharArray()));
 
 //        #endregion
 
@@ -386,7 +386,7 @@
 //        /// Return a text representation of this object.
 //        /// </summary>
 //        public override String ToString()
-//            => InternalId;
+//            => InternalId ?? "";
 
 //        #endregion
 
