@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (_MIMEBoundary is null)
             {
 
-                _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.GetBytes(12).ToHexString() + "--8<-";
+                _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.RandomBytes(12).ToHexString() + "--8<-";
 
                 // Update text-version within the e-mail header
                 if (_EMailHeader != null)

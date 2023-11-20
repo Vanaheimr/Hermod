@@ -707,7 +707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             // Sec-WebSocket-Protocol:  ocpp1.6, ocpp1.5
                             // Sec-WebSocket-Version:   13
 
-                            var swkaSHA1Base64    = RandomExtensions.GetBytes(16).ToBase64();
+                            var swkaSHA1Base64    = RandomExtensions.RandomBytes(16).ToBase64();
                             var expectedWSAccept  = System.Security.Cryptography.SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
 
                             httpRequest           = new HTTPRequest.Builder {
@@ -940,7 +940,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                     frame.Payload,
                                                                                     Fin.Final,
                                                                                     MaskStatus.On,
-                                                                                    RandomExtensions.GetBytes(4)
+                                                                                    RandomExtensions.RandomBytes(4)
                                                                                 ));
 
                                                 }
@@ -1162,23 +1162,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     if (HTTPStream is not null)
                     {
 
-                        lock (HTTPStream)
-                        {
+                        pingCounter++;
 
-                            pingCounter++;
+                        var payload = pingCounter + ":" + Guid.NewGuid().ToString();
 
-                            var payload = pingCounter + ":" + Guid.NewGuid().ToString();
+                        await SendWebSocketFrame(WebSocketFrame.Ping(
+                                                     payload.ToUTF8Bytes(),
+                                                     WebSocketFrame.Fin.Final,
+                                                     WebSocketFrame.MaskStatus.On,
+                                                     RandomExtensions.RandomBytes(4)
+                                                 ));
 
-                            SendWebSocketFrame(WebSocketFrame.Ping(
-                                                   payload.ToUTF8Bytes(),
-                                                   WebSocketFrame.Fin.Final,
-                                                   WebSocketFrame.MaskStatus.On,
-                                                   RandomExtensions.GetBytes(4)
-                                               ));
-
-                            DebugX.Log(nameof(WebSocketClient) + ": Ping sent:     '" + payload + "'!");
-
-                        }
+                        DebugX.Log(nameof(WebSocketClient) + ": Ping sent:     '" + payload + "'!");
 
                     }
                 }
@@ -1274,7 +1269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                       Text,
                                       Fin.Final,
                                       MaskStatus.On,
-                                      RandomExtensions.GetBytes(4)
+                                      RandomExtensions.RandomBytes(4)
                                   ));
 
         #endregion
@@ -1291,7 +1286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                       Bytes,
                                       Fin.Final,
                                       MaskStatus.On,
-                                      RandomExtensions.GetBytes(4)
+                                      RandomExtensions.RandomBytes(4)
                                   ));
 
         #endregion
@@ -1383,7 +1378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                  Reason,
                                                  WebSocketFrame.Fin.Final,
                                                  WebSocketFrame.MaskStatus.On,
-                                                 RandomExtensions.GetBytes(4)
+                                                 RandomExtensions.RandomBytes(4)
                                              ));
 
                     HTTPStream.Close();
