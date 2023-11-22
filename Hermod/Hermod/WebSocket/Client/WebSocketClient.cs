@@ -436,12 +436,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        public virtual Task ProcessWebSocketTextFrame  (WebSocketFrame             WebSocketFrame,
-                                                        WebSocketClientConnection  WebSocketConnection)
+        public virtual Task ProcessWebSocketTextFrame  (DateTime                   RequestTimestamp,
+                                                        WebSocketClientConnection  Connection,
+                                                        String                     OCPPTextMessage,
+                                                        EventTracking_Id           EventTrackingId,
+                                                        CancellationToken          CancellationToken)
             => Task.CompletedTask;
 
-        public virtual Task ProcessWebSocketBinaryFrame(WebSocketFrame             WebSocketFrame,
-                                                        WebSocketClientConnection  WebSocketConnection)
+        public virtual Task ProcessWebSocketBinaryFrame(DateTime                   RequestTimestamp,
+                                                        WebSocketClientConnection  WebSocketConnection,
+                                                        Byte[]                     OCPPBinaryMessage,
+                                                        EventTracking_Id           EventTrackingId,
+                                                        CancellationToken          CancellationToken)
             => Task.CompletedTask;
 
 
@@ -888,8 +894,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     #endregion
 
-                                                    await ProcessWebSocketTextFrame(frame,
-                                                                                    webSocketClientConnection);
+                                                    await ProcessWebSocketTextFrame(Timestamp.Now,
+                                                                                    webSocketClientConnection,
+                                                                                    frame.Payload.ToUTF8String(),
+                                                                                    EventTracking_Id.New,
+                                                                                    CancellationToken);
 
                                                 }
                                                 break;
@@ -922,8 +931,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     #endregion
 
-                                                    await ProcessWebSocketBinaryFrame(frame,
-                                                                                      webSocketClientConnection);
+                                                    await ProcessWebSocketBinaryFrame(Timestamp.Now,
+                                                                                      webSocketClientConnection,
+                                                                                      frame.Payload,
+                                                                                      EventTracking_Id.New,
+                                                                                      CancellationToken);
 
                                                 }
                                                 break;

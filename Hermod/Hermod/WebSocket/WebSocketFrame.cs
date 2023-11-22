@@ -17,8 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
 using System.Text;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
