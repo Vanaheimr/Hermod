@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.customData                  = CustomData is not null
                                                    ? CustomData. ToDictionary(kvp => kvp.Key,
                                                                               kvp => kvp.Value)
-                                                   : new Dictionary<String, Object?>();
+                                                   : [];
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
 
         }

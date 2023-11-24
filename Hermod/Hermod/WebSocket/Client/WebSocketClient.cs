@@ -38,28 +38,6 @@ using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    /// <summary>
-    /// The delegate for the HTTP web socket request log.
-    /// </summary>
-    /// <param name="Timestamp">The timestamp of the incoming request.</param>
-    /// <param name="WebSocketClient">The sending WebSocket client.</param>
-    /// <param name="Request">The incoming request.</param>
-    public delegate Task WSClientRequestLogHandler(DateTime         Timestamp,
-                                                   WebSocketClient  WebSocketClient,
-                                                   JArray           Request);
-
-    /// <summary>
-    /// The delegate for the HTTP web socket response log.
-    /// </summary>
-    /// <param name="Timestamp">The timestamp of the incoming request.</param>
-    /// <param name="WebSocketClient">The sending WebSocket client.</param>
-    /// <param name="Request">The incoming WebSocket request.</param>
-    /// <param name="Response">The outgoing WebSocket response.</param>
-    public delegate Task WSClientResponseLogHandler(DateTime         Timestamp,
-                                                    WebSocketClient  WebSocketClient,
-                                                    JArray           Request,
-                                                    JArray           Response);
-
 
     public delegate Task  OnWebSocketClientTextMessageDelegate  (DateTime                    Timestamp,
                                                                  WebSocketClient             Client,
@@ -438,15 +416,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public virtual Task ProcessWebSocketTextFrame  (DateTime                   RequestTimestamp,
                                                         WebSocketClientConnection  Connection,
-                                                        String                     OCPPTextMessage,
                                                         EventTracking_Id           EventTrackingId,
+                                                        String                     TextMessage,
                                                         CancellationToken          CancellationToken)
             => Task.CompletedTask;
 
         public virtual Task ProcessWebSocketBinaryFrame(DateTime                   RequestTimestamp,
                                                         WebSocketClientConnection  WebSocketConnection,
-                                                        Byte[]                     OCPPBinaryMessage,
                                                         EventTracking_Id           EventTrackingId,
+                                                        Byte[]                     BinaryMessage,
                                                         CancellationToken          CancellationToken)
             => Task.CompletedTask;
 
@@ -896,8 +874,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     await ProcessWebSocketTextFrame(Timestamp.Now,
                                                                                     webSocketClientConnection,
-                                                                                    frame.Payload.ToUTF8String(),
                                                                                     EventTracking_Id.New,
+                                                                                    frame.Payload.ToUTF8String(),
                                                                                     CancellationToken);
 
                                                 }
@@ -933,8 +911,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     await ProcessWebSocketBinaryFrame(Timestamp.Now,
                                                                                       webSocketClientConnection,
-                                                                                      frame.Payload,
                                                                                       EventTracking_Id.New,
+                                                                                      frame.Payload,
                                                                                       CancellationToken);
 
                                                 }
