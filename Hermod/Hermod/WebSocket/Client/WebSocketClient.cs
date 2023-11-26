@@ -858,11 +858,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             var onTextMessageReceived = OnTextMessageReceived;
                                                             if (onTextMessageReceived is not null)
                                                                 await onTextMessageReceived.Invoke(Timestamp.Now,
-                                                                                                    this,
-                                                                                                    webSocketClientConnection,
-                                                                                                    frame,
-                                                                                                    EventTracking_Id.New,
-                                                                                                    frame.Payload.ToUTF8String());
+                                                                                                   this,
+                                                                                                   webSocketClientConnection,
+                                                                                                   frame,
+                                                                                                   EventTracking_Id.New,
+                                                                                                   frame.Payload.ToUTF8String());
 
                                                     }
                                                     catch (Exception e)
