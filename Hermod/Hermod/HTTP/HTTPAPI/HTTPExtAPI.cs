@@ -3438,7 +3438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Request.Cookies. TryGet     (SessionCookieName,           out var cookie)              &&
                 cookie is not null &&
                 SecurityToken_Id.TryParse   (cookie.FirstOrDefault().Key, out var securityTokenId)     &&
-                httpCookies.    TryGetValue(securityTokenId,             out var securityInformation) &&
+                httpCookies.     TryGetValue(securityTokenId,             out var securityInformation) &&
                 Timestamp.Now < securityInformation.Expires                                            &&
                 TryGetUser(securityInformation.UserId, out User))
             {
@@ -3457,21 +3457,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var possibleUsers = new HashSet<IUser>();
                 var validUsers    = new HashSet<IUser>();
 
-                if (User_Id.TryParse   (basicAuth.Username, out var _UserId) &&
-                    users.  TryGetValue(_UserId,            out var _User))
+                if (User_Id.TryParse   (basicAuth.Username, out var userId) &&
+                    users.  TryGetValue(userId,             out var user))
                 {
-                    possibleUsers.Add(_User);
+                    possibleUsers.Add(user);
                 }
 
                 if (possibleUsers.Count == 0)
                 {
-                    foreach (var user2 in users.Values)
+                    foreach (var possibleUser in users.Values)
                     {
                         if (String.Equals(basicAuth.Username,
-                                          user2.EMail.Address.ToString(),
+                                          possibleUser.EMail.Address.ToString(),
                                           StringComparison.OrdinalIgnoreCase))
                         {
-                            possibleUsers.Add(user2);
+                            possibleUsers.Add(possibleUser);
                         }
                     }
                 }
@@ -3492,13 +3492,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region HTTP Basic Auth is ok!
 
-                var user = validUsers.FirstOrDefault();
+                var validUser = validUsers.FirstOrDefault();
 
-                if (user is not null &&
-                    user.AcceptedEULA.HasValue &&
-                    user.AcceptedEULA.Value < Timestamp.Now)
+                if (validUser is not null &&
+                    validUser.AcceptedEULA.HasValue &&
+                    validUser.AcceptedEULA.Value < Timestamp.Now)
                 {
-                    User = user;
+                    User = validUser;
                     return true;
                 }
 
@@ -3562,9 +3562,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
                                         ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
-                                        : new HashSet<IOrganization>();
+                                        : [];
 
-            ErrorResponseBuilder  = Organizations.Any()
+            ErrorResponseBuilder  = Organizations.Count != 0
                                         ? null
                                         : new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode      = HTTPStatusCode.Unauthorized,
@@ -3576,7 +3576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Connection          = "close"
                                           };
 
-            return Organizations.Any();
+            return Organizations.Count != 0;
 
         }
 

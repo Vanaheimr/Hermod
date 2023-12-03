@@ -682,7 +682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The best matching accept type.
         /// Set by the HTTP server.
         /// </summary>
-        public HTTPContentType    BestMatchingAcceptType    { get; internal set; }
+        public HTTPContentType    BestMatchingAcceptType    { get; internal set; } = HTTPContentType.OCTETSTREAM;
 
 
         public Object?            SubprotocolRequest        { get; set; }
@@ -705,7 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The parsed URL parameters of the best matching URL template.
         /// Set by the HTTP server.
         /// </summary>
-        public String[]            ParsedURLParameters     { get; internal set; }
+        public String[]            ParsedURLParameters     { get; internal set; } = Array.Empty<String>();
 
         /// <summary>
         /// The HTTP query string.
@@ -1165,7 +1165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
 
             if (Path == "")
-                Path = HTTPPath.Parse("/");
+                Path = HTTPPath.Root;
 
             #endregion
 
@@ -1904,12 +1904,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// A generic HTTP request.
     /// </summary>
     /// <typeparam name="TContent">The type of the HTTP body data.</typeparam>
-    public class HTTPRequest<TContent> : HTTPRequest
+    /// <param name="Request">The non-generic HTTP request.</param>
+    /// <param name="Content">The generic HTTP body data.</param>
+    /// <param name="IsFault">Whether there is an error.</param>
+    /// <param name="Exception">An optional exception.</param>
+    public class HTTPRequest<TContent>(HTTPRequest  Request,
+                                       TContent     Content,
+                                       Boolean      IsFault     = false,
+                                       Exception?   Exception   = null) : HTTPRequest(Request)
     {
 
         #region Data
 
-        private readonly Boolean _IsFault;
+        private readonly Boolean isFault = IsFault;
 
         #endregion
 
@@ -1918,44 +1925,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The parsed content.
         /// </summary>
-        public TContent   Content    { get; }
+        public TContent    Content      { get; } = Content;
 
         /// <summary>
         /// An exception during parsing.
         /// </summary>
-        public Exception  Exception  { get; }
+        public Exception?  Exception    { get; } = Exception;
 
         /// <summary>
         /// An error during parsing.
         /// </summary>
-        public Boolean    HasErrors
-            => Exception != null && !_IsFault;
-
-        #endregion
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Create a new generic HTTP request.
-        /// </summary>
-        /// <param name="Request">The non-generic HTTP request.</param>
-        /// <param name="Content">The generic HTTP body data.</param>
-        /// <param name="IsFault">Whether there is an error.</param>
-        /// <param name="Exception">An optional exception.</param>
-        public HTTPRequest(HTTPRequest  Request,
-                           TContent     Content,
-                           Boolean      IsFault    = false,
-                           Exception    Exception  = null)
-
-            : base(Request)
-
-        {
-
-            this.Content    = Content;
-            this._IsFault   = IsFault;
-            this.Exception  = Exception;
-
-        }
+        public Boolean     HasErrors
+            => Exception is not null && !isFault;
 
         #endregion
 
@@ -1969,16 +1950,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <typeparam name="TResult">The type of the converted HTTP response body content.</typeparam>
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
-        public HTTPRequest<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate                           OnException  = null)
+        public HTTPRequest<TResult> ConvertContent<TResult>(Func<TContent, OnExceptionDelegate?, TResult>  ContentConverter,
+                                                            OnExceptionDelegate?                           OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPRequest<TResult>(this,
-                                            ContentConverter(Content,
-                                                             OnException));
+            return new HTTPRequest<TResult>(
+                       this,
+                       ContentConverter(
+                           Content,
+                           OnException
+                       )
+                   );
 
         }
 

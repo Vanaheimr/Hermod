@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="WebSocket\**" />
+    <EmbeddedResource Remove="WebSocket\**" />
+    <None Remove="WebSocket\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="Hermod\SOAP\SOAPClient.cs" />
   </ItemGroup>
 
@@ -20,10 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="WebSocket\Server\" />
   </ItemGroup>
 
 </Project>

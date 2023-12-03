@@ -19,7 +19,6 @@
 
 using System.Text;
 using System.Reflection;
-using System.Net.Security;
 using System.Security.Authentication;
 using System.Collections.Concurrent;
 
@@ -2360,12 +2359,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         internal HTTPRequestHandle? GetRequestHandle(HTTPRequest Request,
                                                      out String? ErrorResponse)
 
-            => GetRequestHandle(Request.Host,
-                                Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
-                                out ErrorResponse,
-                                Request.HTTPMethod,
-                                AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),// ?? AvailableContentTypes.First(),
-                                ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray());
+            => GetRequestHandle(
+                   Request.Host,
+                   Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
+                   out ErrorResponse,
+                   Request.HTTPMethod,
+                   AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),// ?? AvailableContentTypes.First(),
+                   ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray()
+               );
 
         #endregion
 
@@ -2389,157 +2390,149 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPContentTypeSelector  ??= (v => HTTPContentType.HTML_UTF8);
             ErrorResponse              = null;
 
-            lock (hostnameNodes)
+            #region Get HostNode or "*" or fail
+
+            if (!hostnameNodes.TryGetValue(Host,             out var hostnameNode) &&
+                !hostnameNodes.TryGetValue(HTTPHostname.Any, out     hostnameNode))
+            {
+                ErrorResponse = "Could not find a matching hostnode!";
+                return null;
+            }
+
+            #endregion
+
+            #region Try to find the best matching URLNode...
+
+            var regexList      = from   urlNode
+                                 in     hostnameNode.URLNodes
+                                 select new {
+                                     URLNode = urlNode,
+                                     Regex   = urlNode.URLRegex
+                                 };
+
+            var allTemplates   = from   regexTupel
+                                 in     regexList
+                                 select new {
+                                     URLNode = regexTupel.URLNode,
+                                     Match   = regexTupel.Regex.Match(Path.ToString())
+                                 };
+
+            var matches        = from    match
+                                 in      allTemplates
+                                 where   match.Match.Success
+                                 orderby 100*match.URLNode.SortLength +
+                                             match.URLNode.ParameterCount
+                                         descending
+                                 select  new {
+                                     match.URLNode,
+                                     match.Match
+                                 };
+
+            var matchesMethod  = from    match
+                                 in      matches
+                                 where   match.URLNode.Contains(HTTPMethod.Value)
+                                 orderby 100*match.URLNode.SortLength +
+                                             match.URLNode.ParameterCount
+                                         descending
+                                 select  new {
+                                     match.URLNode,
+                                     match.Match
+                                 };
+
+            #endregion
+
+            #region ...or fail!
+
+            if (!matchesMethod.Any())
             {
 
-                #region Get HostNode or "*" or fail
+                ErrorResponse = matches.Any()
+                                    ? "This HTTP method is not allowed!"
+                                    : "No matching URL template found!";
 
-                if (!hostnameNodes.TryGetValue(Host,             out var hostnameNode) &&
-                    !hostnameNodes.TryGetValue(HTTPHostname.Any, out     hostnameNode))
-                {
-                    ErrorResponse = "Could not find a matching hostnode!";
-                    return null;
-                }
+                //if (_HostNode.RequestHandler != null)
+                //    return _HostNode.RequestHandler;
 
-                #endregion
-
-                #region Try to find the best matching URLNode...
-
-                var regexList      = from   urlNode
-                                     in     hostnameNode.URLNodes
-                                     select new {
-                                         URLNode = urlNode,
-                                         Regex   = urlNode.URLRegex
-                                     };
-
-                var allTemplates   = from   regexTupel
-                                     in     regexList
-                                     select new {
-                                         URLNode = regexTupel.URLNode,
-                                         Match   = regexTupel.Regex.Match(Path.ToString())
-                                     };
-
-                var matches        = from    match
-                                     in      allTemplates
-                                     where   match.Match.Success
-                                     orderby 100*match.URLNode.SortLength +
-                                                 match.URLNode.ParameterCount
-                                             descending
-                                     select  new {
-                                         match.URLNode,
-                                         match.Match
-                                     };
-
-                var matchesMethod  = from    match
-                                     in      matches
-                                     where   match.URLNode.Contains(HTTPMethod.Value)
-                                     orderby 100*match.URLNode.SortLength +
-                                                 match.URLNode.ParameterCount
-                                             descending
-                                     select  new {
-                                         match.URLNode,
-                                         match.Match
-                                     };
-
-                #endregion
-
-                #region ...or fail!
-
-                if (!matchesMethod.Any())
-                {
-
-                    ErrorResponse = matches.Any()
-                                        ? "This HTTP method is not allowed!"
-                                        : "No matching URL template found!";
-
-                    //if (_HostNode.RequestHandler != null)
-                    //    return _HostNode.RequestHandler;
-
-                    return null;
-
-                }
-
-                #endregion
-
-
-                HTTPMethodNode?  httpMethodNode        = null;
-                ContentTypeNode? httpContentTypeNode   = null;
-
-                // Caused e.g. by the naming of the variables within the
-                // URL templates, there could be multiple matches!
-                //foreach (var _Match in _Matches)
-                //{
-
-                var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod.Value)).
-                                                Select(match      => match.URLNode.Get     (HTTPMethod.Value)).
-                                                Where (methodnode => methodnode is not null).
-                                                Select(methodnode => HTTPContentTypeSelector(methodnode!.ContentTypes.ToArray())).
-                                                ToArray();
-
-                //foreach (var aa in FilteredByMethod)
-                //{
-
-                //    var BestMatchingContentType = HTTPContentTypeSelector(aa.HTTPContentTypes.Keys.ToArray());
-
-                //    //if (aa.HTTPContentTypes
-
-                //}
-
-                // Use best matching URL Handler!
-                var bestMatch = matches.First();
-
-                #region Copy MethodHandler Parameters
-
-                var parameters = new List<String>();
-                for (var i = 1; i < bestMatch.Match.Groups.Count; i++)
-                    parameters.Add(bestMatch.Match.Groups[i].Value);
-
-                var ParsedURLParametersDelegateLocal = ParsedURLParametersDelegate;
-                if (ParsedURLParametersDelegateLocal is not null)
-                    ParsedURLParametersDelegateLocal(parameters);
-
-                #endregion
-
-                // If HTTPMethod was found...
-                if (bestMatch.URLNode.TryGet(HTTPMethod.Value, out httpMethodNode))
-                {
-
-                    var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
-
-                    if (bestMatchingContentType == HTTPContentType.ALL)
-                    {
-
-                        // No content types defined...
-                        if (!httpMethodNode.Any())
-                            return HTTPRequestHandle.FromMethodNode(httpMethodNode);
-
-                        // A single content type is defined...
-                    //    else if (_HTTPMethodNode.Count() == 1)
-                            return HTTPRequestHandle.FromContentTypeNode(httpMethodNode.FirstOrDefault());
-
-                    //    else
-                    //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
-
-                    }
-
-                    // The requested content type was found...
-                    else if (httpMethodNode.TryGet(bestMatchingContentType, out httpContentTypeNode))
-                        return HTTPRequestHandle.FromContentTypeNode(httpContentTypeNode);
-
-
-                    else
-                        return HTTPRequestHandle.FromMethodNode(httpMethodNode);
-
-                }
-
-                //}
-
-                // No HTTPMethod was found => return best matching URL Handler
-                return HTTPRequestHandle.FromURLNode(bestMatch.URLNode);
-
-                //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
+                return null;
 
             }
+
+            #endregion
+
+
+            // Caused e.g. by the naming of the variables within the
+            // URL templates, there could be multiple matches!
+            //foreach (var _Match in _Matches)
+            //{
+
+            var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod.Value)).
+                                            Select(match      => match.URLNode.Get     (HTTPMethod.Value)).
+                                            Where (methodnode => methodnode is not null).
+                                            Select(methodnode => HTTPContentTypeSelector(methodnode!.ContentTypes.ToArray())).
+                                            ToArray();
+
+            //foreach (var aa in FilteredByMethod)
+            //{
+
+            //    var BestMatchingContentType = HTTPContentTypeSelector(aa.HTTPContentTypes.Keys.ToArray());
+
+            //    //if (aa.HTTPContentTypes
+
+            //}
+
+            // Use best matching URL Handler!
+            var bestMatch = matches.First();
+
+            #region Copy MethodHandler Parameters
+
+            var parameters = new List<String>();
+            for (var i = 1; i < bestMatch.Match.Groups.Count; i++)
+                parameters.Add(bestMatch.Match.Groups[i].Value);
+
+            var parsedURLParametersDelegateLocal = ParsedURLParametersDelegate;
+            if (parsedURLParametersDelegateLocal is not null)
+                parsedURLParametersDelegateLocal(parameters);
+
+            #endregion
+
+            // If HTTPMethod was found...
+            if (bestMatch.URLNode.TryGet(HTTPMethod.Value, out var httpMethodNode) &&
+                httpMethodNode is not null)
+            {
+
+                var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
+
+                if (bestMatchingContentType == HTTPContentType.ALL)
+                {
+
+                    // No content types defined...
+                    if (!httpMethodNode.Any())
+                        return HTTPRequestHandle.FromMethodNode(httpMethodNode);
+
+                    // A single content type is defined...
+                //    else if (_HTTPMethodNode.Count() == 1)
+                        return HTTPRequestHandle.FromContentTypeNode(httpMethodNode.First());
+
+                //    else
+                //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
+
+                }
+
+                // The requested content type was found...
+                else if (httpMethodNode.TryGet(bestMatchingContentType, out var httpContentTypeNode) && httpContentTypeNode is not null)
+                    return HTTPRequestHandle.FromContentTypeNode(httpContentTypeNode);
+
+                else
+                    return HTTPRequestHandle.FromMethodNode(httpMethodNode);
+
+            }
+
+            //}
+
+            // No HTTPMethod was found => return best matching URL Handler
+            return HTTPRequestHandle.FromURLNode(bestMatch.URLNode);
+
+            //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
 
         }
 

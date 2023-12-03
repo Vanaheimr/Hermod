@@ -184,8 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// / (ROOT)
         /// </summary>
-        public static HTTPPath Root
-            => new ("/");
+        public static HTTPPath  Root    { get; }
+            = new ("/");
 
 
         public Boolean Contains(String Text)

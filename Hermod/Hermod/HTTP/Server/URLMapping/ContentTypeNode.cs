@@ -21,66 +21,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A URL node which stores some childnodes and a callback
     /// </summary>
-    public class ContentTypeNode
-    {
-
-        #region Properties
-
-        /// <summary>
-        /// The hosting HTTP API.
-        /// </summary>
-        public HTTPAPI                                   HTTPAPI                          { get; }
-
-        /// <summary>
-        /// The HTTP content type for this service.
-        /// </summary>
-        public HTTPContentType                           HTTPContentType                  { get; }
-
-        public HTTPDelegate?                             RequestHandler                   { get; }
-
-        /// <summary>
-        /// This and all subordinated nodes demand an explicit HTTP content type authentication.
-        /// </summary>
-        public HTTPAuthentication?                       HTTPContentTypeAuthentication    { get; }
-
-        /// <summary>
-        /// A HTTP request logger.
-        /// </summary>
-        public HTTPRequestLogHandler?                    HTTPRequestLogger                { get; }
-
-        /// <summary>
-        /// A HTTP response logger.
-        /// </summary>
-        public HTTPResponseLogHandler?                   HTTPResponseLogger               { get; }
-
-        /// <summary>
-        /// A general error handling method.
-        /// </summary>
-        public HTTPDelegate?                             DefaultErrorHandler              { get; }
-
-        public URLReplacement                            AllowReplacement                 { get; }
-
-
-        /// <summary>
-        /// Error handling methods for specific http status codes.
-        /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers                    { get; }
-
-        #endregion
-
-        #region (internal) Constructor(s)
-
-        /// <summary>
-        /// Creates a new HTTP ContentTypeNode.
-        /// </summary>
-        /// <param name="HTTPContentType">The http content type for this service.</param>
-        /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
-        /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
-        /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
-        internal ContentTypeNode(HTTPAPI                  HTTPAPI,
+    /// <remarks>
+    /// Creates a new HTTP ContentTypeNode.
+    /// </remarks>
+    /// <param name="HTTPContentType">The http content type for this service.</param>
+    /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
+    /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+    /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
+    /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+    /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
+    /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
+    public class ContentTypeNode(HTTPAPI                  HTTPAPI,
                                  HTTPContentType          HTTPContentType,
                                  HTTPAuthentication?      HTTPContentTypeAuthentication   = null,
                                  HTTPRequestLogHandler?   HTTPRequestLogger               = null,
@@ -88,23 +39,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPResponseLogHandler?  HTTPResponseLogger              = null,
                                  HTTPDelegate?            DefaultErrorHandler             = null,
                                  URLReplacement           AllowReplacement                = URLReplacement.Fail)
-        {
+    {
 
-            this.HTTPAPI                         = HTTPAPI;
-            this.HTTPContentType                 = HTTPContentType ?? throw new ArgumentNullException(nameof(HTTPContentType),  "The given HTTP content type must not be null!");
-            this.HTTPContentTypeAuthentication   = HTTPContentTypeAuthentication;
-            this.HTTPRequestLogger               = HTTPRequestLogger;
-            this.RequestHandler                  = RequestHandler;
-            this.HTTPResponseLogger              = HTTPResponseLogger;
-            this.DefaultErrorHandler             = DefaultErrorHandler;
-            this.AllowReplacement                = AllowReplacement;
+        #region Properties
 
-            this.ErrorHandlers                   = new Dictionary<HTTPStatusCode, HTTPDelegate>();
+        /// <summary>
+        /// The hosting HTTP API.
+        /// </summary>
+        public HTTPAPI                                   HTTPAPI                          { get; } = HTTPAPI;
 
-        }
+        /// <summary>
+        /// The HTTP content type for this service.
+        /// </summary>
+        public HTTPContentType                           HTTPContentType                  { get; } = HTTPContentType
+            ?? throw new ArgumentNullException(nameof(HTTPContentType), "The given HTTP content type must not be null!");
+
+        public HTTPDelegate?                             RequestHandler                   { get; } = RequestHandler;
+
+        /// <summary>
+        /// This and all subordinated nodes demand an explicit HTTP content type authentication.
+        /// </summary>
+        public HTTPAuthentication?                       HTTPContentTypeAuthentication    { get; } = HTTPContentTypeAuthentication;
+
+        /// <summary>
+        /// A HTTP request logger.
+        /// </summary>
+        public HTTPRequestLogHandler?                    HTTPRequestLogger                { get; } = HTTPRequestLogger;
+
+        /// <summary>
+        /// A HTTP response logger.
+        /// </summary>
+        public HTTPResponseLogHandler?                   HTTPResponseLogger               { get; } = HTTPResponseLogger;
+
+        /// <summary>
+        /// A general error handling method.
+        /// </summary>
+        public HTTPDelegate?                             DefaultErrorHandler              { get; } = DefaultErrorHandler;
+
+        public URLReplacement                            AllowReplacement                 { get; } = AllowReplacement;
+
+
+        /// <summary>
+        /// Error handling methods for specific http status codes.
+        /// </summary>
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers                    { get; } = [];
 
         #endregion
-
 
         #region (override) ToString()
 

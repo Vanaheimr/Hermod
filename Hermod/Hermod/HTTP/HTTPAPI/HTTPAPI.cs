@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System.Reflection;
-using System.Net.Security;
 using System.Globalization;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
