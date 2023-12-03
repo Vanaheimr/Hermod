@@ -249,6 +249,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     }
 
+
+    public enum LogFileNamePatterns
+    {
+        None,
+        Monthly,
+        Daily
+    }
+
+
     #region HTTPResponse
 
     /// <summary>
@@ -262,6 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
         public const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
         public const String EndMarker       = "======================================================================================";
+        private const String Value = "_";
 
         #endregion
 
@@ -788,54 +798,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) LoadHTTPResponseLogfiles_old(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
+        #region (static) LoadHTTPResponseLogfile_old (FileName,               FromTimestamp = null, ToTimestamp = null, ...)
 
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String        FilePath,
-                                                                             String        FilePattern,
-                                                                             DateTime?     FromTimestamp  = null,
-                                                                             DateTime?     ToTimestamp    = null)
-
-            => LoadHTTPResponseLogfiles_old(FilePath,
-                                            FilePattern,
-                                            SearchOption.TopDirectoryOnly,
-                                            FromTimestamp,
-                                            ToTimestamp);
-
-
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String        FilePath,
-                                                                             String        FilePattern,
-                                                                             SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
-                                                                             DateTime?     FromTimestamp  = null,
-                                                                             DateTime?     ToTimestamp    = null)
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfile_old(String               FileName,
+                                                                            DateTime?            FromTimestamp            = null,
+                                                                            DateTime?            ToTimestamp              = null,
+                                                                            Int32                MaxDegreeOfParallelism   = 1,
+                                                                            CancellationToken    CancellationToken        = default)
         {
 
-            var _responses  = new ConcurrentBag<HTTPResponse>();
+            var httpResponses = new ConcurrentBag<HTTPResponse>();
 
-            Parallel.ForEach(Directory.EnumerateFiles(FilePath,
-                                                      FilePattern,
-                                                      SearchOption).
-                                       OrderByDescending(file => file),
-                             new ParallelOptions() { MaxDegreeOfParallelism = 1 },
-                             file => {
+            try
+            {
 
-                var _request            = new List<String>();
-                var _response           = new List<String>();
+                var requestTimestamp    = Illias.Timestamp.Now;
+                var responseTimestamp   = Illias.Timestamp.Now;
+                var requestLines        = new List<String>();
+                var responseLines       = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
-                var RequestTimestamp    = Illias.Timestamp.Now;
-                var ResponseTimestamp   = Illias.Timestamp.Now;
 
-                foreach (var line in File.ReadLines(file))
+                foreach (var line in File.ReadLines(FileName))
                 {
 
                     try
                     {
 
                         if      (relativelinenumber == 1 && copy == "request")
-                            RequestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
+                            requestTimestamp  = DateTime.SpecifyKind(DateTime.Parse(line), DateTimeKind.Utc);
 
                         else if (relativelinenumber == 1 && copy == "response")
-                            ResponseTimestamp = DateTime.SpecifyKind(DateTime.Parse(line.Substring(0, line.IndexOf(" "))), DateTimeKind.Utc);
+                            responseTimestamp = DateTime.SpecifyKind(DateTime.Parse(line.Substring(0, line.IndexOf(" "))), DateTimeKind.Utc);
 
                         else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
@@ -852,22 +846,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         else if (line == "--------------------------------------------------------------------------------")
                         {
 
-                            if ((FromTimestamp is null || ResponseTimestamp >= FromTimestamp.Value) &&
-                                (  ToTimestamp is null || ResponseTimestamp <    ToTimestamp.Value))
+                            if ((FromTimestamp is null || responseTimestamp >= FromTimestamp.Value) &&
+                                (  ToTimestamp is null || responseTimestamp <    ToTimestamp.Value))
                             {
 
-                                if (HTTPRequest. TryParse(_request,
+                                if (HTTPRequest. TryParse(requestLines,
                                                           out var parsedHTTPRequest,
-                                                          Timestamp:  RequestTimestamp)  &&
+                                                          Timestamp:  requestTimestamp)  &&
 
-                                    HTTPResponse.TryParse(_response,
+                                    HTTPResponse.TryParse(responseLines,
                                                           out var parsedHTTPResponse,
-                                                          Timestamp:  ResponseTimestamp,
+                                                          Timestamp:  responseTimestamp,
                                                           Request:    parsedHTTPRequest) &&
 
                                     parsedHTTPResponse is not null)
                                 {
-                                    _responses.Add(parsedHTTPResponse);
+                                    httpResponses.Add(parsedHTTPResponse);
                                 }
 
                                 else
@@ -876,16 +870,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             copy       = "none";
-                            _request   = new List<String>();
-                            _response  = new List<String>();
+                            requestLines   = [];
+                            responseLines  = [];
 
                         }
 
                         else if (copy == "request")
-                            _request.Add(line);
+                            requestLines. Add(line);
 
                         else if (copy == "response")
-                            _response.Add(line);
+                            responseLines.Add(line);
 
                         relativelinenumber++;
 
@@ -897,16 +891,182 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-            });
+            }
+            catch (Exception e)
+            {
+                DebugX.Log(e.Message);
+            }
 
-            return _responses.OrderBy(response => response.Timestamp);
+            return httpResponses;
+
+        }
+
+        #endregion
+
+        #region (static) LoadHTTPResponseLogfiles_old(FilePath,  FilePattern, FromTimestamp = null, ToTimestamp = null, ...)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String               FilePath,
+                                                                             String               FilePattern,
+                                                                             DateTime?            FromTimestamp            = null,
+                                                                             DateTime?            ToTimestamp              = null,
+                                                                             SearchOption         SearchOption             = SearchOption.TopDirectoryOnly,
+                                                                             LogFileNamePatterns  LogFileNamePattern       = LogFileNamePatterns.None,
+                                                                             Int32                MaxDegreeOfParallelism   = 1,
+                                                                             CancellationToken    CancellationToken        = default)
+
+            => LoadHTTPResponseLogfiles_old(
+                   new[] {
+                       FilePath
+                   },
+                   FilePattern,
+                   FromTimestamp,
+                   ToTimestamp,
+                   SearchOption,
+                   LogFileNamePattern,
+                   MaxDegreeOfParallelism,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region (static) LoadHTTPResponseLogfiles_old(FilePaths, FilePattern, FromTimestamp = null, ToTimestamp = null, ...)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(IEnumerable<String>  FilePaths,
+                                                                             String               FilePattern,
+                                                                             DateTime?            FromTimestamp            = null,
+                                                                             DateTime?            ToTimestamp              = null,
+                                                                             SearchOption         SearchOption             = SearchOption.TopDirectoryOnly,
+                                                                             LogFileNamePatterns  LogFileNamePattern       = LogFileNamePatterns.None,
+                                                                             Int32                MaxDegreeOfParallelism   = 1,
+                                                                             CancellationToken    CancellationToken        = default)
+        {
+
+            try
+            {
+
+                var fileNames      = FilePaths.
+                                         SelectMany       (filePath => {
+
+                                                               try
+                                                               {
+                                                                   return Directory.EnumerateFiles(
+                                                                              filePath,
+                                                                              FilePattern,
+                                                                              SearchOption
+                                                                          );
+                                                               }
+                                                               catch (Exception e) {
+                                                                   DebugX.LogException(e);
+                                                               }
+
+                                                               return Array.Empty<String>();
+
+                                                           }).
+                                         Where            (fileName => {
+
+                                             if (FromTimestamp is null && ToTimestamp is null)
+                                                 return true;
+
+                                             try
+                                             {
+
+                                                 switch (LogFileNamePattern)
+                                                 {
+
+                                                     //CPOClient_GetServiceAuthorisationResponse_2023-08.log
+                                                     case LogFileNamePatterns.Monthly:
+                                                         {
+
+                                                             var a      = fileName.LastIndexOf('.');
+                                                             var b      = fileName.LastIndexOf('-', a);
+                                                             var c      = fileName.LastIndexOf('_', b);
+
+                                                             var year   = fileName.Substring  (c + 1, b - c - 1);
+                                                             var month  = fileName.Substring  (b + 1, a - b - 1);
+
+                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}")              < FromTimestamp.Value)
+                                                                 return false;
+
+                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}").AddMonths(1) > ToTimestamp.  Value)
+                                                                 return false;
+
+                                                         }
+                                                         break;
+
+                                                     //CPOClient_GetServiceAuthorisationResponse_2023-08-03.log
+                                                     case LogFileNamePatterns.Daily:
+                                                         {
+
+                                                             var a      = fileName.LastIndexOf('.');
+                                                             var b      = fileName.LastIndexOf('-', a);
+                                                             var c      = fileName.LastIndexOf('-', b);
+                                                             var d      = fileName.LastIndexOf('_', c);
+
+                                                             var year   = fileName.Substring  (d + 1, b - d - 1);
+                                                             var month  = fileName.Substring  (c + 1, b - c - 1);
+                                                             var day    = fileName.Substring  (b + 1, a - b - 1);
+
+                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}-{day}")            < FromTimestamp.Value)
+                                                                 return false;
+
+                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}-{day}").AddDays(1) > ToTimestamp.  Value)
+                                                                 return false;
+
+                                                         }
+                                                         break;
+
+                                                 }
+
+                                             }
+                                             catch (Exception e)
+                                             {
+                                                 DebugX.LogException(e);
+                                                 return false;
+                                             }
+
+                                             return true;
+
+                                         }).
+                                         OrderByDescending(fileName => fileName).
+                                         ToArray();
+
+                var httpResponses  = new ConcurrentBag<HTTPResponse>();
+
+                Parallel.ForEach(fileNames,
+                                 new ParallelOptions() {
+                                     MaxDegreeOfParallelism = MaxDegreeOfParallelism
+                                 },
+                                 fileName => {
+
+                                     foreach (var httpResponse in LoadHTTPResponseLogfile_old(
+                                                                      fileName,
+                                                                      FromTimestamp,
+                                                                      ToTimestamp,
+                                                                      MaxDegreeOfParallelism,
+                                                                      CancellationToken
+                                                                  ))
+                                     {
+                                         httpResponses.Add(httpResponse);
+                                     }
+
+                                 });
+
+                return httpResponses.OrderBy(httpResponse => httpResponse.Timestamp);
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log(e.Message);
+            }
+
+            return Array.Empty<HTTPResponse>();
 
         }
 
         #endregion
 
 
-        #region (static) LoadHTTPResponseLogfile (Filename,                                               FromTimestamp = null, ToTimestamp = null, CancellationToken = default)
+        #region (static) LoadHTTPResponseLogfile (Filename,               FromTimestamp = null, ToTimestamp = null, ...)
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfile(String             Filename,
                                                                         DateTime?          FromTimestamp       = null,
@@ -1023,9 +1183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-
-                
-
+                DebugX.LogException(e);
             }
 
             return httpRresponses.OrderBy(httpResponse => httpResponse.Timestamp);
@@ -1034,13 +1192,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) LoadHTTPResponseLogfiles(FilePath, FilePattern, SearchOption = TopDirectoryOnly, FromTimestamp = null, ToTimestamp = null)
+        #region (static) LoadHTTPResponseLogfiles(FilePath,  FilePattern, FromTimestamp = null, ToTimestamp = null, ...)
 
-        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String        FilePath,
-                                                                         String        FilePattern,
-                                                                         SearchOption  SearchOption   = SearchOption.TopDirectoryOnly,
-                                                                         DateTime?     FromTimestamp  = null,
-                                                                         DateTime?     ToTimestamp    = null)
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String             FilePath,
+                                                                         String             FilePattern,
+                                                                         DateTime?          FromTimestamp       = null,
+                                                                         DateTime?          ToTimestamp         = null,
+                                                                         SearchOption       SearchOption        = SearchOption.TopDirectoryOnly,
+                                                                         CancellationToken  CancellationToken   = default)
         {
 
             var httpRresponses  = new ConcurrentBag<HTTPResponse>();
@@ -1058,16 +1217,155 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 filename =>
             {
 
-                var httpResponseGroup = LoadHTTPResponseLogfile(filename,
-                                                                FromTimestamp,
-                                                                ToTimestamp);
-
-                foreach (var httpResponse in httpResponseGroup)
+                foreach (var httpResponse in LoadHTTPResponseLogfile(
+                                                 filename,
+                                                 FromTimestamp,
+                                                 ToTimestamp,
+                                                 CancellationToken
+                                             ))
+                {
                     httpRresponses.Add(httpResponse);
+                }
 
             });
 
             return httpRresponses.OrderBy(httpResponse => httpResponse.Timestamp);
+
+        }
+
+        #endregion
+
+        #region (static) LoadHTTPResponseLogfiles(FilePaths, FilePattern, FromTimestamp = null, ToTimestamp = null, ...)
+
+        public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(IEnumerable<String>  FilePaths,
+                                                                         String               FilePattern,
+                                                                         DateTime?            FromTimestamp            = null,
+                                                                         DateTime?            ToTimestamp              = null,
+                                                                         SearchOption         SearchOption             = SearchOption.TopDirectoryOnly,
+                                                                         LogFileNamePatterns  LogFileNamePattern       = LogFileNamePatterns.None,
+                                                                         Int32                MaxDegreeOfParallelism   = 1,
+                                                                         CancellationToken    CancellationToken        = default)
+        {
+
+            try
+            {
+
+                var fileNames      = FilePaths.
+                                         SelectMany       (filePath => {
+
+                                                               try
+                                                               {
+                                                                   return Directory.EnumerateFiles(
+                                                                              filePath,
+                                                                              FilePattern,
+                                                                              SearchOption
+                                                                          );
+                                                               }
+                                                               catch (Exception e) {
+                                                                   DebugX.LogException(e);
+                                                               }
+
+                                                               return Array.Empty<String>();
+
+                                                           }).
+                                         Where            (fileName => {
+
+                                             if (FromTimestamp is null && ToTimestamp is null)
+                                                 return true;
+
+                                             try
+                                             {
+
+                                                 switch (LogFileNamePattern)
+                                                 {
+
+                                                     //CPOClient_GetServiceAuthorisationResponse_2023-08.log
+                                                     case LogFileNamePatterns.Monthly:
+                                                         {
+
+                                                             var a      = fileName.LastIndexOf('.');
+                                                             var b      = fileName.LastIndexOf('-', a);
+                                                             var c      = fileName.LastIndexOf('_', b);
+
+                                                             var year   = fileName.Substring  (c + 1, b - c - 1);
+                                                             var month  = fileName.Substring  (b + 1, a - b - 1);
+
+                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}")              < FromTimestamp.Value)
+                                                                 return false;
+
+                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}").AddMonths(1) > ToTimestamp.  Value)
+                                                                 return false;
+
+                                                         }
+                                                         break;
+
+                                                     //CPOClient_GetServiceAuthorisationResponse_2023-08-03.log
+                                                     case LogFileNamePatterns.Daily:
+                                                         {
+
+                                                             var a      = fileName.LastIndexOf('.');
+                                                             var b      = fileName.LastIndexOf('-', a);
+                                                             var c      = fileName.LastIndexOf('-', b);
+                                                             var d      = fileName.LastIndexOf('_', c);
+
+                                                             var year   = fileName.Substring  (d + 1, b - d - 1);
+                                                             var month  = fileName.Substring  (c + 1, b - c - 1);
+                                                             var day    = fileName.Substring  (b + 1, a - b - 1);
+
+                                                             if (FromTimestamp is not null && DateTime.Parse($"{year}-{month}-{day}")            < FromTimestamp.Value)
+                                                                 return false;
+
+                                                             if (ToTimestamp   is not null && DateTime.Parse($"{year}-{month}-{day}").AddDays(1) > ToTimestamp.  Value)
+                                                                 return false;
+
+                                                         }
+                                                         break;
+
+                                                 }
+
+                                             }
+                                             catch (Exception e)
+                                             {
+                                                 DebugX.LogException(e);
+                                                 return false;
+                                             }
+
+                                             return true;
+
+                                         }).
+                                         OrderByDescending(fileName => fileName).
+                                         ToArray();
+
+                var httpResponses  = new ConcurrentBag<HTTPResponse>();
+
+                Parallel.ForEach(fileNames,
+                                 new ParallelOptions() {
+                                     MaxDegreeOfParallelism = MaxDegreeOfParallelism
+                                 },
+                                 fileName => {
+
+                                     foreach (var httpResponse in LoadHTTPResponseLogfile_old(
+                                                                      fileName,
+                                                                      FromTimestamp,
+                                                                      ToTimestamp,
+                                                                      MaxDegreeOfParallelism,
+                                                                      CancellationToken
+                                                                  ))
+                                     {
+                                         httpResponses.Add(httpResponse);
+                                     }
+
+                                 });
+
+                return httpResponses.OrderBy(httpResponse => httpResponse.Timestamp);
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log(e.Message);
+            }
+
+            return Array.Empty<HTTPResponse>();
 
         }
 
