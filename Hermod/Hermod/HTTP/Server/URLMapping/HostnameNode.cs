@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Collections;
+using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -37,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from URIs to URINodes.
         /// </summary>
-        private readonly Dictionary<HTTPPath, URL_Node> urlNodes;
+        private readonly ConcurrentDictionary<HTTPPath, URL_Node> urlNodes = [];
 
         #endregion
 
@@ -46,24 +47,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The hosting HTTP API.
         /// </summary>
-        public HTTPAPI       HTTPAPI     { get; }
+        public HTTPAPI                HTTPAPI     { get; }
 
         /// <summary>
-        /// The hostname for this (virtual) http service.
+        /// The hostname for this http service.
         /// </summary>
-        public HTTPHostname  Hostname    { get; }
+        public HTTPHostname           Hostname    { get; }
 
 
         /// <summary>
         /// Return all defined URIs.
         /// </summary>
-        public IEnumerable<HTTPPath> URIs
+        public IEnumerable<HTTPPath>  URIs
             => urlNodes.Keys;
 
         /// <summary>
         /// Return all URI nodes.
         /// </summary>
-        public IEnumerable<URL_Node> URLNodes
+        public IEnumerable<URL_Node>  URLNodes
             => urlNodes.Values;
 
         #endregion
@@ -73,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Creates a new hostname node.
         /// </summary>
-        /// <param name="Hostname">The hostname(s) for this (virtual) http service.</param>
+        /// <param name="Hostname">The hostname(s) for this http service.</param>
         internal HostnameNode(HTTPAPI       HTTPAPI,
                               HTTPHostname  Hostname)
         {
@@ -106,7 +107,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             this.HTTPAPI   = HTTPAPI;
-            this.urlNodes  = new Dictionary<HTTPPath, URL_Node>();
 
         }
 
@@ -134,40 +134,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (urlNodes)
-            {
+            if (!URLTemplate.HasValue)
+                URLTemplate = HTTPPath.Root;
 
-                if (!URLTemplate.HasValue)
-                    URLTemplate = HTTPPath.Parse("/");
-
-                if (!urlNodes.TryGetValue(URLTemplate.Value, out var urlNode))
-                    urlNode = urlNodes.AddAndReturnValue(
+            if (!urlNodes.TryGetValue(URLTemplate.Value, out var urlNode))
+                urlNode = urlNodes.AddAndReturnValue(
+                              URLTemplate.Value,
+                              new URL_Node(
+                                  HTTPAPI,
                                   URLTemplate.Value,
-                                  new URL_Node(
-                                      HTTPAPI,
-                                      URLTemplate.Value,
-                                      URLAuthentication
-                                  )
-                              );
+                                  URLAuthentication
+                              )
+                          );
 
-                urlNode.AddHandler(
-                    HTTPAPI,
-                    HTTPDelegate,
+            urlNode.AddHandler(
+                        HTTPAPI,
+                        HTTPDelegate,
 
-                    Method ?? HTTPMethod.GET,
-                    HTTPContentType,
+                        Method ?? HTTPMethod.GET,
+                        HTTPContentType,
 
-                    HTTPMethodAuthentication,
-                    ContentTypeAuthentication,
+                        HTTPMethodAuthentication,
+                        ContentTypeAuthentication,
 
-                    HTTPRequestLogger,
-                    HTTPResponseLogger,
+                        HTTPRequestLogger,
+                        HTTPResponseLogger,
 
-                    DefaultErrorHandler,
-                    AllowReplacement
-                );
-
-            }
+                        DefaultErrorHandler,
+                        AllowReplacement
+                    );
 
         }
 
@@ -218,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region IEnumerable<URINode> members
+        #region IEnumerable<URINode> Members
 
         /// <summary>
         /// Return all URI nodes.

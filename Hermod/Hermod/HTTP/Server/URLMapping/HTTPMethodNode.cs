@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A mapping from HTTPContentTypes to HTTPContentTypeNodes.
         /// </summary>
-        private readonly ConcurrentDictionary<HTTPContentType, ContentTypeNode> contentTypeNodes = new();
+        private readonly ConcurrentDictionary<HTTPContentType, ContentTypeNode> contentTypeNodes = [];
 
         #endregion
 
@@ -47,60 +47,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The hosting HTTP API.
         /// </summary>
-        public HTTPAPI                                       HTTPAPI                     { get; }
+        public HTTPAPI                                   HTTPAPI                     { get; }
 
         /// <summary>
         /// The http method for this service.
         /// </summary>
-        public HTTPMethod                                    HTTPMethod                  { get; }
+        public HTTPMethod                                HTTPMethod                  { get; }
 
         /// <summary>
         /// Whether this HTTP method node HTTP handler can be replaced/overwritten.
         /// </summary>
-        public URLReplacement                                AllowReplacement            { get; }
+        public URLReplacement                            AllowReplacement            { get; }
 
         /// <summary>
         /// A HTTP request logger.
         /// </summary>
-        public HTTPRequestLogHandler?                        HTTPRequestLogger           { get; private set; }
+        public HTTPRequestLogHandler?                    HTTPRequestLogger           { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP method authentication.
         /// </summary>
-        public HTTPAuthentication?                           HTTPMethodAuthentication    { get; }
+        public HTTPAuthentication?                       HTTPMethodAuthentication    { get; }
 
         /// <summary>
         /// A HTTP delegate.
         /// </summary>
-        public HTTPDelegate?                                 RequestHandler              { get; private set; }
+        public HTTPDelegate?                             RequestHandler              { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate?                                 DefaultErrorHandler         { get; private set; }
+        public HTTPDelegate?                             DefaultErrorHandler         { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode,  HTTPDelegate>     ErrorHandlers               { get; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers               { get; } = [];
 
         /// <summary>
         /// A HTTP response logger.
         /// </summary>
-        public HTTPResponseLogHandler?                       HTTPResponseLogger          { get; private set; }
-
+        public HTTPResponseLogHandler?                   HTTPResponseLogger          { get; private set; }
 
 
         /// <summary>
         /// Return all defined HTTP content types.
         /// </summary>
-        public IEnumerable<HTTPContentType> ContentTypes
+        public IEnumerable<HTTPContentType>              ContentTypes
             => contentTypeNodes.Keys;
 
         /// <summary>
         /// Return all HTTP content type nodes.
         /// </summary>
-        public IEnumerable<ContentTypeNode> ContentTypeNodes
+        public IEnumerable<ContentTypeNode>              ContentTypeNodes
             => contentTypeNodes.Values;
 
         #endregion
@@ -108,20 +107,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (internal) Constructor(s)
 
         /// <summary>
-        /// Creates a new HTTPMethodNode.
+        /// Create a new HTTP method node.
         /// </summary>
-        /// <param name="HTTPMethod">The http method for this service.</param>
-        /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an explicit HTTP method authentication.</param>
+        /// <param name="HTTPAPI">A HTTP API.</param>
+        /// <param name="HTTPMethod">A HTTP method.</param>
+        /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an optional explicit HTTP method authentication.</param>
         internal HTTPMethodNode(HTTPAPI              HTTPAPI,
                                 HTTPMethod           HTTPMethod,
-                                HTTPAuthentication?  HTTPMethodAuthentication  = null)
-
+                                HTTPAuthentication?  HTTPMethodAuthentication   = null)
         {
 
             this.HTTPAPI                   = HTTPAPI;
             this.HTTPMethod                = HTTPMethod;
             this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
-            this.ErrorHandlers             = new Dictionary<HTTPStatusCode,  HTTPDelegate>();
 
         }
 
@@ -141,67 +139,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (contentTypeNodes)
+            #region For ANY content type...
+
+            if (HTTPContentType is null)
             {
 
-                #region For ANY content type...
+                if (this.RequestHandler is null || AllowReplacement == URLReplacement.Allow)
+                {
+                    this.HTTPRequestLogger    = HTTPRequestLogger;
+                    this.RequestHandler       = RequestHandler;
+                    this.DefaultErrorHandler  = DefaultErrorHandler;
+                    this.HTTPResponseLogger   = HTTPResponseLogger;
+                }
 
-                if (HTTPContentType is null)
+                else if (AllowReplacement == URLReplacement.Fail)
+                    throw new ArgumentException("Replacing this URL template is not allowed!");
+
+                else
+                    throw new ArgumentException("An URL template without a content type? Does this make sense here!");
+
+            }
+
+            #endregion
+
+            #region ...or for a specific content type
+
+            else
+            {
+
+                #region The content type already exists...
+
+                if (contentTypeNodes.TryGetValue(HTTPContentType, out var contentTypeNode))
                 {
 
-                    if (this.RequestHandler is null || AllowReplacement == URLReplacement.Allow)
+                    if (contentTypeNode.AllowReplacement == URLReplacement.Allow)
+                        contentTypeNodes[HTTPContentType] = new ContentTypeNode(
+                                                                HTTPAPI,
+                                                                HTTPContentType,
+                                                                ContentTypeAuthentication,
+                                                                HTTPRequestLogger,
+                                                                RequestHandler,
+                                                                HTTPResponseLogger,
+                                                                DefaultErrorHandler,
+                                                                AllowReplacement
+                                                            );
+
+                    else if (contentTypeNode.AllowReplacement == URLReplacement.Ignore)
                     {
-                        this.HTTPRequestLogger    = HTTPRequestLogger;
-                        this.RequestHandler       = RequestHandler;
-                        this.DefaultErrorHandler  = DefaultErrorHandler;
-                        this.HTTPResponseLogger   = HTTPResponseLogger;
+                        DebugX.Log("HTTP API definition replaced!");
                     }
 
-                    else if (AllowReplacement == URLReplacement.Fail)
-                        throw new ArgumentException("Replacing this URL template is not allowed!");
-
                     else
-                        throw new ArgumentException("An URL template without a content type? Does this make sense here!");
+                        throw new ArgumentException("Duplicate HTTP API definition!");
 
                 }
 
                 #endregion
 
-                #region ...or for a specific content type
-
-                else
-                {
-
-                    #region The content type already exists...
-
-                    if (contentTypeNodes.TryGetValue(HTTPContentType, out var contentTypeNode))
-                    {
-
-                        if (contentTypeNode.AllowReplacement == URLReplacement.Allow)
-                            contentTypeNodes[HTTPContentType] = new ContentTypeNode(
-                                                                    HTTPAPI,
-                                                                    HTTPContentType,
-                                                                    ContentTypeAuthentication,
-                                                                    HTTPRequestLogger,
-                                                                    RequestHandler,
-                                                                    HTTPResponseLogger,
-                                                                    DefaultErrorHandler,
-                                                                    AllowReplacement
-                                                                );
-
-                        else if (contentTypeNode.AllowReplacement == URLReplacement.Ignore)
-                        {
-                            DebugX.Log("HTTP API definition replaced!");
-                        }
-
-                        else
-                            throw new ArgumentException("Duplicate HTTP API definition!");
-
-                    }
-
-                    #endregion
-
-                    #region ...or a new content type to add
+                #region ...or a new content type to add
 
                     else
                     {
@@ -227,11 +222,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     #endregion
 
-                }
-
-                #endregion
-
             }
+
+            #endregion
 
         }
 

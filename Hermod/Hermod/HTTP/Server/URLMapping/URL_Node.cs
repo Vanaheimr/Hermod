@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Error handling methods for specific http status codes.
         /// </summary>
-        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers          { get; }
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers          { get; } = [];
 
         /// <summary>
         /// A HTTP response logger.
@@ -105,13 +105,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return all defined HTTP methods.
         /// </summary>
-        public IEnumerable<HTTPMethod> HTTPMethods
+        public IEnumerable<HTTPMethod>                   HTTPMethods
             => httpMethodNodes.Keys;
 
         /// <summary>
         /// Return all HTTP method nodes.
         /// </summary>
-        public IEnumerable<HTTPMethodNode> HTTPMethodNodes
+        public IEnumerable<HTTPMethodNode>               HTTPMethodNodes
             => httpMethodNodes.Values;
 
         #endregion
@@ -132,19 +132,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPAPI                = HTTPAPI;
             this.URITemplate            = URITemplate;
             this.URIAuthentication      = URIAuthentication;
-            this.RequestHandler         = RequestHandler;
-            this.DefaultErrorHandler    = DefaultErrorHandler;
-            this.ErrorHandlers          = new Dictionary<HTTPStatusCode, HTTPDelegate>();
 
-            var _ReplaceLastParameter   = new Regex(@"\{[^/]+\}$");
-            this.ParameterCount         = (UInt16) _ReplaceLastParameter.Matches(URITemplate.ToString()).Count;
-            var URLTemplate2            = _ReplaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)");
-            var URLTemplateWithoutVars  = _ReplaceLastParameter.Replace(URITemplate.ToString(), "");
+            var replaceLastParameter    = new Regex(@"\{[^/]+\}$");
+            this.ParameterCount         = (UInt16) replaceLastParameter.Matches(URITemplate.ToString()).Count;
+            var URLTemplate2            = replaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)");
+            var URLTemplateWithoutVars  = replaceLastParameter.Replace(URITemplate.ToString(), "");
 
-            var _ReplaceAllParameters   = new Regex(@"\{[^/]+\}");
-            this.ParameterCount        += (UInt16) _ReplaceAllParameters.Matches(URLTemplate2).Count;
-            this.URLRegex               = new Regex("^" + _ReplaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
-            this.SortLength             = (UInt16) _ReplaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
+            var replaceAllParameters    = new Regex(@"\{[^/]+\}");
+            this.ParameterCount        += (UInt16) replaceAllParameters.Matches(URLTemplate2).Count;
+            this.URLRegex               = new Regex("^" + replaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
+            this.SortLength             = (UInt16) replaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
 
         }
 
@@ -170,35 +167,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (httpMethodNodes)
-            {
-
-                if (!httpMethodNodes.TryGetValue(HTTPMethod, out var httpMethodNode))
-                    httpMethodNode = httpMethodNodes.AddAndReturnValue(
+            if (!httpMethodNodes.TryGetValue(HTTPMethod, out var httpMethodNode))
+                httpMethodNode = httpMethodNodes.AddAndReturnValue(
+                                     HTTPMethod,
+                                     new HTTPMethodNode(
+                                         HTTPAPI,
                                          HTTPMethod,
-                                         new HTTPMethodNode(
-                                             HTTPAPI,
-                                             HTTPMethod,
-                                             HTTPMethodAuthentication
-                                         )
-                                     );
+                                         HTTPMethodAuthentication
+                                     )
+                                 );
 
-                httpMethodNode.AddHandler(
-                    HTTPAPI,
-                    HTTPDelegate,
+            httpMethodNode.AddHandler(
+                               HTTPAPI,
+                               HTTPDelegate,
 
-                    HTTPContentType,
+                               HTTPContentType,
 
-                    ContentTypeAuthentication,
+                               ContentTypeAuthentication,
 
-                    HTTPRequestLogger,
-                    HTTPResponseLogger,
+                               HTTPRequestLogger,
+                               HTTPResponseLogger,
 
-                    DefaultErrorHandler,
-                    AllowReplacement
-                );
-
-            }
+                               DefaultErrorHandler,
+                               AllowReplacement
+                           );
 
         }
 
@@ -249,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region IEnumerable<URINode> members
+        #region IEnumerable<URINode> Members
 
         /// <summary>
         /// Return all HTTP method nodes.
@@ -272,27 +264,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
 
-            var _URLAuthentication = "";
-            if (URIAuthentication != null)
-                _URLAuthentication = " (auth)";
+            => String.Concat(
 
-            var _URLErrorHandler = "";
-            if (DefaultErrorHandler != null)
-                _URLErrorHandler = " (errhdl)";
+                   URIAuthentication is not null
+                       ? " (auth)"
+                       : "",
 
-            var _HTTPMethods = "";
-            if (httpMethodNodes.Count > 0)
-            {
-                var _StringBuilder = httpMethodNodes.Keys.ForEach(new StringBuilder(" ["), (__StringBuilder, __HTTPMethod) => __StringBuilder.Append(__HTTPMethod.MethodName).Append(", "));
-                _StringBuilder.Length -= 2;
-                _HTTPMethods = _StringBuilder.Append("]").ToString();
-            }
+                   DefaultErrorHandler is not null
+                       ? " (error)"
+                       : "",
 
-            return String.Concat(URITemplate, _URLAuthentication, _URLErrorHandler, _HTTPMethods);
+                   !httpMethodNodes.IsEmpty
+                       ? $"[{httpMethodNodes.Keys.AggregateWith(", ")}]"
+                       : ""
 
-        }
+               );
 
         #endregion
 

@@ -21,9 +21,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A URL node which stores some childnodes and a callback
     /// </summary>
-    /// <remarks>
-    /// Creates a new HTTP ContentTypeNode.
-    /// </remarks>
     /// <param name="HTTPContentType">The http content type for this service.</param>
     /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
     /// <param name="HTTPRequestLogger">A HTTP request logger.</param>

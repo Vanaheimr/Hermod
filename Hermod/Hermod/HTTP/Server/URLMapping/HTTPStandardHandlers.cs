@@ -459,7 +459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-        #region RegisterFilesystemFile  (this HTTPAPI,             Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
+        #region RegisterFileSystemFile  (this HTTPAPI,             Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
         /// Returns a resource from the given file system location.
@@ -470,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFile">If an error occures, return this file.</param>
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extension.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
-        public static void RegisterFilesystemFile(this HTTPAPI            HTTPAPI,
+        public static void RegisterFileSystemFile(this HTTPAPI            HTTPAPI,
                                                   HTTPHostname            Hostname,
                                                   HTTPPath                URLTemplate,
                                                   Func<String[], String>  ResourceFilenameBuilder,
@@ -478,7 +478,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   HTTPContentType?        ResponseContentType   = null,
                                                   String                  CacheControl          = "no-cache")
 
-            => HTTPAPI.HTTPServer.RegisterFilesystemFile(
+            => HTTPAPI.HTTPServer.RegisterFileSystemFile(
                                       HTTPAPI,
                                       Hostname,
                                       URLTemplate,
@@ -490,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterFilesystemFile  (this HTTPServer, HTTPAPI, Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
+        #region RegisterFileSystemFile  (this HTTPServer, HTTPAPI, Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
         /// Returns a resource from the given file system location.
@@ -502,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DefaultFile">If an error occures, return this file.</param>
         /// <param name="ResponseContentType">Set the HTTP MIME content-type of the file. If null try to autodetect the content type based on the filename extension.</param>
         /// <param name="CacheControl">Set the HTTP cache control response header.</param>
-        public static void RegisterFilesystemFile(this IHTTPServer        HTTPServer,
+        public static void RegisterFileSystemFile(this IHTTPServer        HTTPServer,
                                                   HTTPAPI                 HTTPAPI,
                                                   HTTPHostname            Hostname,
                                                   HTTPPath                URLTemplate,
@@ -582,7 +582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region RegisterFilesystemFolder(this HTTPAPI,                Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
+        #region RegisterFileSystemFolder(this HTTPAPI,                Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -592,13 +592,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">A HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFilesystemFolder(this HTTPAPI            HTTPAPI,
+        public static void RegisterFileSystemFolder(this HTTPAPI            HTTPAPI,
                                                     HTTPHostname            Hostname,
                                                     HTTPPath                URLTemplate,
                                                     Func<String[], String>  ResourcePath,
                                                     String                  DefaultFilename  = "index.html")
 
-            => HTTPAPI.HTTPServer.RegisterFilesystemFolder(
+            => HTTPAPI.HTTPServer.RegisterFileSystemFolder(
                                       HTTPAPI,
                                       Hostname,
                                       URLTemplate,
@@ -608,7 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterFilesystemFolder(this HTTPExtAPI,             Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
+        #region RegisterFileSystemFolder(this HTTPExtAPI,             Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -618,13 +618,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">A HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFilesystemFolder(this HTTPExtAPI         HTTPExtAPI,
+        public static void RegisterFileSystemFolder(this HTTPExtAPI         HTTPExtAPI,
                                                     HTTPHostname            Hostname,
                                                     HTTPPath                URLTemplate,
                                                     Func<String[], String>  ResourcePath,
                                                     String                  DefaultFilename  = "index.html")
 
-            => HTTPExtAPI.HTTPServer.RegisterFilesystemFolder(
+            => HTTPExtAPI.HTTPServer.RegisterFileSystemFolder(
                                          HTTPExtAPI,
                                          Hostname,
                                          URLTemplate,
@@ -634,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterFilesystemFolder(this HTTPServer, HTTPAPI,    Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
+        #region RegisterFileSystemFolder(this HTTPServer, HTTPAPI,    Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -645,7 +645,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">A HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFilesystemFolder(this IHTTPServer        HTTPServer,
+        public static void RegisterFileSystemFolder(this IHTTPServer        HTTPServer,
                                                     HTTPAPI                 HTTPAPI,
                                                     HTTPHostname            Hostname,
                                                     HTTPPath                URLTemplate,
@@ -754,7 +754,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterFilesystemFolder(this HTTPServer, HTTPExtAPI, Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
+        #region RegisterFileSystemFolder(this HTTPServer, HTTPExtAPI, Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -765,7 +765,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">A HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFilesystemFolder(this IHTTPServer        HTTPServer,
+        public static void RegisterFileSystemFolder(this IHTTPServer        HTTPServer,
                                                     HTTPExtAPI              HTTPExtAPI,
                                                     HTTPHostname            Hostname,
                                                     HTTPPath                URLTemplate,
@@ -785,13 +785,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                     if (!HTTPExtAPI.TryGetHTTPUser(
                                         Request,
-                                        out var HTTPUser,
-                                        out var HTTPOrganizations,
-                                        out var Response,
+                                        out var httpUser,
+                                        out var httpOrganizations,
+                                        out var response,
                                         Recursive: true
                                     ))
                     {
-                        return Task.FromResult(Response.AsImmutable);
+                        return Task.FromResult(response!.AsImmutable);
                     }
 
                     #endregion
@@ -892,7 +892,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region RegisterWatchedFilesystemFolder(this HTTPAPI,             URLTemplate, FileSystemLocation, HTTPSSE_EventIdentification, HTTPSSE_URLTemplate, DefaultFilename = "index.html")
+        #region RegisterWatchedFileSystemFolder(this HTTPAPI,             URLTemplate, FileSystemLocation, HTTPSSE_EventIdentification, HTTPSSE_URLTemplate, DefaultFilename = "index.html")
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -944,7 +944,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterWatchedFilesystemFolder(this HTTPServer, HTTPAPI, URLTemplate, FileSystemLocation, HTTPSSE_EventIdentification, HTTPSSE_URLTemplate, DefaultFilename = "index.html")
+        #region RegisterWatchedFileSystemFolder(this HTTPServer, HTTPAPI, URLTemplate, FileSystemLocation, HTTPSSE_EventIdentification, HTTPSSE_URLTemplate, DefaultFilename = "index.html")
 
         private static Task FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
 

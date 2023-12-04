@@ -3349,7 +3349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (private/protected) Get user from HTTP request
+        #region Get user from HTTP request
 
         #region (private)   GenerateCookieUserData(ValidUser, Astronaut = null)
 
@@ -3427,9 +3427,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) TryGetHTTPUser (Request, out User)
+        #region TryGetHTTPUser (Request, out User)
 
-        protected Boolean TryGetHTTPUser(HTTPRequest Request, out IUser? User)
+        public Boolean TryGetHTTPUser(HTTPRequest Request, out IUser? User)
         {
 
             #region Get user from cookie...
@@ -3526,9 +3526,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) TryGetSuperUser(Request, out User)
+        #region TryGetSuperUser(Request, out User)
 
-        protected Boolean TryGetSuperUser(HTTPRequest Request, out IUser? User)
+        public Boolean TryGetSuperUser(HTTPRequest Request, out IUser? User)
         {
 
             // Get user from cookie...
@@ -3550,14 +3550,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) TryGetHTTPUser (Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
+        #region TryGetHTTPUser (Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
 
-        protected Boolean TryGetHTTPUser(HTTPRequest                 Request,
-                                         out IUser?                  User,
-                                         out HashSet<IOrganization>  Organizations,
-                                         out HTTPResponse.Builder?   ErrorResponseBuilder,
-                                         Access_Levels               AccessLevel  = Access_Levels.ReadOnly,
-                                         Boolean                     Recursive    = false)
+        public Boolean TryGetHTTPUser(HTTPRequest                 Request,
+                                      out IUser?                  User,
+                                      out HashSet<IOrganization>  Organizations,
+                                      out HTTPResponse.Builder?   ErrorResponseBuilder,
+                                      Access_Levels               AccessLevel  = Access_Levels.ReadOnly,
+                                      Boolean                     Recursive    = false)
         {
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
@@ -3613,14 +3613,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected) TryGetSuperUser(Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
+        #region TryGetSuperUser(Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
 
-        protected Boolean TryGetSuperUser(HTTPRequest                 Request,
-                                          out IUser?                  User,
-                                          out HashSet<IOrganization>  Organizations,
-                                          out HTTPResponse.Builder?   ErrorResponseBuilder,
-                                          Access_Levels               AccessLevel  = Access_Levels.ReadOnly,
-                                          Boolean                     Recursive    = false)
+        public Boolean TryGetSuperUser(HTTPRequest                 Request,
+                                       out IUser?                  User,
+                                       out HashSet<IOrganization>  Organizations,
+                                       out HTTPResponse.Builder?   ErrorResponseBuilder,
+                                       Access_Levels               AccessLevel  = Access_Levels.ReadOnly,
+                                       Boolean                     Recursive    = false)
         {
 
             if (!TryGetSuperUser(Request, out User))
@@ -6833,7 +6833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region GET         ~/users/{UserId}/profilephoto
 
-            HTTPServer.RegisterFilesystemFile(this,
+            HTTPServer.RegisterFileSystemFile(this,
                                               HTTPHostname.Any,
                                               URLPathPrefix + "users/{UserId}/profilephoto",
                                               URLParams => "LocalHTTPRoot/data/Users/" + URLParams[0] + ".png",
