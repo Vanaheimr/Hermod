@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Date            = Timestamp.Now,
                                CacheControl    = "no-cache",
                                Connection      = "close",
-                               ContentType     = HTTPContentType.TEXT_UTF8,
+                               ContentType     = HTTPContentType.Text.PLAIN,
                                Content         = ("Incoming http connection from '" + Request.HTTPSource + "'" +
                                                    Environment.NewLine + Environment.NewLine +
                                                    Request.RawHTTPHeader +
@@ -119,7 +119,567 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region RegisterResourcesFile  (this HTTPServer,           URLTemplate, ResourceAssembly, ResourceFilename, ResponseContentType = null, CacheControl = "no-cache")
+        // Map folders
+
+        #region (private static) GetFromResourceAssembly(URLTemplate, DefaultServerName, ResourceAssembly, ResourcePath, ...)
+
+        private static HTTPDelegate GetFromResourceAssembly(HTTPPath  URLTemplate,
+                                                            String    DefaultServerName,
+                                                            Assembly  ResourceAssembly,
+                                                            String    ResourcePath,
+                                                            String    DefaultFilename   = "index.html")
+
+            => ExportFolderDelegate(
+                   URLTemplate,
+                   DefaultServerName,
+                   ResourcePath,
+                   (filePath, fileName) => {
+
+                       // Avoid directory/path traversal attacks!
+                       if (fileName.Contains("../"))
+                           return null;
+
+                       return ResourceAssembly.GetManifestResourceStream($"{filePath}.{fileName.Replace('/', '.')}");
+
+                   },
+                   DefaultFilename
+               );
+
+        #endregion
+
+        #region (private static) GetFromFileSystem      (URLTemplate, DefaultServerName,                   ResourcePath, ...)
+
+        private static HTTPDelegate GetFromFileSystem(HTTPPath  URLTemplate,
+                                                      String    DefaultServerName,
+                                                      String    ResourcePath,
+                                                      String    DefaultFilename   = "index.html")
+
+            => ExportFolderDelegate(
+                   URLTemplate,
+                   DefaultServerName,
+                   ResourcePath,
+                   (filePath, fileName) => {
+
+                       // Resolve full path to avoid directory/path traversal attacks!
+                       var fullPath = Path.GetFullPath(Path.Combine(filePath, fileName.Replace('/', Path.DirectorySeparatorChar)));
+
+                       return fullPath.StartsWith(ResourcePath, StringComparison.OrdinalIgnoreCase)
+                                           ? File.OpenRead(fullPath)
+                                           : null;
+
+                   },
+                   DefaultFilename
+               );
+
+        #endregion
+
+        #region (private static) ExportFolderDelegate   (URLTemplate, DefaultServerName,                   ResourcePath, FileStreamProvider, ...)
+
+        private static HTTPDelegate ExportFolderDelegate(HTTPPath                       URLTemplate,
+                                                         String                         DefaultServerName,
+                                                         String                         ResourcePath,
+                                                         Func<String, String, Stream?>  FileStreamProvider,
+                                                         String                         DefaultFilename   = "index.html")
+
+            => (httpRequest) => {
+
+                   try
+                   {
+
+                       var numberOfTemplateParameters  = URLTemplate.ToString().Count(c => c == '{');
+
+                       var filePath                    = httpRequest.ParsedURLParameters.Length > numberOfTemplateParameters
+                                                             ? httpRequest.ParsedURLParameters.Last()
+                                                             : DefaultFilename;
+
+                       var fileStream                  = FileStreamProvider(ResourcePath, filePath);
+
+                       return Task.FromResult(
+                                  fileStream is null
+
+                                      ? new HTTPResponse.Builder(httpRequest) {
+                                            HTTPStatusCode   = HTTPStatusCode.NotFound,
+                                            Server           = DefaultServerName,
+                                            Date             = Timestamp.Now,
+                                            CacheControl     = "no-cache",
+                                            Connection       = "close",
+                                        }.AsImmutable
+
+                                      : new HTTPResponse.Builder(httpRequest) {
+                                            HTTPStatusCode  = HTTPStatusCode.OK,
+                                            Server          = DefaultServerName,
+                                            Date            = Timestamp.Now,
+                                            ContentType     = HTTPContentType.ForFileExtension(
+                                                                  filePath.Remove(0, filePath.LastIndexOf('.') + 1),
+                                                                  () => HTTPContentType.Application.OCTETSTREAM
+                                                              ).FirstOrDefault(),
+                                            ContentStream   = fileStream,
+                                            CacheControl    = "public, max-age=300",
+                                            //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                            KeepAlive       = new KeepAliveType(
+                                                                  TimeSpan.FromMinutes(15),
+                                                                  500
+                                                              ),
+                                            Connection      = "Keep-Alive",
+                                        }.AsImmutable
+
+                              );
+
+                   }
+
+                   #region Handle exceptions
+
+                   catch (Exception e)
+                   {
+
+                       return Task.FromResult(
+                                  new HTTPResponse.Builder(httpRequest) {
+                                      HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                      Server          = DefaultServerName,
+                                      Date            = Timestamp.Now,
+                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                      Content         = JSONObject.Create(
+                                                            new JProperty("message", e.Message)
+                                                        ).ToUTF8Bytes(),
+                                      CacheControl    = "no-cache",
+                                      Connection      = "close",
+                                  }.AsImmutable
+                              );
+
+                   }
+
+                   #endregion
+
+            };
+
+        #endregion
+
+
+        #region (private static) FileWasChanged  (HTTPAPI, EventSourceId, ChangeType, FileName)
+
+        private static async Task FileWasChanged(HTTPAPI             HTTPAPI,
+                                                 HTTPEventSource_Id  EventSourceId,
+                                                 String              ChangeType,
+                                                 String              FileName)
+
+        {
+
+            var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
+
+            if (httpEventSource is not null)
+                await httpEventSource.SubmitEvent(
+                                          ChangeType,
+                                          @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() + @""", ""fileName"": """ + FileName + @""" }"
+                                      );
+
+        }
+
+        #endregion
+
+        #region (private static) FileWasRenamed  (HTTPAPI, EventSourceId, ChangeType, FileName)
+
+        private static async Task FileWasRenamed(HTTPAPI             HTTPAPI,
+                                                 HTTPEventSource_Id  EventSourceId,
+                                                 String              NewFileName,
+                                                 String              OldFileName)
+
+        {
+
+            var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
+
+            if (httpEventSource is not null)
+                await httpEventSource.SubmitEvent(
+                                          "Renamed",
+                                          @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() + @""", ""newFileName"": """ + NewFileName + @""", ""oldFileName"": """ + OldFileName + @""" }"
+                                      );
+
+        }
+
+        #endregion
+
+        #region (private static) FileWatcherError(HTTPAPI, EventSourceId, Error)
+
+        private static async Task FileWatcherError(HTTPAPI             HTTPAPI,
+                                                   HTTPEventSource_Id  EventSourceId,
+                                                   ErrorEventArgs      Error)
+        {
+
+            DebugX.LogException(Error.GetException(), $"HTTP SSE Event Source: '{EventSourceId}'");
+
+            var httpEventSource = HTTPAPI.Get<String>(EventSourceId);
+
+            if (httpEventSource is not null)
+                await httpEventSource.SubmitEvent(
+                                          "Error",
+                                          @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() + @""", ""message"": """ + Error.GetException().Message + @""" }"
+                                      );
+
+        }
+
+        #endregion
+
+        #region (private static) WatchFileSystemFolder(this HTTPAPI,                           ResourcePath, EventSourceId)
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="ResourcePath">The path to the file within the local file system.</param>
+        private static void WatchFileSystemFolder(this HTTPAPI        HTTPAPI,
+                                                  String              ResourcePath,
+                                                  HTTPEventSource_Id  EventSourceId)
+        {
+
+            var watcher = new FileSystemWatcher() {
+                              Path                   = ResourcePath,
+                              NotifyFilter           = NotifyFilters.FileName |
+                                                       NotifyFilters.DirectoryName |
+                                                       NotifyFilters.LastWrite,
+                              //Filter                 = "*.html",//|*.css|*.js|*.json",
+                              IncludeSubdirectories  = true,
+                              InternalBufferSize     = 4 * 4096
+                          };
+
+            watcher.Created += async (s, e) => await FileWasChanged  (HTTPAPI, EventSourceId, e.ChangeType.ToString(), e.FullPath.Remove(0, ResourcePath.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Changed += async (s, e) => await FileWasChanged  (HTTPAPI, EventSourceId, e.ChangeType.ToString(), e.FullPath.Remove(0, ResourcePath.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Renamed += async (s, e) => await FileWasRenamed  (HTTPAPI, EventSourceId,                          e.FullPath.Remove(0, ResourcePath.Length).Replace(Path.DirectorySeparatorChar, '/'), e.OldFullPath.Remove(0, ResourcePath.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Deleted += async (s, e) => await FileWasChanged  (HTTPAPI, EventSourceId, e.ChangeType.ToString(), e.FullPath.Remove(0, ResourcePath.Length).Replace(Path.DirectorySeparatorChar, '/'));
+            watcher.Error   += async (s, e) => await FileWatcherError(HTTPAPI, EventSourceId, e);
+
+            // And now my watch begins...
+            watcher.EnableRaisingEvents = true;
+
+        }
+
+        #endregion
+
+        #region (private static) WatchFileSystemFolder(this HTTPAPI,    Hostname, URLTemplate, ResourcePath, EventSourceId)
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="ResourcePath">The path to the file within the local file system.</param>
+        private static void WatchFileSystemFolder(this HTTPAPI        HTTPAPI,
+                                                  HTTPHostname        Hostname,
+                                                  HTTPPath            URLTemplate,
+                                                  String              ResourcePath,
+                                                  HTTPEventSource_Id  EventSourceId)
+        {
+
+            HTTPAPI.WatchFileSystemFolder(
+                        ResourcePath,
+                        EventSourceId
+                    );
+
+            HTTPAPI.AddEventSource<String>(
+                EventSourceId,
+                URLTemplate,
+                Hostname: Hostname
+            );
+
+        }
+
+        #endregion
+
+        #region (private static) WatchFileSystemFolder(this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, EventSourceId, RequireAuthentication = true)
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPExtAPI">The HTTP API.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="ResourcePath">The path to the file within the local file system.</param>
+        /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
+        private static void WatchFileSystemFolder(this HTTPExtAPI     HTTPExtAPI,
+                                                  HTTPHostname        Hostname,
+                                                  HTTPPath            URLTemplate,
+                                                  String              ResourcePath,
+                                                  HTTPEventSource_Id  EventSourceId,
+                                                  Boolean             RequireAuthentication   = true)
+        {
+
+            HTTPExtAPI.WatchFileSystemFolder(
+                           ResourcePath,
+                           EventSourceId
+                       );
+
+            HTTPExtAPI.AddEventSource<String>(
+                EventSourceId,
+                URLTemplate,
+                Hostname:               Hostname,
+                RequireAuthentication:  RequireAuthentication
+            );
+
+        }
+
+        #endregion
+
+
+        #region MapResourceAssemblyFolder(this HTTPAPI,    Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, ...)
+
+        /// <summary>
+        /// Returns internal resources embedded within the given assembly.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">An URL template.</param>
+        /// <param name="ResourcePath">The path to the file within the assembly.</param>
+        /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void MapResourceAssemblyFolder(this HTTPAPI      HTTPAPI,
+                                                     HTTPHostname      Hostname,
+                                                     HTTPPath          URLTemplate,
+                                                     String            ResourcePath,
+                                                     Assembly?         ResourceAssembly   = null,
+                                                     String            DefaultFilename    = "index.html")
+        {
+
+            HTTPAPI.AddMethodCallback(
+
+                        Hostname,
+                        HTTPMethod.GET,
+                        URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+
+                        HTTPDelegate:       GetFromResourceAssembly(
+                                                URLTemplate,
+                                                HTTPAPI.HTTPServer.DefaultServerName,
+                                                ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                                ResourcePath,
+                                                DefaultFilename
+                                            ),
+
+                        AllowReplacement:   URLReplacement.Fail
+
+                    );
+
+        }
+
+        #endregion
+
+        #region MapResourceAssemblyFolder(this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, ...)
+
+        /// <summary>
+        /// Returns internal resources embedded within the given assembly.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">An URL template.</param>
+        /// <param name="ResourcePath">The path to the file within the assembly.</param>
+        /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void MapResourceAssemblyFolder(this HTTPExtAPI   HTTPExtAPI,
+                                                     HTTPHostname      Hostname,
+                                                     HTTPPath          URLTemplate,
+                                                     String            ResourcePath,
+                                                     Assembly?         ResourceAssembly        = null,
+                                                     String            DefaultFilename         = "index.html",
+                                                     Boolean           RequireAuthentication   = true)
+        {
+
+            HTTPExtAPI.AddMethodCallback(
+
+                           Hostname,
+                           HTTPMethod.GET,
+                           URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+
+                           HTTPDelegate:       RequireAuthentication
+
+                                                   ? httpRequest => {
+
+                                                         #region Get HTTP user and its organizations
+
+                                                         // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                                         if (!HTTPExtAPI.TryGetHTTPUser(
+                                                                             httpRequest,
+                                                                             out var httpUser,
+                                                                             out var httpOrganizations,
+                                                                             out var response,
+                                                                             Recursive: true
+                                                                         ))
+                                                         {
+                                                             return Task.FromResult(response!.AsImmutable);
+                                                         }
+
+                                                         #endregion
+
+                                                         return GetFromResourceAssembly(
+                                                                    URLTemplate,
+                                                                    HTTPExtAPI.HTTPServer.DefaultServerName,
+                                                                    ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                                                    ResourcePath,
+                                                                    DefaultFilename
+                                                                )(httpRequest);
+
+                                                     }
+
+                                                   : GetFromResourceAssembly(
+                                                         URLTemplate,
+                                                         HTTPExtAPI.HTTPServer.DefaultServerName,
+                                                         ResourceAssembly ??= Assembly.GetCallingAssembly(),
+                                                         ResourcePath,
+                                                         DefaultFilename
+                                                     ),
+
+                           AllowReplacement:   URLReplacement.Fail
+
+                       );
+
+        }
+
+        #endregion
+
+        #region MapFileSystemFolder      (this HTTPAPI,    Hostname, URLTemplate, ResourcePath, ...)
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="ResourcePath">The path to the file within the local file system.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void MapFileSystemFolder(this HTTPAPI         HTTPAPI,
+                                               HTTPHostname         Hostname,
+                                               HTTPPath             URLTemplate,
+                                               String               ResourcePath,
+                                               String               DefaultFilename          = "index.html",
+                                               HTTPEventSource_Id?  EventSourceId            = null,
+                                               HTTPPath?            EventSourceURLTemplate   = null)
+        {
+
+            #region Setup file system watcher
+
+            if (EventSourceId.         HasValue &&
+                EventSourceURLTemplate.HasValue)
+            {
+                HTTPAPI.WatchFileSystemFolder(
+                    Hostname,
+                    EventSourceURLTemplate.        Value,
+                    ResourcePath,
+                    EventSourceId.Value
+                );
+            }
+
+            #endregion
+
+            HTTPAPI.AddMethodCallback(
+
+                        Hostname,
+                        HTTPMethod.GET,
+                        URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+
+                        HTTPDelegate:       GetFromFileSystem(
+                                                URLTemplate,
+                                                HTTPAPI.HTTPServer.DefaultServerName,
+                                                ResourcePath,
+                                                //fileName => GetFromFileSystem(ResourcePath, fileName),
+                                                DefaultFilename
+                                            ),
+
+                        AllowReplacement:   URLReplacement.Fail
+
+                    );
+
+        }
+
+        #endregion
+
+        #region MapFileSystemFolder      (this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ...)
+
+        /// <summary>
+        /// Returns resources from the given file system location.
+        /// </summary>
+        /// <param name="HTTPExtAPI">The HTTP API.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="ResourcePath">The path to the file within the local file system.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
+        public static void MapFileSystemFolder(this HTTPExtAPI      HTTPExtAPI,
+                                               HTTPHostname         Hostname,
+                                               HTTPPath             URLTemplate,
+                                               String               ResourcePath,
+                                               String               DefaultFilename          = "index.html",
+                                               HTTPEventSource_Id?  EventSourceId            = null,
+                                               HTTPPath?            EventSourceURLTemplate   = null,
+                                               Boolean              RequireAuthentication    = true)
+        {
+
+            #region Setup file system watcher
+
+            if (EventSourceId.         HasValue &&
+                EventSourceURLTemplate.HasValue)
+            {
+                HTTPExtAPI.WatchFileSystemFolder(
+                    Hostname,
+                    EventSourceURLTemplate.        Value,
+                    ResourcePath,
+                    EventSourceId.Value,
+                    RequireAuthentication
+                );
+            }
+
+            #endregion
+
+            HTTPExtAPI.AddMethodCallback(
+
+                           Hostname,
+                           HTTPMethod.GET,
+                           URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+
+                           HTTPDelegate:       RequireAuthentication
+
+                                                   ? httpRequest => {
+
+                                                         #region Get HTTP user and its organizations
+
+                                                         // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                                         if (!HTTPExtAPI.TryGetHTTPUser(
+                                                                             httpRequest,
+                                                                             out var httpUser,
+                                                                             out var httpOrganizations,
+                                                                             out var response,
+                                                                             Recursive: true
+                                                                         ))
+                                                         {
+                                                             return Task.FromResult(response!.AsImmutable);
+                                                         }
+
+                                                         #endregion
+
+                                                         return GetFromFileSystem(
+                                                                    URLTemplate,
+                                                                    HTTPExtAPI.HTTPServer.DefaultServerName,
+                                                                    ResourcePath,
+                                                                    //fileName => GetFromFileSystem(ResourcePath, fileName),
+                                                                    DefaultFilename
+                                                                )(httpRequest);
+
+                                                     }
+
+                                                   : GetFromFileSystem(
+                                                         URLTemplate,
+                                                         HTTPExtAPI.HTTPServer.DefaultServerName,
+                                                         ResourcePath,
+                                                         //fileName => GetFromFileSystem(ResourcePath, fileName),
+                                                         DefaultFilename
+                                                     ),
+
+                           AllowReplacement:   URLReplacement.Fail
+
+                       );
+
+        }
+
+        #endregion
+
+
+
+        // Map a single file
+
+        #region RegisterResourcesFile   (this HTTPServer,           URLTemplate, ResourceAssembly, ResourceFilename, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
@@ -143,20 +703,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Get the appropriate content type based on the suffix of the requested resource
             ResponseContentType ??= ResourceFilename.Remove(0, ResourceFilename.LastIndexOf(".") + 1) switch {
-                                        "htm"  => HTTPContentType.HTML_UTF8,
-                                        "html" => HTTPContentType.HTML_UTF8,
-                                        "css"  => HTTPContentType.CSS_UTF8,
-                                        "gif"  => HTTPContentType.GIF,
-                                        "jpg"  => HTTPContentType.JPEG,
-                                        "jpeg" => HTTPContentType.JPEG,
-                                        "svg"  => HTTPContentType.SVG,
-                                        "png"  => HTTPContentType.PNG,
-                                        "ico"  => HTTPContentType.ICO,
-                                        "swf"  => HTTPContentType.SWF,
-                                        "js"   => HTTPContentType.JAVASCRIPT_UTF8,
-                                        "txt"  => HTTPContentType.TEXT_UTF8,
-                                        "xml"  => HTTPContentType.XML_UTF8,
-                                        _      => HTTPContentType.OCTETSTREAM,
+                                        "htm"  => HTTPContentType.Text.HTML_UTF8,
+                                        "html" => HTTPContentType.Text.HTML_UTF8,
+                                        "css"  => HTTPContentType.Text.CSS_UTF8,
+                                        "gif"  => HTTPContentType.Image.GIF,
+                                        "jpg"  => HTTPContentType.Image.JPEG,
+                                        "jpeg" => HTTPContentType.Image.JPEG,
+                                        "svg"  => HTTPContentType.Image.SVG,
+                                        "png"  => HTTPContentType.Image.PNG,
+                                        "ico"  => HTTPContentType.Image.ICO,
+                                        "js"   => HTTPContentType.Text.JAVASCRIPT_UTF8,
+                                        "txt"  => HTTPContentType.Text.PLAIN,
+                                        "xml"  => HTTPContentType.Application.XML_UTF8,
+                                        _      => HTTPContentType.Application.OCTETSTREAM,
                                     };
 
 
@@ -187,35 +746,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  Stream? errorStream = null;
 
-                                                 Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.HTML_UTF8, HTTPContentType.TEXT_UTF8 });
+                                                 Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.Text.HTML_UTF8, HTTPContentType.Text.PLAIN });
 
-                                                 if (Request.BestMatchingAcceptType == HTTPContentType.HTML_UTF8)
+                                                 if (Request.BestMatchingAcceptType == HTTPContentType.Text.HTML_UTF8)
                                                  {
-                                                     ResponseContentType = HTTPContentType.HTML_UTF8;
+                                                     ResponseContentType = HTTPContentType.Text.HTML_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.TEXT_UTF8)
+                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.Text.PLAIN)
                                                  {
-                                                     ResponseContentType = HTTPContentType.TEXT_UTF8;
+                                                     ResponseContentType = HTTPContentType.Text.PLAIN;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.JSON_UTF8)
+                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.Application.JSON_UTF8)
                                                  {
-                                                     ResponseContentType = HTTPContentType.JSON_UTF8;
+                                                     ResponseContentType = HTTPContentType.Application.JSON_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.js");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.XML_UTF8)
+                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.Application.XML_UTF8)
                                                  {
-                                                     ResponseContentType = HTTPContentType.XML_UTF8;
+                                                     ResponseContentType = HTTPContentType.Application.XML_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
                                                  }
 
                                                  else if (Request.BestMatchingAcceptType == HTTPContentType.ALL)
                                                  {
-                                                     ResponseContentType = HTTPContentType.HTML_UTF8;
+                                                     ResponseContentType = HTTPContentType.Text.HTML_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                                                  }
 
@@ -251,215 +810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterResourcesFolder(this HTTPServer, Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, DefaultFilename = "index.html", HTTPRealm = null, HTTPLogin = null, HTTPPassword = null)
-
-        /// <summary>
-        /// Returns internal resources embedded within the given assembly.
-        /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="ResourcePath">The path to the file within the assembly.</param>
-        /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        /// <param name="HTTPRealm">An optional realm for HTTP basic authentication.</param>
-        /// <param name="HTTPLogin">An optional login for HTTP basic authentication.</param>
-        /// <param name="HTTPPassword">An optional password for HTTP basic authentication.</param>
-        public static void RegisterResourcesFolder(this IHTTPServer  HTTPServer,
-                                                   HTTPAPI           HTTPAPI,
-                                                   HTTPHostname      Hostname,
-                                                   HTTPPath          URLTemplate,
-                                                   String            ResourcePath,
-                                                   Assembly?         ResourceAssembly  = null,
-                                                   String            DefaultFilename   = "index.html",
-                                                   String?           HTTPRealm         = null,
-                                                   String?           HTTPLogin         = null,
-                                                   String?           HTTPPassword      = null)
-        {
-
-            ResourceAssembly ??= Assembly.GetCallingAssembly();
-
-
-            HTTPDelegate GetEmbeddedResources = async Request => {
-
-                #region Check HTTP Basic Authentication
-
-                if (HTTPLogin.IsNotNullOrEmpty() && HTTPPassword.IsNotNullOrEmpty())
-                {
-
-                    if (Request.Authorization is null                               ||
-                      !(Request.Authorization is HTTPBasicAuthentication basicAuth) ||
-                        basicAuth.Username    != HTTPLogin                          ||
-                        basicAuth.Password    != HTTPPassword)
-                    {
-                        return new HTTPResponse.Builder(Request) {
-                            HTTPStatusCode   = HTTPStatusCode.Unauthorized,
-                            Server           = HTTPServer.DefaultServerName,
-                            Date             = Timestamp.Now,
-                            WWWAuthenticate  = @"Basic realm=""" + HTTPRealm + @"""",
-                            ContentType      = HTTPContentType.TEXT_UTF8,
-                            Content          = "Unauthorized Access!".ToUTF8Bytes(),
-                            Connection       = "close"
-                        };
-                    }
-
-                }
-
-                #endregion
-
-                HTTPContentType? ResponseContentType = null;
-
-                var filePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > 0)
-                                      ? Request.ParsedURLParameters.Last().Replace("/", ".")
-                                      : DefaultFilename.Replace("/", ".");
-
-                var fileStream  = ResourceAssembly.GetManifestResourceStream(ResourcePath + "." + filePath);
-
-                if (fileStream is not null)
-                {
-
-                    #region Choose HTTP Content Type based on the file name extension...
-
-                    var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
-
-                    // Get the appropriate content type based on the suffix of the requested resource
-                    ResponseContentType = fileName.Remove(0, fileName.LastIndexOf(".") + 1) switch {
-                                              "htm"  => HTTPContentType.HTML_UTF8,
-                                              "html" => HTTPContentType.HTML_UTF8,
-                                              "css"  => HTTPContentType.CSS_UTF8,
-                                              "gif"  => HTTPContentType.GIF,
-                                              "jpg"  => HTTPContentType.JPEG,
-                                              "jpeg" => HTTPContentType.JPEG,
-                                              "svg"  => HTTPContentType.SVG,
-                                              "png"  => HTTPContentType.PNG,
-                                              "ico"  => HTTPContentType.ICO,
-                                              "swf"  => HTTPContentType.SWF,
-                                              "js"   => HTTPContentType.JAVASCRIPT_UTF8,
-                                              "txt"  => HTTPContentType.TEXT_UTF8,
-                                              "xml"  => HTTPContentType.XML_UTF8,
-                                              _      => HTTPContentType.OCTETSTREAM,
-                                          };
-
-                    #endregion
-
-                    #region Create HTTP Response
-
-                    return new HTTPResponse.Builder(Request) {
-                        HTTPStatusCode  = HTTPStatusCode.OK,
-                        Server          = HTTPServer.DefaultServerName,
-                        Date            = Timestamp.Now,
-                        ContentType     = ResponseContentType,
-                        ContentStream   = fileStream,
-                        CacheControl    = "public, max-age=300",
-                        //Expires          = "Mon, 25 Jun 2015 21:31:12 GMT",
-                        KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
-                        Connection      = "Keep-Alive",
-                    };
-
-                    #endregion
-
-                }
-
-                else
-                {
-
-                    #region Try to find a appropriate customized errorpage...
-
-                    Stream? errorStream = null;
-
-                    Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new[] {
-                                                                                                HTTPContentType.HTML_UTF8,
-                                                                                                HTTPContentType.TEXT_UTF8
-                                                                                            });
-
-                    if (Request.BestMatchingAcceptType == HTTPContentType.HTML_UTF8) {
-                        ResponseContentType  = HTTPContentType.HTML_UTF8;
-                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
-                    }
-
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.TEXT_UTF8) {
-                        ResponseContentType  = HTTPContentType.TEXT_UTF8;
-                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
-                    }
-
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.JSON_UTF8) {
-                        ResponseContentType  = HTTPContentType.JSON_UTF8;
-                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.js");
-                    }
-
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.XML_UTF8) {
-                        ResponseContentType  = HTTPContentType.XML_UTF8;
-                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
-                    }
-
-                    else if (Request.BestMatchingAcceptType == HTTPContentType.ALL) {
-                        ResponseContentType  = HTTPContentType.HTML_UTF8;
-                        errorStream          = ResourceAssembly.GetManifestResourceStream(ResourcePath.Substring(0, ResourcePath.LastIndexOf(".")) + ".ErrorPages." + "404.html");
-                    }
-
-                    if (errorStream is not null)
-                        return new HTTPResponse.Builder(Request) {
-                            HTTPStatusCode  = HTTPStatusCode.NotFound,
-                            Server          = HTTPServer.DefaultServerName,
-                            Date            = Timestamp.Now,
-                            ContentType     = ResponseContentType,
-                            ContentStream   = errorStream,
-                            CacheControl    = "no-cache",
-                            Connection      = "close",
-                        };
-
-                    #endregion
-
-                    #region ...or send a default error page!
-
-                    else
-                        return new HTTPResponse.Builder(Request) {
-                            HTTPStatusCode  = HTTPStatusCode.NotFound,
-                            Server          = HTTPServer.DefaultServerName,
-                            Date            = Timestamp.Now,
-                            CacheControl    = "no-cache",
-                            Connection      = "close",
-                        };
-
-                    #endregion
-
-                }
-
-            };
-
-
-            // ~/map
-            HTTPServer.AddMethodCallback(HTTPAPI,
-                                         Hostname,
-                                         HTTPMethod.GET,
-                                         URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                             ? URLTemplate.Substring(0, (Int32) URLTemplate.Length)
-                                             : URLTemplate,
-                                         HTTPContentType.ALL,
-                                         HTTPDelegate: GetEmbeddedResources);
-
-            //// ~/map/
-            //HTTPServer.AddMethodCallback(Hostname,
-            //                             HTTPMethod.GET,
-            //                             URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "" : "/"),
-            //                             HTTPContentType.ALL,
-            //                             HTTPDelegate: GetEmbeddedResources);
-
-            // ~/map/file.name
-            HTTPServer.AddMethodCallback(HTTPAPI,
-                                         Hostname,
-                                         HTTPMethod.GET,
-                                         URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
-                                         HTTPContentType.ALL,
-                                         HTTPDelegate: GetEmbeddedResources);
-
-        }
-
-        #endregion
-
-
-
-        #region RegisterFileSystemFile  (this HTTPAPI,             Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
+        #region RegisterFileSystemFile  (this HTTPAPI,                Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
         /// Returns a resource from the given file system location.
@@ -490,7 +841,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterFileSystemFile  (this HTTPServer, HTTPAPI, Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
+        #region RegisterFileSystemFile  (this HTTPServer, HTTPAPI,    Hostname, URLTemplate, ResourceFilenameBuilder, DefaultFile = null, ResponseContentType = null, CacheControl = "no-cache")
 
         /// <summary>
         /// Returns a resource from the given file system location.
@@ -517,21 +868,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                  // NumberOfTemplateParameters
             var resourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URLTemplate.ToString().Count(c => c == '{')).ToArray());
 
-            ResponseContentType ??= resourceFilename.Remove(0, resourceFilename.LastIndexOf(".") + 1) switch {
-                                        "htm"  => HTTPContentType.HTML_UTF8,
-                                        "html" => HTTPContentType.HTML_UTF8,
-                                        "css"  => HTTPContentType.CSS_UTF8,
-                                        "gif"  => HTTPContentType.GIF,
-                                        "jpg"  => HTTPContentType.JPEG,
-                                        "jpeg" => HTTPContentType.JPEG,
-                                        "svg"  => HTTPContentType.SVG,
-                                        "png"  => HTTPContentType.PNG,
-                                        "ico"  => HTTPContentType.ICO,
-                                        "swf"  => HTTPContentType.SWF,
-                                        "js"   => HTTPContentType.JAVASCRIPT_UTF8,
-                                        "txt"  => HTTPContentType.TEXT_UTF8,
-                                        _      => HTTPContentType.OCTETSTREAM,
-                                    };
+            ResponseContentType = HTTPContentType.ForFileExtension(resourceFilename.Remove(0, resourceFilename.LastIndexOf('.') + 1)).FirstOrDefault();
 
             #endregion
 
@@ -581,527 +918,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
-        #region RegisterFileSystemFolder(this HTTPAPI,                Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
-        /// <param name="ResourcePath">The path to the file within the local file system.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFileSystemFolder(this HTTPAPI            HTTPAPI,
-                                                    HTTPHostname            Hostname,
-                                                    HTTPPath                URLTemplate,
-                                                    Func<String[], String>  ResourcePath,
-                                                    String                  DefaultFilename  = "index.html")
-
-            => HTTPAPI.HTTPServer.RegisterFileSystemFolder(
-                                      HTTPAPI,
-                                      Hostname,
-                                      URLTemplate,
-                                      ResourcePath,
-                                      DefaultFilename
-                                  );
-
-        #endregion
-
-        #region RegisterFileSystemFolder(this HTTPExtAPI,             Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPExtAPI">The HTTP API.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
-        /// <param name="ResourcePath">The path to the file within the local file system.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFileSystemFolder(this HTTPExtAPI         HTTPExtAPI,
-                                                    HTTPHostname            Hostname,
-                                                    HTTPPath                URLTemplate,
-                                                    Func<String[], String>  ResourcePath,
-                                                    String                  DefaultFilename  = "index.html")
-
-            => HTTPExtAPI.HTTPServer.RegisterFileSystemFolder(
-                                         HTTPExtAPI,
-                                         Hostname,
-                                         URLTemplate,
-                                         ResourcePath,
-                                         DefaultFilename
-                                     );
-
-        #endregion
-
-        #region RegisterFileSystemFolder(this HTTPServer, HTTPAPI,    Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPServer">The HTTP server.</param>
-        /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
-        /// <param name="ResourcePath">The path to the file within the local file system.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFileSystemFolder(this IHTTPServer        HTTPServer,
-                                                    HTTPAPI                 HTTPAPI,
-                                                    HTTPHostname            Hostname,
-                                                    HTTPPath                URLTemplate,
-                                                    Func<String[], String>  ResourcePath,
-                                                    String                  DefaultFilename  = "index.html")
-        {
-
-            HTTPServer.AddMethodCallback(
-                HTTPAPI,
-                Hostname,
-                HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
-                HTTPDelegate: Request => {
-
-                    try
-                    {
-
-                        HTTPContentType? ResponseContentType = null;
-
-                        var numberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
-
-                        var filePath    = (Request.ParsedURLParameters is not null && Request.ParsedURLParameters.Length > numberOfTemplateParameters)
-                                              ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
-                                              : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
-
-                        var fileStream  = File.OpenRead(ResourcePath(Request.ParsedURLParameters) +
-                                                        Path.DirectorySeparatorChar +
-                                                        filePath);
-
-                        if (fileStream is null)
-                            return Task.FromResult(
-                                new HTTPResponse.Builder(Request) {
-                                    HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                    Server          = HTTPServer.DefaultServerName,
-                                    Date            = Timestamp.Now,
-                                    CacheControl    = "no-cache",
-                                    Connection      = "close",
-                                }.AsImmutable);
-
-
-                        #region Choose HTTP Content Type based on the file name extension...
-
-                        var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
-
-                        // Get the appropriate content type based on the suffix of the requested resource
-                        ResponseContentType = fileName.Remove(0, fileName.LastIndexOf(".") + 1) switch {
-                                                  "htm"   => HTTPContentType.HTML_UTF8,
-                                                  "html"  => HTTPContentType.HTML_UTF8,
-                                                  "shtml" => HTTPContentType.HTML_UTF8,
-                                                  "css"   => HTTPContentType.CSS_UTF8,
-                                                  "gif"   => HTTPContentType.GIF,
-                                                  "jpg"   => HTTPContentType.JPEG,
-                                                  "jpeg"  => HTTPContentType.JPEG,
-                                                  "svg"   => HTTPContentType.SVG,
-                                                  "png"   => HTTPContentType.PNG,
-                                                  "ico"   => HTTPContentType.ICO,
-                                                  "swf"   => HTTPContentType.SWF,
-                                                  "js"    => HTTPContentType.JAVASCRIPT_UTF8,
-                                                  "txt"   => HTTPContentType.TEXT_UTF8,
-                                                  _       => HTTPContentType.OCTETSTREAM,
-                                              };
-
-                        #endregion
-
-                        #region Create HTTP Response
-
-                        return Task.FromResult(
-                           new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.OK,
-                               Server          = HTTPServer.DefaultServerName,
-                               Date            = Timestamp.Now,
-                               ContentType     = ResponseContentType,
-                               ContentStream   = fileStream,
-                               CacheControl    = "public, max-age=300",
-                               //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                               KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(15),
-                                                                   500),
-                               Connection      = "Keep-Alive",
-                           }.AsImmutable);
-
-                        #endregion
-
-                    }
-                    catch (Exception e)
-                    {
-
-                        return Task.FromResult(
-                                   new HTTPResponse.Builder(Request) {
-                                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                       Server          = HTTPServer.DefaultServerName,
-                                       Date            = Timestamp.Now,
-                                       ContentType     = HTTPContentType.JSON_UTF8,
-                                       Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
-                                       CacheControl    = "no-cache",
-                                       Connection      = "close",
-                                   }.AsImmutable
-                               );
-
-                    }
-
-               }, AllowReplacement: URLReplacement.Fail);
-
-            return;
-
-        }
-
-        #endregion
-
-        #region RegisterFileSystemFolder(this HTTPServer, HTTPExtAPI, Hostname, URLTemplate, ResourcePath, DefaultFilename = "index.html")
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPServer">The HTTP server.</param>
-        /// <param name="HTTPExtAPI">The HTTP API.</param>
-        /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
-        /// <param name="ResourcePath">The path to the file within the local file system.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterFileSystemFolder(this IHTTPServer        HTTPServer,
-                                                    HTTPExtAPI              HTTPExtAPI,
-                                                    HTTPHostname            Hostname,
-                                                    HTTPPath                URLTemplate,
-                                                    Func<String[], String>  ResourcePath,
-                                                    String                  DefaultFilename  = "index.html")
-        {
-
-            HTTPServer.AddMethodCallback(
-                HTTPExtAPI,
-                Hostname,
-                HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
-                HTTPDelegate: Request => {
-
-                    #region Get HTTP user and its organizations
-
-                    // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                    if (!HTTPExtAPI.TryGetHTTPUser(
-                                        Request,
-                                        out var httpUser,
-                                        out var httpOrganizations,
-                                        out var response,
-                                        Recursive: true
-                                    ))
-                    {
-                        return Task.FromResult(response!.AsImmutable);
-                    }
-
-                    #endregion
-
-
-                    try
-                    {
-
-                        HTTPContentType? ResponseContentType = null;
-
-                        var numberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
-
-                        var filePath    = (Request.ParsedURLParameters is not null && Request.ParsedURLParameters.Length > numberOfTemplateParameters)
-                                              ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
-                                              : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
-
-                        var fileStream  = File.OpenRead(ResourcePath(Request.ParsedURLParameters) +
-                                                        Path.DirectorySeparatorChar +
-                                                        filePath);
-
-                        if (fileStream is null)
-                            return Task.FromResult(
-                                new HTTPResponse.Builder(Request) {
-                                    HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                    Server          = HTTPServer.DefaultServerName,
-                                    Date            = Timestamp.Now,
-                                    CacheControl    = "no-cache",
-                                    Connection      = "close",
-                                }.AsImmutable);
-
-
-                        #region Choose HTTP Content Type based on the file name extension...
-
-                        var fileName = filePath.Substring(filePath.LastIndexOf("/") + 1);
-
-                        // Get the appropriate content type based on the suffix of the requested resource
-                        ResponseContentType = fileName.Remove(0, fileName.LastIndexOf(".") + 1) switch {
-                                                  "htm"   => HTTPContentType.HTML_UTF8,
-                                                  "html"  => HTTPContentType.HTML_UTF8,
-                                                  "shtml" => HTTPContentType.HTML_UTF8,
-                                                  "css"   => HTTPContentType.CSS_UTF8,
-                                                  "gif"   => HTTPContentType.GIF,
-                                                  "jpg"   => HTTPContentType.JPEG,
-                                                  "jpeg"  => HTTPContentType.JPEG,
-                                                  "svg"   => HTTPContentType.SVG,
-                                                  "png"   => HTTPContentType.PNG,
-                                                  "ico"   => HTTPContentType.ICO,
-                                                  "swf"   => HTTPContentType.SWF,
-                                                  "js"    => HTTPContentType.JAVASCRIPT_UTF8,
-                                                  "txt"   => HTTPContentType.TEXT_UTF8,
-                                                  _       => HTTPContentType.OCTETSTREAM,
-                                              };
-
-                        #endregion
-
-                        #region Create HTTP Response
-
-                        return Task.FromResult(
-                           new HTTPResponse.Builder(Request) {
-                               HTTPStatusCode  = HTTPStatusCode.OK,
-                               Server          = HTTPServer.DefaultServerName,
-                               Date            = Timestamp.Now,
-                               ContentType     = ResponseContentType,
-                               ContentStream   = fileStream,
-                               CacheControl    = "public, max-age=300",
-                               //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                               KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(15),
-                                                                   500),
-                               Connection      = "Keep-Alive",
-                           }.AsImmutable);
-
-                        #endregion
-
-                    }
-                    catch (Exception e)
-                    {
-
-                        return Task.FromResult(
-                                   new HTTPResponse.Builder(Request) {
-                                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                       Server          = HTTPServer.DefaultServerName,
-                                       Date            = Timestamp.Now,
-                                       ContentType     = HTTPContentType.JSON_UTF8,
-                                       Content         = JSONObject.Create(new JProperty("message", e.Message)).ToUTF8Bytes(),
-                                       CacheControl    = "no-cache",
-                                       Connection      = "close",
-                                   }.AsImmutable
-                               );
-
-                    }
-
-               }, AllowReplacement: URLReplacement.Fail);
-
-            return;
-
-        }
-
-        #endregion
-
-
-        #region RegisterWatchedFileSystemFolder(this HTTPAPI,             URLTemplate, FileSystemLocation, HTTPSSE_EventIdentification, HTTPSSE_URLTemplate, DefaultFilename = "index.html")
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPAPI">A HTTP API.</param>
-        /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this HTTPAPI        HTTPAPI,
-                                                           HTTPPath            URLTemplate,
-                                                           String              FileSystemLocation,
-                                                           HTTPEventSource_Id  HTTPSSE_EventIdentification,
-                                                           HTTPPath            HTTPSSE_URLTemplate,
-                                                           String              DefaultFilename  = "index.html")
-
-            => HTTPAPI.HTTPServer.RegisterWatchedFileSystemFolder(
-                                      HTTPAPI,
-                                      URLTemplate,
-                                      FileSystemLocation,
-                                      HTTPSSE_EventIdentification,
-                                      HTTPSSE_URLTemplate,
-                                      DefaultFilename
-                                  );
-
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
-        /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this HTTPAPI            HTTPAPI,
-                                                           HTTPHostname            Hostname,
-                                                           HTTPPath                URLTemplate,
-                                                           String                  FileSystemLocation,
-                                                           HTTPEventSource_Id      HTTPSSE_EventIdentification,
-                                                           HTTPPath                HTTPSSE_URLTemplate,
-                                                 //          Func<String[], String>  ResourcePath,
-                                                           String                  DefaultFilename  = "index.html")
-
-            => HTTPAPI.HTTPServer.RegisterWatchedFileSystemFolder(
-                                      HTTPAPI,
-                                      Hostname,
-                                      URLTemplate,
-                                      FileSystemLocation,
-                                      HTTPSSE_EventIdentification,
-                                      HTTPSSE_URLTemplate,
-                                      DefaultFilename
-                                  );
-
-        #endregion
-
-        #region RegisterWatchedFileSystemFolder(this HTTPServer, HTTPAPI, URLTemplate, FileSystemLocation, HTTPSSE_EventIdentification, HTTPSSE_URLTemplate, DefaultFilename = "index.html")
-
-        private static Task FileWasChanged(IHTTPServer source, HTTPEventSource_Id HTTPSSE_EventIdentification, String ChangeType, String FileName)
-
-            => source.Get<String>(HTTPSSE_EventIdentification).
-                      SubmitEvent(ChangeType,
-                                  @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() +  @""", ""filename"": """ + FileName + @""" }");
-
-        private static void FileWasRenamed(object source, RenamedEventArgs e)
-        {
-            Console.WriteLine("File: {0} renamed to {1}", e.OldFullPath, e.FullPath);
-        }
-
-        private static void FileWatcherError(object sender, ErrorEventArgs e)
-        {
-            Console.WriteLine("File watcher exception: " + e.GetException().Message);
-        }
-
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
-        /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this IHTTPServer    HTTPServer,
-                                                           HTTPAPI             HTTPAPI,
-                                                           HTTPPath            URLTemplate,
-                                                           String              FileSystemLocation,
-                                                           HTTPEventSource_Id  HTTPSSE_EventIdentification,
-                                                           HTTPPath            HTTPSSE_URLTemplate,
-                                                           String              DefaultFilename  = "index.html")
-        {
-
-            RegisterWatchedFileSystemFolder(HTTPServer,
-                                            HTTPAPI,
-                                            HTTPHostname.Any,
-                                            URLTemplate,
-                                            FileSystemLocation,
-                                            HTTPSSE_EventIdentification,
-                                            HTTPSSE_URLTemplate,
-                                            DefaultFilename);
-
-        }
-
-        /// <summary>
-        /// Returns resources from the given file system location.
-        /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
-        /// <param name="URLTemplate">An URL template.</param>
-        /// <param name="DefaultFilename">The default file to load.</param>
-        public static void RegisterWatchedFileSystemFolder(this IHTTPServer        HTTPServer,
-                                                           HTTPAPI                 HTTPAPI,
-                                                           HTTPHostname            Hostname,
-                                                           HTTPPath                URLTemplate,
-                                                           String                  FileSystemLocation,
-                                                           HTTPEventSource_Id      HTTPSSE_EventIdentification,
-                                                           HTTPPath                HTTPSSE_URLTemplate,
-                                                 //          Func<String[], String>  ResourcePath,
-                                                           String                  DefaultFilename  = "index.html")
-        {
-
-            #region Setup file system watcher
-
-            var watcher = new FileSystemWatcher() {
-                              Path                   = FileSystemLocation,
-                              NotifyFilter           = NotifyFilters.FileName |
-                                                       NotifyFilters.DirectoryName |
-                                                       NotifyFilters.LastWrite,
-                              //Filter                 = "*.html",//|*.css|*.js|*.json",
-                              IncludeSubdirectories  = true,
-                              InternalBufferSize     = 4 * 4096
-                          };
-
-            watcher.Created += (s, e) => FileWasChanged(HTTPServer, HTTPSSE_EventIdentification, e.ChangeType.ToString(), e.FullPath.Remove(0, FileSystemLocation.Length).Replace(Path.DirectorySeparatorChar, '/'));
-            watcher.Changed += (s, e) => FileWasChanged(HTTPServer, HTTPSSE_EventIdentification, e.ChangeType.ToString(), e.FullPath.Remove(0, FileSystemLocation.Length).Replace(Path.DirectorySeparatorChar, '/'));
-            watcher.Renamed += FileWasRenamed;
-            watcher.Deleted += (s, e) => FileWasChanged(HTTPServer, HTTPSSE_EventIdentification, e.ChangeType.ToString(), e.FullPath.Remove(0, FileSystemLocation.Length).Replace(Path.DirectorySeparatorChar, '/'));
-            watcher.Error   += FileWatcherError;
-
-            #endregion
-
-            HTTPServer.AddEventSource<String>(HTTPSSE_EventIdentification,
-                                              HTTPAPI,
-                                              URLTemplate: HTTPSSE_URLTemplate);
-
-            HTTPServer.AddMethodCallback(HTTPAPI,
-                                         Hostname,
-                                         HTTPMethod.GET,
-                                         URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
-                                         HTTPContentType.PNG,
-                                         HTTPDelegate: async Request => {
-
-                                             HTTPContentType? ResponseContentType = null;
-
-                                             var numberOfTemplateParameters = URLTemplate.ToString().Count(c => c == '{');
-
-                                             var filePath    = (Request.ParsedURLParameters != null && Request.ParsedURLParameters.Length > numberOfTemplateParameters)
-                                                                   ? Request.ParsedURLParameters.Last().Replace('/', Path.DirectorySeparatorChar)
-                                                                   : DefaultFilename.Replace('/', Path.DirectorySeparatorChar);
-
-                                             try
-                                             {
-
-                                                 var fileStream = File.OpenRead(FileSystemLocation + Path.DirectorySeparatorChar + filePath);
-
-                                                 if (fileStream is not null)
-                                                 {
-
-                                                     #region Choose HTTP Content Type based on the file name extension...
-
-                                                     ResponseContentType = HTTPContentType.ForFileExtension(filePath.Remove(0, filePath.LastIndexOf(".", StringComparison.InvariantCulture) + 1),
-                                                                                                            () => HTTPContentType.OCTETSTREAM).FirstOrDefault();
-
-                                                     #endregion
-
-                                                     #region Create HTTP Response
-
-                                                     return new HTTPResponse.Builder(Request) {
-                                                         HTTPStatusCode  = HTTPStatusCode.OK,
-                                                         Server          = HTTPServer.DefaultServerName,
-                                                         Date            = Timestamp.Now,
-                                                         ContentType     = ResponseContentType,
-                                                         ContentStream   = fileStream,
-                                                         CacheControl    = "public, max-age=300",
-                                                         //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                                         KeepAlive       = new KeepAliveType(TimeSpan.FromMinutes(5), 500),
-                                                         Connection      = "Keep-Alive"
-                                                     };
-
-                                                     #endregion
-
-                                                 }
-
-                                             }
-                                             catch (FileNotFoundException e)
-                                             {
-                                             }
-
-                                             return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
-                                                 Date            = Timestamp.Now,
-                                                 ContentType     = HTTPContentType.TEXT_UTF8,
-                                                 Content         = "Error 404 - Not found!".ToUTF8Bytes(),
-                                                 CacheControl    = "no-cache",
-                                                 Connection      = "close",
-                                             };
-
-                                         }, AllowReplacement: URLReplacement.Fail);
-
-
-            // And now my watch begins...
-            watcher.EnableRaisingEvents = true;
-
-        }
-
-        #endregion
 
     }
 

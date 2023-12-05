@@ -1016,7 +1016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             httpResponse = new HTTPResponse.Builder(httpRequest) {
                                                HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
-                                               ContentType     = HTTPContentType.JSON_UTF8,
+                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                Content         = JSONObject.Create(
                                                                      new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
                                                                      new JProperty("message",     hte.Message),
@@ -1050,7 +1050,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             httpResponse = new HTTPResponse.Builder(httpRequest) {
                                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                               ContentType     = HTTPContentType.JSON_UTF8,
+                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                Content         = JSONObject.Create(
                                                                      new JProperty("message",     e.Message),
                                                                      new JProperty("stackTrace",  e.StackTrace)

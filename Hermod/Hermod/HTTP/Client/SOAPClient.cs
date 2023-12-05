@@ -211,9 +211,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                                      HTTPMethod         = HTTPMethod.POST,
                                      Host               = VirtualHostname ?? RemoteURL.Hostname,
                                      Path               = RemoteURL.Path,
-                                     Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.XMLTEXT_UTF8),
+                                     Accept             = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.XML_UTF8),
                                      Content            = QueryXML.ToUTF8Bytes(),
-                                     ContentType        = ContentType ?? HTTPContentType.XMLTEXT_UTF8,
+                                     ContentType        = ContentType ?? HTTPContentType.Text.XML_UTF8,
                                      UserAgent          = HTTPUserAgent
                                     // FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname)
                                  };

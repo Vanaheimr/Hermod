@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowOrigin   = "*",
                                                                            AccessControlAllowMethods  = new[] { "GET" },
                                                                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                                           ContentType                = HTTPContentType.TEXT_UTF8,
+                                                                           ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
                                                                            Connection                 = "close"
                                                                        }.AsImmutable));

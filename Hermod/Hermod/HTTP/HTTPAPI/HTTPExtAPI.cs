@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Invalid UserId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Invalid UserId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Unknown UserId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -315,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Invalid UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -385,7 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Invalid UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -400,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Unknown UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -470,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Invalid OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -540,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Invalid OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -555,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": ""Unknown OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -3255,7 +3255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Host           = notification.RemoteURL.Hostname,
                                                    Path           = notification.RemoteURL.Path,
                                                    Content        = new JArray(JSONNotification).ToUTF8Bytes(),
-                                                   ContentType    = HTTPContentType.JSON_UTF8,
+                                                   ContentType    = HTTPContentType.Application.JSON_UTF8,
                                                    UserAgent      = "HTTPExtAPI Notification API",
                                                    API_Key        = notification.APIKey.HasValue
                                                                         ? notification.APIKey
@@ -3693,7 +3693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddMethodCallback(Hostname        ?? HTTPHostname.Any,
                                   HttpMethod      ?? HTTPMethod.GET,
                                   URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.EVENTSTREAM,
+                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
                                   URLAuthentication:         URLAuthentication,
                                   HTTPMethodAuthentication:  HTTPMethodAuthentication,
                                   DefaultErrorHandler:       DefaultErrorHandler,
@@ -3738,7 +3738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.OK,
                                               Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.EVENTSTREAM,
+                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
@@ -3751,7 +3751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddMethodCallback(Hostname        ?? HTTPHostname.Any,
                                   HttpMethod      ?? HTTPMethod.GET,
                                   URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.JSON_UTF8,
+                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
                                   URLAuthentication:         URLAuthentication,
                                   HTTPMethodAuthentication:  HTTPMethodAuthentication,
                                   DefaultErrorHandler:       DefaultErrorHandler,
@@ -3793,7 +3793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.OK,
                                               Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
@@ -3840,7 +3840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddMethodCallback(Hostname        ?? HTTPHostname.Any,
                                   HttpMethod      ?? HTTPMethod.GET,
                                   URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.EVENTSTREAM,
+                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
                                   URLAuthentication:         URLAuthentication,
                                   HTTPMethodAuthentication:  HTTPMethodAuthentication,
                                   DefaultErrorHandler:       DefaultErrorHandler,
@@ -3886,7 +3886,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.OK,
                                               Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.EVENTSTREAM,
+                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
@@ -3899,7 +3899,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 AddMethodCallback(Hostname        ?? HTTPHostname.Any,
                                   HttpMethod      ?? HTTPMethod.GET,
                                   URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.JSON_UTF8,
+                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
                                   URLAuthentication:         URLAuthentication,
                                   HTTPMethodAuthentication:  HTTPMethodAuthentication,
                                   DefaultErrorHandler:       DefaultErrorHandler,
@@ -3942,7 +3942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.OK,
                                               Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = "keep-alive",
                                               KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
@@ -4085,7 +4085,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         AccessControlAllowOrigin  = "*",
                         AccessControlMaxAge       = 3600,
                         CacheControl              = "private, max-age=0, no-cache",
-                        ContentType               = HTTPContentType.JSON_UTF8,
+                        ContentType               = HTTPContentType.Application.JSON_UTF8,
                         Content                   = JSONObject.Create(new JProperty("message", "Please accept the EULA within the portal!")).ToUTF8Bytes(),
                         Connection                = "close"
                     };
@@ -4102,7 +4102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return null;
 
                     if (request.HTTPMethod == HTTPMethod.GET &&
-                        request.Accept.BestMatchingContentType(HTTPContentType.HTML_UTF8) == HTTPContentType.HTML_UTF8)
+                        request.Accept.BestMatchingContentType(HTTPContentType.Text.HTML_UTF8) == HTTPContentType.Text.HTML_UTF8)
                     {
                         return new HTTPResponse.Builder(request) {
                             HTTPStatusCode      = HTTPStatusCode.TemporaryRedirect,
@@ -4128,7 +4128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             AccessControlAllowOrigin  = "*",
                             AccessControlMaxAge       = 3600,
                             CacheControl              = "private, max-age=0, no-cache",
-                            ContentType               = HTTPContentType.JSON_UTF8,
+                            ContentType               = HTTPContentType.Application.JSON_UTF8,
                             Content                   = JSONObject.Create(new JProperty("message", "Invalid login!")).ToUTF8Bytes(),
                             Connection                = "close"
                         };
@@ -4144,11 +4144,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region /shared/HTTPExtAPI
 
-            HTTPServer.RegisterResourcesFolder(this,
-                                               HTTPHostname.Any,
-                                               URLPathPrefix + "shared/HTTPExtAPI",
-                                               HTTPRoot[..^1],
-                                               typeof(HTTPExtAPI).Assembly);
+            this.MapResourceAssemblyFolder(HTTPHostname.Any,
+                                           URLPathPrefix + "shared/HTTPExtAPI",
+                                           HTTPRoot[..^1],
+                                           typeof(HTTPExtAPI).Assembly);
 
             #endregion
 
@@ -4158,14 +4157,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.POST,
                               URLPathPrefix + "/login",
-                              HTTPContentType.XWWWFormUrlEncoded,
+                              HTTPContentType.Application.XWWWFormUrlEncoded,
                               HTTPDelegate: Request => {
 
                                   //Note: Add LoginRequest event!
 
                                   #region Check UTF8 text body...
 
-                                  if (!Request.TryParseUTF8StringRequestBody(HTTPContentType.XWWWFormUrlEncoded,
+                                  if (!Request.TryParseUTF8StringRequestBody(HTTPContentType.Application.XWWWFormUrlEncoded,
                                                                              out var loginText,
                                                                              out var httpResponse,
                                                                              AllowEmptyHTTPBody: false) ||
@@ -4188,7 +4187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("statuscode",   400),
@@ -4210,7 +4209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("statuscode",   400),
@@ -4235,7 +4234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("statuscode",   400),
@@ -4257,7 +4256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("statuscode",   400),
@@ -4313,7 +4312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("property",     "login"),
@@ -4340,7 +4339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("property",     "login"),
@@ -4356,7 +4355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("property",     "login"),
@@ -4375,7 +4374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",    SignInOutContext),
                                                                     new JProperty("description", "You do not have access to any organization!")
@@ -4418,7 +4417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.Created,
-                                          ContentType     = HTTPContentType.HTML_UTF8,
+                                          ContentType     = HTTPContentType.Text.HTML_UTF8,
                                           Content         = String.Concat(
                                                                 "<!DOCTYPE html>", Environment.NewLine,
                                                                 @"<html><head><meta http-equiv=""refresh"" content=""0; url=" + redirectURL + @""" /></head></html>",
@@ -4452,7 +4451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.RESET,
                               URLPathPrefix + "resetPassword",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Parse JSON
@@ -4551,7 +4550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin   = "*",
                                                    AccessControlAllowMethods  = new[] { "SET" },
                                                    AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                = HTTPContentType.JSON_UTF8,
+                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
                                                                                     new JProperty("numberOfAccountsFound", users.Count)
                                                                                 ).ToUTF8Bytes(),
@@ -4565,7 +4564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin   = "*",
                                                    AccessControlAllowMethods  = new[] { "SET" },
                                                    AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                = HTTPContentType.JSON_UTF8,
+                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
 
                                                                                     result.Description.IsNotNullOrEmpty()
@@ -4599,7 +4598,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.SET,
                               URLPathPrefix + "setPassword",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Parse JSON
@@ -4649,7 +4648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = JSONObject.Create(
                                                                        new JProperty("@context",      SignInOutContext),
                                                                        new JProperty("statuscode",    400),
@@ -4718,7 +4717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin   = "*",
                                                    AccessControlAllowMethods  = new[] { "SET" },
                                                    AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                = HTTPContentType.JSON_UTF8,
+                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
                                                                                     new JProperty("numberOfAccountsFound", Users.Count())
                                                                                 ).ToUTF8Bytes(),
@@ -4741,7 +4740,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin   = "*",
                                                    AccessControlAllowMethods  = new[] { "SET" },
                                                    AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                = HTTPContentType.JSONLD_UTF8,
+                                                   ContentType                = HTTPContentType.Application.JSONLD_UTF8,
                                                    Content                    = JSONObject.Create(
                                                                                     new JProperty("description", result?.Description?.ToJSON())
                                                                                 ).ToUTF8Bytes(),
@@ -4801,7 +4800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.CHECK,
                               URLPathPrefix + "securityToken",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Check API Key...
@@ -4814,7 +4813,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
 
                                                                                   Request.API_Key.HasValue
@@ -4853,7 +4852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "CHECK" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", errorDescription)
                                                                               ).ToUTF8Bytes(),
@@ -4880,7 +4879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "CHECK" },
                                                      AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
+                                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
                                                                                       new JProperty("description", errorDescription)
                                                                                   ).ToUTF8Bytes(),
@@ -4904,7 +4903,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "CHECK" },
                                                  AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
 
                                                                                    new JProperty("userId",   securityToken.UserId. ToString()),
@@ -4973,7 +4972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.ADD,
                               HTTPPath.Parse("/users"),
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   AddUsersHTTPRequest,
                               HTTPResponseLogger:  AddUsersHTTPResponse,
                               HTTPDelegate:        async Request => {
@@ -4987,7 +4986,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             AccessControlAllowOrigin    = "*",
                                                             AccessControlAllowMethods   = new[] { "ADD", "SET", "GET" },
                                                             AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                            ContentType                 = HTTPContentType.JSON_UTF8,
+                                                            ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                  = "close"
                                                         };
 
@@ -5077,7 +5076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         json["@id"]),
                                                                                               new JProperty("description",  $"The given user identification is invalid: {errorResponse}")
@@ -5106,7 +5105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          AccessControlAllowOrigin   = "*",
                                                          AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                         ContentType                = HTTPContentType.JSON_UTF8,
+                                                         ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                          Content                    = JSONObject.Create(
                                                                                           new JProperty("data",         json),
                                                                                           new JProperty("description",  errorResponse)
@@ -5134,7 +5133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         json["accessRights"]),
                                                                                               new JProperty("description",  errorResponse)
@@ -5163,7 +5162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         accessRightJSON),
                                                                                               new JProperty("description",  "Invalid 'accessRight' JSON object!")
@@ -5188,7 +5187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         accessRightObject["accessRight"]),
                                                                                               new JProperty("description",  $"Invalid 'access right': {errorResponse}")
@@ -5216,7 +5215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         accessRightObject["organizationId"]),
                                                                                               new JProperty("description",  $"Invalid organization identification: {errorResponse}")
@@ -5236,7 +5235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         organizationId.ToString()),
                                                                                               new JProperty("description",  $"Unkown organization identification '{organizationId}'!")
@@ -5364,7 +5363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Create HTTP response template
@@ -5377,7 +5376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
                                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                             ETag                       = "1",
-                                                            ContentType                = HTTPContentType.JSON_UTF8,
+                                                            ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                 = "close",
                                                             Vary                       = "Accept"
                                                         };
@@ -5460,7 +5459,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.DEAUTH,
                               HTTPPath.Parse("/users"),
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request =>
 
                                    Task.FromResult(
@@ -5525,7 +5524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.ADD,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   AddUserHTTPRequest,
                               HTTPResponseLogger:  AddUserHTTPResponse,
                               HTTPDelegate:        async Request => {
@@ -5539,7 +5538,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             AccessControlAllowOrigin    = "*",
                                                             AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
                                                             AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                            ContentType                 = HTTPContentType.JSON_UTF8,
+                                                            ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                             Connection                  = "close"
                                                         };
 
@@ -5805,7 +5804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.SET,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   SetUserHTTPRequest,
                               HTTPResponseLogger:  SetUserHTTPResponse,
                               HTTPDelegate:        async Request => {
@@ -5856,7 +5855,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description",  ErrorResponse)
                                                                               ).ToUTF8Bytes()
@@ -5896,7 +5895,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowMethods   = new[] { "GET", "SET" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
                                                    //ETag                        = _User.HashValue,
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = user.ToJSON().ToUTF8Bytes(),
                                                    Connection                  = "close"
                                                }.AsImmutable
@@ -5909,7 +5908,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                    AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                    ETag                       = "1",
-                                                   ContentType                = HTTPContentType.JSON_UTF8,
+                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                    Content                    = JSONObject.Create(
                                                                                     new JProperty("description", result?.Description?.ToJSON())
                                                                                 ).ToUTF8Bytes()
@@ -5927,7 +5926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -5972,7 +5971,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               AccessControlAllowOrigin   = "*",
                                               AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
                                               AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
+                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                               Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
@@ -5998,7 +5997,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = user.ToJSON(false).ToUTF8Bytes(),
                                                    Connection                  = "close",
                                                    Vary                        = "Accept"
@@ -6011,7 +6010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = JSONObject.Create(
                                                                                     new JProperty("description", result?.Description?.ToJSON())
                                                                                 ).ToUTF8Bytes(),
@@ -6046,7 +6045,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -6108,7 +6107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = new[] { "GET", "SET" },
                                           AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                          ContentType                 = HTTPContentType.JSON_UTF8,
+                                          ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                           Content                     = userJSON.ToUTF8Bytes(),
                                           Connection                  = "close",
                                           Vary                        = "Accept"
@@ -6123,7 +6122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.AUTH,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Check JSON body...
@@ -6135,7 +6134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
                                                                        new JProperty("statuscode",   400),
@@ -6158,7 +6157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
                                                                        new JProperty("statuscode",   400),
@@ -6185,7 +6184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
                                                                        new JProperty("statuscode",   400),
@@ -6206,7 +6205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
                                                                        new JProperty("statuscode",   400),
@@ -6251,7 +6250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("property",     "login"),
@@ -6277,7 +6276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("property",     "login"),
@@ -6292,7 +6291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
                                               Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.JSON_UTF8,
+                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
                                                                     new JProperty("property",     "login"),
@@ -6310,7 +6309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",    SignInOutContext),
                                                                        new JProperty("description", "You do not have access to any organization!")
@@ -6335,7 +6334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                                      Server          = HTTPServer.DefaultServerName,
-                                                     ContentType     = HTTPContentType.JSON_UTF8,
+                                                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                      Content         = new JObject(
                                                                            new JProperty("@context",     SignInOutContext),
                                                                            new JProperty("showEULA",     true),
@@ -6382,7 +6381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode  = HTTPStatusCode.Created,
-                                             ContentType     = HTTPContentType.TEXT_UTF8,
+                                             ContentType     = HTTPContentType.Text.PLAIN,
                                              Content         = new JObject(
                                                                    new JProperty("@context",  SignInOutContext),
                                                                    new JProperty("login",     validUser.Id.           ToString()),
@@ -6413,7 +6412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.DEAUTH,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request =>
 
                                   Task.FromResult(
@@ -6444,7 +6443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.IMPERSONATE,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   ImpersonateUserRequest,
                               HTTPResponseLogger:  ImpersonateUserResponse,
                               HTTPDelegate:        async Request => {
@@ -6533,7 +6532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode  = HTTPStatusCode.Created,
-                                             ContentType     = HTTPContentType.TEXT_UTF8,
+                                             ContentType     = HTTPContentType.Text.PLAIN,
                                              Content         = new JObject(
                                                                    new JProperty("@context",  SignInOutContext),
                                                                    new JProperty("login",     userURL.Id.ToString()),
@@ -6564,7 +6563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.DEPERSONATE,
                               URLPathPrefix + "users/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get super user and its organizations
@@ -6636,7 +6635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode  = HTTPStatusCode.Created,
-                                             ContentType     = HTTPContentType.TEXT_UTF8,
+                                             ContentType     = HTTPContentType.Text.PLAIN,
                                              Content         = new JObject(
                                                                    new JProperty("@context",  SignInOutContext),
                                                                    new JProperty("login",     superUser.Id.ToString()),
@@ -6668,7 +6667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.SET,
                               URLPathPrefix + "users/{UserId}/password",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   ChangePasswordRequest,
                               HTTPResponseLogger:  ChangePasswordResponse,
                               HTTPDelegate:        async Request => {
@@ -6745,7 +6744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", errorResponse)
                                                                               ).ToUTF8Bytes()
@@ -6772,7 +6771,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", errorResponse)
                                                                               ).ToUTF8Bytes()
@@ -6784,7 +6783,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                  Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.JSON_UTF8,
+                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = JSONObject.Create(
                                                                        new JProperty("@context",      SignInOutContext),
                                                                        new JProperty("statuscode",    400),
@@ -6849,7 +6848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/organizations",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -6906,7 +6905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                           ETag                       = "1",
-                                          ContentType                = HTTPContentType.JSON_UTF8,
+                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
                                           Content                    = allMyOrganizations.ToJSON().ToUTF8Bytes(),
                                           Vary                       = "Accept"
                                       }.AsImmutable);
@@ -6924,7 +6923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -6950,7 +6949,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods  = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                              ETag                       = "1",
-                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = GetNotifications(httpUser).ToUTF8Bytes(),
                                              Connection                 = "close",
                                              Vary                       = "Accept"
@@ -6973,7 +6972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.SET,
                               URLPathPrefix + "users/{UserId}/notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   SetUserNotificationsRequest,
                               HTTPResponseLogger:  SetUserNotificationsResponse,
                               HTTPDelegate:        async Request => {
@@ -7123,7 +7122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                             ETag                       = "1",
-                                                            ContentType                = HTTPContentType.JSON_UTF8,
+                                                            ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                             Content                    = JSONObject.Create(
                                                                                              new JProperty("description", ErrorString ?? "Invalid array of notifications!")
                                                                                          ).ToUTF8Bytes()
@@ -7143,7 +7142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                             ContentType                 = HTTPContentType.JSON_UTF8,
+                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(httpUser).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
@@ -7165,7 +7164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "users/{UserId}/notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   DeleteUserNotificationsRequest,
                               HTTPResponseLogger:  DeleteUserNotificationsResponse,
                               HTTPDelegate:        async Request => {
@@ -7315,7 +7314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                             AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                             ETag                       = "1",
-                                                            ContentType                = HTTPContentType.JSON_UTF8,
+                                                            ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                             Content                    = JSONObject.Create(
                                                                                              new JProperty("description", ErrorString ?? "Invalid array of notifications!")
                                                                                          ).ToUTF8Bytes()
@@ -7335,7 +7334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                             ContentType                 = HTTPContentType.JSON_UTF8,
+                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(httpUser).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
@@ -7352,7 +7351,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/notifications/{notificationId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -7399,7 +7398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                                  ETag                       = "1",
-                                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                                  Content                    = GetNotification(httpUser, notificationId).ToUTF8Bytes(),
                                                                  Connection                 = "close",
                                                                  Vary                       = "Accept"
@@ -7431,7 +7430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/APIKeys",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -7476,7 +7475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "ADD", "GET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
@@ -7496,7 +7495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              AccessControlAllowMethods  = new[] { "ADD", "GET" },
                                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                              ETag                       = "1",
-                                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = new JArray(
                                                                                               GetAPIKeysForUser(user).
                                                                                               SafeSelect       (apiKey => apiKey.ToJSON(Embedded: false))
@@ -7517,7 +7516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
                               URLPathPrefix + "users/{UserId}/APIKeys",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -7570,7 +7569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "ADD", "GET" },
                                                      AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
+                                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
                                                                                       new JProperty("description", errorString)
                                                                                   ).ToUTF8Bytes()
@@ -7595,7 +7594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "ADD", "GET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
@@ -7622,7 +7621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "ADD", "GET" },
                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                       ContentType                = HTTPContentType.JSON_UTF8,
+                                                       ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = apiKey.ToJSON().ToUTF8Bytes(),
                                                        Connection                 = "close",
                                                        Vary                       = "Accept"
@@ -7635,7 +7634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "ADD", "GET" },
                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                       ContentType                = HTTPContentType.JSON_UTF8,
+                                                       ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = JSONObject.Create(
                                                                                         new JProperty("description", errorString)
                                                                                     ).ToUTF8Bytes()
@@ -7653,7 +7652,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "users/{UserId}/APIKeys/{APIKeyId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -7697,7 +7696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "Missing API key!")
                                                                               ).ToUTF8Bytes(),
@@ -7719,7 +7718,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "Invalid API key!")
                                                                               ).ToUTF8Bytes(),
@@ -7739,7 +7738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "Unknown API key!")
                                                                               ).ToUTF8Bytes(),
@@ -7764,7 +7763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", "This operation is not allowed!")
                                                                               ).ToUTF8Bytes(),
@@ -7790,7 +7789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = new[] { "DELETE" },
                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = apiKeyInfo.ToJSON().ToUTF8Bytes(),
                                              Connection                 = "close",
                                              Vary                       = "Accept"
@@ -7812,7 +7811,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "userGroups",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Try to get HTTP user and its organizations
@@ -7874,7 +7873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
                                           AccessControlAllowHeaders     = new[] { "Content-Type", "Accept", "Authorization" },
                                           ETag                          = "1",
-                                          ContentType                   = HTTPContentType.JSON_UTF8,
+                                          ContentType                   = HTTPContentType.Application.JSON_UTF8,
                                           Content                       = withMetadata
                                                                               ? JSONObject.Create(
                                                                                     new JProperty("totalCount",     totalCount),
@@ -7900,7 +7899,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "userGroups/{UserGroupId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -7958,7 +7957,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = userGroup.ToJSON(false).ToUTF8Bytes(),
                                                  Connection                  = "close",
                                                  Vary                        = "Accept"
@@ -7981,7 +7980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "organizations",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Try to get HTTP user and its organizations
@@ -8048,7 +8047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowMethods      = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                           AccessControlAllowHeaders      = new[] { "Content-Type", "Accept", "Authorization" },
                                           ETag                           = "1",
-                                          ContentType                    = HTTPContentType.JSON_UTF8,
+                                          ContentType                    = HTTPContentType.Application.JSON_UTF8,
                                           Content                        = withMetadata
                                                                                ? JSONObject.Create(
                                                                                      new JProperty("totalCount",     totalCount),
@@ -8074,7 +8073,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.COUNT,
                               URLPathPrefix + "organizations",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -8104,7 +8103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                           ETag                       = "1",
-                                          ContentType                = HTTPContentType.JSON_UTF8,
+                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
                                           Content                    = JSONObject.Create(
                                                                            new JProperty("count", httpOrganizations.ULongCount())
                                                                        ).ToUTF8Bytes(),
@@ -8141,7 +8140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  AddOrganizationHTTPRequest,
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
                               HTTPDelegate:       async Request => {
@@ -8183,7 +8182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                                  AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
                                                                                    new JProperty("description", errorResponse)
                                                                                ).ToUTF8Bytes(),
@@ -8210,7 +8209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                                  AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                 = HTTPContentType.JSON_UTF8,
+                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                  Content                     = JSONObject.Create(
                                                                                    new JProperty("description", errorResponse)
                                                                                ).ToUTF8Bytes(),
@@ -8229,7 +8228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               AccessControlAllowOrigin   = "*",
                                               AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                               AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                              ContentType                = HTTPContentType.JSON_UTF8,
+                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                               Content                    = JSONObject.Create(
                                                                                new JProperty("description",  "Unknown parent organization!")
                                                                            ).ToUTF8Bytes(),
@@ -8258,7 +8257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = result.Organization.ToJSON(false).ToUTF8Bytes(),
                                                    Connection                  = "close"
                                                }.AsImmutable
@@ -8270,7 +8269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = result.ToJSON().ToUTF8Bytes(),
                                                    Connection                  = "close"
                                                }.AsImmutable;
@@ -8288,7 +8287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "organizations/{OrganizationId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Try to get HTTP user and its organizations
@@ -8354,7 +8353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
                                                        AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                       ContentType                = HTTPContentType.JSON_UTF8,
+                                                       ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                        Content                    = (showMgt == true
                                                                                          ? new OrganizationInfo2(organization,
                                                                                                                  httpUser).ToJSON(false,
@@ -8462,7 +8461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{organizationId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  AddOrganizationHTTPRequest,
                               HTTPResponseLogger: AddOrganizationHTTPResponse,
                               HTTPDelegate:       async Request => {
@@ -8517,7 +8516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = JSONObject.Create(
                                                                               new JProperty("description",  $"Could not parse the given child organization data: {errorResponse}")
                                                                           ).ToUTF8Bytes()
@@ -8543,7 +8542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description",  $"Invalid parent organization identification '{json["parentOrganization"]}'!")
                                                                               ).ToUTF8Bytes()
@@ -8561,7 +8560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description",  $"Unknown parent organization '{parentOrganizationId}'!")
                                                                               ).ToUTF8Bytes()
@@ -8586,7 +8585,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description",  "Invalid organization admins!")
                                                                               ).ToUTF8Bytes()
@@ -8618,7 +8617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   AccessControlAllowOrigin   = "*",
                                                   AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                   AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                  ContentType                = HTTPContentType.JSON_UTF8,
+                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                   Content                    = JSONObject.Create(
                                                                                       new JProperty("description",  "Invalid admin user '" + admin.Value  + "'!")
                                                                                   ).ToUTF8Bytes()
@@ -8638,7 +8637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   AccessControlAllowOrigin   = "*",
                                                   AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                   AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                  ContentType                = HTTPContentType.JSON_UTF8,
+                                                  ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                   Content                    = JSONObject.Create(
                                                                                       new JProperty("description",  "Unknown admin user '" + admin.Value + "'!")
                                                                                   ).ToUTF8Bytes()
@@ -8708,7 +8707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.SET,
                               URLPathPrefix + "organizations/{organizationId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  SetOrganizationHTTPRequest,
                               HTTPResponseLogger: SetOrganizationHTTPResponse,
                               HTTPDelegate:       async Request => {
@@ -8781,7 +8780,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description",  $"Could not parse the given organization: {errorResponse}")
                                                                               ).ToUTF8Bytes()
@@ -8808,7 +8807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "GET", "SET" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = updatedOrganization.ToJSON().ToUTF8Bytes(),
                                                    Connection                  = "close"
                                                }
@@ -8820,7 +8819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "GET", "SET" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = JSONObject.Create(
                                                                                      new JProperty("description",  "Could not parse the given child organization data!")
                                                                                  ).ToUTF8Bytes()
@@ -8841,7 +8840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{organizationId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:  DeleteOrganizationHTTPRequest,
                               HTTPResponseLogger: DeleteOrganizationHTTPResponse,
                               HTTPDelegate:       async Request => {
@@ -8888,7 +8887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "GET", "SET", "DELETE" },
                                                      AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                     ContentType                = HTTPContentType.JSON_UTF8,
+                                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                      Content                    = JSONObject.Create(
                                                                                       new JProperty("description",  "Unknown parent organization!")
                                                                                   ).ToUTF8Bytes()
@@ -8923,7 +8922,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "GET", "SET" },
                                                    AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                                   ContentType                 = HTTPContentType.JSON_UTF8,
+                                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                                    Content                     = JSONObject.Create(
                                                                                      new JProperty("errorDescription",  result.Description.ToJSON())
                                                                                  ).ToUTF8Bytes(),
@@ -8943,7 +8942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{OrganizationId}/admins/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9044,7 +9043,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{OrganizationId}/members/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9145,7 +9144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{OrganizationId}/guests/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9246,7 +9245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/_all/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9346,7 +9345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/admins/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9447,7 +9446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/members/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9548,7 +9547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/guests/{UserId}",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9650,7 +9649,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "organizations/{OrganizationId}/notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -9693,7 +9692,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods  = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                              ETag                       = "1",
-                                             ContentType                = HTTPContentType.JSON_UTF8,
+                                             ContentType                = HTTPContentType.Application.JSON_UTF8,
                                              Content                    = GetNotifications(organization).ToUTF8Bytes(),
                                              Connection                 = "close"
                                          }.AsImmutable);
@@ -9715,7 +9714,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.SET,
                               URLPathPrefix + "organizations/{OrganizationId}/notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   SetOrganizationNotificationsRequest,
                               HTTPResponseLogger:  SetOrganizationNotificationsResponse,
                               HTTPDelegate:        async Request => {
@@ -9864,7 +9863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", errorString ?? "Invalid array of notifications!")
                                                                               ).ToUTF8Bytes()
@@ -9884,7 +9883,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                             ContentType                 = HTTPContentType.JSON_UTF8,
+                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(organization).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
@@ -9906,7 +9905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPRequestLogger:   DeleteOrganizationNotificationsRequest,
                               HTTPResponseLogger:  DeleteOrganizationNotificationsResponse,
                               HTTPDelegate:        async Request => {
@@ -10053,7 +10052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("description", errorString ?? "Invalid array of notifications!")
                                                                               ).ToUTF8Bytes()
@@ -10073,7 +10072,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = new[] { "GET", "SET" },
                                              AccessControlAllowHeaders   = new[] { "Content-Type", "Accept", "Authorization" },
-                                             ContentType                 = HTTPContentType.JSON_UTF8,
+                                             ContentType                 = HTTPContentType.Application.JSON_UTF8,
                                              Content                     = GetNotifications(organization).ToUTF8Bytes(),
                                              Connection                  = "close"
                                          }.AsImmutable;
@@ -10094,7 +10093,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "organizationGroups",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Try to get HTTP user and its organizations
@@ -10156,7 +10155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
                                           AccessControlAllowHeaders     = new[] { "Content-Type", "Accept", "Authorization" },
                                           ETag                          = "1",
-                                          ContentType                   = HTTPContentType.JSON_UTF8,
+                                          ContentType                   = HTTPContentType.Application.JSON_UTF8,
                                           Content                       = withMetadata
                                                                               ? JSONObject.Create(
                                                                                     new JProperty("totalCount",          totalCount),
@@ -10186,7 +10185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "notifications",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -10213,7 +10212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONArray.Create(
                                                                                   GetNotificationMessages(HTTPUser).Select(notificationMessage => notificationMessage.ToJSON())
                                                                               ).ToUTF8Bytes(),
@@ -10233,7 +10232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "newNotification",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   #region Get HTTP user and its organizations
@@ -10260,7 +10259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowMethods  = new[] { "GET", "SET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
                                                  ETag                       = "1",
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
                                                                                   new JProperty("@context",  "https://opendata.social/contexts/UsersAPI/newNotification"),
                                                                                   new JProperty("user",      JSONObject.Create(
@@ -10356,7 +10355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "POST" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = jsonResponse.ToUTF8Bytes(),
                                                  CacheControl               = "no-cache",
                                                  Connection                 = "close"
@@ -10374,7 +10373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.POST,
                               URLPathPrefix + "serviceCheck",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   var content = String.Empty;
@@ -10383,7 +10382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   HTTPResponse.Builder? httpResponse = null;
 
-                                  if (Request.ContentType == HTTPContentType.TEXT_UTF8 &&
+                                  if (Request.ContentType == HTTPContentType.Text.PLAIN &&
                                       Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
                                   {
                                       
@@ -10393,7 +10392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region ...or parse a JSON HTTP body
 
-                                  else if (Request.ContentType == HTTPContentType.JSON_UTF8 &&
+                                  else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
                                       Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
                                       jsonRequest is not null)
                                   {
@@ -10443,7 +10442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "POST" },
                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                          ContentType                = HTTPContentType.JSON_UTF8,
+                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
                                           Content                    = jsonResponse.ToUTF8Bytes(),
                                           CacheControl               = "no-cache",
                                           Connection                 = "close"
@@ -10513,7 +10512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "POST" },
                                           AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                          ContentType                = HTTPContentType.JSON_UTF8,
+                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
                                           Content                    = jsonResponse.ToUTF8Bytes(),
                                           CacheControl               = "no-cache",
                                           Connection                 = "close"
@@ -10531,7 +10530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(HTTPHostname.Any,
                               HTTPMethod.POST,
                               URLPathPrefix + "serviceCheck",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: Request => {
 
                                   var content = String.Empty;
@@ -10540,7 +10539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   HTTPResponse.Builder? httpResponse = null;
 
-                                  if (Request.ContentType == HTTPContentType.TEXT_UTF8 &&
+                                  if (Request.ContentType == HTTPContentType.Text.PLAIN &&
                                       Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
                                   {
                                       
@@ -10550,7 +10549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   #region ...or parse a JSON HTTP body
 
-                                  else if (Request.ContentType == HTTPContentType.JSON_UTF8 &&
+                                  else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
                                       Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
                                       jsonRequest is not null)
                                   {
@@ -10605,7 +10604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "POST" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = jsonResponse.ToUTF8Bytes(),
                                                  CacheControl               = "no-cache",
                                                  Connection                 = "close"
@@ -10622,7 +10621,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPHostname.Any,
                                          HTTPMethod.GET,
                                          HTTPPath.Parse("/hashimage"),
-                                         HTTPContentType.PNG,
+                                         HTTPContentType.Image.PNG,
                                          HTTPDelegate: Request => {
 
                 Byte x =  13;
@@ -10663,7 +10662,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     new HTTPResponse.Builder(Request) {
                         HTTPStatusCode  = HTTPStatusCode.OK,
                         Server          = HTTPServer.DefaultServerName,
-                        ContentType     = HTTPContentType.PNG,
+                        ContentType     = HTTPContentType.Image.PNG,
                         Content         = f,
                         CacheControl    = "public",
                         //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
@@ -10803,7 +10802,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             AddMethodCallback(Hostname,
                               HTTPMethod.GET,
                               URLPathPrefix + "changeSets",
-                              HTTPContentType.JSON_UTF8,
+                              HTTPContentType.Application.JSON_UTF8,
                               HTTPDelegate: async Request => {
 
                                   #region Check API Key...
@@ -10816,7 +10815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "GET" },
                                                  AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization" },
-                                                 ContentType                = HTTPContentType.JSON_UTF8,
+                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                  Content                    = JSONObject.Create(
 
                                                                                   Request.API_Key.HasValue
@@ -10858,7 +10857,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              AccessControlAllowMethods     = new[] { "GET", "OPTIONS" },
                                              AccessControlAllowHeaders     = new[] { "Authorization", "X-App-Version" },
                                              ETag                          = ETag,
-                                             ContentType                   = HTTPContentType.JSON_UTF8,
+                                             ContentType                   = HTTPContentType.Application.JSON_UTF8,
                                              Content                       = withMetadata
                                                                                  ? JSONObject.Create(
                                                                                        new JProperty("totalCount",    totalCount),
@@ -11337,7 +11336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                             requestbuilder => {
                                                                                                 requestbuilder.Host         = remoteAuthServer.URL.Hostname;
                                                                                                 requestbuilder.API_Key      = remoteAuthServer.APIKeyId;
-                                                                                                requestbuilder.Accept.Add(HTTPContentType.JSON_UTF8);
+                                                                                                requestbuilder.Accept.Add(HTTPContentType.Application.JSON_UTF8);
                                                                                             }),
 
                                                                 //RequestLogDelegate:   OnGetCDRsHTTPRequest,
@@ -13468,8 +13467,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                          requestbuilder => {
                                                                                              requestbuilder.Host         = remoteAuthServer.URL.Hostname;
                                                                                              requestbuilder.API_Key      = remoteAuthServer.APIKeyId;
-                                                                                             requestbuilder.Accept.Add(HTTPContentType.JSON_UTF8);
-                                                                                             requestbuilder.ContentType  = HTTPContentType.JSON_UTF8;
+                                                                                             requestbuilder.Accept.Add(HTTPContentType.Application.JSON_UTF8);
+                                                                                             requestbuilder.ContentType  = HTTPContentType.Application.JSON_UTF8;
                                                                                              requestbuilder.Content      = jsonRequest;
                                                                                          }),
 

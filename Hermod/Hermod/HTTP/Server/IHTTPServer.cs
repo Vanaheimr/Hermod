@@ -1,14 +1,31 @@
-﻿using System;
-using System.Net.Security;
+﻿/*
+ * Copyright (c) 2010-2023 GraphDefined GmbH
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#region Usings
+
 using System.Security.Authentication;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -38,17 +55,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   String?                          LogfileReloadSearchPattern   = null)
 
 
-            => HTTPServer.AddEventSource(EventIdentification,
-                                         HTTPAPI,
-                                         MaxNumberOfCachedEvents,
-                                         RetryIntervall,
-                                         data => data.ToString(Newtonsoft.Json.Formatting.None),
-                                         text => JObject.Parse(text),
-                                         EnableLogging,
-                                         LogfilePath,
-                                         LogfilePrefix,
-                                         LogfileName,
-                                         LogfileReloadSearchPattern);
+            => HTTPServer.AddEventSource(
+                              EventIdentification,
+                              HTTPAPI,
+                              MaxNumberOfCachedEvents,
+                              RetryIntervall,
+                              data => data.ToString(Newtonsoft.Json.Formatting.None),
+                              JObject.Parse,
+                              EnableLogging,
+                              LogfilePath,
+                              LogfilePrefix,
+                              LogfileName,
+                              LogfileReloadSearchPattern
+                          );
 
 
 
@@ -92,34 +111,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPMethod?                         HTTPMethod                   = null,
                                                                   HTTPContentType?                    HTTPContentType              = null,
 
+                                                                  Boolean                             RequireAuthentication        = false,
                                                                   HTTPAuthentication?                 URIAuthentication            = null,
                                                                   HTTPAuthentication?                 HTTPMethodAuthentication     = null,
 
                                                                   HTTPDelegate?                       DefaultErrorHandler          = null)
 
-            => HTTPServer.AddEventSource(EventIdentification,
-                                         HTTPAPI,
-                                         URLTemplate,
+            => HTTPServer.AddEventSource(
+                              EventIdentification,
+                              HTTPAPI,
+                              URLTemplate,
 
-                                         MaxNumberOfCachedEvents,
-                                         IncludeFilterAtRuntime,
-                                         RetryIntervall,
-                                         data => data.ToString(Newtonsoft.Json.Formatting.None),
-                                         JObject.Parse,
-                                         EnableLogging,
-                                         LogfilePath,
-                                         LogfilePrefix,
-                                         LogfileName,
-                                         LogfileReloadSearchPattern,
+                              MaxNumberOfCachedEvents,
+                              IncludeFilterAtRuntime,
+                              RetryIntervall,
+                              data => data.ToString(Newtonsoft.Json.Formatting.None),
+                              JObject.Parse,
+                              EnableLogging,
+                              LogfilePath,
+                              LogfilePrefix,
+                              LogfileName,
+                              LogfileReloadSearchPattern,
 
-                                         Hostname,
-                                         HTTPMethod,
-                                         HTTPContentType,
+                              Hostname,
+                              HTTPMethod,
+                              HTTPContentType,
 
-                                         URIAuthentication,
-                                         HTTPMethodAuthentication,
+                              RequireAuthentication,
+                              URIAuthentication,
+                              HTTPMethodAuthentication,
 
-                                         DefaultErrorHandler);
+                              DefaultErrorHandler
+                          );
 
     }
 
@@ -303,6 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      HTTPMethod?                       HTTPMethod                   = null,
                                                      HTTPContentType?                  HTTPContentType              = null,
 
+                                                     Boolean                           RequireAuthentication        = false,
                                                      HTTPAuthentication?               URIAuthentication            = null,
                                                      HTTPAuthentication?               HTTPMethodAuthentication     = null,
 

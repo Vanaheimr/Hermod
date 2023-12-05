@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                 return new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.TEXT_UTF8,
+                    ContentType     = HTTPContentType.Text.PLAIN,
                     Content         = "Invalid SOAP/XML processing!".ToUTF8Bytes(),
                     Connection      = "close"
                 };
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             return new HTTPResponse.Builder(Request) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.TEXT_UTF8,
+                ContentType     = HTTPContentType.Text.PLAIN,
                 Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
                 Connection      = "close"
             };
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             => Task.FromResult(new HTTPResponse.Builder(Request) {
 
                 HTTPStatusCode  = HTTPStatusCode.OK,
-                ContentType     = HTTPContentType.TEXT_UTF8,
+                ContentType     = HTTPContentType.Text.PLAIN,
                 Content         = ("Welcome at " + Request.HTTPServer.DefaultServerName + Environment.NewLine +
                                    "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
                                    "Defined SOAP meassages: " + Environment.NewLine +

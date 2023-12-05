@@ -196,10 +196,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var requestBuilder = CreateRequest(HTTPMethod.POST, RemoteURL.Path);
             requestBuilder.Host               = VirtualHostname ?? RemoteURL.Hostname;
             requestBuilder.Content            = JSONRequest.ToUTF8Bytes();
-            requestBuilder.ContentType        = HTTPContentType.JSON_UTF8;
+            requestBuilder.ContentType        = HTTPContentType.Application.JSON_UTF8;
             requestBuilder.UserAgent          = HTTPUserAgent;
             //_RequestBuilder.FakeURLPrefix      = "https://" + (VirtualHostname ?? Hostname);
-            requestBuilder.Accept.Add(HTTPContentType.JSON_UTF8);
+            requestBuilder.Accept.Add(HTTPContentType.Application.JSON_UTF8);
 
             HTTPRequestBuilder?.Invoke(requestBuilder);
 

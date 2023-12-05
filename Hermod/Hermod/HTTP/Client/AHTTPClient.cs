@@ -1553,7 +1553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Response = new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
-                               ContentType     = HTTPContentType.JSON_UTF8,
+                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                Content         = JSONObject.Create(
                                                      new JProperty("timeout",     (Int32) e.Timeout.TotalMilliseconds),
                                                      new JProperty("message",     e.Message),
@@ -1596,7 +1596,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Response = new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                               ContentType     = HTTPContentType.JSON_UTF8,
+                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                Content         = JSONObject.Create(
                                                      new JProperty("message",     e.Message),
                                                      new JProperty("stackTrace",  e.StackTrace),
@@ -1631,7 +1631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Response = new HTTPResponse.Builder(Request) {
                              HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                             ContentType     = HTTPContentType.JSON_UTF8,
+                             ContentType     = HTTPContentType.Application.JSON_UTF8,
                              Content         = JSONObject.Create(
                                                    new JProperty("message",  "Something wicked happened!"),
                                                    new JProperty("timings",  timings.ToString())

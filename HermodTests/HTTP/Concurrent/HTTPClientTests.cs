@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
                 httpRequests.Add(new HTTPClient(URL.Parse("http://127.0.0.1:82")).
                                             POST(HTTPPath.Root + "mirror" + "httpBody",
                                                 request => {
-                                                    request.ContentType  = HTTPContentType.TEXT_UTF8;
+                                                    request.ContentType  = HTTPContentType.Text.PLAIN;
                                                     request.Content      = i.ToString().ToUTF8Bytes();//.PadLeft(4, '0').ToUTF8Bytes();
                                                 }));
             }

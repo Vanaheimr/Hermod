@@ -32,22 +32,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     }
 
     /// <summary>
-    /// HTTP content type.
+    /// A HTTP content type.
     /// </summary>
+    /// <param name="MediaMainType">The media main type for the HTTP content type.</param>
+    /// <param name="MediaSubType">The media sub type for the HTTP content type.</param>
+    /// <param name="CharSet">The char set of the HTTP content type.</param>
+    /// <param name="FileExtensions">Well-known file extensions using this HTTP content type.</param>
     [DebuggerDisplay("{DebugView}")]
-    public sealed class HTTPContentType : IEquatable<HTTPContentType>,
-                                          IComparable<HTTPContentType>,
-                                          IComparable
+    public sealed class HTTPContentType(String           MediaMainType,
+                                        String           MediaSubType,
+                                        String?          CharSet,
+                                        String?          Action,
+                                        String?          MIMEBoundary,
+                                        params String[]  FileExtensions) : IEquatable<HTTPContentType>,
+                                                                           IComparable<HTTPContentType>,
+                                                                           IComparable
     {
 
         #region Data
 
-        private static readonly  Char[]                                 splitter        = new[] { ';' };
+        private static readonly  Char[]                                 splitter              = [';'];
 
-        private static readonly  Dictionary<String, HTTPContentType>    lookup          = new ();
-        private static readonly  Dictionary<String, HTTPContentType[]>  reverseLookup   = new ();
+        private static readonly  Dictionary<String, HTTPContentType>    lookup                = [];
+        private static readonly  Dictionary<String, HTTPContentType[]>  fileExtensionLookup   = [];
 
-        private        readonly  String[] fileExtensions;
+        private        readonly  String[]                               fileExtensions        = FileExtensions ?? [];
 
         #endregion
 
@@ -56,17 +65,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The media main type.
         /// </summary>
-        public String               MediaMainType    { get; }
+        public String               MediaMainType    { get; } = MediaMainType;
 
         /// <summary>
         /// The media sub type.
         /// </summary>
-        public String               MediaSubType     { get; }
+        public String               MediaSubType     { get; } = MediaSubType;
 
         /// <summary>
         /// The optional character set.
         /// </summary>
-        public String?              CharSet          { get; }
+        public String?              CharSet          { get; } = CharSet;
+
+        /// <summary>
+        /// The (optional) (SOAP) action.
+        /// </summary>
+        public String?              Action           { get; } = Action;
+
+        /// <summary>
+        /// The (optional) MIME boundary.
+        /// </summary>
+        public String?              MIMEBoundary     { get; } = MIMEBoundary;
 
         /// <summary>
         /// Well-known file extensions using this HTTP content type.
@@ -74,16 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<String>  FileExtensions
             => fileExtensions;
 
-        /// <summary>
-        /// The (optional) MIME boundary.
-        /// </summary>
-        public String?              MIMEBoundary     { get; }
-
-        /// <summary>
-        /// The (optional) (SOAP) action.
-        /// </summary>
-        public String?              Action           { get; }
-
+        #endregion
 
         #region DebugView
 
@@ -91,105 +101,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public String DebugView
+
             => ToString() +
-               (FileExtensions != null & FileExtensions.Any() ? ", file extensions: " + FileExtensions.Aggregate((a, b) => a + ", " + b) : "");
+               (FileExtensions != null & fileExtensions.Length != 0 ? ", file extensions: " + fileExtensions.Aggregate((a, b) => a + ", " + b) : "");
 
         #endregion
 
-        #endregion
 
-        #region Constructor(s)
+        #region (private static) Register(Text, NumericId = 0)
 
-        /// <summary>
-        /// Creates a new HTTP content type based on the given media type,
-        /// character set and file extensions.
-        /// </summary>
-        /// <param name="MediaMainType">The media main type for the HTTP content type.</param>
-        /// <param name="MediaSubType">The media sub type for the HTTP content type.</param>
-        /// <param name="CharSet">The char set of the HTTP content type.</param>
-        /// <param name="FileExtensions">Well-known file extensions using this HTTP content type.</param>
-        public HTTPContentType(String           MediaMainType,
-                               String           MediaSubType,
-                               String?          CharSet,
-                               String?          Action,
-                               String?          MIMEBoundary,
-                               params String[]  FileExtensions)
+        private static HTTPContentType Register(String           MediaMainType,
+                                                String           MediaSubType,
+                                                String?          CharSet,
+                                                String?          Action,
+                                                String?          MIMEBoundary,
+                                                params String[]  FileExtensions)
         {
 
-            this.MediaMainType    = MediaMainType;
-            this.MediaSubType     = MediaSubType;
-            this.CharSet          = CharSet;
-            this.Action           = Action;
-            this.MIMEBoundary     = MIMEBoundary;
-            this.fileExtensions   = FileExtensions ?? Array.Empty<String>();
+            var httpContentType = new HTTPContentType(
+                                      MediaMainType,
+                                      MediaSubType,
+                                      CharSet,
+                                      Action,
+                                      MIMEBoundary,
+                                      FileExtensions
+                                  );
 
-            if (!lookup.ContainsKey(MediaMainType + "/" + MediaSubType))
-                lookup.Add(MediaMainType + "/" + MediaSubType, this);
+            lookup.Add(
+                $"{MediaMainType}/{MediaSubType}",
+                httpContentType
+            );
 
-            if (fileExtensions.Any())
-            {
-                fileExtensions.ForEach(FileExtension => {
-                    if (reverseLookup.ContainsKey(FileExtension)) {
-                        var List = new List<HTTPContentType>(reverseLookup[FileExtension]) {
-                                       this
-                                   };
-                        reverseLookup[FileExtension] = List.ToArray();
-                    }
-                    else
-                        reverseLookup.Add(FileExtension, new HTTPContentType[] { this });
-                });
-            }
+            FileExtensions.ForEach(fileExtension => {
+                if (fileExtensionLookup.TryGetValue(fileExtension, out var value))
+                    fileExtensionLookup[fileExtension] = [.. new List<HTTPContentType>(value) { httpContentType }];
+                else
+                    fileExtensionLookup.Add(fileExtension, [httpContentType]);
+            });
+
+            return httpContentType;
 
         }
-
-        #endregion
-
-
-        #region Static HTTP content types
-
-        public static readonly HTTPContentType ALL                  = new ("*", "*",                                    "utf-8", null, null);
-
-        public static readonly HTTPContentType TEXT_UTF8            = new ("text", "plain",                             "utf-8", null, null, "txt");
-        public static readonly HTTPContentType HTML_UTF8            = new ("text", "html",                              "utf-8", null, null, "htm", "html");
-        public static readonly HTTPContentType CSS_UTF8             = new ("text", "css",                               "utf-8", null, null, "css");
-        public static readonly HTTPContentType CSV_Text_UTF8        = new ("text", "csv",                               "utf-8", null, null, "css");
-        public static readonly HTTPContentType JAVASCRIPT_UTF8      = new ("text", "javascript",                        "utf-8", null, null, "js");
-        public static readonly HTTPContentType XMLTEXT_UTF8         = new ("text", "xml",                               "utf-8", null, null, "xml");
-        public static readonly HTTPContentType MARKDOWN_UTF8        = new ("text", "markdown",                          "utf-8", null, null, "md");
-
-        public static readonly HTTPContentType JSON_UTF8            = new ("application", "json",                       "utf-8", null, null, "json");
-        public static readonly HTTPContentType JSONLD_UTF8          = new ("application", "ld+json",                    "utf-8", null, null, "json-ld");
-        public static readonly HTTPContentType GeoJSON_UTF8         = new ("application", "geo+json",                   "utf-8", null, null, "geojson");
-        public static readonly HTTPContentType JSONMergePatch_UTF8  = new ("application", "merge-patch+json",           "utf-8", null, null);
-        public static readonly HTTPContentType XML_UTF8             = new ("application", "xml",                        "utf-8", null, null, "xml");
-        public static readonly HTTPContentType SOAPXML_UTF8         = new ("application", "soap+xml",                   "utf-8", null, null, "soap");
-
-        public static readonly HTTPContentType GEXF_UTF8            = new ("application", "gexf+xml",                   "utf-8", null, null, "gexf");
-        public static readonly HTTPContentType GRAPHML_UTF8         = new ("application", "graphml+xml",                "utf-8", null, null, "graphml");
-        public static readonly HTTPContentType SWF                  = new ("application", "x-shockwave-flash",          null,    null, null, "swf");
-        public static readonly HTTPContentType PDF                  = new ("application", "pdf",                        "utf-8", null, null, "pdf");
-        public static readonly HTTPContentType CSV_App_UTF8         = new ("application", "csv",                        "utf-8", null, null, "csv");
-        public static readonly HTTPContentType SIG                  = new ("application", "pgp-signature",              "utf-8", null, null, "sig");
-
-        public static readonly HTTPContentType GIF                  = new ("image", "gif",                              null,    null, null, "gif");
-        public static readonly HTTPContentType ICO                  = new ("image", "ico",                              null,    null, null, "ico");
-        public static readonly HTTPContentType PNG                  = new ("image", "png",                              null,    null, null, "png");
-        public static readonly HTTPContentType JPEG                 = new ("image", "jpeg",                             null,    null, null, "jpg", "jpeg");
-        public static readonly HTTPContentType SVG                  = new ("image", "svg+xml",                          "utf-8", null, null, "svg");
-
-        public static readonly HTTPContentType OGM                  = new ("video", "ogm",                              null,    null, null, "ogm");
-        public static readonly HTTPContentType OGV                  = new ("video", "ogv",                              null,    null, null, "ogv");
-        public static readonly HTTPContentType OGG                  = new ("video", "ogg",                              null,    null, null, "ogg");
-        public static readonly HTTPContentType MP4                  = new ("video", "mp4",                              null,    null, null, "mp4");
-        public static readonly HTTPContentType WEBM                 = new ("video", "webm",                             null,    null, null, "webm");
-
-        public static readonly HTTPContentType WOFF                 = new ("application", "font-woff",                  "utf-8", null, null, "woff", "woff2");
-
-        public static readonly HTTPContentType XWWWFormUrlEncoded   = new ("application", "x-www-form-urlencoded",      "utf-8", null, null);
-        public static readonly HTTPContentType OCTETSTREAM          = new ("application", "octet-stream",               "utf-8", null, null);
-        public static readonly HTTPContentType EVENTSTREAM          = new ("text", "event-stream",                      "utf-8", null, null);
-
-        public static readonly HTTPContentType MULTIPART_FORMDATA   = new ("multipart", "form-data",                    "utf-8", null, null);
 
         #endregion
 
@@ -202,8 +154,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var parts       = Text.Split     (splitter, StringSplitOptions.RemoveEmptyEntries).
-                                       SafeSelect(part => part.Trim()).
+                var parts       = Text.Split  (splitter, StringSplitOptions.RemoveEmptyEntries).
+                                       Select (part => part.Trim()).
                                        ToArray();
 
                 var mediaTypes  = parts[0].Split('/');
@@ -211,17 +163,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var boundary    = Array.Find(parts, part => part.StartsWith("boundary", StringComparison.OrdinalIgnoreCase));
 
                     charset     = charset is not null && charset.IsNeitherNullNorEmpty()
-                                      ? charset.Substring(charset.IndexOf("=") + 1).Trim()
+                                      ? charset[(charset.IndexOf('=') + 1)..].Trim()
                                       : null;
 
                 if (boundary is not null)
                 {
 
-                    HTTPContentType = new HTTPContentType(mediaTypes[0],
-                                                          mediaTypes[1],
-                                                          charset,
-                                                          null,
-                                                          boundary[boundary.IndexOf("----")..]);
+                    HTTPContentType = new HTTPContentType(
+                                          mediaTypes[0],
+                                          mediaTypes[1],
+                                          charset,
+                                          null,
+                                          boundary[boundary.IndexOf("----")..]
+                                      );
                     return true;
 
                 }
@@ -229,17 +183,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 else
                 {
 
-                    HTTPContentType  = (from    fieldInfo in typeof(HTTPContentType).GetFields()
-                                        let    httpContentType  = fieldInfo.GetValue(null) as HTTPContentType
-                                        where  httpContentType is not null
-                                        where  httpContentType.MediaMainType == mediaTypes[0] && httpContentType.MediaSubType == mediaTypes[1]
-                                        select httpContentType).FirstOrDefault()
-
-                                    ??  new HTTPContentType(mediaTypes[0],
-                                                            mediaTypes[1],
-                                                            null,
-                                                            null,
-                                                            null);
+                    if (!lookup.TryGetValue(parts[0], out HTTPContentType))
+                        HTTPContentType = Register(
+                                              mediaTypes[0],
+                                              mediaTypes[1],
+                                              charset,
+                                              null,
+                                              null
+                                          );
 
                     return true;
 
@@ -265,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (lookup.TryGetValue(MediaType, out var HTTPContentType))
                 return HTTPContentType;
 
-            if (DefaultValueFactory != null)
+            if (DefaultValueFactory is not null)
                 return DefaultValueFactory();
 
             return ALL;
@@ -280,13 +231,122 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     Func<HTTPContentType>?  DefaultValueFactory   = null)
         {
 
-            if (reverseLookup.TryGetValue(FileExtension, out var httpContentTypes))
+            if (fileExtensionLookup.TryGetValue(FileExtension, out var httpContentTypes))
                 return httpContentTypes;
 
             if (DefaultValueFactory is not null)
                 return new[] { DefaultValueFactory() };
 
             return Array.Empty<HTTPContentType>();
+
+        }
+
+        #endregion
+
+
+        #region Static definitions
+
+        public static HTTPContentType ALL                    { get; }
+            = Register("*", "*",                                    "utf-8", null, null);
+
+        public static class Text
+        {
+
+            public static HTTPContentType PLAIN                  { get; }
+                = Register("text", "plain",                             "utf-8", null, null, "txt");
+            public static HTTPContentType HTML_UTF8              { get; }
+                = Register("text", "html",                              "utf-8", null, null, "htm", "html", "shtml");
+            public static HTTPContentType CSS_UTF8               { get; }
+                = Register("text", "css",                               "utf-8", null, null, "css");
+            public static HTTPContentType CSV_UTF8               { get; }
+                = Register("text", "csv",                               "utf-8", null, null, "css");
+            public static HTTPContentType JAVASCRIPT_UTF8        { get; }
+                = Register("text", "javascript",                        "utf-8", null, null, "js");
+            public static HTTPContentType XML_UTF8               { get; }
+                = Register("text", "xml",                               "utf-8", null, null, "xml");
+            public static HTTPContentType MARKDOWN_UTF8          { get; }
+                = Register("text", "markdown",                          "utf-8", null, null, "md");
+
+            public static HTTPContentType EVENTSTREAM            { get; }
+                = Register("text", "event-stream",                      "utf-8", null, null);
+
+        }
+
+        public static class Application
+        {
+
+            public static HTTPContentType JSON_UTF8              { get; }
+                = Register("application", "json",                       "utf-8", null, null, "json");
+            public static HTTPContentType JSONLD_UTF8            { get; }
+                = Register("application", "ld+json",                    "utf-8", null, null, "json-ld");
+            public static HTTPContentType GeoJSON_UTF8           { get; }
+                = Register("application", "geo+json",                   "utf-8", null, null, "geojson");
+            public static HTTPContentType JSONMergePatch_UTF8    { get; }
+                = Register("application", "merge-patch+json",           "utf-8", null, null);
+            public static HTTPContentType XML_UTF8               { get; }
+                = Register("application", "xml",                        "utf-8", null, null, "xml");
+            public static HTTPContentType SOAPXML_UTF8           { get; }
+                = Register("application", "soap+xml",                   "utf-8", null, null, "soap");
+
+            public static HTTPContentType GEXF_UTF8              { get; }
+                = Register("application", "gexf+xml",                   "utf-8", null, null, "gexf");
+            public static HTTPContentType GRAPHML_UTF8           { get; }
+                = Register("application", "graphml+xml",                "utf-8", null, null, "graphml");
+            public static HTTPContentType SWF                    { get; }
+                = Register("application", "x-shockwave-flash",          null,    null, null, "swf");
+            public static HTTPContentType PDF                    { get; }
+                = Register("application", "pdf",                        "utf-8", null, null, "pdf");
+            public static HTTPContentType CSV_App_UTF8           { get; }
+                = Register("application", "csv",                        "utf-8", null, null, "csv");
+            public static HTTPContentType SIG                    { get; }
+                = Register("application", "pgp-signature",              "utf-8", null, null, "sig");
+
+            public static HTTPContentType WOFF                   { get; }
+                = Register("application", "font-woff",                  "utf-8", null, null, "woff", "woff2");
+
+            public static HTTPContentType XWWWFormUrlEncoded     { get; }
+                = Register("application", "x-www-form-urlencoded",      "utf-8", null, null);
+            public static HTTPContentType OCTETSTREAM            { get; }
+                = Register("application", "octet-stream",               "utf-8", null, null);
+
+        }
+
+        public static class Image
+        {
+
+            public static HTTPContentType GIF                    { get; }
+                = Register("image", "gif",                              null,    null, null, "gif");
+            public static HTTPContentType ICO                    { get; }
+                = Register("image", "ico",                              null,    null, null, "ico");
+            public static HTTPContentType PNG                    { get; }
+                = Register("image", "png",                              null,    null, null, "png");
+            public static HTTPContentType JPEG                   { get; }
+                = Register("image", "jpeg",                             null,    null, null, "jpg", "jpeg");
+            public static HTTPContentType SVG                    { get; }
+                = Register("image", "svg+xml",                          "utf-8", null, null, "svg");
+
+        }
+
+        public static class Video
+        {
+            public static HTTPContentType OGM                    { get; }
+                = Register("video", "ogm",                              null,    null, null, "ogm");
+            public static HTTPContentType OGV                    { get; }
+                = Register("video", "ogv",                              null,    null, null, "ogv");
+            public static HTTPContentType OGG                    { get; }
+                = Register("video", "ogg",                              null,    null, null, "ogg");
+            public static HTTPContentType MP4                    { get; }
+                = Register("video", "mp4",                              null,    null, null, "mp4");
+            public static HTTPContentType WEBM                   { get; }
+                = Register("video", "webm",                             null,    null, null, "webm");
+
+        }
+
+        public static class Multipart
+        {
+
+            public static HTTPContentType FORMDATA     { get; }
+                = Register("multipart", "form-data",                    "utf-8", null, null);
 
         }
 
@@ -480,18 +540,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => String.Concat(MediaMainType, "/", MediaSubType,
-                             CharSet != null ? "; charset=" + CharSet : null,
+            => String.Concat(
 
-                             MIMEBoundary.IsNotNullOrEmpty()
-                                 ? "; boundary=\"" + MIMEBoundary + "\""
-                                 : "",
+                   $"{MediaMainType}/{MediaSubType}",
 
-                             Action.IsNotNullOrEmpty()
-                                 ? "; action=\"" + Action + "\""
-                                 : "");
+                   CharSet is not null
+                       ? $"; charset={CharSet}"
+                       : "",
+
+                   MIMEBoundary.IsNotNullOrEmpty()
+                       ? $"; boundary=\"{MIMEBoundary}\""
+                       : "",
+
+                   Action.IsNotNullOrEmpty()
+                       ? $"; action=\"{Action}\""
+                       : ""
+
+               );
 
         #endregion
+
 
     }
 

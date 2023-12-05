@@ -23,7 +23,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         //                                               return new HTTPResponseBuilder() {
         //                                                   HTTPStatusCode  = HTTPStatusCode.OK,
-        //                                                   ContentType     = HTTPContentType.TEXT_UTF8,
+        //                                                   ContentType     = HTTPContentType.Text.TEXT_UTF8,
         //                                                   Content         = String.Concat("Hello world on port 2000 /!", Environment.NewLine, Thread.CurrentThread.ManagedThreadId).ToUTF8Bytes(),
         //                                                   Server          = "Hermod",
         //                                                   Connection      = "close"
@@ -43,7 +43,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         //                                               return new HTTPResponseBuilder() {
         //                                                   HTTPStatusCode  = HTTPStatusCode.OK,
-        //                                                   ContentType     = HTTPContentType.TEXT_UTF8,
+        //                                                   ContentType     = HTTPContentType.Text.TEXT_UTF8,
         //                                                   Content         = String.Concat("Hello world on port 2002 /!", Environment.NewLine, Thread.CurrentThread.ManagedThreadId).ToUTF8Bytes(),
         //                                                   Server          = "Hermod",
         //                                                   Connection      = "close"
@@ -65,7 +65,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
         //                                               return new HTTPResponseBuilder()
         //                                               {
         //                                                   HTTPStatusCode  = HTTPStatusCode.OK,
-        //                                                   ContentType     = HTTPContentType.TEXT_UTF8,
+        //                                                   ContentType     = HTTPContentType.Text.TEXT_UTF8,
         //                                                   Content = String.Concat("Hello world on port 2000 /tests/{id} with id == " + Request.ParsedQueryParameters.FirstOrDefault() + "!", Environment.NewLine, Thread.CurrentThread.ManagedThreadId).ToUTF8Bytes(),
         //                                                   Server          = "Hermod",
         //                                                   Connection      = "close"
@@ -87,7 +87,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
         //                                               return new HTTPResponseBuilder()
         //                                               {
         //                                                   HTTPStatusCode  = HTTPStatusCode.OK,
-        //                                                   ContentType     = HTTPContentType.TEXT_UTF8,
+        //                                                   ContentType     = HTTPContentType.Text.TEXT_UTF8,
         //                                                   Content = String.Concat("Hello world on port 2000 /tests/{test}/ids/{id} with id == " + Request.ParsedQueryParameters.FirstOrDefault() + "!", Environment.NewLine, Thread.CurrentThread.ManagedThreadId).ToUTF8Bytes(),
         //                                                   Server          = "Hermod",
         //                                                   Connection      = "close"
@@ -109,7 +109,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
         //                                               return new HTTPResponseBuilder()
         //                                               {
         //                                                   HTTPStatusCode  = HTTPStatusCode.OK,
-        //                                                   ContentType     = HTTPContentType.TEXT_UTF8,
+        //                                                   ContentType     = HTTPContentType.Text.TEXT_UTF8,
         //                                                   Content         = String.Concat("Hello world on port 2002 /test2!", Environment.NewLine, Thread.CurrentThread.ManagedThreadId).ToUTF8Bytes(),
         //                                                   Server          = "Hermod",
         //                                                   Connection      = "close"
@@ -126,7 +126,7 @@ namespace eu.Vanaheimr.Hermod.UnitTests
 
         //    return new HTTPResponseBuilder() {
         //        HTTPStatusCode  = HTTPStatusCode.OK,
-        //        ContentType     = HTTPContentType.TEXT_UTF8,
+        //        ContentType     = HTTPContentType.Text.TEXT_UTF8,
         //        Content         = String.Concat(Request.Host, Environment.NewLine, "Hello world any port!", Environment.NewLine, Thread.CurrentThread.ManagedThreadId).ToUTF8Bytes(),
         //        Server          = _HTTPServer.DefaultServerName,
         //        Connection      = "close"

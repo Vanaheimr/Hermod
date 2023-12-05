@@ -711,17 +711,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Func<String, DateTime, String>?  LogfileName                  = null,
                                                             String?                          LogfileReloadSearchPattern   = null)
 
-            => httpServer.AddEventSource(EventIdentification,
-                                         HTTPAPI,
-                                         MaxNumberOfCachedEvents,
-                                         RetryIntervall,
-                                         DataSerializer,
-                                         DataDeserializer,
-                                         EnableLogging,
-                                         LogfilePath,
-                                         LogfilePrefix,
-                                         LogfileName,
-                                         LogfileReloadSearchPattern);
+            => httpServer.AddEventSource(
+                              EventIdentification,
+                              HTTPAPI,
+                              MaxNumberOfCachedEvents,
+                              RetryIntervall,
+                              DataSerializer,
+                              DataDeserializer,
+                              EnableLogging,
+                              LogfilePath,
+                              LogfilePrefix,
+                              LogfileName,
+                              LogfileReloadSearchPattern
+                          );
 
         #endregion
 
@@ -770,6 +772,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             HTTPMethod?                       HTTPMethod                   = null,
                                                             HTTPContentType?                  HTTPContentType              = null,
 
+                                                            Boolean                           RequireAuthentication        = false,
                                                             HTTPAuthentication?               URLAuthentication            = null,
                                                             HTTPAuthentication?               HTTPMethodAuthentication     = null,
 
@@ -794,6 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod,
                                          HTTPContentType,
 
+                                         RequireAuthentication,
                                          URLAuthentication,
                                          HTTPMethodAuthentication,
 
@@ -1483,7 +1487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                 httpResponse = new HTTPResponse.Builder(HttpRequest) {
                                                                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                                                    ContentType     = HTTPContentType.JSON_UTF8,
+                                                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                                     Content         = new JObject(
                                                                                           new JProperty("description", "HTTP response is null!")
                                                                                       ).ToUTF8Bytes(),
@@ -1505,7 +1509,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                             httpResponse = new HTTPResponse.Builder(HttpRequest) {
                                                                 HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                                                ContentType     = HTTPContentType.JSON_UTF8,
+                                                                ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                                 Content         = new JObject(
                                                                                       new JProperty("exception",   exception.Message),
                                                                                       new JProperty("stacktrace",  exception.StackTrace)
@@ -1843,7 +1847,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Hostname,
                        URLTemplate,
                        HTTPMethod,
-                       HTTPContentType ?? HTTPContentType.HTML_UTF8,
+                       HTTPContentType ?? HTTPContentType.Text.HTML_UTF8,
                        null,
                        null,
                        null,
@@ -1875,7 +1879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        HTTPHostname.Any,
                        URLTemplate,
                        HTTPMethod,
-                       HTTPContentType ?? HTTPContentType.HTML_UTF8,
+                       HTTPContentType ?? HTTPContentType.Text.HTML_UTF8,
                        null,
                        null,
                        null,
@@ -2387,7 +2391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              ? HTTPPath.Parse("/")
                                              : Path;
             HTTPMethod               ??= HTTP.HTTPMethod.GET;
-            HTTPContentTypeSelector  ??= (v => HTTPContentType.HTML_UTF8);
+            HTTPContentTypeSelector  ??= (v => HTTPContentType.Text.HTML_UTF8);
             ErrorResponse              = null;
 
             #region Get HostNode or "*" or fail
@@ -2694,7 +2698,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         httpResponse = new HTTPResponse.Builder(Request) {
                                            HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                            Server          = DefaultServerName,
-                                           ContentType     = HTTPContentType.JSON_UTF8,
+                                           ContentType     = HTTPContentType.Application.JSON_UTF8,
                                            Content         = JSONObject.Create(
                                                                  new JProperty("request",      Request.FirstPDULine),
                                                                  new JProperty("description",  e.Message),
@@ -2712,7 +2716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 httpResponse ??= new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                      Server          = DefaultServerName,
-                                     ContentType     = HTTPContentType.JSON_UTF8,
+                                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                                      Content         = JSONObject.Create(
                                                              new JProperty("request",       Request.FirstPDULine),
                                                              new JProperty("description",  "HTTP request handler must not be null!")
@@ -2766,7 +2770,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
                                    Server          = Request.Host.ToString(),
                                    Date            = Timestamp.Now,
-                                   ContentType     = HTTPContentType.TEXT_UTF8,
+                                   ContentType     = HTTPContentType.Text.PLAIN,
                                    Content         = errorResponse.ToUTF8Bytes(),
                                    Connection      = "close"
                                };
@@ -2774,7 +2778,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
              httpResponse ??= new HTTPResponse.Builder(Request) {
                                   HTTPStatusCode  = HTTPStatusCode.InternalServerError,
                                   Server          = DefaultServerName,
-                                  ContentType     = HTTPContentType.JSON_UTF8,
+                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                   Content         = JSONObject.Create(
                                                           new JProperty("request",       Request.FirstPDULine),
                                                           new JProperty("description",  "HTTP request handler must not be null!")
@@ -2932,6 +2936,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     HTTPMethod?                      HttpMethod                   = null,
                                                     HTTPContentType?                 HTTPContentType              = null,
 
+                                                    Boolean                          RequireAuthentication        = true,
                                                     HTTPAuthentication?              URLAuthentication            = null,
                                                     HTTPAuthentication?              HTTPMethodAuthentication     = null,
 
@@ -2975,7 +2980,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                new HTTPResponse.Builder(request) {
                                    HTTPStatusCode  = HTTPStatusCode.OK,
                                    Server          = HTTPServer.DefaultHTTPServerName,
-                                   ContentType     = HTTPContentType.EVENTSTREAM,
+                                   ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                    CacheControl    = "no-cache",
                                    Connection      = "keep-alive",
                                    KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
@@ -2986,7 +2991,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Hostname,
                        URLTemplate,
                        HttpMethod      ?? HTTPMethod.GET,
-                       HTTPContentType ?? HTTPContentType.EVENTSTREAM,
+                       HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
 
                        URLAuthentication,
                        HTTPMethodAuthentication,

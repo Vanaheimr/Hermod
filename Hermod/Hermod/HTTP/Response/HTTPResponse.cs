@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                JSON = JObject.Parse(Response.GetResponseBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                JSON = JObject.Parse(Response.GetResponseBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                           AllowEmptyHTTPBody));
 
                 return true;
@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                JSON = JArray.Parse(Response.GetResponseBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+                JSON = JArray.Parse(Response.GetResponseBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                          AllowEmptyHTTPBody));
 
                 return true;
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             return new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.JSON_UTF8,
+                ContentType     = HTTPContentType.Application.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
                                               new JProperty("description", "Missing \"" + ParameterName + "\" JSON property!")).ToString().ToUTF8Bytes()
             };
@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             return new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.JSON_UTF8,
+                ContentType     = HTTPContentType.Application.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
                                               new JProperty("value",       Value),
                                               new JProperty("description", "Invalid \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             return new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = HTTPStatusCode.NotFound,
-                ContentType     = HTTPContentType.JSON_UTF8,
+                ContentType     = HTTPContentType.Application.JSON_UTF8,
                 Content         = new JObject(new JProperty("@context",    Context),
                                               new JProperty("value",       Value),
                                               new JProperty("description", "Unknown \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()

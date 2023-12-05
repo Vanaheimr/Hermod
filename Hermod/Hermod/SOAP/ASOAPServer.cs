@@ -268,8 +268,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                   },
 
                                   new HTTPContentType[] {
-                                      HTTPContentType.TEXT_UTF8,
-                                      HTTPContentType.HTML_UTF8
+                                      HTTPContentType.Text.PLAIN,
+                                      HTTPContentType.Text.HTML_UTF8
                                   },
 
                                   HTTPDelegate: Request => {
@@ -278,7 +278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                           new HTTPResponse.Builder(Request) {
 
                                               HTTPStatusCode  = HTTPStatusCode.BadGateway,
-                                              ContentType     = HTTPContentType.TEXT_UTF8,
+                                              ContentType     = HTTPContentType.Text.PLAIN,
                                               Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
                                                                  "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
 

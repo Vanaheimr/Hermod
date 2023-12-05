@@ -931,18 +931,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   Func<String, DateTime, String>?  LogfileName                  = null,
                                                                   String?                          LogfileReloadSearchPattern   = null)
 
-
-            => HTTPAPI.AddEventSource(EventIdentification,
-                                      HTTPAPI,
-                                      MaxNumberOfCachedEvents,
-                                      RetryIntervall,
-                                      data => data.ToString(Newtonsoft.Json.Formatting.None),
-                                      text => JObject.Parse(text),
-                                      EnableLogging,
-                                      LogfilePath,
-                                      LogfilePrefix,
-                                      LogfileName,
-                                      LogfileReloadSearchPattern);
+            => HTTPAPI.AddEventSource(
+                           EventIdentification,
+                           MaxNumberOfCachedEvents,
+                           RetryIntervall,
+                           data => data.ToString(Newtonsoft.Json.Formatting.None),
+                           JObject.Parse,
+                           EnableLogging,
+                           LogfilePath,
+                           LogfilePrefix,
+                           LogfileName,
+                           LogfileReloadSearchPattern
+                       );
 
         #endregion
 
@@ -992,29 +992,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                   HTTPDelegate?                       DefaultErrorHandler          = null)
 
-            => HTTPAPI.AddEventSource(EventIdentification,
-                                      HTTPAPI,
-                                      URLTemplate,
+            => HTTPAPI.AddEventSource(
+                           EventIdentification,
+                           URLTemplate,
 
-                                      MaxNumberOfCachedEvents,
-                                      IncludeFilterAtRuntime,
-                                      RetryIntervall,
-                                      data => data.ToString(Newtonsoft.Json.Formatting.None),
-                                      text => JObject.Parse(text),
-                                      EnableLogging,
-                                      LogfilePath,
-                                      LogfilePrefix,
-                                      LogfileName,
-                                      LogfileReloadSearchPattern,
+                           MaxNumberOfCachedEvents,
+                           IncludeFilterAtRuntime,
+                           RetryIntervall,
+                           data => data.ToString(Newtonsoft.Json.Formatting.None),
+                           JObject.Parse,
+                           EnableLogging,
+                           LogfilePath,
+                           LogfilePrefix,
+                           LogfileName,
+                           LogfileReloadSearchPattern,
 
-                                      Hostname,
-                                      HTTPMethod,
-                                      HTTPContentType,
+                           Hostname,
+                           HTTPMethod,
+                           HTTPContentType,
 
-                                      URIAuthentication,
-                                      HTTPMethodAuthentication,
+                           false,
+                           URIAuthentication,
+                           HTTPMethodAuthentication,
 
-                                      DefaultErrorHandler);
+                           DefaultErrorHandler
+                       );
 
         #endregion
 
@@ -1814,7 +1816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
+        #region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
@@ -1829,7 +1831,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
-                                                            HTTPAPI                          HTTPAPI,
                                                             UInt32                           MaxNumberOfCachedEvents      = 500,
                                                             TimeSpan?                        RetryIntervall               = null,
                                                             Func<TData, String>?             DataSerializer               = null,
@@ -1840,17 +1841,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             Func<String, DateTime, String>?  LogfileName                  = null,
                                                             String?                          LogfileReloadSearchPattern   = null)
 
-            => HTTPServer.AddEventSource(EventIdentification,
-                                         HTTPAPI,
-                                         MaxNumberOfCachedEvents,
-                                         RetryIntervall,
-                                         DataSerializer,
-                                         DataDeserializer,
-                                         EnableLogging,
-                                         LogfilePath,
-                                         LogfilePrefix,
-                                         LogfileName,
-                                         LogfileReloadSearchPattern);
+            => HTTPServer.AddEventSource(
+                              EventIdentification,
+                              this,
+                              MaxNumberOfCachedEvents,
+                              RetryIntervall,
+                              DataSerializer,
+                              DataDeserializer,
+                              EnableLogging,
+                              LogfilePath,
+                              LogfilePrefix,
+                              LogfileName,
+                              LogfileReloadSearchPattern
+                          );
 
         #endregion
 
@@ -1881,7 +1884,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id               EventIdentification,
-                                                    HTTPAPI                          HTTPAPI,
                                                     HTTPPath                         URITemplate,
 
                                                     UInt32                           MaxNumberOfCachedEvents      = 500,
@@ -1899,34 +1901,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     HTTPMethod?                      HttpMethod                   = null,
                                                     HTTPContentType?                 HTTPContentType              = null,
 
+                                                    Boolean                          RequireAuthentication        = true,
                                                     HTTPAuthentication?              URIAuthentication            = null,
                                                     HTTPAuthentication?              HTTPMethodAuthentication     = null,
 
                                                     HTTPDelegate?                    DefaultErrorHandler          = null)
 
-            => HTTPServer.AddEventSource(EventIdentification,
-                                         HTTPAPI,
-                                         URITemplate,
+            => HTTPServer.AddEventSource(
+                              EventIdentification,
+                              this,
+                              URITemplate,
 
-                                         MaxNumberOfCachedEvents,
-                                         IncludeFilterAtRuntime,
-                                         RetryIntervall,
-                                         DataSerializer,
-                                         DataDeserializer,
-                                         EnableLogging,
-                                         LogfilePath,
-                                         LogfilePrefix,
-                                         LogfileName,
-                                         LogfileReloadSearchPattern,
+                              MaxNumberOfCachedEvents,
+                              IncludeFilterAtRuntime,
+                              RetryIntervall,
+                              DataSerializer,
+                              DataDeserializer,
+                              EnableLogging,
+                              LogfilePath,
+                              LogfilePrefix,
+                              LogfileName,
+                              LogfileReloadSearchPattern,
 
-                                         Hostname,
-                                         HttpMethod,
-                                         HTTPContentType,
+                              Hostname,
+                              HttpMethod,
+                              HTTPContentType,
 
-                                         URIAuthentication,
-                                         HTTPMethodAuthentication,
+                              RequireAuthentication,
+                              URIAuthentication,
+                              HTTPMethodAuthentication,
 
-                                         DefaultErrorHandler);
+                              DefaultErrorHandler
+                          );
 
         #endregion
 

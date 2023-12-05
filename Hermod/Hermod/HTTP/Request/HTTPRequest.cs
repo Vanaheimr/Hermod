@@ -164,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.TEXT_UTF8,
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(HTTPContentType.Text.PLAIN,
                                                                        AllowEmptyHTTPBody);
 
             if (requestBodyString.HasErrors)
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                 AllowEmptyHTTPBody);
 
             if (httpResult.HasErrors    ||
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                 AllowEmptyHTTPBody);
 
             if (httpResult.HasErrors    ||
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponseBuilder = new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = JSONObject.Create(
                                           JSONLDContext.IsNotNullOrEmpty()
                                               ? new JProperty("context",  JSONLDContext?.ToString())
@@ -380,7 +380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                 AllowEmptyHTTPBody);
 
             if (httpResult.HasErrors    ||
@@ -408,7 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponseBuilder  = new HTTPResponse.Builder(Request) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    ContentType     = HTTPContentType.JSON_UTF8,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = Illias.JSONObject.Create(
                                           JSONLDContext.IsNotNullOrEmpty()
                                               ? new JProperty("context",  JSONLDContext?.ToString())
@@ -457,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get text body
 
-            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.JSON_UTF8,
+            var httpResult = Request.GetRequestBodyAsUTF8String(HTTPContentType.Application.JSON_UTF8,
                                                                 AllowEmptyHTTPBody);
 
             if (httpResult.HasErrors    ||
@@ -514,7 +514,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 HTTPContentType?  ContentType   = null)
         {
 
-            var requestBodyString = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.XMLTEXT_UTF8);
+            var requestBodyString = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.Text.XML_UTF8);
             if (requestBodyString.HasErrors)
                 return new HTTPResult<XDocument>(requestBodyString.Error);
 
@@ -541,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (Request.ContentType     != HTTPContentType.MULTIPART_FORMDATA ||
+            if (Request.ContentType     != HTTPContentType.Multipart.FORMDATA ||
                 Request.ContentLength   == 0                                  ||
                !Request.TryReadHTTPBodyStream()                               ||
                 Request.HTTPBody        == null                               ||
@@ -579,7 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
                                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                    ContentType     = HTTPContentType.JSON_UTF8,
+                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                                     Content         = new JObject(new JProperty("description", "Invalid roaming network description!")).ToUTF8Bytes()
                                 }.AsImmutable;
 
@@ -600,7 +600,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
                                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                        ContentType     = HTTPContentType.JSON_UTF8,
+                                        ContentType     = HTTPContentType.Application.JSON_UTF8,
                                         Content         = new JObject(new JProperty("description", "Unknown or invalid language definition '" + Description.Key + "'!")).ToUTF8Bytes()
                                     }.AsImmutable;
 
@@ -617,7 +617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     HTTPResponse  = new HTTPResponse.Builder(HTTPRequest) {
                                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                        ContentType     = HTTPContentType.JSON_UTF8,
+                                        ContentType     = HTTPContentType.Application.JSON_UTF8,
                                         Content         = new JObject(new JProperty("description", "Invalid description text!")).ToUTF8Bytes()
                                     }.AsImmutable;
 
@@ -682,7 +682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The best matching accept type.
         /// Set by the HTTP server.
         /// </summary>
-        public HTTPContentType    BestMatchingAcceptType    { get; internal set; } = HTTPContentType.OCTETSTREAM;
+        public HTTPContentType    BestMatchingAcceptType    { get; internal set; } = HTTPContentType.Application.OCTETSTREAM;
 
 
         public Object?            SubprotocolRequest        { get; set; }
