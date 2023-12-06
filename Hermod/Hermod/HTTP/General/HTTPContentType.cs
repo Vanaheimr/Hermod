@@ -95,18 +95,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region DebugView
-
-        /// <summary>
-        /// Return a text representation of this object.
-        /// </summary>
-        public String DebugView
-
-            => ToString() +
-               (FileExtensions != null & fileExtensions.Length != 0 ? ", file extensions: " + fileExtensions.Aggregate((a, b) => a + ", " + b) : "");
-
-        #endregion
-
 
         #region (private static) Register(Text, NumericId = 0)
 
@@ -530,6 +518,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
         }
+
+        #endregion
+
+        #region DebugView
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public String DebugView
+
+            => String.Concat(
+
+                   ToString(),
+
+                   fileExtensions.Length > 0
+                       ? $", file extensions: {fileExtensions.Aggregate((a, b) => a + ", " + b)}"
+                       : ""
+
+               );
 
         #endregion
 

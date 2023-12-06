@@ -694,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP method.
         /// </summary>
-        public HTTPMethod          HTTPMethod              { get; }
+        public HTTPMethod          HTTPMethod              { get; } = HTTPMethod.GET;
 
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
@@ -705,7 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The parsed URL parameters of the best matching URL template.
         /// Set by the HTTP server.
         /// </summary>
-        public String[]            ParsedURLParameters     { get; internal set; } = Array.Empty<String>();
+        public String[]            ParsedURLParameters     { get; internal set; } = [];
 
         /// <summary>
         /// The HTTP query string.
@@ -727,11 +727,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public String              EntireRequestHeader
 
-            => String.Concat(HTTPMethod, " ",
-                             FakeURLPrefix, Path, QueryString, " ",
-                             ProtocolName, "/", ProtocolVersion, "\r\n",
-
-                             ConstructedHTTPHeader);
+            => $"{HTTPMethod} {FakeURLPrefix}{Path}{QueryString} {ProtocolName}/{ProtocolVersion}\r\n{ConstructedHTTPHeader}";
 
         #endregion
 
@@ -1127,11 +1123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // Parse HTTP method
             // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
-            if (HTTPMethod.TryParse(httpMethodHeader[0], out var httpMethod))
-                this.HTTPMethod = httpMethod;
-
-            else
-                throw new Exception("Invalid HTTP method!");
+            this.HTTPMethod = HTTPMethod.TryParse(httpMethodHeader[0]) ??
+                                  throw new Exception("Invalid HTTP method!");
 
             #endregion
 

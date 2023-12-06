@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public String EntireRequestHeader
 
-                => HTTPRequestLine + Environment.NewLine + ConstructedHTTPHeader;
+                => $"{HTTPRequestLine}{Environment.NewLine}{ConstructedHTTPHeader}";
 
             #endregion
 
@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             public String HTTPRequestLine
 
-                => String.Concat(HTTPMethod, " ", FakeURLPrefix, Path, QueryString, " ", ProtocolName, "/", ProtocolVersion);
+                => $"{HTTPMethod} {FakeURLPrefix}{Path}{QueryString} {ProtocolName}/{ProtocolVersion}";
 
             #endregion
 
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The http content types accepted by the client.
             /// </summary>
-            public AcceptTypes Accept
+            public AcceptTypes? Accept
             {
 
                 get

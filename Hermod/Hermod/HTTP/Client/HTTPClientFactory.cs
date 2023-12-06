@@ -45,10 +45,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                              IHTTPAuthentication?          Authentication   = null)
 
-            => HTTPClientCommand.Execute(client => client.CreateRequest(HTTPMethod.GET,
-                                                                        Path,
-                                                                        BuilderAction,
-                                                                        Authentication));
+            => HTTPClientCommand.Execute(
+                   client => client.CreateRequest(
+                                 HTTPMethod.GET,
+                                 Path,
+                                 BuilderAction,
+                                 Authentication
+                             )
+               );
 
         #endregion
 
@@ -66,10 +70,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                               IHTTPAuthentication?          Authentication   = null)
 
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.HEAD,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
+            => HTTPClient.Execute(
+                   client => client.CreateRequest(
+                                 HTTPMethod.HEAD,
+                                 Path,
+                                 BuilderAction,
+                                 Authentication
+                             )
+               );
 
         #endregion
 
@@ -87,12 +95,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                               IHTTPAuthentication?          Authentication   = null)
 
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.POST,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication).
-                                                   // Always send a Content-Length header, even when it's value is zero!
-                                                   SetContentLength(0));
+            => HTTPClient.Execute(
+                   client => client.CreateRequest(
+                                 HTTPMethod.POST,
+                                 Path,
+                                 BuilderAction,
+                                 Authentication
+                               // Always send a Content-Length header, even when it's value is zero!
+                             ).SetContentLength(0)
+               );
 
         #endregion
 
@@ -110,10 +121,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                              IHTTPAuthentication?          Authentication   = null)
 
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PUT,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
+            => HTTPClient.Execute(
+                   client => client.CreateRequest(
+                                 HTTPMethod.PUT,
+                                 Path,
+                                 BuilderAction,
+                                 Authentication
+                             )
+               );
 
         #endregion
 
@@ -131,10 +146,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                                IHTTPAuthentication?          Authentication   = null)
 
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.PATCH,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
+            => HTTPClient.Execute(
+                   client => client.CreateRequest(
+                                 HTTPMethod.PATCH,
+                                 Path,
+                                 BuilderAction,
+                                 Authentication
+                             )
+               );
 
         #endregion
 
@@ -152,10 +171,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                                 IHTTPAuthentication?          Authentication   = null)
 
-            =>  HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.DELETE,
-                                                                  Path,
-                                                                  BuilderAction,
-                                                                  Authentication));
+            =>  HTTPClient.Execute(
+                    client => client.CreateRequest(
+                                  HTTPMethod.DELETE,
+                                  Path,
+                                  BuilderAction,
+                                  Authentication
+                              )
+                );
 
         #endregion
 
@@ -173,10 +196,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Action<HTTPRequest.Builder>?  BuilderAction    = null,
                                                  IHTTPAuthentication?          Authentication   = null)
 
-            => HTTPClient.Execute(client => client.CreateRequest(HTTPMethod.OPTIONS,
-                                                                 Path,
-                                                                 BuilderAction,
-                                                                 Authentication));
+            => HTTPClient.Execute(
+                   client => client.CreateRequest(
+                                 HTTPMethod.OPTIONS,
+                                 Path,
+                                 BuilderAction,
+                                 Authentication
+                             )
+               );
 
         #endregion
 

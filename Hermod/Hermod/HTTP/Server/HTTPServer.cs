@@ -2323,7 +2323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var hostname = Hostname ?? HTTPHostname.Any;
 
-                if (!HTTPMethod.HasValue && HTTPContentType is not null)
+                if (HTTPMethod is not null && HTTPContentType is not null)
                     throw new ArgumentException("If HTTP method is null the HTTP content type must also be null!");
 
                 #endregion
@@ -2390,7 +2390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Path                       = Path.IsNullOrEmpty
                                              ? HTTPPath.Parse("/")
                                              : Path;
-            HTTPMethod               ??= HTTP.HTTPMethod.GET;
+            HTTPMethod               ??= HTTPMethod.GET;
             HTTPContentTypeSelector  ??= (v => HTTPContentType.Text.HTML_UTF8);
             ErrorResponse              = null;
 
@@ -2434,7 +2434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var matchesMethod  = from    match
                                  in      matches
-                                 where   match.URLNode.Contains(HTTPMethod.Value)
+                                 where   match.URLNode.Contains(HTTPMethod)
                                  orderby 100*match.URLNode.SortLength +
                                              match.URLNode.ParameterCount
                                          descending
@@ -2469,8 +2469,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //foreach (var _Match in _Matches)
             //{
 
-            var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod.Value)).
-                                            Select(match      => match.URLNode.Get     (HTTPMethod.Value)).
+            var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod)).
+                                            Select(match      => match.URLNode.Get     (HTTPMethod)).
                                             Where (methodnode => methodnode is not null).
                                             Select(methodnode => HTTPContentTypeSelector(methodnode!.ContentTypes.ToArray())).
                                             ToArray();
@@ -2500,7 +2500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
             // If HTTPMethod was found...
-            if (bestMatch.URLNode.TryGet(HTTPMethod.Value, out var httpMethodNode) &&
+            if (bestMatch.URLNode.TryGet(HTTPMethod, out var httpMethodNode) &&
                 httpMethodNode is not null)
             {
 

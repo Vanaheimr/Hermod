@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Collections.Concurrent;
-
+using System.Diagnostics;
 using org.GraphDefined.Vanaheimr.Illias;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -28,39 +28,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// Extension methods for HTTP methods.
-    /// </summary>
-    public static class HTTPMethodExtensions
-    {
-
-        /// <summary>
-        /// Indicates whether this HTTP method is null or empty.
-        /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
-        public static Boolean IsNullOrEmpty(this HTTPMethod? HTTPMethod)
-            => !HTTPMethod.HasValue || HTTPMethod.Value.IsNullOrEmpty;
-
-        /// <summary>
-        /// Indicates whether this HTTP method is NOT null or empty.
-        /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
-        public static Boolean IsNotNullOrEmpty(this HTTPMethod? HTTPMethod)
-            => HTTPMethod.HasValue && HTTPMethod.Value.IsNotNullOrEmpty;
-
-    }
-
-
-    /// <summary>
     /// A HTTP method.
     /// </summary>
-    public readonly struct HTTPMethod : IEquatable<HTTPMethod>,
-                                        IComparable<HTTPMethod>,
-                                        IComparable
+    [DebuggerDisplay("{DebugView}")]
+    public class HTTPMethod : IEquatable<HTTPMethod>,
+                              IComparable<HTTPMethod>,
+                              IComparable
     {
 
         #region Data
 
-        private static readonly ConcurrentDictionary<String, HTTPMethod> httpMethods = new();
+        private readonly static Dictionary<String, HTTPMethod> lookup = new (StringComparer.OrdinalIgnoreCase);
 
         #endregion
 
@@ -72,12 +50,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String   MethodName      { get; }
 
         /// <summary>
-        /// This HTTP method does not cause any changes or side-effects on the server-side.
+        /// Whether this HTTP method causes any changes or side-effects on the server-side.
         /// </summary>
         public Boolean  IsSafe          { get; }
 
         /// <summary>
-        /// This HTTP methods has no side-effects for multiple identical requests other as for a single request.
+        /// Whether this HTTP methods has side-effects for multiple identical requests
+        /// other as for a single request.
         /// </summary>
         public Boolean  IsIdempotent    { get; }
 
@@ -90,19 +69,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this HTTP method is null or empty.
         /// </summary>
-        public Boolean IsNullOrEmpty
+        public Boolean  IsNullOrEmpty
             => MethodName.IsNullOrEmpty();
 
         /// <summary>
         /// Indicates whether this HTTP method is NOT null or empty.
         /// </summary>
-        public Boolean IsNotNullOrEmpty
+        public Boolean  IsNotNullOrEmpty
             => MethodName.IsNotNullOrEmpty();
 
         /// <summary>
         /// The length of the HTTP method.
         /// </summary>
-        public UInt64 Length
+        public UInt64   Length
             => (UInt64) (MethodName?.Length ?? 0);
 
         #endregion
@@ -111,23 +90,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (static)  HTTPMethod()
 
-        static HTTPMethod()
-        {
+        //static HTTPMethod()
+        //{
 
-            foreach (var fieldInfo in typeof(HTTPMethod).GetFields())
-            {
-                if (fieldInfo is not null)
-                {
+        //    foreach (var fieldInfo in typeof(HTTPMethod).GetFields())
+        //    {
+        //        if (fieldInfo is not null)
+        //        {
 
-                    var reflected = fieldInfo.GetValue(null);
+        //            var reflected = fieldInfo.GetValue(null);
 
-                    if (reflected is HTTPMethod httpMethod)
-                        httpMethods.TryAdd(httpMethod.MethodName, httpMethod);
+        //            if (reflected is HTTPMethod httpMethod)
+        //                httpMethods.TryAdd(httpMethod.MethodName, httpMethod);
 
-                }
-            }
+        //        }
+        //    }
 
-        }
+        //}
 
         #endregion
 
@@ -168,47 +147,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region (private static) Register(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="MethodName">A HTTP method name.</param>
+        /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
+        /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
+        /// <param name="Description">An optional description of this HTTP method.</param>
+        private static HTTPMethod Register(String   MethodName,
+                                           Boolean  IsSafe         = false,
+                                           Boolean  IsIdempotent   = false,
+                                           String?  Description    = null)
+
+            => lookup.AddAndReturnValue(
+                   MethodName,
+                   new HTTPMethod(
+                       MethodName,
+                       IsSafe,
+                       IsIdempotent,
+                       Description
+                   )
+               );
+
+        #endregion
+
+
         #region RFC 2616 - HTTP/1.1
 
-        public static readonly HTTPMethod CONNECT       = Parse("CONNECT");
+        public static HTTPMethod CONNECT    { get; }
+            = Register("CONNECT");
 
         /// <summary>
         /// Delete the given resource.
         /// </summary>
-        public static readonly HTTPMethod DELETE        = Parse("DELETE",  IsIdempotent: true);
+        public static HTTPMethod DELETE    { get; }
+            = Register("DELETE",  IsIdempotent: true);
 
         /// <summary>
         /// Return the given resource.
         /// </summary>
-        public static readonly HTTPMethod GET           = Parse("GET",     IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod GET    { get; }
+            = Register("GET",     IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Return only the headers (not including the body) of the given resource.
         /// </summary>
-        public static readonly HTTPMethod HEAD          = Parse("HEAD",    IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod HEAD    { get; }
+            = Register("HEAD",    IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Return a list of valid HTTP verbs for the given resource.
         /// </summary>
-        public static readonly HTTPMethod OPTIONS       = Parse("OPTIONS", IsIdempotent: true);
+        public static HTTPMethod OPTIONS    { get; }
+            = Register("OPTIONS", IsIdempotent: true);
 
-        public static readonly HTTPMethod POST          = Parse("POST");
+        public static HTTPMethod POST    { get; }
+            = Register("POST");
 
-        public static readonly HTTPMethod PUT           = Parse("PUT",     IsIdempotent: true);
+        public static HTTPMethod PUT    { get; }
+            = Register("PUT",     IsIdempotent: true);
 
-        public static readonly HTTPMethod TRACE         = Parse("TRACE",   IsIdempotent: true);
+        public static HTTPMethod TRACE    { get; }
+            = Register("TRACE",   IsIdempotent: true);
 
         #endregion
 
         #region RFC 4918 - WebDAV
 
-        public static readonly HTTPMethod COPY          = Parse("COPY");
-        public static readonly HTTPMethod LOCK          = Parse("LOCK");
-        public static readonly HTTPMethod MKCOL         = Parse("MKCOL");
-        public static readonly HTTPMethod MOVE          = Parse("MOVE");
-        public static readonly HTTPMethod PROPFIND      = Parse("PROPFIND");
-        public static readonly HTTPMethod PROPPATCH     = Parse("PROPPATCH");
-        public static readonly HTTPMethod UNLOCK        = Parse("UNLOCK");
+        public static HTTPMethod COPY    { get; }
+            = Register("COPY");
+
+        public static HTTPMethod LOCK    { get; }
+            = Register("LOCK");
+
+        public static HTTPMethod MKCOL    { get; }
+            = Register("MKCOL");
+
+        public static HTTPMethod MOVE    { get; }
+            = Register("MOVE");
+
+        public static HTTPMethod PROPFIND    { get; }
+            = Register("PROPFIND");
+
+        public static HTTPMethod PROPPATCH    { get; }
+            = Register("PROPPATCH");
+
+        public static HTTPMethod UNLOCK
+            = Register("UNLOCK");
 
         #endregion
 
@@ -217,171 +244,203 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Similar to SEARCH, searches for matching items, but might filter or sort those items differently.
         /// </summary>
-        public static readonly HTTPMethod SEARCH          = Parse("SEARCH",   IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod SEARCH    { get; }
+            = Register("SEARCH",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Similar to GET, checks wether a resource exists, but only returns 'true' or 'false'.
         /// </summary>
-        public static readonly HTTPMethod EXISTS          = Parse("EXISTS",   IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod EXISTS    { get; }
+            = Register("EXISTS",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Counts the number of elements in a resource collection.
         /// </summary>
-        public static readonly HTTPMethod COUNT           = Parse("COUNT",    IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod COUNT    { get; }
+            = Register("COUNT",    IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Similar to GET, but with an additional filter methods within the http body.
         /// </summary>
-        public static readonly HTTPMethod FILTER          = Parse("FILTER",   IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod FILTER    { get; }
+            = Register("FILTER",   IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Returns dynamic status information on a single resource or an entire resource collection.
         /// </summary>
-        public static readonly HTTPMethod STATUS          = Parse("STATUS",   IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod STATUS    { get; }
+            = Register("STATUS",   IsIdempotent: true, IsSafe: true);
 
 
         /// <summary>
         /// Creates a new resource. Within a resource collection the unique
         /// identification of the new resource will be chosen by the server.
         /// </summary>
-        public static readonly HTTPMethod CREATE          = Parse("CREATE");
+        public static HTTPMethod CREATE    { get; }
+            = Register("CREATE");
 
         /// <summary>
         /// Adds a new resource to a resource collection. It will fail when
         /// a unique identification of the resource is missing or already
         /// exists on the server.
         /// </summary>
-        public static readonly HTTPMethod ADD             = Parse("ADD");
+        public static HTTPMethod ADD    { get; }
+            = Register("ADD");
 
         /// <summary>
         /// Adds a new resource to a resource collection. The request will be silently
         /// ignored when the unique identification of the resource already exists on
         /// the server.
         /// </summary>
-        public static readonly HTTPMethod ADDIFNOTEXISTS  = Parse("ADDIFNOTEXISTS");
+        public static HTTPMethod ADDIFNOTEXISTS    { get; }
+            = Register("ADDIFNOTEXISTS");
 
 
 
         /// <summary>
         /// Patch the given resource.
         /// </summary>
-        public static readonly HTTPMethod PATCH           = Parse("PATCH");
+        public static HTTPMethod PATCH    { get; }
+            = Register("PATCH");
 
         /// <summary>
         /// Announce the given resource.
         /// </summary>
-        public static readonly HTTPMethod ANNOUNCE        = Parse("ANNOUNCE", IsIdempotent: true, IsSafe: true);
+        public static HTTPMethod ANNOUNCE    { get; }
+            = Register("ANNOUNCE", IsIdempotent: true, IsSafe: true);
 
         /// <summary>
         /// Traverse the given resource.
         /// </summary>
-        public static readonly HTTPMethod TRAVERSE        = Parse("TRAVERSE");
+        public static HTTPMethod TRAVERSE    { get; }
+            = Register("TRAVERSE");
 
         /// <summary>
         /// Query a resource.
         /// </summary>
-        public static readonly HTTPMethod QUERY           = Parse("QUERY");
+        public static HTTPMethod QUERY    { get; }
+            = Register("QUERY");
 
         /// <summary>
         /// Composes a new resource (e.g. send a html form to compose a new resource)
         /// </summary>
-        public static readonly HTTPMethod COMPOSE         = Parse("COMPOSE");
+        public static HTTPMethod COMPOSE    { get; }
+            = Register("COMPOSE");
 
         /// <summary>
         /// SET the value of a resource (a replacement for PUT and POST)
         /// </summary>
-        public static readonly HTTPMethod SET             = Parse("SET");
+        public static HTTPMethod SET    { get; }
+            = Register("SET");
 
         /// <summary>
         /// RESET the value of a resource
         /// </summary>
-        public static readonly HTTPMethod RESET           = Parse("RESET");
+        public static HTTPMethod RESET    { get; }
+            = Register("RESET");
 
         /// <summary>
         /// Change the owner of a resource
         /// </summary>
-        public static readonly HTTPMethod CHOWN           = Parse("CHOWN");
+        public static HTTPMethod CHOWN    { get; }
+            = Register("CHOWN");
 
         /// <summary>
         /// Authenticate the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod AUTH            = Parse("AUTH");
+        public static HTTPMethod AUTH    { get; }
+            = Register("AUTH");
 
         /// <summary>
         /// Deauthenticate the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod DEAUTH          = Parse("DEAUTH");
+        public static HTTPMethod DEAUTH    { get; }
+            = Register("DEAUTH");
 
         /// <summary>
         /// Impersonate (become/switch to) the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod IMPERSONATE     = Parse("IMPERSONATE");
+        public static HTTPMethod IMPERSONATE    { get; }
+            = Register("IMPERSONATE");
 
         /// <summary>
         /// Depersonate (switch back) from the given user/resource.
         /// </summary>
-        public static readonly HTTPMethod DEPERSONATE     = Parse("DEPERSONATE");
+        public static HTTPMethod DEPERSONATE    { get; }
+            = Register("DEPERSONATE");
 
         /// <summary>
         /// Update a resource (a replacement for PUT)
         /// </summary>
-        public static readonly HTTPMethod UPDATE          = Parse("UPDATE");
+        public static HTTPMethod UPDATE    { get; }
+            = Register("UPDATE");
 
         /// <summary>
         /// Edits a resource, e.g. return a HTML page for editing.
         /// </summary>
-        public static readonly HTTPMethod EDIT            = Parse("EDIT");
+        public static HTTPMethod EDIT    { get; }
+            = Register("EDIT");
 
         /// <summary>
         /// Monitors a resource or collection resource for modifications using an eventstream.
         /// </summary>
-        public static readonly HTTPMethod MONITOR         = Parse("MONITOR");
+        public static HTTPMethod MONITOR    { get; }
+            = Register("MONITOR");
 
         /// <summary>
         /// Maps all elements of a collection resource and may reduce this to a second data structure.
         /// This can be implemented via two JavaScript functions within the HTTP body.
         /// </summary>
-        public static readonly HTTPMethod MAPREDUCE       = Parse("MAPREDUCE");
+        public static HTTPMethod MAPREDUCE    { get; }
+            = Register("MAPREDUCE");
 
         /// <summary>
         /// Subscribe an URI to receive notifications from this resource.
         /// </summary>
-        public static readonly HTTPMethod SUBSCRIBE       = Parse("SUBSCRIBE");
+        public static HTTPMethod SUBSCRIBE    { get; }
+            = Register("SUBSCRIBE");
 
         /// <summary>
         /// Unsubscribe an URI to receive notifications from this resource.
         /// </summary>
-        public static readonly HTTPMethod UNSUBSCRIBE     = Parse("UNSUBSCRIBE");
+        public static HTTPMethod UNSUBSCRIBE    { get; }
+            = Register("UNSUBSCRIBE");
 
         /// <summary>
         /// Notify a subscriber of an URI about notifications from a resource.
         /// </summary>
-        public static readonly HTTPMethod NOTIFY          = Parse("NOTIFY");
+        public static HTTPMethod NOTIFY    { get; }
+            = Register("NOTIFY");
 
         /// <summary>
         /// Check a resource.
         /// </summary>
-        public static readonly HTTPMethod CHECK           = Parse("CHECK");
+        public static HTTPMethod CHECK    { get; }
+            = Register("CHECK");
 
         /// <summary>
         /// Clear a (collection) resource.
         /// </summary>
-        public static readonly HTTPMethod CLEAR           = Parse("CLEAR");
+        public static HTTPMethod CLEAR    { get; }
+            = Register("CLEAR");
 
         /// <summary>
         /// Signup a resource.
         /// </summary>
-        public static readonly HTTPMethod SIGNUP          = Parse("SIGNUP");
+        public static HTTPMethod SIGNUP    { get; }
+            = Register("SIGNUP");
 
         /// <summary>
         /// Validate a resource.
         /// </summary>
-        public static readonly HTTPMethod VALIDATE        = Parse("VALIDATE");
+        public static HTTPMethod VALIDATE    { get; }
+            = Register("VALIDATE");
 
         /// <summary>
         /// Mirror a resource.
         /// </summary>
-        public static readonly HTTPMethod MIRROR          = Parse("MIRROR");
+        public static HTTPMethod MIRROR    { get; }
+            = Register("MIRROR");
 
         #endregion
 
@@ -392,8 +451,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Parse the given string as a HTTP method.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP method.</param>
-        /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
-        /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
+        /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
+        /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
         public static HTTPMethod Parse(String   Text,
                                        Boolean  IsSafe         = false,
@@ -405,7 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          out var httpMethod,
                          IsSafe,
                          IsIdempotent,
-                         Description))
+                         Description) && httpMethod is not null)
             {
                 return httpMethod;
             }
@@ -423,11 +482,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Try to parse the given text as a HTTP method.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP method.</param>
-        /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
-        /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
+        /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
+        /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
         public static HTTPMethod? TryParse(String   Text,
-                                           Boolean  IsSafe,
+                                           Boolean  IsSafe         = false,
                                            Boolean  IsIdempotent   = false,
                                            String?  Description    = null)
         {
@@ -456,8 +515,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        public static Boolean TryParse(String          Text,
-                                       out HTTPMethod  HTTPMethod)
+        public static Boolean TryParse(String           Text,
+                                       out HTTPMethod?  HTTPMethod)
 
             => TryParse(Text,
                         out HTTPMethod,
@@ -471,109 +530,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
-        /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
-        /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
+        /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
+        /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
-        public static Boolean TryParse(String          Text,
-                                       out HTTPMethod  HTTPMethod,
-                                       Boolean         IsSafe         = false,
-                                       Boolean         IsIdempotent   = false,
-                                       String?         Description    = null)
+        public static Boolean TryParse(String           Text,
+                                       out HTTPMethod?  HTTPMethod,
+                                       Boolean          IsSafe         = false,
+                                       Boolean          IsIdempotent   = false,
+                                       String?          Description    = null)
         {
 
             Text = Text.Trim();
 
-            if (Text.IsNullOrEmpty())
-            {
-                HTTPMethod = default;
-                return false;
-            }
-
-            if (httpMethods.TryGetValue(Text, out var httpMethod))
-                HTTPMethod = httpMethod;
-
-            else
+            if (Text.IsNotNullOrEmpty())
             {
 
-                HTTPMethod = new HTTPMethod(
-                                 Text,
-                                 IsSafe,
-                                 IsIdempotent,
-                                 Description
-                             );
+                if (!lookup.TryGetValue(Text, out HTTPMethod))
+                    HTTPMethod = Register(Text,
+                                          IsSafe,
+                                          IsIdempotent,
+                                          Description);
 
-                httpMethods.TryAdd(Text,
-                                   HTTPMethod);
+                return true;
 
             }
 
-            return true;
+            HTTPMethod = null;
+            return false;
 
         }
-
-        #endregion
-
-
-        #region (static) Register   (MethodName, IsSafe = false, IsIdempotent = false, Description = null)
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="MethodName">A HTTP method name.</param>
-        /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
-        /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
-        /// <param name="Description">An optional description of this HTTP method.</param>
-        public static HTTPMethod? Register(String   MethodName,
-                                           Boolean  IsSafe         = false,
-                                           Boolean  IsIdempotent   = false,
-                                           String?  Description    = null)
-        {
-
-            MethodName = MethodName.Trim();
-
-            if (MethodName.IsNullOrEmpty())
-                return null;
-
-            var httpMethod = new HTTPMethod(
-                                     MethodName,
-                                     IsSafe,
-                                     IsIdempotent,
-                                     Description
-                                 );
-
-            if (httpMethods.TryAdd(MethodName,
-                                   httpMethod))
-            {
-                return httpMethod;
-            }
-
-            return null;
-
-        }
-
-        #endregion
-
-        #region (static) TryRegister(MethodName, IsSafe = false, IsIdempotent = false, Description = null)
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="MethodName">A HTTP method name.</param>
-        /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
-        /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
-        /// <param name="Description">An optional description of this HTTP method.</param>
-        public static Boolean TryRegister(String   MethodName,
-                                          Boolean  IsSafe         = false,
-                                          Boolean  IsIdempotent   = false,
-                                          String?  Description    = null)
-
-            => httpMethods.TryAdd(MethodName,
-                                  new HTTPMethod(
-                                      MethodName,
-                                      IsSafe,
-                                      IsIdempotent,
-                                      Description
-                                  ));
 
         #endregion
 
@@ -588,10 +573,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod1">A HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPMethod HTTPMethod1,
-                                           HTTPMethod HTTPMethod2)
+        public static Boolean operator == (HTTPMethod? HTTPMethod1,
+                                           HTTPMethod? HTTPMethod2)
+        {
 
-            => HTTPMethod1.Equals(HTTPMethod2);
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(HTTPMethod1, HTTPMethod2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (HTTPMethod1 is null || HTTPMethod2 is null)
+                return false;
+
+            return HTTPMethod1.Equals(HTTPMethod2);
+
+        }
 
         #endregion
 
@@ -603,10 +599,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod1">A HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPMethod HTTPMethod1,
-                                           HTTPMethod HTTPMethod2)
+        public static Boolean operator != (HTTPMethod? HTTPMethod1,
+                                           HTTPMethod? HTTPMethod2)
 
-            => !HTTPMethod1.Equals(HTTPMethod2);
+            => !(HTTPMethod1 == HTTPMethod2);
 
         #endregion
 
@@ -618,10 +614,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod1">A HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPMethod HTTPMethod1,
-                                          HTTPMethod HTTPMethod2)
+        public static Boolean operator < (HTTPMethod? HTTPMethod1,
+                                          HTTPMethod? HTTPMethod2)
+        {
 
-            => HTTPMethod1.CompareTo(HTTPMethod2) < 0;
+            if (HTTPMethod1 is null)
+                throw new ArgumentNullException(nameof(HTTPMethod1), "The given constant stream data must not be null!");
+
+            return HTTPMethod1.CompareTo(HTTPMethod2) < 0;
+
+        }
 
         #endregion
 
@@ -633,10 +635,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod1">A HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPMethod HTTPMethod1,
-                                           HTTPMethod HTTPMethod2)
+        public static Boolean operator <= (HTTPMethod? HTTPMethod1,
+                                           HTTPMethod? HTTPMethod2)
 
-            => HTTPMethod1.CompareTo(HTTPMethod2) <= 0;
+            => !(HTTPMethod1 > HTTPMethod2);
 
         #endregion
 
@@ -648,10 +650,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod1">A HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPMethod HTTPMethod1,
-                                          HTTPMethod HTTPMethod2)
+        public static Boolean operator > (HTTPMethod? HTTPMethod1,
+                                          HTTPMethod? HTTPMethod2)
+        {
 
-            => HTTPMethod1.CompareTo(HTTPMethod2) > 0;
+            if (HTTPMethod1 is null)
+                throw new ArgumentNullException(nameof(HTTPMethod1), "The given constant stream data must not be null!");
+
+            return HTTPMethod1.CompareTo(HTTPMethod2) > 0;
+
+        }
 
         #endregion
 
@@ -663,10 +671,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethod1">A HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPMethod HTTPMethod1,
-                                           HTTPMethod HTTPMethod2)
+        public static Boolean operator >= (HTTPMethod? HTTPMethod1,
+                                           HTTPMethod? HTTPMethod2)
 
-            => HTTPMethod1.CompareTo(HTTPMethod2) >= 0;
+            => !(HTTPMethod1 < HTTPMethod2);
 
         #endregion
 
@@ -677,9 +685,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP methods.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
+        /// <param name="Object">A HTTP method to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPMethod httpMethod
@@ -692,11 +700,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(HTTPMethod)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP methods.
         /// </summary>
-        /// <param name="HTTPMethod">An object to compare with.</param>
-        public Int32 CompareTo(HTTPMethod HTTPMethod)
+        /// <param name="HTTPMethod">A HTTP method to compare with.</param>
+        public Int32 CompareTo(HTTPMethod? HTTPMethod)
         {
+
+            if (HTTPMethod is null)
+                throw new ArgumentNullException(nameof(HTTPMethod),
+                                                "The given HTTP method must not be null!");
 
             var c = String.Compare(MethodName,
                                    HTTPMethod.MethodName,
@@ -724,10 +736,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP methods for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
+        /// <param name="Object">A HTTP method to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPMethod httpMethod &&
@@ -738,13 +749,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(HTTPMethod)
 
         /// <summary>
-        /// Compares two HTTPMethod for equality.
+        /// Compares two HTTP methods for equality.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTPMethod to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
-        public Boolean Equals(HTTPMethod HTTPMethod)
+        /// <param name="HTTPMethod">A HTTP method to compare with.</param>
+        public Boolean Equals(HTTPMethod? HTTPMethod)
 
-            => String.Equals(MethodName,
+            => HTTPMethod is not null &&
+
+               String.Equals(MethodName,
                              HTTPMethod.MethodName,
                              StringComparison.OrdinalIgnoreCase) &&
 
@@ -770,6 +782,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region DebugView()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public String DebugView()
+
+            => String.Concat(
+
+                   MethodName,
+
+                   IsSafe
+                       ? " (safe)"
+                       : "",
+
+                   IsIdempotent
+                       ? " (idempotent)"
+                       : "",
+
+                   Description.IsNotNullOrEmpty()
+                       ? $": '{Description}'"
+                       : ""
+
+               );
+
+        #endregion
+
         #region (override) ToString()
 
         /// <summary>
@@ -780,7 +819,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => MethodName;
 
         #endregion
-
 
     }
 
