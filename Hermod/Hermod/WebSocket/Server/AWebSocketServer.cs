@@ -817,10 +817,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 {
 
                                                     httpResponse = await OnValidateWebSocketConnectionLocal(Timestamp.Now,
-                                                                                                             this,
-                                                                                                             webSocketConnection,
-                                                                                                             EventTracking_Id.New,
-                                                                                                             token2);
+                                                                                                            this,
+                                                                                                            webSocketConnection,
+                                                                                                            EventTracking_Id.New,
+                                                                                                            token2);
 
                                                 }
 
@@ -926,8 +926,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #endregion
 
-                                                IsStillHTTP = false;
-                                                bytes = Array.Empty<Byte>();
+                                                IsStillHTTP  = false;
+                                                bytes        = [];
 
                                             }
 
@@ -948,7 +948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 frame is not null)
                                             {
 
-                                                var now = Timestamp.Now;
+                                                var now             = Timestamp.Now;
                                                 var eventTrackingId = EventTracking_Id.New;
                                                 WebSocketFrame? responseFrame = null;
 
@@ -1284,7 +1284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 //}
 
                                                 if ((UInt64)bytes.Length == frameLength)
-                                                    bytes = Array.Empty<Byte>();
+                                                    bytes = [];
 
                                                 else
                                                 {
@@ -1294,14 +1294,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     bytes = newBytes;
                                                 }
 
-                                                bytesLeftOver = Array.Empty<Byte>();
+                                                bytesLeftOver = [];
 
                                             }
                                             else
                                             {
                                                 bytesLeftOver = bytes;
-                                                DebugX.Log("Could not parse the given web socket frame of " + bytesLeftOver.Length + " byte(s): " + errorResponse);
-                                                bytes = Array.Empty<Byte>();
+                                                DebugX.Log($"Could not parse the given web socket frame of {bytesLeftOver.Length} byte(s): {errorResponse}");
+                                                bytes = [];
                                             }
 
                                         }
