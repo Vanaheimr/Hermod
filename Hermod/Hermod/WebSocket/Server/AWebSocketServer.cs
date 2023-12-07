@@ -57,17 +57,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>> webSocketConnections;
+        private readonly  ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>  webSocketConnections;
 
-        private Thread? listenerThread;
+        private           Thread?                                                                   listenerThread;
 
-        private readonly CancellationTokenSource cancellationTokenSource;
+        private readonly  CancellationTokenSource                                                   cancellationTokenSource;
 
-        private volatile Boolean isRunning = false;
+        private volatile  Boolean                                                                   isRunning = false;
 
-        private const String LogfileName = "HTTPWebSocketServer.log";
+        public readonly   TimeSpan                                                                  DefaultWebSocketPingEvery  = TimeSpan.FromSeconds(30);
 
-        public readonly TimeSpan DefaultWebSocketPingEvery = TimeSpan.FromSeconds(30);
+        private const     String                                                                    LogfileName                = "HTTPWebSocketServer.log";
 
         #endregion
 
@@ -101,63 +101,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The HTTP service name.
         /// </summary>
-        public String HTTPServiceName { get; }
+        public String                           HTTPServiceName               { get; }
 
-        public ServerThreadNameCreatorDelegate ServerThreadNameCreator { get; }
+        public ServerThreadNameCreatorDelegate  ServerThreadNameCreator       { get; }
 
-        public ServerThreadPriorityDelegate ServerThreadPrioritySetter { get; }
+        public ServerThreadPriorityDelegate     ServerThreadPrioritySetter    { get; }
 
-        public Boolean ServerThreadIsBackground { get; }
+        public Boolean                          ServerThreadIsBackground      { get; }
 
         /// <summary>
         /// The IP address to listen on.
         /// </summary>
-        public IIPAddress IPAddress
+        public IIPAddress                       IPAddress
             => IPSocket.IPAddress;
 
         /// <summary>
         /// The TCP port to listen on.
         /// </summary>
-        public IPPort IPPort
+        public IPPort                           IPPort
             => IPSocket.Port;
 
         /// <summary>
         /// The IP socket to listen on.
         /// </summary>
-        public IPSocket IPSocket { get; }
+        public IPSocket                         IPSocket                      { get; }
 
         /// <summary>
         /// Whether the web socket TCP listener is currently running.
         /// </summary>
-        public Boolean IsRunning
+        public Boolean                          IsRunning
             => isRunning;
 
         /// <summary>
         /// The supported secondary web socket protocols.
         /// </summary>
-        public HashSet<String> SecWebSocketProtocols { get; }
+        public HashSet<String>                  SecWebSocketProtocols         { get; }
 
         /// <summary>
         /// Disable web socket pings.
         /// </summary>
-        public Boolean DisableWebSocketPings { get; set; }
+        public Boolean                          DisableWebSocketPings         { get; set; }
 
         /// <summary>
         /// The web socket ping interval.
         /// </summary>
-        public TimeSpan WebSocketPingEvery { get; set; }
+        public TimeSpan                         WebSocketPingEvery            { get; set; }
 
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
         /// This is intended for debugging other web socket stacks.
         /// </summary>
-        public TimeSpan? SlowNetworkSimulationDelay { get; set; }
+        public TimeSpan?                        SlowNetworkSimulationDelay    { get; set; }
 
 
         /// <summary>
         /// An optional DNS client to use.
         /// </summary>
-        public DNSClient? DNSClient { get; }
+        public DNSClient?                       DNSClient                     { get; }
 
         #endregion
 
@@ -166,100 +166,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever the HTTP web socket server started.
         /// </summary>
-        public event OnServerStartedDelegate? OnServerStarted;
+        public event OnServerStartedDelegate?                OnServerStarted;
 
 
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        public event OnValidateTCPConnectionDelegate? OnValidateTCPConnection;
+        public event OnValidateTCPConnectionDelegate?        OnValidateTCPConnection;
 
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        public event OnNewTCPConnectionDelegate? OnNewTCPConnection;
+        public event OnNewTCPConnectionDelegate?             OnNewTCPConnection;
+
+        /// <summary>
+        /// An event sent whenever a TCP connection was closed.
+        /// </summary>
+        public event OnTCPConnectionClosedDelegate?          OnTCPConnectionClosed;
+
 
         /// <summary>
         /// An event sent whenever a HTTP request was received.
         /// </summary>
-        public event HTTPRequestLogDelegate? OnHTTPRequest;
-
+        public event HTTPRequestLogDelegate?                 OnHTTPRequest;
         /// <summary>
         /// An event sent whenever the HTTP headers of a new web socket connection
         /// need to be validated or filtered by an upper layer application logic.
         /// </summary>
-        public event OnValidateWebSocketConnectionDelegate? OnValidateWebSocketConnection;
+        public event OnValidateWebSocketConnectionDelegate?  OnValidateWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
         /// </summary>
-        public event OnNewWebSocketConnectionDelegate? OnNewWebSocketConnection;
+        public event OnNewWebSocketConnectionDelegate?       OnNewWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever a reponse to a HTTP request was sent.
         /// </summary>
-        public event HTTPResponseLogDelegate? OnHTTPResponse;
+        public event HTTPResponseLogDelegate?                OnHTTPResponse;
 
 
         /// <summary>
         /// An event sent whenever a web socket frame was received.
         /// </summary>
-        public event OnWebSocketFrameDelegate? OnWebSocketFrameReceived;
+        public event OnWebSocketFrameDelegate?               OnWebSocketFrameReceived;
 
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        public event OnWebSocketFrameDelegate? OnWebSocketFrameSent;
+        public event OnWebSocketFrameDelegate?               OnWebSocketFrameSent;
 
 
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        public event OnWebSocketTextMessageDelegate? OnTextMessageReceived;
+        public event OnWebSocketTextMessageDelegate?         OnTextMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        public event OnWebSocketTextMessageDelegate? OnTextMessageSent;
+        public event OnWebSocketTextMessageDelegate?         OnTextMessageSent;
 
 
         /// <summary>
         /// An event sent whenever a binary message was received.
         /// </summary>
-        public event OnWebSocketBinaryMessageDelegate? OnBinaryMessageReceived;
+        public event OnWebSocketBinaryMessageDelegate?       OnBinaryMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        public event OnWebSocketBinaryMessageDelegate? OnBinaryMessageSent;
+        public event OnWebSocketBinaryMessageDelegate?       OnBinaryMessageSent;
 
 
         /// <summary>
         /// An event sent whenever a web socket ping frame was received.
         /// </summary>
-        public event OnWebSocketFrameDelegate? OnPingMessageReceived;
+        public event OnWebSocketFrameDelegate?               OnPingMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket ping frame was sent.
         /// </summary>
-        public event OnWebSocketFrameDelegate? OnPingMessageSent;
+        public event OnWebSocketFrameDelegate?               OnPingMessageSent;
 
         /// <summary>
         /// An event sent whenever a web socket pong frame was received.
         /// </summary>
-        public event OnWebSocketFrameDelegate? OnPongMessageReceived;
+        public event OnWebSocketFrameDelegate?               OnPongMessageReceived;
 
 
         /// <summary>
         /// An event sent whenever a web socket close frame was received.
         /// </summary>
-        public event OnCloseMessageDelegate? OnCloseMessageReceived;
+        public event OnCloseMessageDelegate?                 OnCloseMessageReceived;
 
 
-        /// <summary>
-        /// An event sent whenever a TCP connection was closed.
-        /// </summary>
-        public event OnTCPConnectionClosedDelegate? OnTCPConnectionClosed;
+
 
         #endregion
 
@@ -271,39 +273,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Create a new HTTP web socket server.
         /// </summary>
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
-        /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
+        /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="SecWebSocketProtocols"></param>
+        /// <param name="DisableWebSocketPings"></param>
+        /// <param name="WebSocketPingEvery"></param>
+        /// <param name="SlowNetworkSimulationDelay"></param>
+        /// <param name="ServerCertificateSelector"></param>
+        /// <param name="ClientCertificateValidator"></param>
+        /// <param name="ClientCertificateSelector"></param>
+        /// <param name="AllowedTLSProtocols"></param>
+        /// <param name="ClientCertificateRequired"></param>
+        /// <param name="CheckCertificateRevocation"></param>
+        /// <param name="ServerThreadNameCreator"></param>
+        /// <param name="ServerThreadPrioritySetter"></param>
+        /// <param name="ServerThreadIsBackground"></param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionTimeout"></param>
+        /// <param name="MaxClientConnections"></param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public AWebSocketServer(IIPAddress? IPAddress = null,
-                                IPPort? HTTPPort = null,
-                                String? HTTPServiceName = null,
+        public AWebSocketServer(IIPAddress?                          IPAddress                    = null,
+                                IPPort?                              TCPPort                      = null,
+                                String?                              HTTPServiceName              = null,
 
-                                IEnumerable<String>? SecWebSocketProtocols = null,
-                                Boolean DisableWebSocketPings = false,
-                                TimeSpan? WebSocketPingEvery = null,
-                                TimeSpan? SlowNetworkSimulationDelay = null,
+                                IEnumerable<String>?                 SecWebSocketProtocols        = null,
+                                Boolean                              DisableWebSocketPings        = false,
+                                TimeSpan?                            WebSocketPingEvery           = null,
+                                TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                                ServerCertificateSelectorDelegate? ServerCertificateSelector = null,
-                                RemoteCertificateValidationHandler? ClientCertificateValidator = null,
-                                LocalCertificateSelectionHandler? ClientCertificateSelector = null,
-                                SslProtocols? AllowedTLSProtocols = null,
-                                Boolean? ClientCertificateRequired = null,
-                                Boolean? CheckCertificateRevocation = null,
+                                ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                                SslProtocols?                        AllowedTLSProtocols          = null,
+                                Boolean?                             ClientCertificateRequired    = null,
+                                Boolean?                             CheckCertificateRevocation   = null,
 
-                                ServerThreadNameCreatorDelegate? ServerThreadNameCreator = null,
-                                ServerThreadPriorityDelegate? ServerThreadPrioritySetter = null,
-                                Boolean? ServerThreadIsBackground = null,
-                                ConnectionIdBuilder? ConnectionIdBuilder = null,
-                                TimeSpan? ConnectionTimeout = null,
-                                UInt32? MaxClientConnections = null,
+                                ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                                ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                                Boolean?                             ServerThreadIsBackground     = null,
+                                ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                                TimeSpan?                            ConnectionTimeout            = null,
+                                UInt32?                              MaxClientConnections         = null,
 
-                                DNSClient? DNSClient = null,
-                                Boolean AutoStart = false)
+                                DNSClient?                           DNSClient                    = null,
+                                Boolean                              AutoStart                    = false)
 
             : this(new IPSocket(
                        IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
-                       HTTPPort ?? IPPort.HTTP
+                       TCPPort ?? IPPort.HTTP
                    ),
                    HTTPServiceName,
 
@@ -338,53 +356,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Create a new HTTP web socket server.
         /// </summary>
-        /// <param name="IPSocket">The IP socket to listen on.</param>
+        /// <param name="TCPSocket">The TCP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="SecWebSocketProtocols"></param>
+        /// <param name="DisableWebSocketPings"></param>
+        /// <param name="WebSocketPingEvery"></param>
+        /// <param name="SlowNetworkSimulationDelay"></param>
+        /// <param name="ServerCertificateSelector"></param>
+        /// <param name="ClientCertificateValidator"></param>
+        /// <param name="ClientCertificateSelector"></param>
+        /// <param name="AllowedTLSProtocols"></param>
+        /// <param name="ClientCertificateRequired"></param>
+        /// <param name="CheckCertificateRevocation"></param>
+        /// <param name="ServerThreadNameCreator"></param>
+        /// <param name="ServerThreadPrioritySetter"></param>
+        /// <param name="ServerThreadIsBackground"></param>
+        /// <param name="ConnectionIdBuilder"></param>
+        /// <param name="ConnectionTimeout"></param>
+        /// <param name="MaxClientConnections"></param>
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
-        public AWebSocketServer(IPSocket IPSocket,
-                                String? HTTPServiceName = null,
+        public AWebSocketServer(IPSocket                             TCPSocket,
+                                String?                              HTTPServiceName              = null,
 
-                                IEnumerable<String>? SecWebSocketProtocols = null,
-                                Boolean DisableWebSocketPings = false,
-                                TimeSpan? WebSocketPingEvery = null,
-                                TimeSpan? SlowNetworkSimulationDelay = null,
+                                IEnumerable<String>?                 SecWebSocketProtocols        = null,
+                                Boolean                              DisableWebSocketPings        = false,
+                                TimeSpan?                            WebSocketPingEvery           = null,
+                                TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                                ServerCertificateSelectorDelegate? ServerCertificateSelector = null,
-                                RemoteCertificateValidationHandler? ClientCertificateValidator = null,
-                                LocalCertificateSelectionHandler? ClientCertificateSelector = null,
-                                SslProtocols? AllowedTLSProtocols = null,
-                                Boolean? ClientCertificateRequired = null,
-                                Boolean? CheckCertificateRevocation = null,
+                                ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
+                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
+                                SslProtocols?                        AllowedTLSProtocols          = null,
+                                Boolean?                             ClientCertificateRequired    = null,
+                                Boolean?                             CheckCertificateRevocation   = null,
 
-                                ServerThreadNameCreatorDelegate? ServerThreadNameCreator = null,
-                                ServerThreadPriorityDelegate? ServerThreadPrioritySetter = null,
-                                Boolean? ServerThreadIsBackground = null,
-                                ConnectionIdBuilder? ConnectionIdBuilder = null,
-                                TimeSpan? ConnectionTimeout = null,
-                                UInt32? MaxClientConnections = null,
+                                ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
+                                ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
+                                Boolean?                             ServerThreadIsBackground     = null,
+                                ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
+                                TimeSpan?                            ConnectionTimeout            = null,
+                                UInt32?                              MaxClientConnections         = null,
 
-                                DNSClient? DNSClient = null,
-                                Boolean AutoStart = false)
+                                DNSClient?                           DNSClient                    = null,
+                                Boolean                              AutoStart                    = false)
         {
 
-            this.IPSocket = IPSocket;
-            this.HTTPServiceName = HTTPServiceName ?? "GraphDefined HTTP Web Socket Service v2.0";
-            this.ServerThreadNameCreator = ServerThreadNameCreator ?? (socket => $"AWebSocketServer {socket}");
-            this.ServerThreadPrioritySetter = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
-            this.ServerThreadIsBackground = ServerThreadIsBackground ?? false;
+            this.IPSocket                    = TCPSocket;
+            this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP Web Socket Service v2.0";
+            this.ServerThreadNameCreator     = ServerThreadNameCreator    ?? (socket => $"AWebSocketServer {socket}");
+            this.ServerThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
+            this.ServerThreadIsBackground    = ServerThreadIsBackground   ?? false;
 
-            this.SecWebSocketProtocols = SecWebSocketProtocols is not null
+            this.SecWebSocketProtocols       = SecWebSocketProtocols is not null
                                                    ? new HashSet<String>(SecWebSocketProtocols)
-                                                   : new HashSet<String>();
+                                                   : [];
 
-            this.DisableWebSocketPings = DisableWebSocketPings;
-            this.WebSocketPingEvery = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
-            this.SlowNetworkSimulationDelay = SlowNetworkSimulationDelay;
-            this.DNSClient = DNSClient;
+            this.DisableWebSocketPings       = DisableWebSocketPings;
+            this.WebSocketPingEvery          = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
+            this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+            this.DNSClient                   = DNSClient;
 
-            this.webSocketConnections = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
-            this.cancellationTokenSource = new CancellationTokenSource();
+            this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
+            this.cancellationTokenSource     = new CancellationTokenSource();
 
             if (AutoStart)
                 Start();
@@ -396,7 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendTextMessage   (Connection, TextMessage,    EventTrackingId = null)
+        #region SendTextMessage   (Connection, TextMessage,    EventTrackingId = null, ...)
 
         /// <summary>
         /// Send a text web socket frame.
@@ -404,17 +438,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="TextMessage">The text message to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public Task<SendStatus> SendTextMessage(WebSocketServerConnection Connection,
-                                                String TextMessage,
-                                                EventTracking_Id? EventTrackingId = null)
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public Task<SendStatus> SendTextMessage(WebSocketServerConnection  Connection,
+                                                String                     TextMessage,
+                                                EventTracking_Id?          EventTrackingId     = null,
+                                                CancellationToken          CancellationToken   = default)
 
-            => SendWebSocketFrame(Connection,
-                                  WebSocketFrame.Text(TextMessage),
-                                  EventTrackingId);
+            => SendWebSocketFrame(
+                   Connection,
+                   WebSocketFrame.Text(TextMessage),
+                   EventTrackingId,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region SendBinaryMessage (Connection, BinaryMessage,  EventTrackingId = null)
+        #region SendBinaryMessage (Connection, BinaryMessage,  EventTrackingId = null, ...)
 
         /// <summary>
         /// Send a binary web socket frame.
@@ -422,17 +461,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="BinaryMessage">The binary message to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public Task<SendStatus> SendBinaryMessage(WebSocketServerConnection Connection,
-                                                  Byte[] BinaryMessage,
-                                                  EventTracking_Id? EventTrackingId = null)
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public Task<SendStatus> SendBinaryMessage(WebSocketServerConnection  Connection,
+                                                  Byte[]                     BinaryMessage,
+                                                  EventTracking_Id?          EventTrackingId     = null,
+                                                  CancellationToken          CancellationToken   = default)
 
-            => SendWebSocketFrame(Connection,
-                                  WebSocketFrame.Binary(BinaryMessage),
-                                  EventTrackingId);
+            => SendWebSocketFrame(
+                   Connection,
+                   WebSocketFrame.Binary(BinaryMessage),
+                   EventTrackingId,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region SendWebSocketFrame(Connection, WebSocketFrame, EventTrackingId = null)
+        #region SendWebSocketFrame(Connection, WebSocketFrame, EventTrackingId = null, ...)
 
         /// <summary>
         /// Send a web socket frame.
@@ -440,45 +484,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="WebSocketFrame">The web socket frame to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
-        public async Task<SendStatus> SendWebSocketFrame(WebSocketServerConnection Connection,
-                                                         WebSocketFrame WebSocketFrame,
-                                                         EventTracking_Id? EventTrackingId = null)
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public async Task<SendStatus> SendWebSocketFrame(WebSocketServerConnection  Connection,
+                                                         WebSocketFrame             WebSocketFrame,
+                                                         EventTracking_Id?          EventTrackingId     = null,
+                                                         CancellationToken          CancellationToken   = default)
         {
 
-            var success = await Connection.SendWebSocketFrame(WebSocketFrame);
+            var success = await Connection.SendWebSocketFrame(
+                                    WebSocketFrame,
+                                    CancellationToken
+                                );
 
             if (success == SendStatus.Success)
             {
 
-                var now = Timestamp.Now;
-                var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
+                var now              = Timestamp.Now;
+                var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
 
                 #region Send OnWebSocketFrameSent event
 
-                await SendOnWebSocketFrameSent(now,
-                                               Connection,
-                                               eventTrackingId,
-                                               WebSocketFrame);
+                await SendOnWebSocketFrameSent(
+                          now,
+                          Connection,
+                          eventTrackingId,
+                          WebSocketFrame
+                      );
 
                 #endregion
 
                 #region Send OnTextMessageSent    event
 
                 if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
-                    await SendOnTextMessageSent(now,
-                                                Connection,
-                                                eventTrackingId,
-                                                WebSocketFrame.Payload.ToUTF8String());
+                    await SendOnTextMessageSent(
+                              now,
+                              Connection,
+                              eventTrackingId,
+                              WebSocketFrame.Payload.ToUTF8String()
+                          );
 
                 #endregion
 
                 #region Send OnBinaryMessageSent  event
 
                 if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
-                    await SendOnBinaryMessageSent(now,
-                                                  Connection,
-                                                  eventTrackingId,
-                                                  WebSocketFrame.Payload);
+                    await SendOnBinaryMessageSent(
+                              now,
+                              Connection,
+                              eventTrackingId,
+                              WebSocketFrame.Payload
+                          );
 
                 #endregion
 
@@ -489,6 +544,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
 
         #region RemoveConnection  (Connection)
 
@@ -516,17 +572,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public void Start()
         {
 
-            listenerThread = new Thread(() =>
-            {
+            listenerThread = new Thread(() => {
 
                 #region Server setup
 
-                Thread.CurrentThread.Name = ServerThreadNameCreator(IPSocket);
-                Thread.CurrentThread.Priority = ServerThreadPrioritySetter(IPSocket);
-                Thread.CurrentThread.IsBackground = ServerThreadIsBackground;
+                Thread.CurrentThread.Name          = ServerThreadNameCreator(IPSocket);
+                Thread.CurrentThread.Priority      = ServerThreadPrioritySetter(IPSocket);
+                Thread.CurrentThread.IsBackground  = ServerThreadIsBackground;
 
-                var token = cancellationTokenSource.Token;
-                var tcpListener = new TcpListener(IPSocket.ToIPEndPoint());
+                var token        = cancellationTokenSource.Token;
+                var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
 
                 tcpListener.Start();
 
@@ -597,9 +652,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     if (validatedTCPConnection == ConnectionFilterResponse.Rejected())
                         newTCPConnection.Close();
 
-                    else
+                    #endregion
 
-                        #endregion
+
+                    else
+                    {
+
 
                         Task.Factory.StartNew(async context =>
                         {
@@ -1372,6 +1430,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         ),
                         token);
 
+                    }
+
                 }
 
                 #region Stop TCP listener
@@ -1403,8 +1463,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
-        public void Shutdown(String? Message = null,
-                             Boolean Wait = true)
+        public async Task Shutdown(String?  Message   = null,
+                                   Boolean  Wait      = true)
         {
 
             cancellationTokenSource.Cancel();
@@ -1413,7 +1473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 while (isRunning)
                 {
-                    Thread.Sleep(10);
+                    await Task.Delay(10);
                 }
             }
 
@@ -1431,25 +1491,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="TextMessage">The web socket text message.</param>
         /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
-        /// <param name="CancellationToken">A cancellation token.</param>
-        public virtual Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime RequestTimestamp,
-                                                                             WebSocketServerConnection Connection,
-                                                                             String TextMessage,
-                                                                             EventTracking_Id EventTrackingId,
-                                                                             CancellationToken CancellationToken)
-        {
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public virtual Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime                   RequestTimestamp,
+                                                                             WebSocketServerConnection  Connection,
+                                                                             String                     TextMessage,
+                                                                             EventTracking_Id           EventTrackingId,
+                                                                             CancellationToken          CancellationToken)
 
-            return Task.FromResult(
-                       new WebSocketTextMessageResponse(
-                           RequestTimestamp,
-                           TextMessage,
-                           Timestamp.Now,
-                           String.Empty,
-                           EventTrackingId
-                       )
-                   );
-
-        }
+            => Task.FromResult(
+                   new WebSocketTextMessageResponse(
+                       RequestTimestamp,
+                       TextMessage,
+                       Timestamp.Now,
+                       String.Empty,
+                       EventTrackingId
+                   )
+               );
 
         #endregion
 
@@ -1462,67 +1519,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="BinaryMessage">The web socket binary message.</param>
         /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
-        /// <param name="CancellationToken">A cancellation token.</param>
-        public virtual Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime RequestTimestamp,
-                                                                                 WebSocketServerConnection Connection,
-                                                                                 Byte[] BinaryMessage,
-                                                                                 EventTracking_Id EventTrackingId,
-                                                                                 CancellationToken CancellationToken)
-        {
+        /// <param name="CancellationToken">A token to cancel the processing.</param>
+        public virtual Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime                   RequestTimestamp,
+                                                                                 WebSocketServerConnection  Connection,
+                                                                                 Byte[]                     BinaryMessage,
+                                                                                 EventTracking_Id           EventTrackingId,
+                                                                                 CancellationToken          CancellationToken)
 
-            return Task.FromResult(
-                       new WebSocketBinaryMessageResponse(
-                           RequestTimestamp,
-                           BinaryMessage,
-                           Timestamp.Now,
-                           Array.Empty<Byte>(),
-                           EventTrackingId
-                       )
-                   );
-
-        }
+            => Task.FromResult(
+                   new WebSocketBinaryMessageResponse(
+                       RequestTimestamp,
+                       BinaryMessage,
+                       Timestamp.Now,
+                       Array.Empty<Byte>(),
+                       EventTrackingId
+                   )
+               );
 
         #endregion
 
-
-        #region (protected) SendOnWebSocketFrameSent(Timestamp, Connection, EventTrackingId, Frame)
-
-        /// <summary>
-        /// Send an OnWebSocketFrameSent event
-        /// </summary>
-        /// <returns></returns>
-        protected async Task SendOnWebSocketFrameSent(DateTime Timestamp,
-                                                      WebSocketServerConnection Connection,
-                                                      EventTracking_Id EventTrackingId,
-                                                      WebSocketFrame Frame)
-        {
-
-            try
-            {
-
-                var OnWebSocketFrameSentLocal = OnWebSocketFrameSent;
-                if (OnWebSocketFrameSentLocal is not null)
-                {
-
-                    var responseTask = OnWebSocketFrameSentLocal(Timestamp,
-                                                                 this,
-                                                                 Connection,
-                                                                 EventTrackingId,
-                                                                 Frame);
-
-                    await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
-
-                }
-
-            }
-            catch (Exception e)
-            {
-                DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameSent));
-            }
-
-        }
-
-        #endregion
 
         #region (protected) SendOnTextMessageSent   (Timestamp, Connection, EventTrackingId, TextMessage)
 
@@ -1530,10 +1545,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send an OnTextMessageSent event
         /// </summary>
         /// <returns></returns>
-        protected async Task SendOnTextMessageSent(DateTime Timestamp,
-                                                   WebSocketServerConnection Connection,
-                                                   EventTracking_Id EventTrackingId,
-                                                   String TextMessage)
+        protected async Task SendOnTextMessageSent(DateTime                   Timestamp,
+                                                   WebSocketServerConnection  Connection,
+                                                   EventTracking_Id           EventTrackingId,
+                                                   String                     TextMessage)
         {
 
             try
@@ -1569,10 +1584,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send an OnBinaryMessageSent event
         /// </summary>
         /// <returns></returns>
-        protected async Task SendOnBinaryMessageSent(DateTime Timestamp,
-                                                     WebSocketServerConnection Connection,
-                                                     EventTracking_Id EventTrackingId,
-                                                     Byte[] BinaryMessage)
+        protected async Task SendOnBinaryMessageSent(DateTime                   Timestamp,
+                                                     WebSocketServerConnection  Connection,
+                                                     EventTracking_Id           EventTrackingId,
+                                                     Byte[]                     BinaryMessage)
         {
 
             try
@@ -1596,6 +1611,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             catch (Exception e)
             {
                 DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnBinaryMessageSent));
+            }
+
+        }
+
+        #endregion
+
+        #region (protected) SendOnWebSocketFrameSent(Timestamp, Connection, EventTrackingId, Frame)
+
+        /// <summary>
+        /// Send an OnWebSocketFrameSent event
+        /// </summary>
+        /// <returns></returns>
+        protected async Task SendOnWebSocketFrameSent(DateTime                   Timestamp,
+                                                      WebSocketServerConnection  Connection,
+                                                      EventTracking_Id           EventTrackingId,
+                                                      WebSocketFrame             Frame)
+        {
+
+            try
+            {
+
+                var OnWebSocketFrameSentLocal = OnWebSocketFrameSent;
+                if (OnWebSocketFrameSentLocal is not null)
+                {
+
+                    var responseTask = OnWebSocketFrameSentLocal(Timestamp,
+                                                                 this,
+                                                                 Connection,
+                                                                 EventTrackingId,
+                                                                 Frame);
+
+                    await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+                }
+
+            }
+            catch (Exception e)
+            {
+                DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameSent));
             }
 
         }
