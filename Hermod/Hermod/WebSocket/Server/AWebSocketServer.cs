@@ -27,6 +27,8 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using Newtonsoft.Json.Linq;
+using System.Threading;
 
 #endregion
 
@@ -260,9 +262,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public event OnCloseMessageDelegate?                 OnCloseMessageReceived;
 
-
-
-
         #endregion
 
         #region Constructor(s)
@@ -430,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendTextMessage   (Connection, TextMessage,    EventTrackingId = null, ...)
+        #region SendTextMessage   (Connection, TextMessage,    ...)
 
         /// <summary>
         /// Send a text web socket frame.
@@ -453,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendBinaryMessage (Connection, BinaryMessage,  EventTrackingId = null, ...)
+        #region SendBinaryMessage (Connection, BinaryMessage,  ...)
 
         /// <summary>
         /// Send a binary web socket frame.
@@ -476,7 +475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendWebSocketFrame(Connection, WebSocketFrame, EventTrackingId = null, ...)
+        #region SendWebSocketFrame(Connection, WebSocketFrame, ...)
 
         /// <summary>
         /// Send a web socket frame.
@@ -508,7 +507,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                           now,
                           Connection,
                           eventTrackingId,
-                          WebSocketFrame
+                          WebSocketFrame,
+                          CancellationToken
                       );
 
                 #endregion
@@ -520,7 +520,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               now,
                               Connection,
                               eventTrackingId,
-                              WebSocketFrame.Payload.ToUTF8String()
+                              WebSocketFrame.Payload.ToUTF8String(),
+                              CancellationToken
                           );
 
                 #endregion
@@ -532,7 +533,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               now,
                               Connection,
                               eventTrackingId,
-                              WebSocketFrame.Payload
+                              WebSocketFrame.Payload,
+                              CancellationToken
                           );
 
                 #endregion
@@ -594,15 +596,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 try
                 {
 
-                    // DebugX.Log("Web socket server has started on " + server.IPSocket);
-
                     var OnServerStartedLocal = OnServerStarted;
                     if (OnServerStartedLocal is not null)
                     {
 
                         var responseTask = OnServerStartedLocal(Timestamp.Now,
                                                                 this,
-                                                                EventTracking_Id.New);
+                                                                EventTracking_Id.New,
+                                                                token);
 
                         responseTask.Wait(TimeSpan.FromSeconds(10));
 
@@ -771,7 +772,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                       this,
                                                                                       webSocketConnection,
                                                                                       eventTrackingId,
-                                                                                      frame);
+                                                                                      frame,
+                                                                                      token2);
 
                                                         }
                                                         catch (Exception e)
@@ -862,7 +864,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     await OnHTTPRequestLocal(Timestamp.Now,
                                                                              this,
-                                                                             httpRequest);
+                                                                             httpRequest,
+                                                                             token2);
 
                                                 }
 
@@ -938,7 +941,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     await OnHTTPResponseLocal(Timestamp.Now,
                                                                               this,
                                                                               httpRequest,
-                                                                              httpResponse);
+                                                                              httpResponse,
+                                                                              token2);
 
                                                 }
 
@@ -1019,7 +1023,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      this,
                                                                                      webSocketConnection,
                                                                                      eventTrackingId,
-                                                                                     frame);
+                                                                                     frame,
+                                                                                     token2);
 
                                                 }
                                                 catch (Exception e)
@@ -1045,7 +1050,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                           this,
                                                                                           webSocketConnection,
                                                                                           eventTrackingId,
-                                                                                          frame.Payload.ToUTF8String());
+                                                                                          frame.Payload.ToUTF8String(),
+                                                                                          token2);
 
                                                         }
                                                         catch (Exception e)
@@ -1124,7 +1130,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                             this,
                                                                                             webSocketConnection,
                                                                                             eventTrackingId,
-                                                                                            frame.Payload);
+                                                                                            frame.Payload,
+                                                                                            token2);
 
                                                         }
                                                         catch (Exception e)
@@ -1200,10 +1207,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         {
 
                                                             OnPingMessageReceived?.Invoke(now,
-                                                                                            this,
-                                                                                            webSocketConnection,
-                                                                                            eventTrackingId,
-                                                                                            frame);
+                                                                                          this,
+                                                                                          webSocketConnection,
+                                                                                          eventTrackingId,
+                                                                                          frame,
+                                                                                          token2);
 
                                                         }
                                                         catch (Exception e)
@@ -1229,10 +1237,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         {
 
                                                             OnPongMessageReceived?.Invoke(now,
-                                                                                            this,
-                                                                                            webSocketConnection,
-                                                                                            eventTrackingId,
-                                                                                            frame);
+                                                                                          this,
+                                                                                          webSocketConnection,
+                                                                                          eventTrackingId,
+                                                                                          frame,
+                                                                                          token2);
 
                                                         }
                                                         catch (Exception e)
@@ -1258,11 +1267,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         {
 
                                                             OnCloseMessageReceived?.Invoke(now,
-                                                                                            this,
-                                                                                            webSocketConnection,
-                                                                                            eventTrackingId,
-                                                                                            frame.GetClosingStatusCode(),
-                                                                                            frame.GetClosingReason());
+                                                                                           this,
+                                                                                           webSocketConnection,
+                                                                                           eventTrackingId,
+                                                                                           frame.GetClosingStatusCode(),
+                                                                                           frame.GetClosingReason(),
+                                                                                           token2);
 
                                                         }
                                                         catch (Exception e)
@@ -1273,15 +1283,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         #endregion
 
                                                         // The close handshake demands that we have to send a close frame back!
-                                                        await SendWebSocketFrame(webSocketConnection,
-                                                                        WebSocketFrame.Close(),
-                                                                        eventTrackingId);
+                                                        await SendWebSocketFrame(
+                                                                  webSocketConnection,
+                                                                  WebSocketFrame.Close(),
+                                                                  eventTrackingId
+                                                              );
 
                                                         webSocketConnection.Close();
 
                                                         break;
 
-                                                        #endregion
+                                                    #endregion
 
                                                 }
 
@@ -1401,8 +1413,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         OnTCPConnectionClosed?.Invoke(Timestamp.Now,
                                                                       this,
                                                                       webSocketConnection,
+                                                                      EventTracking_Id.New,
                                                                       "!!!",
-                                                                      EventTracking_Id.New);
+                                                                      token2);
 
                                     }
                                     catch (Exception e)
@@ -1539,7 +1552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (protected) SendOnTextMessageSent   (Timestamp, Connection, EventTrackingId, TextMessage)
+        #region (protected) SendOnTextMessageSent   (Timestamp, Connection, EventTrackingId, TextMessage,   CancellationToken)
 
         /// <summary>
         /// Send an OnTextMessageSent event
@@ -1548,7 +1561,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         protected async Task SendOnTextMessageSent(DateTime                   Timestamp,
                                                    WebSocketServerConnection  Connection,
                                                    EventTracking_Id           EventTrackingId,
-                                                   String                     TextMessage)
+                                                   String                     TextMessage,
+                                                   CancellationToken          CancellationToken)
         {
 
             try
@@ -1562,7 +1576,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               this,
                                                               Connection,
                                                               EventTrackingId,
-                                                              TextMessage);
+                                                              TextMessage,
+                                                              CancellationToken);
 
                     await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -1578,7 +1593,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (protected) SendOnBinaryMessageSent (Timestamp, Connection, EventTrackingId, BinaryMessage)
+        #region (protected) SendOnBinaryMessageSent (Timestamp, Connection, EventTrackingId, BinaryMessage, CancellationToken)
 
         /// <summary>
         /// Send an OnBinaryMessageSent event
@@ -1587,7 +1602,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         protected async Task SendOnBinaryMessageSent(DateTime                   Timestamp,
                                                      WebSocketServerConnection  Connection,
                                                      EventTracking_Id           EventTrackingId,
-                                                     Byte[]                     BinaryMessage)
+                                                     Byte[]                     BinaryMessage,
+                                                     CancellationToken          CancellationToken)
         {
 
             try
@@ -1601,7 +1617,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 this,
                                                                 Connection,
                                                                 EventTrackingId,
-                                                                BinaryMessage);
+                                                                BinaryMessage,
+                                                                CancellationToken);
 
                     await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -1617,7 +1634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (protected) SendOnWebSocketFrameSent(Timestamp, Connection, EventTrackingId, Frame)
+        #region (protected) SendOnWebSocketFrameSent(Timestamp, Connection, EventTrackingId, Frame,         CancellationToken)
 
         /// <summary>
         /// Send an OnWebSocketFrameSent event
@@ -1626,7 +1643,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         protected async Task SendOnWebSocketFrameSent(DateTime                   Timestamp,
                                                       WebSocketServerConnection  Connection,
                                                       EventTracking_Id           EventTrackingId,
-                                                      WebSocketFrame             Frame)
+                                                      WebSocketFrame             Frame,
+                                                      CancellationToken          CancellationToken)
         {
 
             try
@@ -1640,7 +1658,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  this,
                                                                  Connection,
                                                                  EventTrackingId,
-                                                                 Frame);
+                                                                 Frame,
+                                                                 CancellationToken);
 
                     await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
 

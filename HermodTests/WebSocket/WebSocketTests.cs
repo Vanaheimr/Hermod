@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest, cancellationToken) => {
                 httpRequests.Add(httpRequest);
                 return Task.FromResult<HTTPResponse?>(null);
             };
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
                 httpResponses.Add(httpResponse);
                 return Task.CompletedTask;
             };
@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
                 messageRequests.     Add(requestFrame);
                 return Task.CompletedTask;
             };
@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage, cancellationToken) => {
                 textMessageRequests. Add(requestMessage);
                 return Task.CompletedTask;
             };
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest, cancellationToken) => {
                 httpRequests.Add(httpRequest);
                 return Task.CompletedTask;
             };
@@ -222,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
                 httpResponses.Add(httpResponse);
                 return Task.CompletedTask;
             };
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
                 messageRequests.     Add(requestFrame);
                 return Task.CompletedTask;
             };
@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage, cancellationToken) => {
                 textMessageRequests. Add(requestMessage);
                 return Task.CompletedTask;
             };

@@ -153,23 +153,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  webSocketClientConnection,
                                                                  webSocketFrame,
                                                                  eventTrackingId,
-                                                                 textMessage) =>
+                                                                 textMessage,
+                                                                 cancellationToken) =>
             {
 
                 foreach (var connection in connections.Values)
                 {
 
-                    await connection.SendWebSocketFrame(webSocketFrame);
+                    await connection.SendWebSocketFrame(webSocketFrame,
+                                                        cancellationToken);
 
                     await SendOnWebSocketFrameSent(timestamp,
                                                    connection,
                                                    eventTrackingId,
-                                                   webSocketFrame);
+                                                   webSocketFrame,
+                                                   cancellationToken);
 
                     await SendOnTextMessageSent(timestamp,
                                                 connection,
                                                 eventTrackingId,
-                                                textMessage);
+                                                textMessage,
+                                                cancellationToken);
 
                 }
 
@@ -184,23 +188,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                    webSocketClientConnection,
                                                                    webSocketFrame,
                                                                    eventTrackingId,
-                                                                   binaryMessage) =>
+                                                                   binaryMessage,
+                                                                   cancellationToken) =>
             {
 
                 foreach (var connection in connections.Values)
                 {
 
-                    await connection.SendWebSocketFrame(webSocketFrame);
+                    await connection.SendWebSocketFrame(webSocketFrame,
+                                                        cancellationToken);
 
                     await SendOnWebSocketFrameSent(timestamp,
                                                    connection,
                                                    eventTrackingId,
-                                                   webSocketFrame);
+                                                   webSocketFrame,
+                                                   cancellationToken);
 
                     await SendOnBinaryMessageSent(timestamp,
                                                   connection,
                                                   eventTrackingId,
-                                                  binaryMessage);
+                                                  binaryMessage,
+                                                  cancellationToken);
 
                 }
 
@@ -233,7 +241,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                webSocketServer,
                                                webSocketServerConnection,
                                                eventTrackingId,
-                                               webSocketFrame) =>
+                                               webSocketFrame,
+                                               cancellationToken) =>
             {
 
                 if (webSocketFrame.IsText || webSocketFrame.IsBinary)
@@ -241,7 +250,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     
 
-                    await webSocketClient.SendWebSocketFrame(webSocketFrame);
+                    await webSocketClient.SendWebSocketFrame(webSocketFrame,
+                                                             cancellationToken);
 
                 }
 

@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
+            webSocketChatServer.OnHTTPRequest                 += (timestamp, server, httpRequest, cancellationToken) => {
                 httpRequests.Add(httpRequest);
                 return Task.CompletedTask;
             };
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketChatServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
+            webSocketChatServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
                 httpResponses.Add(httpResponse);
                 return Task.CompletedTask;
             };
@@ -106,32 +106,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketChatServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
                 messageRequests.       Add(requestFrame);
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame) => {
+            webSocketChatServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame, cancellationToken) => {
                 messageResponses.      Add(responseFrame);
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketChatServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage, cancellationToken) => {
                 textMessageRequests.   Add(textMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketChatServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage, cancellationToken) => {
                 textMessageResponses.  Add(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketChatServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
                 binaryMessageRequests. Add(binaryMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketChatServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketChatServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
                 binaryMessageResponses.Add(binaryMessage);
                 return Task.CompletedTask;
             };
@@ -162,7 +162,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                               webSocketClientConnection,
                                                               webSocketFrame,
                                                               eventTrackingId,
-                                                              textMessage) => {
+                                                              textMessage,
+                                                              cancellationToken) => {
 
                         textMessageLog.Add(textMessage);
 

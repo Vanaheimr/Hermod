@@ -31,7 +31,6 @@ using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
 #endregion
 
@@ -44,14 +43,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  WebSocketClientConnection   Connection,
                                                                  WebSocketFrame              Frame,
                                                                  EventTracking_Id            EventTrackingId,
-                                                                 String                      TextMessage);
+                                                                 String                      TextMessage,
+                                                                 CancellationToken           CancellationToken);
 
     public delegate Task  OnWebSocketClientBinaryMessageDelegate(DateTime                    Timestamp,
                                                                  WebSocketClient             Client,
                                                                  WebSocketClientConnection   Connection,
                                                                  WebSocketFrame              Frame,
                                                                  EventTracking_Id            EventTrackingId,
-                                                                 Byte[]                      BinaryMessage);
+                                                                 Byte[]                      BinaryMessage,
+                                                                 CancellationToken           CancellationToken);
 
 
     /// <summary>
@@ -465,9 +466,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             #region Data
 
-                            var HTTPHeaderBytes   = Array.Empty<Byte>();
-                            var HTTPBodyBytes     = Array.Empty<Byte>();
-                            var sw                = new Stopwatch();
+                            var HTTPHeaderBytes  = Array.Empty<Byte>();
+                            var HTTPBodyBytes    = Array.Empty<Byte>();
+                            var sw               = new Stopwatch();
 
                             #endregion
 
@@ -792,14 +793,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             #endregion
 
 
-                            webSocketClientConnection = new WebSocketClientConnection(this,
-                                                                                      TCPSocket,
-                                                                                      TCPNetworkStream,
-                                                                                      HTTPStream,
-                                                                                      httpRequest,
-                                                                                      httpResponse,
-                                                                                      CustomData:                  null,
-                                                                                      SlowNetworkSimulationDelay:  null);
+                            webSocketClientConnection = new WebSocketClientConnection(
+                                                            this,
+                                                            TCPSocket,
+                                                            TCPNetworkStream,
+                                                            HTTPStream,
+                                                            httpRequest,
+                                                            httpResponse,
+                                                            CustomData:                  null,
+                                                            SlowNetworkSimulationDelay:  null
+                                                        );
 
                             do
                             {
@@ -807,7 +810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 if (webSocketClientConnection?.DataAvailable == true)
                                 {
 
-                                    buffer = Array.Empty<Byte>();
+                                    buffer = [];
                                     pos    = 0;
 
                                     do
@@ -836,10 +839,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         Array.Resize(ref buffer, pos);
 
-                                        if (TryParse(buffer,
-                                                     out var frame,
-                                                     out var frameLength,
-                                                     out var errorResponse) &&
+                                        if (WebSocketFrame.TryParse(buffer,
+                                                                    out var frame,
+                                                                    out var frameLength,
+                                                                    out var errorResponse) &&
                                             frame is not null)
                                         {
 
@@ -862,7 +865,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                    webSocketClientConnection,
                                                                                                    frame,
                                                                                                    EventTracking_Id.New,
-                                                                                                   frame.Payload.ToUTF8String());
+                                                                                                   frame.Payload.ToUTF8String(),
+                                                                                                   CancellationToken);
 
                                                     }
                                                     catch (Exception e)
@@ -895,11 +899,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         var onBinaryMessageReceived = OnBinaryMessageReceived;
                                                         if (onBinaryMessageReceived is not null)
                                                             await onBinaryMessageReceived.Invoke(Timestamp.Now,
-                                                                                                    this,
-                                                                                                    webSocketClientConnection,
-                                                                                                    frame,
-                                                                                                    EventTracking_Id.New,
-                                                                                                    frame.Payload);
+                                                                                                 this,
+                                                                                                 webSocketClientConnection,
+                                                                                                 frame,
+                                                                                                 EventTracking_Id.New,
+                                                                                                 frame.Payload,
+                                                                                                 CancellationToken);
 
                                                     }
                                                     catch (Exception e)
@@ -926,12 +931,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
 
-                                                    await SendWebSocketFrame(WebSocketFrame.Pong(
-                                                                                    frame.Payload,
-                                                                                    Fin.Final,
-                                                                                    MaskStatus.On,
-                                                                                    RandomExtensions.RandomBytes(4)
-                                                                                ));
+                                                    await SendWebSocketFrame(
+                                                              WebSocketFrame.Pong(
+                                                                  frame.Payload,
+                                                                  WebSocketFrame.Fin.Final,
+                                                                  WebSocketFrame.MaskStatus.On,
+                                                                  RandomExtensions.RandomBytes(4)
+                                                              ),
+                                                              CancellationToken
+                                                          );
 
                                                 }
                                                 break;
@@ -1149,6 +1157,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 try
                 {
+
+                    var tokenSource = new CancellationTokenSource();
+
                     if (HTTPStream is not null)
                     {
 
@@ -1156,16 +1167,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         var payload = pingCounter + ":" + Guid.NewGuid().ToString();
 
-                        await SendWebSocketFrame(WebSocketFrame.Ping(
-                                                     payload.ToUTF8Bytes(),
-                                                     WebSocketFrame.Fin.Final,
-                                                     WebSocketFrame.MaskStatus.On,
-                                                     RandomExtensions.RandomBytes(4)
-                                                 ));
+                        await SendWebSocketFrame(
+                                  WebSocketFrame.Ping(
+                                      payload.ToUTF8Bytes(),
+                                      WebSocketFrame.Fin.Final,
+                                      WebSocketFrame.MaskStatus.On,
+                                      RandomExtensions.RandomBytes(4)
+                                  ),
+                                  tokenSource.Token
+                              );
 
                         DebugX.Log(nameof(WebSocketClient) + ": Ping sent:     '" + payload + "'!");
 
                     }
+
                 }
                 catch (ObjectDisposedException)
                 {
@@ -1247,50 +1262,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendText  (Text)
+        #region SendText          (Text,           ...)
 
         /// <summary>
         /// Send a web socket text frame
         /// </summary>
         /// <param name="Text">The text to send.</param>
-        public Task SendText(String Text)
+        public Task SendText(String             Text,
+                             CancellationToken  CancellationToken   = default)
 
-            => SendWebSocketFrame(WebSocketFrame.Text(
-                                      Text,
-                                      Fin.Final,
-                                      MaskStatus.On,
-                                      RandomExtensions.RandomBytes(4)
-                                  ));
+            => SendWebSocketFrame(
+                   WebSocketFrame.Text(
+                       Text,
+                       WebSocketFrame.Fin.Final,
+                       WebSocketFrame.MaskStatus.On,
+                       RandomExtensions.RandomBytes(4)
+                   ),
+                   CancellationToken
+               );
 
         #endregion
 
-        #region SendBinary(Bytes)
+        #region SendBinary        (Bytes,          ...)
 
         /// <summary>
         /// Send a web socket binary frame
         /// </summary>
         /// <param name="Bytes">The array of bytes to send.</param>
-        public Task SendBinary(Byte[] Bytes)
+        public Task SendBinary(Byte[]             Bytes,
+                               CancellationToken  CancellationToken   = default)
 
-            => SendWebSocketFrame(WebSocketFrame.Binary(
-                                      Bytes,
-                                      Fin.Final,
-                                      MaskStatus.On,
-                                      RandomExtensions.RandomBytes(4)
-                                  ));
+            => SendWebSocketFrame(
+                   WebSocketFrame.Binary(
+                       Bytes,
+                       WebSocketFrame.Fin.Final,
+                       WebSocketFrame.MaskStatus.On,
+                       RandomExtensions.RandomBytes(4)
+                   ),
+                   CancellationToken
+               );
 
         #endregion
 
-        #region SendWebSocketFrame(WebSocketFrame)
+        #region SendWebSocketFrame(WebSocketFrame, ...)
 
-        public async Task SendWebSocketFrame(WebSocketFrame WebSocketFrame)
+        public async Task SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+                                             CancellationToken  CancellationToken   = default)
         {
 
             await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame);
 
             #region OnTextMessageSent
 
-            if (WebSocketFrame.Opcode == Opcodes.Text)
+            if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
             {
 
                 try
@@ -1303,7 +1327,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                        webSocketClientConnection,
                                                        WebSocketFrame,
                                                        EventTracking_Id.New,
-                                                       WebSocketFrame.Payload.ToUTF8String());
+                                                       WebSocketFrame.Payload.ToUTF8String(),
+                                                       CancellationToken);
 
                 }
                 catch (Exception e)
@@ -1317,7 +1342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             #region OnBinaryMessageSent
 
-            else if (WebSocketFrame.Opcode == Opcodes.Binary)
+            else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
             {
 
                 try
@@ -1330,7 +1355,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                          webSocketClientConnection,
                                                          WebSocketFrame,
                                                          EventTracking_Id.New,
-                                                         WebSocketFrame.Payload);
+                                                         WebSocketFrame.Payload,
+                                                         CancellationToken);
 
                 }
                 catch (Exception e)
@@ -1354,8 +1380,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="StatusCode">An optional status code for closing.</param>
         /// <param name="Reason">An optional reason for closing.</param>
-        public async Task Close(ClosingStatusCode  StatusCode   = ClosingStatusCode.NormalClosure,
-                                String?            Reason       = null)
+        public async Task Close(WebSocketFrame.ClosingStatusCode  StatusCode          = WebSocketFrame.ClosingStatusCode.NormalClosure,
+                                String?                           Reason              = null,
+                                CancellationToken                 CancellationToken   = default)
         {
 
             try
@@ -1363,13 +1390,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (HTTPStream is not null)
                 {
 
-                    await SendWebSocketFrame(WebSocketFrame.Close(
-                                                 StatusCode,
-                                                 Reason,
-                                                 WebSocketFrame.Fin.Final,
-                                                 WebSocketFrame.MaskStatus.On,
-                                                 RandomExtensions.RandomBytes(4)
-                                             ));
+                    await SendWebSocketFrame(
+                              WebSocketFrame.Close(
+                                  StatusCode,
+                                  Reason,
+                                  WebSocketFrame.Fin.Final,
+                                  WebSocketFrame.MaskStatus.On,
+                                  RandomExtensions.RandomBytes(4)
+                              ),
+                              CancellationToken
+                          );
 
                     HTTPStream.Close();
                     HTTPStream.Dispose();

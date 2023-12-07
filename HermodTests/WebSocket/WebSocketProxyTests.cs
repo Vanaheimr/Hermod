@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest) => {
+            webSocketServer.OnHTTPRequest                 += (timestamp, server, httpRequest, cancellationToken) => {
                 server_httpRequests.Add(httpRequest);
                 return Task.CompletedTask;
             };
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse) => {
+            webSocketServer.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse, cancellationToken) => {
                 server_httpResponses.Add(httpResponse);
                 return Task.CompletedTask;
             };
@@ -103,32 +103,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame) => {
+            webSocketServer.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame, cancellationToken) => {
                 server_messageRequests.       Add(requestFrame);
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame) => {
+            webSocketServer.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame, cancellationToken) => {
                 server_messageResponses.      Add(responseFrame);
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage, cancellationToken) => {
                 server_textMessageRequests.   Add(textMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage) => {
+            webSocketServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage, cancellationToken) => {
                 server_textMessageResponses.  Add(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
                 server_binaryMessageRequests. Add(binaryMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage) => {
+            webSocketServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
                 server_binaryMessageResponses.Add(binaryMessage);
                 return Task.CompletedTask;
             };
@@ -155,62 +155,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             var proxy_binaryMessageRequests   = new List<Byte[]>();
             var proxy_binaryMessageResponses  = new List<Byte[]>();
 
-            webSocketProxy.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
+            webSocketProxy.OnValidateTCPConnection       += (timestamp, server, connection, eventTrackingId,                cancellationToken) => {
                 proxy_validatedTCP.Add($"{proxy_validatedTCP.Count}: {connection.Client.RemoteEndPoint?.ToString() ?? "-"}");
                 return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
-            webSocketProxy.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
+            webSocketProxy.OnNewTCPConnection            += (timestamp, server, connection, eventTrackingId,                cancellationToken) => {
                 proxy_newTCPConnection.Add($"{proxy_newTCPConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnHTTPRequest                 += (timestamp, server, httpRequest)                                     => {
+            webSocketProxy.OnHTTPRequest                 += (timestamp, server, httpRequest,                                cancellationToken) => {
                 proxy_httpRequests.Add(httpRequest);
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
+            webSocketProxy.OnValidateWebSocketConnection += (timestamp, server, connection, eventTrackingId,                cancellationToken) => {
                 proxy_validatedWebSocket.Add($"{proxy_validatedWebSocket.Count}: {connection.RemoteSocket}");
                 return Task.FromResult<HTTPResponse?>(null);
             };
 
-            webSocketProxy.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse)                       => {
+            webSocketProxy.OnHTTPResponse                += (timestamp, server, httpRequest, httpResponse,                  cancellationToken) => {
                 proxy_httpResponses.Add(httpResponse);
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken)  => {
+            webSocketProxy.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId,                cancellationToken) => {
                 proxy_newWebSocketConnection.Add($"{proxy_newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame)       => {
+            webSocketProxy.OnWebSocketFrameReceived      += (timestamp, server, connection, eventTrackingId, requestFrame,  cancellationToken) => {
                 proxy_messageRequests.       Add(requestFrame);
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame)      => {
+            webSocketProxy.OnWebSocketFrameSent          += (timestamp, server, connection, eventTrackingId, responseFrame, cancellationToken) => {
                 proxy_messageResponses.      Add(responseFrame);
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage)        => {
+            webSocketProxy.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage,   cancellationToken) => {
                 proxy_textMessageRequests.   Add(textMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage)        => {
+            webSocketProxy.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage,   cancellationToken) => {
                 proxy_textMessageResponses.  Add(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage)      => {
+            webSocketProxy.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
                 proxy_binaryMessageRequests. Add(binaryMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage)      => {
+            webSocketProxy.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
                 proxy_binaryMessageResponses.Add(binaryMessage);
                 return Task.CompletedTask;
             };
@@ -231,7 +231,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                       webSocketClientConnection,
                                                       webSocketFrame,
                                                       eventTrackingId,
-                                                      textMessage) => {
+                                                      textMessage,
+                                                      cancellationToken) => {
 
                 textMessageLog.Add(textMessage);
 
@@ -250,7 +251,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                                         webSocketClientConnection,
                                                         webSocketFrame,
                                                         eventTrackingId,
-                                                        binaryMessage) => {
+                                                        binaryMessage,
+                                                        cancellationToken) => {
 
                 binaryMessageLog.Add(binaryMessage);
 
