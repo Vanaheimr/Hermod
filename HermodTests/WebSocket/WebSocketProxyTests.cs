@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 server_newWebSocketConnection.Add($"{server_newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketProxy.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId,                cancellationToken) => {
+            webSocketProxy.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 proxy_newWebSocketConnection.Add($"{proxy_newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };

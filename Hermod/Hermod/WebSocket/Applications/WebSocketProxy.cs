@@ -223,6 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                webSocketServer,
                                                webSocketServerConnection,
                                                eventTrackingId,
+                                               sharedSubprotocols,
                                                cancellationToken) =>
             {
 

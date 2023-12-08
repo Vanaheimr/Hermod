@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -340,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -746,7 +746,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.FromResult(ConnectionFilterResponse.Accepted());
             };
@@ -949,7 +949,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -1168,7 +1168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -1388,7 +1388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };

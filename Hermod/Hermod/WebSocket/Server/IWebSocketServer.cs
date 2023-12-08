@@ -151,6 +151,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         event OnCloseMessageDelegate?                 OnCloseMessageReceived;
 
+
+        /// <summary>
+        /// An event sent whenever the HTTP web socket server stopped.
+        /// </summary>
+        event OnServerStoppedDelegate?                OnServerStopped;
+
         #endregion
 
 

@@ -27,8 +27,6 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using Newtonsoft.Json.Linq;
-using System.Threading;
 
 #endregion
 
@@ -37,14 +35,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
     public delegate Task<WebSocketTextMessageResponse>    OnWebSocketTextMessage2Delegate  (DateTime                     Timestamp,
-                                                                                            AWebSocketServer              Server,
+                                                                                            AWebSocketServer             Server,
                                                                                             WebSocketServerConnection    Connection,
                                                                                             EventTracking_Id             EventTrackingId,
                                                                                             DateTime                     RequestTimestamp,
                                                                                             String                       TextMessage);
 
     public delegate Task<WebSocketBinaryMessageResponse>  OnWebSocketBinaryMessage2Delegate(DateTime                     Timestamp,
-                                                                                            AWebSocketServer              Server,
+                                                                                            AWebSocketServer             Server,
                                                                                             WebSocketServerConnection    Connection,
                                                                                             EventTracking_Id             EventTrackingId,
                                                                                             DateTime                     RequestTimestamp,
@@ -261,6 +259,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// An event sent whenever a web socket close frame was received.
         /// </summary>
         public event OnCloseMessageDelegate?                 OnCloseMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever the HTTP web socket server stopped.
+        /// </summary>
+        public event OnServerStoppedDelegate?                OnServerStopped;
 
         #endregion
 
@@ -574,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public void Start()
         {
 
-            listenerThread = new Thread(() => {
+            listenerThread = new Thread(async () => {
 
                 #region Server setup
 
@@ -584,35 +588,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 var token        = cancellationTokenSource.Token;
                 var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
-
                 tcpListener.Start();
 
-                isRunning = true;
+                isRunning        = true;
 
                 #endregion
 
                 #region Send OnServerStarted event
 
-                try
+                var onServerStarted = OnServerStarted;
+                if (onServerStarted is not null)
                 {
-
-                    var OnServerStartedLocal = OnServerStarted;
-                    if (OnServerStartedLocal is not null)
+                    try
                     {
 
-                        var responseTask = OnServerStartedLocal(Timestamp.Now,
-                                                                this,
-                                                                EventTracking_Id.New,
-                                                                token);
-
-                        responseTask.Wait(TimeSpan.FromSeconds(10));
+                        await Task.WhenAll(onServerStarted.GetInvocationList().
+                                               OfType <OnServerStartedDelegate>().
+                                               Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                              Timestamp.Now,
+                                                                              this,
+                                                                              EventTracking_Id.New,
+                                                                              token
+                                                                          )).
+                                               ToArray());
 
                     }
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnNewTCPConnection));
+                    catch (Exception e)
+                    {
+                        DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                    }
                 }
 
                 #endregion
@@ -636,22 +640,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region OnValidateTCPConnection
 
-                    var validatedTCPConnection = ConnectionFilterResponse.Accepted();
+                    var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
 
-                    var OnValidateTCPConnectionLocal = OnValidateTCPConnection;
-                    if (OnValidateTCPConnectionLocal is not null)
+                    var onValidateTCPConnection = OnValidateTCPConnection;
+                    if (onValidateTCPConnection is not null)
                     {
+                        try
+                        {
 
-                        validatedTCPConnection = OnValidateTCPConnectionLocal(Timestamp.Now,
-                                                                              this,
-                                                                              newTCPConnection,
-                                                                              EventTracking_Id.New,
-                                                                              token).Result;
+                            validatedTCPConnections = await Task.WhenAll(
+                                                                onValidateTCPConnection.GetInvocationList().
+                                                                    OfType <OnValidateTCPConnectionDelegate>().
+                                                                    Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                                                   Timestamp.Now,
+                                                                                                   this,
+                                                                                                   newTCPConnection,
+                                                                                                   EventTracking_Id.New,
+                                                                                                   token
+                                                                                               )).
+                                                                    ToArray()
+                                                            );
 
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                        }
                     }
 
-                    if (validatedTCPConnection == ConnectionFilterResponse.Rejected())
+                    if (validatedTCPConnections.Length > 0 &&
+                        validatedTCPConnections.First() == ConnectionFilterResponse.Rejected())
+                    {
                         newTCPConnection.Close();
+                    }
 
                     #endregion
 
@@ -659,9 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     else
                     {
 
-
-                        Task.Factory.StartNew(async context =>
-                        {
+                        await Task.Factory.StartNew(async context => {
 
                             try
                             {
@@ -673,8 +692,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     Boolean IsStillHTTP = true;
                                     String? httpMethod = null;
-                                    Byte[] bytes = Array.Empty<Byte>();
-                                    Byte[] bytesLeftOver = Array.Empty<Byte>();
+                                    Byte[] bytes = [];
+                                    Byte[] bytesLeftOver = [];
                                     HTTPResponse? httpResponse = null;
 
                                     var cts2 = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -704,27 +723,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     #region Send OnNewTCPConnection event
 
-                                    try
+                                    var onNewTCPConnection = OnNewTCPConnection;
+                                    if (onNewTCPConnection is not null)
                                     {
-
-                                        var OnNewTCPConnectionLocal = OnNewTCPConnection;
-                                        if (OnNewTCPConnectionLocal is not null)
+                                        try
                                         {
 
-                                            var responseTask = OnNewTCPConnectionLocal(Timestamp.Now,
-                                                                                       this,
-                                                                                       webSocketConnection,
-                                                                                       EventTracking_Id.New,
-                                                                                       token2);
-
-                                            responseTask.Wait(TimeSpan.FromSeconds(10));
+                                            await Task.WhenAll(onNewTCPConnection.GetInvocationList().
+                                                                   OfType<OnNewTCPConnectionDelegate>().
+                                                                   Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                                  Timestamp.Now,
+                                                                                                  this,
+                                                                                                  webSocketConnection,
+                                                                                                  EventTracking_Id.New,
+                                                                                                  token2
+                                                                                              )).
+                                                                   ToArray());
 
                                         }
-
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnNewTCPConnection));
+                                        catch (Exception e)
+                                        {
+                                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                        }
                                     }
 
                                     #endregion
@@ -751,12 +771,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 {
 
                                                     var eventTrackingId = EventTracking_Id.New;
-
                                                     var frame = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
-
-                                                    var success = await SendWebSocketFrame(webSocketConnection,
-                                                                                           frame,
-                                                                                           eventTrackingId);
+                                                    var success = await SendWebSocketFrame(
+                                                                                     webSocketConnection,
+                                                                                     frame,
+                                                                                     eventTrackingId,
+                                                                                     token2
+                                                                                 );
 
                                                     if (success == SendStatus.Success)
                                                     {
@@ -828,6 +849,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         if (httpMethod == "GET ")
                                         {
 
+                                            var sharedSubprotocols = Array.Empty<String>();
+
                                             #region Invalid HTTP request...
 
                                             // GET /websocket HTTP/1.1
@@ -840,8 +863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             if (!HTTPRequest.TryParse(bytes, out var httpRequest) ||
                                                  httpRequest is null)
                                             {
-                                                httpResponse = new HTTPResponse.Builder()
-                                                {
+                                                httpResponse = new HTTPResponse.Builder() {
                                                     HTTPStatusCode = HTTPStatusCode.BadRequest,
                                                     Server = HTTPServiceName,
                                                     Date = Timestamp.Now,
@@ -897,10 +919,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 var swk = webSocketConnection.HTTPRequest?.SecWebSocketKey;
                                                 var swka = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
                                                 var swkaSHA1 = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
-                                                var sharedSubprotocols = SecWebSocketProtocols.
-                                                                              Intersect(httpRequest.SecWebSocketProtocol).
-                                                                              OrderByDescending(_ => _).
-                                                                              ToArray();
+                                                sharedSubprotocols = SecWebSocketProtocols.
+                                                                           Intersect(httpRequest.SecWebSocketProtocol).
+                                                                           OrderByDescending(protocol => protocol).
+                                                                           ToArray();
 #pragma warning restore SCS0006 // Weak hashing function.
 
 
@@ -910,8 +932,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
                                                 // Sec-WebSocket-Protocol:  ocpp1.6
                                                 // Sec-WebSocket-Version:   13
-                                                httpResponse ??= new HTTPResponse.Builder(httpRequest)
-                                                {
+                                                httpResponse ??= new HTTPResponse.Builder(httpRequest) {
                                                     HTTPStatusCode = HTTPStatusCode.SwitchingProtocols,
                                                     Server = HTTPServiceName,
                                                     Connection = "Upgrade",
@@ -974,6 +995,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          this,
                                                                                                          webSocketConnection,
                                                                                                          EventTracking_Id.New,
+                                                                                                         sharedSubprotocols,
                                                                                                          token2);
 
                                                         responseTask.Wait(TimeSpan.FromSeconds(10));
@@ -988,8 +1010,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #endregion
 
-                                                IsStillHTTP  = false;
-                                                bytes        = [];
+                                                IsStillHTTP = false;
+                                                bytes = [];
 
                                             }
 
@@ -1010,7 +1032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 frame is not null)
                                             {
 
-                                                var now             = Timestamp.Now;
+                                                var now = Timestamp.Now;
                                                 var eventTrackingId = EventTracking_Id.New;
                                                 WebSocketFrame? responseFrame = null;
 
@@ -1293,7 +1315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         break;
 
-                                                    #endregion
+                                                        #endregion
 
                                                 }
 
@@ -1455,9 +1477,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 isRunning = false;
 
+                #endregion
+
                 //ToDo: Request all client connections to finish!
 
-                DebugX.Log(nameof(AWebSocketServer), " Stopped server on " + IPSocket.IPAddress + ":" + IPSocket.Port);
+                #region Send OnServerStopped event
+
+                var onServerStopped = OnServerStopped;
+                if (onServerStopped is not null)
+                {
+                    try
+                    {
+
+                        await Task.WhenAll(onServerStopped.GetInvocationList().
+                                               OfType <OnServerStoppedDelegate>().
+                                               Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                              Timestamp.Now,
+                                                                              this,
+                                                                              EventTracking_Id.New,
+                                                                              "!!!",
+                                                                              token
+                                                                          )).
+                                               ToArray());
+
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                    }
+                }
 
                 #endregion
 

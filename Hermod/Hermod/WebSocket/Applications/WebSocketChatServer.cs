@@ -123,6 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                webSocketServer,
                                                webSocketServerConnection,
                                                eventTrackingId,
+                                               sharedSubprotocols,
                                                cancellationToken) => {
 
                 connections.TryAdd(webSocketServerConnection.RemoteSocket.ToString(),
@@ -157,23 +158,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                     CancellationToken          CancellationToken)
         {
 
-            WebSocketTextMessageResponse? response = null;
+            var responses = Array.Empty<WebSocketTextMessageResponse>();
 
             var onTextMessage = OnTextMessage;
             if (onTextMessage is not null)
-                response = await onTextMessage.Invoke(RequestTimestamp,
-                                                      this,
-                                                      Connection,
-                                                      EventTrackingId,
-                                                      RequestTimestamp,
-                                                      TextMessage);
+            {
+                try
+                {
+
+                    responses = await Task.WhenAll(onTextMessage.GetInvocationList().
+                                                       OfType<OnWebSocketTextMessage2Delegate>().
+                                                       Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                     RequestTimestamp,
+                                                                                     this,
+                                                                                     Connection,
+                                                                                     EventTrackingId,
+                                                                                     RequestTimestamp,
+                                                                                     TextMessage
+                                                                                 )).
+                                                       ToArray());
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+                }
+            }
+
+            var response = responses.Where(response => response                 is not null &&
+                                                       response.ResponseMessage.IsNotNullOrEmpty()).
+                                     FirstOrDefault();
 
 
             if (TextMessage.StartsWith("chat::"))
             {
                 foreach (var connection in connections.Values)
                 {
-                    await connection.SendWebSocketFrame(WebSocketFrame.Text($"'{TextMessage}' from {Connection.RemoteSocket}"));
+                    await connection.SendWebSocketFrame(
+                              WebSocketFrame.Text($"'{TextMessage}' from {Connection.RemoteSocket}"),
+                              CancellationToken
+                          );
                 }
             }
 
@@ -209,24 +233,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                         CancellationToken          CancellationToken)
         {
 
-            WebSocketBinaryMessageResponse? response = null;
+            var responses = Array.Empty<WebSocketBinaryMessageResponse>();
 
-            var onBinaryMessage = OnBinaryMessage;
-            if (onBinaryMessage is not null)
-                response = await onBinaryMessage.Invoke(RequestTimestamp,
-                                                        this,
-                                                        Connection,
-                                                        EventTrackingId,
-                                                        RequestTimestamp,
-                                                        BinaryMessage);
+            var onTextMessage = OnTextMessage;
+            if (onTextMessage is not null)
+            {
+                try
+                {
 
+                    responses = await Task.WhenAll(onTextMessage.GetInvocationList().
+                                                       OfType<OnWebSocketBinaryMessage2Delegate>().
+                                                       Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                     RequestTimestamp,
+                                                                                     this,
+                                                                                     Connection,
+                                                                                     EventTrackingId,
+                                                                                     RequestTimestamp,
+                                                                                     BinaryMessage
+                                                                                 )).
+                                                       ToArray());
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+                }
+            }
+
+            var response = responses.Where(response => response                 is not null &&
+                                                       response.ResponseMessage.IsNeitherNullNorEmpty()).
+                                     FirstOrDefault();
 
 
             response ??= new WebSocketBinaryMessageResponse(
                              RequestTimestamp,
                              BinaryMessage,
                              Timestamp.Now,
-                             Array.Empty<Byte>(),
+                             [],
                              EventTrackingId
                          );
 
