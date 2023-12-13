@@ -580,6 +580,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             listenerThread = new Thread(async () => {
 
+                try {
+
                 #region Server setup
 
                 Thread.CurrentThread.Name          = ServerThreadNameCreator(IPSocket);
@@ -680,7 +682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     else
                     {
 
-                        await Task.Factory.StartNew(async context => {
+                        var x = Task.Factory.StartNew(async context => {
 
                             try
                             {
@@ -690,16 +692,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     #region Data
 
-                                    Boolean IsStillHTTP = true;
-                                    String? httpMethod = null;
-                                    Byte[] bytes = [];
-                                    Byte[] bytesLeftOver = [];
-                                    HTTPResponse? httpResponse = null;
+                                    Boolean        IsStillHTTP      = true;
+                                    String?        httpMethod       = null;
+                                    Byte[]         bytes            = [];
+                                    Byte[]         bytesLeftOver    = [];
+                                    HTTPResponse?  httpResponse     = null;
 
-                                    var cts2 = CancellationTokenSource.CreateLinkedTokenSource(token);
-                                    var token2 = cts2.Token;
-                                    var lastWebSocketPingTimestamp = Timestamp.Now;
-                                    var sendErrors = 0;
+                                    var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
+                                    var token2                      = cts2.Token;
+                                    var lastWebSocketPingTimestamp  = Timestamp.Now;
+                                    var sendErrors                  = 0;
 
                                     #endregion
 
@@ -916,10 +918,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 // 3. Compute SHA-1 and Base64 hash of the new value
                                                 // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
 #pragma warning disable SCS0006 // Weak hashing function.
-                                                var swk = webSocketConnection.HTTPRequest?.SecWebSocketKey;
-                                                var swka = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                                var swkaSHA1 = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
-                                                sharedSubprotocols = SecWebSocketProtocols.
+                                                var swk             = webSocketConnection.HTTPRequest?.SecWebSocketKey;
+                                                var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                                var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
+                                                sharedSubprotocols  = SecWebSocketProtocols.
                                                                            Intersect(httpRequest.SecWebSocketProtocol).
                                                                            OrderByDescending(protocol => protocol).
                                                                            ToArray();
@@ -933,14 +935,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 // Sec-WebSocket-Protocol:  ocpp1.6
                                                 // Sec-WebSocket-Version:   13
                                                 httpResponse ??= new HTTPResponse.Builder(httpRequest) {
-                                                    HTTPStatusCode = HTTPStatusCode.SwitchingProtocols,
-                                                    Server = HTTPServiceName,
-                                                    Connection = "Upgrade",
-                                                    Upgrade = "websocket",
-                                                    SecWebSocketAccept = Convert.ToBase64String(swkaSHA1),
-                                                    SecWebSocketProtocol = sharedSubprotocols,
-                                                    SecWebSocketVersion = "13"
-                                                }.AsImmutable;
+                                                                     HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
+                                                                     Server                = HTTPServiceName,
+                                                                     Connection            = "Upgrade",
+                                                                     Upgrade               = "websocket",
+                                                                     SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
+                                                                     SecWebSocketProtocol  = sharedSubprotocols,
+                                                                     SecWebSocketVersion   = "13"
+                                                                 }.AsImmutable;
 
                                                 #endregion
 
@@ -1508,6 +1510,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
 
                 #endregion
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, nameof(AWebSocketServer));
+                }
 
             });
 

@@ -329,8 +329,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait for a clean shutdown of the API.</param>
-        public virtual void Shutdown(String?  Message   = null,
-                                     Boolean  Wait      = true)
+        public async virtual Task Shutdown(String?  Message   = null,
+                                           Boolean  Wait      = true)
         {
             SOAPServer.HTTPServer.Shutdown(Message, Wait);
         }

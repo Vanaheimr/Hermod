@@ -800,8 +800,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             lock (tcpServers)
             {
 
-                foreach (var TCPServer in tcpServers)
-                    TCPServer.Shutdown(Message, Wait);
+                foreach (var tcpServer in tcpServers)
+                    tcpServer.Shutdown(Message, Wait);
 
                 SendCompleted(this,
                               Timestamp.Now,
