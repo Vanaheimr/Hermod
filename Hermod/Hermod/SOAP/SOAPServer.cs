@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net.Security;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
@@ -41,9 +40,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP content type used for all SOAP requests/responses.
         /// </summary>
-        public static readonly HTTPContentType DefaultSOAPContentType = HTTPContentType.Application.SOAPXML_UTF8;
+        public static readonly  HTTPContentType                       DefaultSOAPContentType   = HTTPContentType.Application.SOAPXML_UTF8;
 
-        private readonly Dictionary<HTTPPath, SOAPDispatcher> soapDispatchers;
+        private readonly        Dictionary<HTTPPath, SOAPDispatcher>  soapDispatchers          = [];
 
         #endregion
 
@@ -115,33 +114,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                           DNSClient?                           DNSClient                    = null,
                           Boolean                              AutoStart                    = false)
 
+            : this(new HTTPServer(
+                       TCPPort,
+                       DefaultServerName,
+                       ServiceName,
+
+                       ServerCertificateSelector,
+                       ClientCertificateValidator,
+                       ClientCertificateSelector,
+                       AllowedTLSProtocols,
+                       ClientCertificateRequired,
+                       CheckCertificateRevocation,
+
+                       ServerThreadNameCreator,
+                       ServerThreadPrioritySetter,
+                       ServerThreadIsBackground,
+                       ConnectionIdBuilder,
+                       ConnectionTimeout,
+                       MaxClientConnections,
+
+                       DNSClient,
+                       false
+                   ),
+                   SOAPContentType
+                  )
+
         {
-
-            this.HTTPServer  = new HTTPServer(
-                                   TCPPort,
-                                   DefaultServerName,
-                                   ServiceName,
-
-                                   ServerCertificateSelector,
-                                   ClientCertificateValidator,
-                                   ClientCertificateSelector,
-                                   AllowedTLSProtocols,
-                                   ClientCertificateRequired,
-                                   CheckCertificateRevocation,
-
-                                   ServerThreadNameCreator,
-                                   ServerThreadPrioritySetter,
-                                   ServerThreadIsBackground,
-                                   ConnectionIdBuilder,
-                                   ConnectionTimeout,
-                                   MaxClientConnections,
-
-                                   DNSClient,
-                                   false
-                               );
-
-            this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
-            this.soapDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
 
             if (AutoStart)
                 HTTPServer.Start();
@@ -162,9 +160,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         {
 
-            this.HTTPServer       = HTTPServer;
             this.SOAPContentType  = SOAPContentType ?? DefaultSOAPContentType;
-            this.soapDispatchers  = new Dictionary<HTTPPath, SOAPDispatcher>();
+            this.HTTPServer       = HTTPServer;
 
         }
 

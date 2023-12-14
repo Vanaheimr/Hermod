@@ -28,4 +28,8 @@
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="SOAP\" />
+  </ItemGroup>
+
 </Project>

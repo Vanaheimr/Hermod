@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     /// <summary>
     /// A HTTP/SOAP/XML server API.
     /// </summary>
-    public abstract class ASOAPServer
+    public abstract class ASOAPServer : ISOAPServer
     {
 
         #region Data
@@ -41,27 +41,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP/SOAP/XML server name.
         /// </summary>
-        public const           String           DefaultHTTPServerName   = "GraphDefined HTTP/SOAP/XML Server API";
+        public const String DefaultHTTPServerName = "GraphDefined HTTP/SOAP/XML Server API";
 
         /// <summary>
         /// The default HTTP/SOAP/XML server TCP port.
         /// </summary>
-        public static readonly IPPort           DefaultHTTPServerPort   = IPPort.HTTPS;
+        public static readonly IPPort DefaultHTTPServerPort = IPPort.HTTPS;
 
         /// <summary>
         /// The default HTTP/SOAP/XML server URL prefix.
         /// </summary>
-        public static readonly HTTPPath         DefaultURLPrefix        = HTTPPath.Parse("/");
+        public static readonly HTTPPath DefaultURLPrefix = HTTPPath.Parse("/");
 
         /// <summary>
         /// The default HTTP/SOAP/XML content type.
         /// </summary>
-        public static readonly HTTPContentType  DefaultContentType      = SOAPServer.DefaultSOAPContentType;
+        public static readonly HTTPContentType DefaultContentType = SOAPServer.DefaultSOAPContentType;
 
         /// <summary>
         /// The default request timeout.
         /// </summary>
-        public static readonly TimeSpan         DefaultRequestTimeout   = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromMinutes(1);
 
         #endregion
 
@@ -70,28 +70,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The HTTP/SOAP server.
         /// </summary>
-        public SOAPServer         SOAPServer    { get; }
+        public SOAPServer           SOAPServer    { get; }
 
         /// <summary>
         /// The common URL prefix for this HTTP/SOAP service.
         /// </summary>
-        public HTTPPath           URLPrefix     { get; }
+        public HTTPPath             URLPrefix     { get; }
 
         /// <summary>
         /// The DNS client used by this server.
         /// </summary>
-        public DNSClient          DNSClient     { get; }
+        public DNSClient            DNSClient     { get; }
 
         /// <summary>
         /// All TCP ports this SOAP server listens on.
         /// </summary>
-        public IEnumerable<IPPort> IPPorts
+        public IEnumerable<IPPort>  IPPorts
             => SOAPServer.HTTPServer.IPPorts;
 
         /// <summary>
         /// The SOAP server logger.
         /// </summary>
-        public HTTPServerLogger?  HTTPLogger    { get; set; }
+        public HTTPServerLogger?    HTTPLogger { get; set; }
 
         #endregion
 
@@ -100,17 +100,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// An event called whenever a HTTP request came in.
         /// </summary>
-        public HTTPRequestLogEvent   RequestLog    = new ();
+        public HTTPRequestLogEvent RequestLog = new();
 
         /// <summary>
         /// An event called whenever a HTTP request could successfully be processed.
         /// </summary>
-        public HTTPResponseLogEvent  ResponseLog   = new ();
+        public HTTPResponseLogEvent ResponseLog = new();
 
         /// <summary>
         /// An event called whenever a HTTP request resulted in an error.
         /// </summary>
-        public HTTPErrorLogEvent     ErrorLog      = new ();
+        public HTTPErrorLogEvent ErrorLog = new();
 
         #endregion
 
@@ -130,23 +130,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
-                              IPPort?           TCPPort                   = null,
-                              String?           ServiceName               = null,
+        protected ASOAPServer(String HTTPServerName = DefaultHTTPServerName,
+                              IPPort? TCPPort = null,
+                              String? ServiceName = null,
 
-                              HTTPPath?         URLPrefix                 = null,
-                              HTTPContentType?  SOAPContentType           = null,
-                              Boolean           RegisterHTTPRootService   = true,
-                              DNSClient?        DNSClient                 = null,
-                              Boolean           AutoStart                 = false)
+                              HTTPPath? URLPrefix = null,
+                              HTTPContentType? SOAPContentType = null,
+                              Boolean RegisterHTTPRootService = true,
+                              DNSClient? DNSClient = null,
+                              Boolean AutoStart = false)
 
-            : this(new SOAPServer(TCPPort:            TCPPort         ?? DefaultHTTPServerPort,
-                                  DefaultServerName:  HTTPServerName,
-                                  ServiceName:        ServiceName,
+            : this(new SOAPServer(TCPPort: TCPPort ?? DefaultHTTPServerPort,
+                                  DefaultServerName: HTTPServerName,
+                                  ServiceName: ServiceName,
 
-                                  SOAPContentType:    SOAPContentType ?? DefaultContentType,
-                                  DNSClient:          DNSClient,
-                                  AutoStart:          false),
+                                  SOAPContentType: SOAPContentType ?? DefaultContentType,
+                                  DNSClient: DNSClient,
+                                  AutoStart: false),
                    URLPrefix)
 
         {
@@ -179,31 +179,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        protected ASOAPServer(String                                HTTPServerName               = DefaultHTTPServerName,
-                              IPPort?                               TCPPort                      = null,
-                              String?                               ServiceName                  = null,
+        protected ASOAPServer(String HTTPServerName = DefaultHTTPServerName,
+                              IPPort? TCPPort = null,
+                              String? ServiceName = null,
 
-                              ServerCertificateSelectorDelegate?    ServerCertificateSelector    = null,
-                              RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                              SslProtocols                          AllowedTLSProtocols          = SslProtocols.Tls12,
-                              HTTPPath?                             URLPrefix                    = null,
-                              HTTPContentType?                      SOAPContentType              = null,
-                              Boolean                               RegisterHTTPRootService      = true,
-                              DNSClient?                            DNSClient                    = null,
-                              Boolean                               AutoStart                    = false)
+                              ServerCertificateSelectorDelegate? ServerCertificateSelector = null,
+                              RemoteCertificateValidationHandler? ClientCertificateValidator = null,
+                              LocalCertificateSelectionHandler? ClientCertificateSelector = null,
+                              SslProtocols AllowedTLSProtocols = SslProtocols.Tls12,
+                              HTTPPath? URLPrefix = null,
+                              HTTPContentType? SOAPContentType = null,
+                              Boolean RegisterHTTPRootService = true,
+                              DNSClient? DNSClient = null,
+                              Boolean AutoStart = false)
 
-            : this(new SOAPServer(TCPPort:                     TCPPort ?? DefaultHTTPServerPort,
-                                  DefaultServerName:           HTTPServerName,
-                                  ServiceName:                 ServiceName,
+            : this(new SOAPServer(TCPPort: TCPPort ?? DefaultHTTPServerPort,
+                                  DefaultServerName: HTTPServerName,
+                                  ServiceName: ServiceName,
 
-                                  SOAPContentType:             SOAPContentType ?? DefaultContentType,
-                                  ServerCertificateSelector:   ServerCertificateSelector,
-                                  ClientCertificateValidator:  ClientCertificateValidator,
-                                  ClientCertificateSelector:   ClientCertificateSelector,
-                                  AllowedTLSProtocols:         AllowedTLSProtocols,
-                                  DNSClient:                   DNSClient,
-                                  AutoStart:                   false),
+                                  SOAPContentType: SOAPContentType ?? DefaultContentType,
+                                  ServerCertificateSelector: ServerCertificateSelector,
+                                  ClientCertificateValidator: ClientCertificateValidator,
+                                  ClientCertificateSelector: ClientCertificateSelector,
+                                  AllowedTLSProtocols: AllowedTLSProtocols,
+                                  DNSClient: DNSClient,
+                                  AutoStart: false),
                    URLPrefix)
 
         {
@@ -225,25 +225,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="SOAPServer">A SOAP server.</param>
         /// <param name="URLPrefix">An optional URL prefix for the SOAP URI templates.</param>
-        protected ASOAPServer(SOAPServer  SOAPServer,
-                              HTTPPath?   URLPrefix = null)
+        protected ASOAPServer(SOAPServer SOAPServer,
+                              HTTPPath? URLPrefix = null)
         {
 
             #region Initial checks
 
             if (URLPrefix.HasValue)
                 while (URLPrefix.Value.EndsWith("/", StringComparison.Ordinal) && URLPrefix.Value.Length > 1)
-                    URLPrefix = URLPrefix.Value.Substring(0, (Int32) URLPrefix.Value.Length - 1);
+                    URLPrefix = URLPrefix.Value.Substring(0, (Int32)URLPrefix.Value.Length - 1);
 
             #endregion
 
-            this.SOAPServer  = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
-            this.URLPrefix   = URLPrefix ?? DefaultURLPrefix;
-            this.DNSClient   = SOAPServer.HTTPServer.DNSClient;
+            this.SOAPServer = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
+            this.URLPrefix = URLPrefix ?? DefaultURLPrefix;
+            this.DNSClient = SOAPServer.HTTPServer.DNSClient;
 
-            SOAPServer.HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
-            SOAPServer.HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
-            SOAPServer.HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
+            SOAPServer.HTTPServer.RequestLog += (HTTPProcessor, ServerTimestamp, Request) => RequestLog.WhenAll(HTTPProcessor, ServerTimestamp, Request);
+            SOAPServer.HTTPServer.ResponseLog += (HTTPProcessor, ServerTimestamp, Request, Response) => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
+            SOAPServer.HTTPServer.ErrorLog += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
         }
 
@@ -272,19 +272,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                       HTTPContentType.Text.HTML_UTF8
                                   },
 
-                                  HTTPDelegate: Request => {
+                                  HTTPDelegate: Request =>
+                                  {
 
                                       return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
+                                          new HTTPResponse.Builder(Request)
+                                          {
 
-                                              HTTPStatusCode  = HTTPStatusCode.BadGateway,
-                                              ContentType     = HTTPContentType.Text.PLAIN,
-                                              Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
+                                              HTTPStatusCode = HTTPStatusCode.BadGateway,
+                                              ContentType = HTTPContentType.Text.PLAIN,
+                                              Content = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
                                                                  "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
 
                                                                  ((Request.HTTPBodyStream is SslStream)
                                                                       ? ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Subject ?? "-") + Environment.NewLine +
-                                                                        ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer  ?? "-") + Environment.NewLine +
+                                                                        ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer ?? "-") + Environment.NewLine +
                                                                          Environment.NewLine
                                                                       : "") +
 
@@ -293,11 +295,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                      SOAPDispatchers.
                                                                      Select(group => " - " + group.Key + Environment.NewLine +
                                                                                      "   " + group.SelectMany(dispatcher => dispatcher.SOAPDispatches).
-                                                                                                   Select    (dispatch   => dispatch.  Description).
+                                                                                                   Select(dispatch => dispatch.Description).
                                                                                                    AggregateWith(", ")
                                                                            ).AggregateWith(Environment.NewLine + Environment.NewLine)
                                                                 ).ToUTF8Bytes(),
-                                              Connection      = "close"
+                                              Connection = "close"
 
                                           }.AsImmutable);
 
@@ -329,8 +331,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait for a clean shutdown of the API.</param>
-        public async virtual Task Shutdown(String?  Message   = null,
-                                           Boolean  Wait      = true)
+        public async virtual Task Shutdown(String? Message = null,
+                                           Boolean Wait = true)
         {
             SOAPServer.HTTPServer.Shutdown(Message, Wait);
         }
