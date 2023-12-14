@@ -18,11 +18,11 @@
 #region Usings
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
-using System.Net.WebSockets;
 
 #endregion
 
@@ -194,14 +194,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count < numberOfClients)
                 Thread.Sleep(10);
 
-            Assert.AreEqual(numberOfClients, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            Assert.AreEqual(numberOfClients, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            Assert.AreEqual(numberOfClients, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            Assert.AreEqual(numberOfClients, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(numberOfClients, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
+            ClassicAssert.AreEqual(numberOfClients, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
+            ClassicAssert.AreEqual(numberOfClients, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
+            ClassicAssert.AreEqual(numberOfClients, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
 
-            Assert.AreEqual(numberOfClients, httpRequests.          Count);
-            Assert.AreEqual(numberOfClients, httpResponses.         Count);
-            Assert.AreEqual(numberOfClients, webSocketChatServer.WebSocketConnections.Count());
+            ClassicAssert.AreEqual(numberOfClients, httpRequests.          Count);
+            ClassicAssert.AreEqual(numberOfClients, httpResponses.         Count);
+            ClassicAssert.AreEqual(numberOfClients, webSocketChatServer.WebSocketConnections.Count());
 
 
             //var request       = httpResponse.HTTPRequest?.EntirePDU ?? "";
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var runTime2 = Timestamp.Now - startTimestamp;
 
-            Assert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP web socket closing exceptions!");
+            ClassicAssert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP web socket closing exceptions!");
 
         }
 

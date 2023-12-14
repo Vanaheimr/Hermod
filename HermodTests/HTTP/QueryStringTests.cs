@@ -44,9 +44,9 @@
 
 //            var QueryString = new QueryString("abc?a=b");
 
-//            Assert.AreEqual(1,   QueryString.Count());
-//            Assert.AreEqual("a", QueryString.First().Key);
-//            Assert.AreEqual("b", QueryString.First().Value.First());
+//            ClassicAssert.AreEqual(1,   QueryString.Count());
+//            ClassicAssert.AreEqual("a", QueryString.First().Key);
+//            ClassicAssert.AreEqual("b", QueryString.First().Value.First());
 
 //        }
 
@@ -60,10 +60,10 @@
 
 //            var QueryString = new QueryString("?a=b&a=c");
 
-//            Assert.AreEqual(1, QueryString.Count());
-//            Assert.AreEqual("a", QueryString.First().Key);
-//            Assert.AreEqual("b", QueryString.First().Value.First());
-//            Assert.AreEqual("c", QueryString.First().Value.Skip(1).First());
+//            ClassicAssert.AreEqual(1, QueryString.Count());
+//            ClassicAssert.AreEqual("a", QueryString.First().Key);
+//            ClassicAssert.AreEqual("b", QueryString.First().Value.First());
+//            ClassicAssert.AreEqual("c", QueryString.First().Value.Skip(1).First());
 
 //        }
 
@@ -77,11 +77,11 @@
 
 //            var QueryString = new QueryString("a=b&c=d");
 
-//            Assert.AreEqual(2, QueryString.Count());
-//            Assert.AreEqual("a", QueryString.First().Key);
-//            Assert.AreEqual("b", QueryString.First().Value.First());
-//            Assert.AreEqual("c", QueryString.Skip(1).First().Key);
-//            Assert.AreEqual("d", QueryString.Skip(1).First().Value.First());
+//            ClassicAssert.AreEqual(2, QueryString.Count());
+//            ClassicAssert.AreEqual("a", QueryString.First().Key);
+//            ClassicAssert.AreEqual("b", QueryString.First().Value.First());
+//            ClassicAssert.AreEqual("c", QueryString.Skip(1).First().Key);
+//            ClassicAssert.AreEqual("d", QueryString.Skip(1).First().Value.First());
 
 //        }
 
@@ -119,7 +119,7 @@
             
 //            var QueryString = new QueryString("&");
             
-//            Assert.AreEqual(0, QueryString.Count());
+//            ClassicAssert.AreEqual(0, QueryString.Count());
 
 //        }
 
@@ -133,7 +133,7 @@
 
 //            var QueryString = new QueryString("a=b&");
 
-//            Assert.AreEqual(1, QueryString.Count());
+//            ClassicAssert.AreEqual(1, QueryString.Count());
 
 //        }
 
@@ -147,7 +147,7 @@
 
 //            var QueryString = new QueryString("a=");
 
-//            Assert.AreEqual(0, QueryString.Count());
+//            ClassicAssert.AreEqual(0, QueryString.Count());
 
 //        }
 
@@ -161,7 +161,7 @@
 
 //            var QueryString = new QueryString("=b");
 
-//            Assert.AreEqual(0, QueryString.Count());
+//            ClassicAssert.AreEqual(0, QueryString.Count());
 
 //        }
 

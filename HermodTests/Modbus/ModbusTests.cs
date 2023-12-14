@@ -20,6 +20,7 @@
 using System.Net.Sockets;
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Hermod.Modbus;
 
@@ -73,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         public async Task RAWTest1()
         {
 
-            Assert.IsNotNull(ModbusTCPServer);
+            ClassicAssert.IsNotNull(ModbusTCPServer);
 
             if (ModbusTCPServer is null)
                 return;
@@ -170,9 +171,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
             var buffer    = new Byte[5000];
             var read      = tcpStream.Read(buffer, 0, buffer.Length);
 
-            Assert.IsNotNull(readHoldingRegistersRequest1);
-            Assert.IsNotNull(readHoldingRegistersRequest2);
-            Assert.IsTrue   (read > 0);
+            ClassicAssert.IsNotNull(readHoldingRegistersRequest1);
+            ClassicAssert.IsNotNull(readHoldingRegistersRequest2);
+            ClassicAssert.IsTrue   (read > 0);
 
             Array.Resize(ref buffer, read);
 
@@ -189,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
         public async Task ReadHoldingRegisters_Test1()
         {
 
-            Assert.IsNotNull(ModbusTCPServer);
+            ClassicAssert.IsNotNull(ModbusTCPServer);
 
             if (ModbusTCPServer is null)
                 return;
@@ -215,12 +216,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.Modbus
 
             var response = await client.ReadHoldingRegisters(9, 4);
 
-            Assert.IsNotNull(readHoldingRegistersRequest1);
+            ClassicAssert.IsNotNull(readHoldingRegistersRequest1);
 
             if (readHoldingRegistersRequest1 is not null)
             {
-                Assert.AreEqual(9, readHoldingRegistersRequest1.StartingAddress);
-                Assert.AreEqual(4, readHoldingRegistersRequest1.NumberOfRegisters);
+                ClassicAssert.AreEqual(9, readHoldingRegistersRequest1.StartingAddress);
+                ClassicAssert.AreEqual(4, readHoldingRegistersRequest1.NumberOfRegisters);
             }
 
         }

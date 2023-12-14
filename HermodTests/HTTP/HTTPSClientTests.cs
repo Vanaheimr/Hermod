@@ -17,14 +17,13 @@
 
 #region Usings
 
+using System.Security.Cryptography.X509Certificates;
+
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Channels;
-using System.Text;
 
 #endregion
 
@@ -113,9 +112,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             // Host: 127.0.0.1:82
 
             // HTTP requests should not have a "Date"-header!
-            Assert.IsFalse(request.Contains("Date:"),                          request);
-            Assert.IsTrue (request.Contains("GET / HTTP/1.1"),                  request);
-            Assert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPSPort}"),   request);
+            ClassicAssert.IsFalse(request.Contains("Date:"),                          request);
+            ClassicAssert.IsTrue (request.Contains("GET / HTTP/1.1"),                  request);
+            ClassicAssert.IsTrue (request.Contains($"Host: 127.0.0.1:{HTTPSPort}"),   request);
 
 
 
@@ -133,13 +132,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
             // 
             // Hello World!
 
-            Assert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
-            Assert.IsTrue  (response.Contains("Hello World!"),      response);
+            ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 200 OK"),   response);
+            ClassicAssert.IsTrue  (response.Contains("Hello World!"),      response);
 
-            Assert.AreEqual("Hello World!",                         httpsBody);
+            ClassicAssert.AreEqual("Hello World!",                         httpsBody);
 
-            Assert.AreEqual("Hermod Test Server",                   httpsResponse.Server);
-            Assert.AreEqual("Hello World!".Length,                  httpsResponse.ContentLength);
+            ClassicAssert.AreEqual("Hermod Test Server",                   httpsResponse.Server);
+            ClassicAssert.AreEqual("Hello World!".Length,                  httpsResponse.ContentLength);
 
         }
 

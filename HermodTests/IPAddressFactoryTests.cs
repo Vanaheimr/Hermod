@@ -18,6 +18,7 @@
 #region Usings
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 #endregion
 
@@ -42,9 +43,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var ipv4Address = IPAddressHelper.Parse("141.24.12.2");
 
-            Assert.IsTrue (ipv4Address is IIPAddress);
-            Assert.IsTrue (ipv4Address is IPv4Address);
-            Assert.IsFalse(ipv4Address is IPv6Address);
+            ClassicAssert.IsTrue (ipv4Address is IIPAddress);
+            ClassicAssert.IsTrue (ipv4Address is IPv4Address);
+            ClassicAssert.IsFalse(ipv4Address is IPv6Address);
 
         }
 
@@ -75,9 +76,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var ipv4Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0 });
 
-            Assert.IsTrue (ipv4Address is IIPAddress);
-            Assert.IsTrue (ipv4Address is IPv4Address);
-            Assert.IsFalse(ipv4Address is IPv6Address);
+            ClassicAssert.IsTrue (ipv4Address is IIPAddress);
+            ClassicAssert.IsTrue (ipv4Address is IPv4Address);
+            ClassicAssert.IsFalse(ipv4Address is IPv6Address);
 
         }
 
@@ -94,9 +95,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var ipv6Address = IPAddressHelper.Build(new Byte[] { 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0 });
 
-            Assert.IsTrue (ipv6Address is IIPAddress);
-            Assert.IsFalse(ipv6Address is IPv4Address);
-            Assert.IsTrue (ipv6Address is IPv6Address);
+            ClassicAssert.IsTrue (ipv6Address is IIPAddress);
+            ClassicAssert.IsFalse(ipv6Address is IPv4Address);
+            ClassicAssert.IsTrue (ipv6Address is IPv6Address);
 
         }
 

@@ -18,6 +18,7 @@
 #region Usings
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -108,8 +109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains("200 OK"),       response);
-            Assert.IsTrue(response.Contains("Hello World!"), response);
+            ClassicAssert.IsTrue(response.Contains("200 OK"),       response);
+            ClassicAssert.IsTrue(response.Contains("Hello World!"), response);
 
         }
 
@@ -126,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
+            ClassicAssert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
 
         }
 
@@ -143,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains(_400_BadRequest), response);
+            ClassicAssert.IsTrue(response.Contains(_400_BadRequest), response);
 
         }
 
@@ -160,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
+            ClassicAssert.IsTrue(response.Contains(_505_HTTPVersionNotSupported), response);
 
         }
 
@@ -177,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains(_400_BadRequest), response);
+            ClassicAssert.IsTrue(response.Contains(_400_BadRequest), response);
 
         }
 
@@ -196,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains(_400_BadRequest), response);
+            ClassicAssert.IsTrue(response.Contains(_400_BadRequest), response);
 
         }
 
@@ -213,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                            FinishCurrentRequest().
                            Response;
 
-            Assert.IsTrue(response.Contains(_405_MethodNotAllowed), response);
+            ClassicAssert.IsTrue(response.Contains(_405_MethodNotAllowed), response);
 
         }
 

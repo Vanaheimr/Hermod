@@ -21,6 +21,7 @@ using System.Net;
 using System.Text;
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -61,10 +62,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse  = await httpClient.GetAsync($"http://127.0.0.1:{HTTPPort}");
             var responseBody  = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
-            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+            ClassicAssert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            ClassicAssert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
 
-            Assert.AreEqual("Hello World!",          responseBody);
+            ClassicAssert.AreEqual("Hello World!",          responseBody);
 
 
         }
@@ -83,13 +84,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse    = await httpClient.PostAsync($"http://127.0.0.1:{HTTPPort}/mirror/queryString?q={randomString}", null);
             var responseBody    = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
-            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+            ClassicAssert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            ClassicAssert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
 
 
             var mirroredString  = randomString.Reverse();
 
-            Assert.AreEqual(mirroredString,          responseBody);
+            ClassicAssert.AreEqual(mirroredString,          responseBody);
 
         }
 
@@ -111,13 +112,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                              ));
             var responseBody    = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
-            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+            ClassicAssert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            ClassicAssert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
 
 
             var mirroredString  = randomString.Reverse();
 
-            Assert.AreEqual(mirroredString,          responseBody);
+            ClassicAssert.AreEqual(mirroredString,          responseBody);
 
         }
 
@@ -143,13 +144,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpResponse        = await httpClient.SendAsync(httpRequest);
             var responseBody        = await httpResponse.Content.ReadAsStringAsync();
 
-            Assert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
-            Assert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
+            ClassicAssert.AreEqual(HttpStatusCode.OK,       httpResponse.StatusCode);
+            ClassicAssert.AreEqual("Kestrel Test Server",   httpResponse.Headers.Server.ToString());
 
 
             var mirroredString  = randomString.Reverse();
 
-            Assert.AreEqual(mirroredString,          responseBody);
+            ClassicAssert.AreEqual(mirroredString,          responseBody);
 
         }
 

@@ -18,6 +18,7 @@
 #region Usings
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -278,8 +279,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              Result;
 
 
-            Assert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            ClassicAssert.AreEqual(200,                       response?.HTTPStatusCode.Code);
+            ClassicAssert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
 
         }
 
@@ -303,8 +304,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                         Result;
 
 
-            Assert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            ClassicAssert.AreEqual(200,                       response?.HTTPStatusCode.Code);
+            ClassicAssert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
 
         }
 
@@ -328,8 +329,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                         Result;
 
 
-            Assert.AreEqual(200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            ClassicAssert.AreEqual(200,                       response?.HTTPStatusCode.Code);
+            ClassicAssert.AreEqual("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
 
         }
 
@@ -366,36 +367,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                           Result;
 
 
-            Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
-            Assert.AreEqual (4,                         chunkExtensions.Count);
+            ClassicAssert.AreEqual (200,                       response?.HTTPStatusCode.Code);
+            ClassicAssert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            ClassicAssert.AreEqual (4,                         chunkExtensions.Count);
 
-            Assert.AreEqual (7, chunkLengths[0]);
-            Assert.IsNull   (chunkExtensions[0]);
-            Assert.AreEqual ("Mozilla",                 chunkData[0]);
+            ClassicAssert.AreEqual (7, chunkLengths[0]);
+            ClassicAssert.IsNull   (chunkExtensions[0]);
+            ClassicAssert.AreEqual ("Mozilla",                 chunkData[0]);
 
-            Assert.AreEqual (9, chunkLengths[1]);
-            Assert.IsNotNull(chunkExtensions[1]);
-            Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
-            Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-            Assert.AreEqual ("Developer",               chunkData[1]);
+            ClassicAssert.AreEqual (9, chunkLengths[1]);
+            ClassicAssert.IsNotNull(chunkExtensions[1]);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.Count);
+            ClassicAssert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+            ClassicAssert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+            ClassicAssert.AreEqual ("Developer",               chunkData[1]);
 
-            Assert.AreEqual (7, chunkLengths[2]);
-            Assert.IsNotNull(chunkExtensions[2]);
-            Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
-            Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-            Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-            Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-            Assert.AreEqual ("Network",                 chunkData[2]);
+            ClassicAssert.AreEqual (7, chunkLengths[2]);
+            ClassicAssert.IsNotNull(chunkExtensions[2]);
+            ClassicAssert.AreEqual (2,                         chunkExtensions[2]?.Count);
+            ClassicAssert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+            ClassicAssert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+            ClassicAssert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+            ClassicAssert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+            ClassicAssert.AreEqual ("Network",                 chunkData[2]);
 
-            Assert.AreEqual (0, chunkLengths[3]);
-            Assert.IsNull   (chunkExtensions[3]);
-            Assert.AreEqual ("",                        chunkData[3]);
+            ClassicAssert.AreEqual (0, chunkLengths[3]);
+            ClassicAssert.IsNull   (chunkExtensions[3]);
+            ClassicAssert.AreEqual ("",                        chunkData[3]);
 
             //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
             //Assert.IsNotNull(json);
@@ -435,36 +436,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                           Result;
 
 
-            Assert.AreEqual (200,                       response?.HTTPStatusCode.Code);
-            Assert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
-            Assert.AreEqual (4,                         chunkExtensions.Count);
+            ClassicAssert.AreEqual (200,                       response?.HTTPStatusCode.Code);
+            ClassicAssert.AreEqual ("MozillaDeveloperNetwork", response?.HTTPBodyAsUTF8String);
+            ClassicAssert.AreEqual (4,                         chunkExtensions.Count);
 
-            Assert.AreEqual (7, chunkLengths[0]);
-            Assert.IsNull   (chunkExtensions[0]);
-            Assert.AreEqual ("Mozilla",                 chunkData[0]);
+            ClassicAssert.AreEqual (7, chunkLengths[0]);
+            ClassicAssert.IsNull   (chunkExtensions[0]);
+            ClassicAssert.AreEqual ("Mozilla",                 chunkData[0]);
 
-            Assert.AreEqual (9, chunkLengths[1]);
-            Assert.IsNotNull(chunkExtensions[1]);
-            Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
-            Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-            Assert.AreEqual ("Developer",               chunkData[1]);
+            ClassicAssert.AreEqual (9, chunkLengths[1]);
+            ClassicAssert.IsNotNull(chunkExtensions[1]);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.Count);
+            ClassicAssert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+            ClassicAssert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+            ClassicAssert.AreEqual ("Developer",               chunkData[1]);
 
-            Assert.AreEqual (7, chunkLengths[2]);
-            Assert.IsNotNull(chunkExtensions[2]);
-            Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
-            Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-            Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-            Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-            Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-            Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-            Assert.AreEqual ("Network",                 chunkData[2]);
+            ClassicAssert.AreEqual (7, chunkLengths[2]);
+            ClassicAssert.IsNotNull(chunkExtensions[2]);
+            ClassicAssert.AreEqual (2,                         chunkExtensions[2]?.Count);
+            ClassicAssert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+            ClassicAssert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+            ClassicAssert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+            ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+            ClassicAssert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+            ClassicAssert.AreEqual ("Network",                 chunkData[2]);
 
-            Assert.AreEqual (0, chunkLengths[3]);
-            Assert.IsNull   (chunkExtensions[3]);
-            Assert.AreEqual ("",                        chunkData[3]);
+            ClassicAssert.AreEqual (0, chunkLengths[3]);
+            ClassicAssert.IsNull   (chunkExtensions[3]);
+            ClassicAssert.AreEqual ("",                        chunkData[3]);
 
             //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
             //Assert.IsNotNull(json);
@@ -503,46 +504,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                               })).
                                           Result;
 
-            Assert.IsNotNull(response);
+            ClassicAssert.IsNotNull(response);
 
             if (response is not null)
             {
 
-                Assert.AreEqual (200,                       response.HTTPStatusCode.Code);
-                Assert.AreEqual ("MozillaDeveloperNetwork", response.HTTPBodyAsUTF8String);
-                Assert.AreEqual (4,                         chunkExtensions.Count);
+                ClassicAssert.AreEqual (200,                       response.HTTPStatusCode.Code);
+                ClassicAssert.AreEqual ("MozillaDeveloperNetwork", response.HTTPBodyAsUTF8String);
+                ClassicAssert.AreEqual (4,                         chunkExtensions.Count);
 
-                Assert.AreEqual (7, chunkLengths[0]);
-                Assert.IsNull   (chunkExtensions[0]);
-                Assert.AreEqual ("Mozilla",                 chunkData[0]);
+                ClassicAssert.AreEqual (7, chunkLengths[0]);
+                ClassicAssert.IsNull   (chunkExtensions[0]);
+                ClassicAssert.AreEqual ("Mozilla",                 chunkData[0]);
 
-                Assert.AreEqual (9, chunkLengths[1]);
-                Assert.IsNotNull(chunkExtensions[1]);
-                Assert.AreEqual (1,                         chunkExtensions[1]?.Count);
-                Assert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
-                Assert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
-                Assert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
-                Assert.AreEqual ("Developer",               chunkData[1]);
+                ClassicAssert.AreEqual (9, chunkLengths[1]);
+                ClassicAssert.IsNotNull(chunkExtensions[1]);
+                ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.Count);
+                ClassicAssert.AreEqual ("a",                       chunkExtensions[1]?.First().Key);
+                ClassicAssert.AreEqual (1,                         chunkExtensions[1]?.First().Value.Count);
+                ClassicAssert.AreEqual ("b",                       chunkExtensions[1]?.First().Value.First());
+                ClassicAssert.AreEqual ("Developer",               chunkData[1]);
 
-                Assert.AreEqual (7, chunkLengths[2]);
-                Assert.IsNotNull(chunkExtensions[2]);
-                Assert.AreEqual (2,                         chunkExtensions[2]?.Count);
-                Assert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
-                Assert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
-                Assert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
-                Assert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
-                Assert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
-                Assert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
-                Assert.AreEqual ("Network",                 chunkData[2]);
+                ClassicAssert.AreEqual (7, chunkLengths[2]);
+                ClassicAssert.IsNotNull(chunkExtensions[2]);
+                ClassicAssert.AreEqual (2,                         chunkExtensions[2]?.Count);
+                ClassicAssert.AreEqual ("a",                       chunkExtensions[2]?.First().Key);
+                ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.First().Value.Count);
+                ClassicAssert.AreEqual ("b",                       chunkExtensions[2]?.First().Value.First());
+                ClassicAssert.AreEqual ("c",                       chunkExtensions[2]?.Skip(1).First().Key);
+                ClassicAssert.AreEqual (1,                         chunkExtensions[2]?.Skip(1).First().Value.Count);
+                ClassicAssert.AreEqual ("d",                       chunkExtensions[2]?.Skip(1).First().Value.First());
+                ClassicAssert.AreEqual ("Network",                 chunkData[2]);
 
-                Assert.AreEqual (0, chunkLengths[3]);
-                Assert.IsNull   (chunkExtensions[3]);
-                Assert.AreEqual ("",                        chunkData[3]);
+                ClassicAssert.AreEqual (0, chunkLengths[3]);
+                ClassicAssert.IsNull   (chunkExtensions[3]);
+                ClassicAssert.AreEqual ("",                        chunkData[3]);
 
-                Assert.AreEqual (String.Empty,              response.GetHeaderField(HTTPHeaderField.TransferEncoding));
-                Assert.AreEqual ("no-cache",                response.GetHeaderField(HTTPHeaderField.CacheControl));
-                Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader"));
-                Assert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader2"));
+                ClassicAssert.AreEqual (String.Empty,              response.GetHeaderField(HTTPHeaderField.TransferEncoding));
+                ClassicAssert.AreEqual ("no-cache",                response.GetHeaderField(HTTPHeaderField.CacheControl));
+                ClassicAssert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader"));
+                ClassicAssert.AreEqual (String.Empty,              response.GetHeaderField("TrailingHeader2"));
 
             }
 

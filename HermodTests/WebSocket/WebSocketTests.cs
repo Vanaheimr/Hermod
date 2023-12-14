@@ -18,6 +18,7 @@
 #region Usings
 
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -76,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
         public async Task SendTwoTextFrames_Fast_Test()
         {
 
-            Assert.NotNull(webSocketServer);
+            ClassicAssert.NotNull(webSocketServer);
 
             if (webSocketServer is null)
                 return;
@@ -143,14 +144,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
-            Assert.IsTrue  (validatedTCP);
-            Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validatedWebSocket);
-            Assert.IsTrue  (newWebSocketConnection);
+            ClassicAssert.IsTrue  (validatedTCP);
+            ClassicAssert.IsTrue  (newTCPConnection);
+            ClassicAssert.IsTrue  (validatedWebSocket);
+            ClassicAssert.IsTrue  (newWebSocketConnection);
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
-            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            ClassicAssert.AreEqual(1, httpRequests. Count);
+            ClassicAssert.AreEqual(1, httpResponses.Count);
+            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
             // Send messages
@@ -162,17 +163,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
 
             // Validate message delivery
-            Assert.AreEqual(2,      messageRequests. Count);
-            Assert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            Assert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            ClassicAssert.AreEqual(2,      messageRequests. Count);
+            ClassicAssert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
+            ClassicAssert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(0,      messageResponses.Count);
+            ClassicAssert.AreEqual(0,      messageResponses.Count);
 
-            Assert.AreEqual(2,      textMessageRequests.Count);
-            Assert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            ClassicAssert.AreEqual(2,      textMessageRequests.Count);
+            ClassicAssert.AreEqual("1234", textMessageRequests.ElementAt(0));
+            ClassicAssert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
 
-            Assert.AreEqual(0,      textMessageResponses.Count);
+            ClassicAssert.AreEqual(0,      textMessageResponses.Count);
 
             await webSocketClient.Close();
 
@@ -186,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
         public async Task SendTwoTextFrames_Slow_Test()
         {
 
-            Assert.NotNull(webSocketServer);
+            ClassicAssert.NotNull(webSocketServer);
 
             if (webSocketServer is null)
                 return;
@@ -253,14 +254,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             var webSocketClient = new WebSocketClient(URL.Parse("ws://127.0.0.1:" + port));
             await webSocketClient.Connect();
 
-            Assert.IsTrue  (validatedTCP);
-            Assert.IsTrue  (newTCPConnection);
-            Assert.IsTrue  (validatedWebSocket);
-            Assert.IsTrue  (newWebSocketConnection);
+            ClassicAssert.IsTrue  (validatedTCP);
+            ClassicAssert.IsTrue  (newTCPConnection);
+            ClassicAssert.IsTrue  (validatedWebSocket);
+            ClassicAssert.IsTrue  (newWebSocketConnection);
 
-            Assert.AreEqual(1, httpRequests. Count);
-            Assert.AreEqual(1, httpResponses.Count);
-            Assert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
+            ClassicAssert.AreEqual(1, httpRequests. Count);
+            ClassicAssert.AreEqual(1, httpResponses.Count);
+            ClassicAssert.AreEqual(1, webSocketServer.WebSocketConnections.Count());
 
 
             // Send messages
@@ -276,17 +277,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
 
             // Validate message delivery
-            Assert.AreEqual(2,      messageRequests. Count);
-            Assert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
-            Assert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
+            ClassicAssert.AreEqual(2,      messageRequests. Count);
+            ClassicAssert.AreEqual("1234", messageRequests.ElementAt(0).Payload.ToUTF8String());
+            ClassicAssert.AreEqual("ABCD", messageRequests.ElementAt(1).Payload.ToUTF8String());
 
-            Assert.AreEqual(0,      messageResponses.Count);
+            ClassicAssert.AreEqual(0,      messageResponses.Count);
 
-            Assert.AreEqual(2,      textMessageRequests.Count);
-            Assert.AreEqual("1234", textMessageRequests.ElementAt(0));
-            Assert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
+            ClassicAssert.AreEqual(2,      textMessageRequests.Count);
+            ClassicAssert.AreEqual("1234", textMessageRequests.ElementAt(0));
+            ClassicAssert.AreEqual("ABCD", textMessageRequests.ElementAt(1));
 
-            Assert.AreEqual(0,      textMessageResponses.Count);
+            ClassicAssert.AreEqual(0,      textMessageResponses.Count);
 
             await webSocketClient.Close();
 
