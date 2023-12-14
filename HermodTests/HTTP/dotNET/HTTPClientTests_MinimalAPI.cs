@@ -619,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             ClassicAssert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
 
             ClassicAssert.AreEqual(4,                                                                                      chunkData.Count,   "chunkData.Count");
-            //Assert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
+            //ClassicAssert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
 
             ClassicAssert.AreEqual(4,                                                                                      chunkBlocks.Count, "chunkBlocks.Count");
             ClassicAssert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                                chunkBlocks.ElementAt(0));
@@ -703,7 +703,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             ClassicAssert.AreEqual("Kestrel Test Server",                  httpResponse.Server);
 
             ClassicAssert.AreEqual(4,                                                                                      chunkData.Count,   "chunkData.Count");
-            //Assert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
+            //ClassicAssert.AreEqual("1: '5\r\nHello\r\n1\r\n \r\n6\r\nWorld!\r\n0\r\n\r\n' 32 byte(s), 32 byte(s) total",   chunkData.First());
 
             ClassicAssert.AreEqual(4,                                                                                      chunkBlocks.Count, "chunkBlocks.Count");
             ClassicAssert.AreEqual("1: 'Hello' 5 byte(s), 5 byte(s) total",                                                chunkBlocks.ElementAt(0));

@@ -191,10 +191,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //// Sec-WebSocket-Version:    13
 
             //// HTTP requests should not have a "Date"-header!
-            //Assert.IsFalse (request.Contains("Date:"),                         request);
-            //Assert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            //Assert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            //Assert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
+            //ClassicAssert.IsFalse (request.Contains("Date:"),                         request);
+            //ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
+            //ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            //ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
 
             #endregion
 
@@ -211,11 +211,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //// Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
             //// Sec-WebSocket-Version:    13
 
-            //Assert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            //ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            //Assert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
-            //Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            //Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            //ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            //ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
+            //ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
             #endregion
 
@@ -238,24 +238,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
 
-            //Assert.AreEqual(2,       messageRequests. Count);
-            //Assert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
-            //Assert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
+            //ClassicAssert.AreEqual(2,       messageRequests. Count);
+            //ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
+            //ClassicAssert.AreEqual("ABCD",  messageRequests. ElementAt(1).Payload.ToUTF8String());
 
-            //Assert.AreEqual(2,       messageResponses.Count);
-            //Assert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
-            //Assert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
+            //ClassicAssert.AreEqual(2,       messageResponses.Count);
+            //ClassicAssert.AreEqual("4321",  messageResponses.ElementAt(0).Payload.ToUTF8String());
+            //ClassicAssert.AreEqual("DCBA",  messageResponses.ElementAt(1).Payload.ToUTF8String());
 
 
-            //Assert.AreEqual(1,       textMessageRequests.   Count);
-            //Assert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
-            //Assert.AreEqual(1,       binaryMessageRequests. Count);
-            //Assert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
+            //ClassicAssert.AreEqual(1,       textMessageRequests.   Count);
+            //ClassicAssert.AreEqual("1234",  textMessageRequests.   ElementAt(0));
+            //ClassicAssert.AreEqual(1,       binaryMessageRequests. Count);
+            //ClassicAssert.AreEqual("ABCD",  binaryMessageRequests. ElementAt(0).ToUTF8String());
 
-            //Assert.AreEqual(1,       textMessageResponses.  Count);
-            //Assert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
-            //Assert.AreEqual(1,       binaryMessageResponses.Count);
-            //Assert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
+            //ClassicAssert.AreEqual(1,       textMessageResponses.  Count);
+            //ClassicAssert.AreEqual("4321",  textMessageResponses.  ElementAt(0));
+            //ClassicAssert.AreEqual(1,       binaryMessageResponses.Count);
+            //ClassicAssert.AreEqual("DCBA",  binaryMessageResponses.ElementAt(0).ToUTF8String());
 
             #endregion
 

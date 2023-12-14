@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             ClassicAssert.AreEqual ("",                        chunkData[3]);
 
             //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
-            //Assert.IsNotNull(json);
+            //ClassicAssert.IsNotNull(json);
 
         }
 
@@ -468,7 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             ClassicAssert.AreEqual ("",                        chunkData[3]);
 
             //var json = JObject.Parse(response?.HTTPBodyAsUTF8String);
-            //Assert.IsNotNull(json);
+            //ClassicAssert.IsNotNull(json);
 
         }
 

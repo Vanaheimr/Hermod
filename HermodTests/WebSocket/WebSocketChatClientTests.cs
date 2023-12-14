@@ -214,10 +214,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //// Sec-WebSocket-Version:    13
 
             //// HTTP requests should not have a "Date"-header!
-            //Assert.IsFalse (request.Contains("Date:"),                         request);
-            //Assert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
-            //Assert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
-            //Assert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
+            //ClassicAssert.IsFalse (request.Contains("Date:"),                         request);
+            //ClassicAssert.IsTrue  (request.Contains("GET / HTTP/1.1"),                request);
+            //ClassicAssert.IsTrue  (request.Contains($"Host: 127.0.0.1:{HTTPPort}"),   request);
+            //ClassicAssert.IsTrue  (request.Contains($"Upgrade: websocket"),           request);
 
             #endregion
 
@@ -234,11 +234,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             //// Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
             //// Sec-WebSocket-Version:    13
 
-            //Assert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
+            //ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            //Assert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
-            //Assert.AreEqual("Upgrade",                                               httpResponse.Connection);
-            //Assert.AreEqual("websocket",                                             httpResponse.Upgrade);
+            //ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            //ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
+            //ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
             #endregion
 
