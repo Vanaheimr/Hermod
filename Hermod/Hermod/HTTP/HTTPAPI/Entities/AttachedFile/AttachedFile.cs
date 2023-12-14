@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             );
 
-            return CustomAttachedFileSerializer != null
+            return CustomAttachedFileSerializer is not null
                        ? CustomAttachedFileSerializer(this, JSON)
                        : JSON;
 
