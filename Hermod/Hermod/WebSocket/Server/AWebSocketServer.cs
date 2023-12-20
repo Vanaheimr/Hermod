@@ -716,7 +716,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
 
-                                        webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
+                                        webSocketConnections.TryAdd   (webSocketConnection.RemoteSocket,
                                                                        new WeakReference<WebSocketServerConnection>(webSocketConnection));
 
                                     }
@@ -1551,7 +1551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (virtual) ProcessTextMessage  (RequestTimestamp, Connection, TextMessage, ...)
+        #region (virtual) ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   ...)
 
         /// <summary>
         /// The default HTTP web socket text message processor.
@@ -1613,7 +1613,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Send an OnTextMessageSent event
         /// </summary>
-        /// <returns></returns>
         protected async Task SendOnTextMessageSent(DateTime                   Timestamp,
                                                    WebSocketServerConnection  Connection,
                                                    EventTracking_Id           EventTrackingId,
@@ -1635,7 +1634,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               TextMessage,
                                                               CancellationToken);
 
-                    await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
+                    await responseTask.WaitAsync(
+                              TimeSpan.FromSeconds(10),
+                              CancellationToken
+                          );
 
                 }
 
@@ -1654,7 +1656,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Send an OnBinaryMessageSent event
         /// </summary>
-        /// <returns></returns>
         protected async Task SendOnBinaryMessageSent(DateTime                   Timestamp,
                                                      WebSocketServerConnection  Connection,
                                                      EventTracking_Id           EventTrackingId,
@@ -1676,7 +1677,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 BinaryMessage,
                                                                 CancellationToken);
 
-                    await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
+                    await responseTask.WaitAsync(
+                              TimeSpan.FromSeconds(10),
+                              CancellationToken
+                          );
 
                 }
 
@@ -1695,7 +1699,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Send an OnWebSocketFrameSent event
         /// </summary>
-        /// <returns></returns>
         protected async Task SendOnWebSocketFrameSent(DateTime                   Timestamp,
                                                       WebSocketServerConnection  Connection,
                                                       EventTracking_Id           EventTrackingId,
@@ -1717,7 +1720,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                  Frame,
                                                                  CancellationToken);
 
-                    await responseTask.WaitAsync(TimeSpan.FromSeconds(10));
+                    await responseTask.WaitAsync(
+                              TimeSpan.FromSeconds(10),
+                              CancellationToken
+                          );
 
                 }
 
