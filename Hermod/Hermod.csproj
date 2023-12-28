@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="SOAP\**" />
     <Compile Remove="WebSocket\**" />
+    <EmbeddedResource Remove="SOAP\**" />
     <EmbeddedResource Remove="WebSocket\**" />
+    <None Remove="SOAP\**" />
     <None Remove="WebSocket\**" />
   </ItemGroup>
 
@@ -26,10 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="SOAP\" />
   </ItemGroup>
 
 </Project>

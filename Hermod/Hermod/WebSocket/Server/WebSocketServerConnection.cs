@@ -33,7 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// A HTTP WebSocket server connection.
     /// </summary>
-    public class WebSocketServerConnection : IEquatable<WebSocketServerConnection>
+    public class WebSocketServerConnection : IWebSocketConnection,
+                                             IEquatable<WebSocketServerConnection>
     {
 
         #region Data
