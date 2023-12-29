@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly  ConcurrentDictionary<String, Object?>  customData             = new ();
+        private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
         private readonly  TcpClient                              tcpClient;
 
@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (private) Send    (Data,           CancellationToken = default)
+        #region (private) Send     (Data,           CancellationToken = default)
 
         /// <summary>
         /// Send the given array of bytes.
@@ -271,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendText          (Text,           CancellationToken = default)
+        #region SendText           (Text,           CancellationToken = default)
 
         /// <summary>
         /// Send the given plain text.
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendData          (Data,           CancellationToken = default)
+        #region SendBinary         (Data,           CancellationToken = default)
 
         /// <summary>
         /// Send the given plain array of bytes.
@@ -295,15 +295,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="Data">The array of bytes to send.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendData(Byte[]             Data,
-                                         CancellationToken  CancellationToken   = default)
+        public Task<SendStatus> SendBinary(Byte[]             Data,
+                                           CancellationToken  CancellationToken   = default)
 
             => Send(Data,
                     CancellationToken);
 
         #endregion
 
-        #region SendWebSocketFrame(WebSocketFrame, CancellationToken = default)
+        #region SendWebSocketFrame (WebSocketFrame, CancellationToken = default)
 
         /// <summary>
         /// Send the given web socket frame.
@@ -537,22 +537,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP WebSocket server connections.</param>
-        public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketServerConnection>? CustomWebSocketServerConnectionSerializer = null)
+        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP Web Socket connections.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<IWebSocketConnection>? CustomWebSocketConnectionSerializer = null)
         {
 
             var json = JSONObject.Create(
 
-                                 new JProperty("localSocket",    LocalSocket.ToString()),
-                                 new JProperty("remoteSocket",   RemoteSocket.ToString()),
+                                 new JProperty("localSocket",   LocalSocket. ToString()),
+                                 new JProperty("remoteSocket",  RemoteSocket.ToString()),
 
-                           customData.Any()
-                               ? new JProperty("customData",     JSONObject.Create(
-                                                                     customData.Select(kvp => kvp.Value is not null
-                                                                                                  ? new JProperty(kvp.Key,  kvp.Value.ToString())
-                                                                                                  : null)
-                                                                 ))
-                               : null
+                           customData.IsEmpty
+                               ? null
+                               : new JProperty("customData",    JSONObject.Create(
+                                                                    customData.Select(kvp => kvp.Value is not null
+                                                                                                 ? new JProperty(kvp.Key, kvp.Value.ToString())
+                                                                                                 : null)
+                                                                ))
+
+                       );
+
+            return CustomWebSocketConnectionSerializer is not null
+                       ? CustomWebSocketConnectionSerializer(this, json)
+                       : json;
+
+        }
+
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP Web Socket server connections.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketServerConnection>? CustomWebSocketServerConnectionSerializer)
+        {
+
+            var json = JSONObject.Create(
+
+                                 new JProperty("localSocket",   LocalSocket. ToString()),
+                                 new JProperty("remoteSocket",  RemoteSocket.ToString()),
+
+                           customData.IsEmpty
+                               ? null
+                               : new JProperty("customData",    JSONObject.Create(
+                                                                    customData.Select(kvp => kvp.Value is not null
+                                                                                                 ? new JProperty(kvp.Key, kvp.Value.ToString())
+                                                                                                 : null)
+                                                                ))
 
                        );
 

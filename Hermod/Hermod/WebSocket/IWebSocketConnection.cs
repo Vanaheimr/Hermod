@@ -15,6 +15,14 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using Newtonsoft.Json.Linq;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
@@ -24,20 +32,205 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public interface IWebSocketConnection
     {
 
+        #region Metadata
+
         /// <summary>
         /// The creation timestamp.
         /// </summary>
-        public DateTime                 Created                       { get; }
+        DateTime                 Created                       { get; }
+
+        /// <summary>
+        /// The optional HTTP request of this web socket connection. Can also be attached later.
+        /// </summary>
+        HTTPRequest?             HTTPRequest                   { get; }
+
+        /// <summary>
+        /// The optional HTTP response of this web socket connection. Can also be attached later.
+        /// </summary>
+        HTTPResponse?            HTTPResponse                  { get; }
+
+        /// <summary>
+        /// For debugging reasons data can be send really really slow...
+        /// </summary>
+        TimeSpan?                SlowNetworkSimulationDelay    { get; }
+
+        #endregion
+
+        #region Sockets
 
         /// <summary>
         /// The local TCP socket.
         /// </summary>
-        public IPSocket                 LocalSocket                   { get; }
+        IPSocket                 LocalSocket                   { get; }
 
         /// <summary>
         /// The remote TCP socket.
         /// </summary>
-        public IPSocket                 RemoteSocket                  { get; }
+        IPSocket                 RemoteSocket                  { get; }
+
+        /// <summary>
+        /// The amount of time a read operation blocks waiting for data.
+        /// </summary>
+        TimeSpan                 ReadTimeout                   { get; set; }
+
+        /// <summary>
+        /// The amount of time a write operation blocks before failing.
+        /// </summary>
+        TimeSpan                 WriteTimeout                  { get; set; }
+
+        /// <summary>
+        /// Whether data on the network stream is available for reading.
+        /// </summary>
+        Boolean                  DataAvailable                 { get; }
+
+        /// <summary>
+        /// The amount of data on the network stream available for reading.
+        /// </summary>
+        Int32                    Available                     { get; }
+
+        #endregion
+
+
+        #region SendText           (SendText,       CancellationToken = default)
+
+        /// <summary>
+        /// Send the given text.
+        /// </summary>
+        /// <param name="SendText">A text to send.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        Task<SendStatus> SendText(String             SendText,
+                                  CancellationToken  CancellationToken   = default);
+
+        #endregion
+
+        #region SendBinary         (Data,           CancellationToken = default)
+
+        /// <summary>
+        /// Send the given array of bytes.
+        /// </summary>
+        /// <param name="Data">The array of bytes to send.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        Task<SendStatus> SendBinary(Byte[]             Data,
+                                    CancellationToken  CancellationToken   = default);
+
+        #endregion
+
+        #region SendWebSocketFrame (WebSocketFrame, CancellationToken = default)
+
+        /// <summary>
+        /// Send the given web socket frame.
+        /// </summary>
+        /// <param name="WebSocketFrame">A web socket frame.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+                                            CancellationToken  CancellationToken   = default);
+
+        #endregion
+
+
+        #region Read(Buffer, Offset, Count)
+
+        /// <summary>
+        /// Tries to reads the given amount of data from the network stream.
+        /// </summary>
+        /// <param name="Buffer">The byte array for storing the received data.</param>
+        /// <param name="Offset">An offset within the byte array.</param>
+        /// <param name="Count">The maximum number of bytes to read and store.</param>
+        /// <returns>Number of bytes read, or 0.</returns>
+        UInt32 Read(Byte[]  Buffer,
+                    UInt32  Offset,
+                    UInt32  Count);
+
+        /// <summary>
+        /// Tries to reads the given amount of data from the network stream.
+        /// </summary>
+        /// <param name="Buffer">The byte array for storing the received data.</param>
+        /// <param name="Offset">An offset within the byte array.</param>
+        /// <param name="Count">The maximum number of bytes to read and store.</param>
+        /// <returns>Number of bytes read, or 0.</returns>
+        UInt32 Read(Byte[]  Buffer,
+                    Int32   Offset,
+                    Int32   Count);
+
+        #endregion
+
+        #region Close()
+
+        /// <summary>
+        /// Close this web socket connection.
+        /// </summary>
+        void Close();
+
+        #endregion
+
+
+        #region Custom data
+
+        /// <summary>
+        /// Add custom data to this HTTP web socket client connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        /// <param name="Value">A value.</param>
+        Boolean TryAddCustomData(String Key, Object? Value);
+
+        /// <summary>
+        /// Add custom data to this HTTP web socket client connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        /// <param name="Value">A new value.</param>
+        /// <param name="ComparisonValue">The old value to be updated.</param>
+        Boolean TryAddCustomData(String  Key,
+                                 Object? NewValue,
+                                 Object? ComparisonValue);
+
+        /// <summary>
+        /// Checks whether the given data key is present within this HTTP web socket client connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        Boolean HasCustomData(String Key);
+
+        /// <summary>
+        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        Object? TryGetCustomData(String Key);
+
+        /// <summary>
+        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// </summary>
+        /// <typeparam name="T">The type of the stored value.</typeparam>
+        /// <param name="Key">A key.</param>
+        T? TryGetCustomDataAs<T>(String Key)
+            where T : struct;
+
+        /// <summary>
+        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        /// <param name="Value">The requested value.</param>
+        Boolean TryGetCustomData(String Key, out Object? Value);
+
+        /// <summary>
+        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// </summary>
+        /// <typeparam name="T">The type of the stored value.</typeparam>
+        /// <param name="Key">A key.</param>
+        /// <param name="Value">The requested value.</param>
+        Boolean TryGetCustomDataAs<T>(String Key, out T? Value);
+
+        #endregion
+
+
+        #region ToJSON(CustomWebSocketConnectionSerializer = null)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP Web Socket connections.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<IWebSocketConnection>? CustomWebSocketConnectionSerializer = null);
+
+        #endregion
+
 
     }
 

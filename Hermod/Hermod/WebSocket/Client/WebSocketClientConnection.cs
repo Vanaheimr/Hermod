@@ -18,6 +18,9 @@
 #region Usings
 
 using System.Net.Sockets;
+using System.Collections.Concurrent;
+
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -36,17 +39,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly  Dictionary<String, Object?>  customData;
+        private readonly  ConcurrentDictionary<String, Object?>  customData             = [];
 
-        private readonly  Socket                       tcpSocket;
+        private readonly  Socket                                 tcpSocket;
 
-        private readonly  MyNetworkStream              tcpStream;
+        private readonly  MyNetworkStream                        tcpStream;
 
-        private readonly  Stream                       httpStream;
+        private readonly  Stream                                 httpStream;
 
-        public  volatile  Boolean                      IsClosed;
+        public  volatile  Boolean                                IsClosed;
 
-        private readonly  SemaphoreSlim                socketWriteSemaphore = new (1, 1);
+        private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
         #endregion
 
@@ -187,18 +190,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TCPSocket.RemoteEndPoint) ?? IPSocket.Zero;
             this.HTTPRequest                 = HTTPRequest;
             this.HTTPResponse                = HTTPResponse;
-            this.customData                  = CustomData is not null
-                                                   ? CustomData. ToDictionary(kvp => kvp.Key,
-                                                                              kvp => kvp.Value)
-                                                   : [];
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+
+            if (CustomData is not null)
+            {
+                foreach (var customData in CustomData)
+                {
+                    this.customData.TryAdd(customData.Key,
+                                           customData.Value);
+                }
+            }
 
         }
 
         #endregion
 
 
-        #region (private) Send    (Data,           CancellationToken = default)
+        #region (private) Send     (Data,           CancellationToken = default)
 
         /// <summary>
         /// Send the given array of bytes.
@@ -268,22 +276,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendData          (Data,           CancellationToken = default)
-
-        /// <summary>
-        /// Send the given array of bytes.
-        /// </summary>
-        /// <param name="Data">The array of bytes to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendData(Byte[]             Data,
-                                         CancellationToken  CancellationToken   = default)
-
-            => Send(Data,
-                    CancellationToken);
-
-        #endregion
-
-        #region SendText          (SendText,       CancellationToken = default)
+        #region SendText           (SendText,       CancellationToken = default)
 
         /// <summary>
         /// Send the given text.
@@ -298,7 +291,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendWebSocketFrame(WebSocketFrame, CancellationToken = default)
+        #region SendBinary         (Data,           CancellationToken = default)
+
+        /// <summary>
+        /// Send the given array of bytes.
+        /// </summary>
+        /// <param name="Data">The array of bytes to send.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        public Task<SendStatus> SendBinary(Byte[]             Data,
+                                           CancellationToken  CancellationToken   = default)
+
+            => Send(Data,
+                    CancellationToken);
+
+        #endregion
+
+        #region SendWebSocketFrame (WebSocketFrame, CancellationToken = default)
 
         /// <summary>
         /// Send the given web socket frame.
@@ -398,41 +406,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Custom data
 
-        #region AddCustomData(Key, Value)
+        #region TryAddCustomData  (Key, Value)
 
         /// <summary>
         /// Add custom data to this HTTP web socket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A value.</param>
-        public void AddCustomData(String Key, Object? Value)
-        {
-            lock (customData)
-            {
+        public Boolean TryAddCustomData(String Key, Object? Value)
 
-                if (customData.ContainsKey(Key))
-                    customData[Key] = Value;
-
-                else
-                    customData.Add(Key, Value);
-
-            }
-        }
+            => customData.TryAdd(Key,
+                                 Value);
 
         #endregion
 
+        #region TryAddCustomData  (Key, NewValue, ComparisonValue)
 
-        #region HasCustomData(Key)
+        /// <summary>
+        /// Add custom data to this HTTP web socket client connection.
+        /// </summary>
+        /// <param name="Key">A key.</param>
+        /// <param name="Value">A new value.</param>
+        /// <param name="ComparisonValue">The old value to be updated.</param>
+        public Boolean TryAddCustomData(String   Key,
+                                        Object?  NewValue,
+                                        Object?  ComparisonValue)
+
+            => customData.TryUpdate(Key,
+                                    NewValue,
+                                    ComparisonValue);
+
+        #endregion
+
+        #region HasCustomData     (Key)
 
         /// <summary>
         /// Checks whether the given data key is present within this HTTP web socket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         public Boolean HasCustomData(String Key)
+
             => customData.ContainsKey(Key);
 
         #endregion
-
 
         #region TryGetCustomData  (Key)
 
@@ -471,7 +487,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
-
 
         #region TryGetCustomData  (Key, out Value)
 
@@ -516,6 +531,68 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
+        #endregion
+
+
+        #region ToJSON(CustomWebSocketClientConnectionSerializer = null)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP Web Socket connections.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<IWebSocketConnection>? CustomWebSocketConnectionSerializer = null)
+        {
+
+            var json = JSONObject.Create(
+
+                                 new JProperty("localSocket",   LocalSocket. ToString()),
+                                 new JProperty("remoteSocket",  RemoteSocket.ToString()),
+
+                           customData.IsEmpty
+                               ? null
+                               : new JProperty("customData",    JSONObject.Create(
+                                                                    customData.Select(kvp => kvp.Value is not null
+                                                                                                 ? new JProperty(kvp.Key, kvp.Value.ToString())
+                                                                                                 : null)
+                                                                ))
+
+                       );
+
+            return CustomWebSocketConnectionSerializer is not null
+                       ? CustomWebSocketConnectionSerializer(this, json)
+                       : json;
+
+        }
+
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketClientConnectionSerializer">A delegate to serialize custom HTTP Web Socket client connections.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketClientConnection>? CustomWebSocketClientConnectionSerializer)
+        {
+
+            var json = JSONObject.Create(
+
+                                 new JProperty("localSocket",   LocalSocket. ToString()),
+                                 new JProperty("remoteSocket",  RemoteSocket.ToString()),
+
+                           customData.IsEmpty
+                               ? null
+                               : new JProperty("customData",    JSONObject.Create(
+                                                                    customData.Select(kvp => kvp.Value is not null
+                                                                                                 ? new JProperty(kvp.Key, kvp.Value.ToString())
+                                                                                                 : null)
+                                                                ))
+
+                       );
+
+            return CustomWebSocketClientConnectionSerializer is not null
+                       ? CustomWebSocketClientConnectionSerializer(this, json)
+                       : json;
+
+        }
 
         #endregion
 
