@@ -1268,8 +1268,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send a web socket text frame
         /// </summary>
         /// <param name="Text">The text to send.</param>
-        public Task SendText(String             Text,
-                             CancellationToken  CancellationToken   = default)
+        public Task<SendStatus> SendText(String             Text,
+                                         CancellationToken  CancellationToken   = default)
 
             => SendWebSocketFrame(
                    WebSocketFrame.Text(
@@ -1289,8 +1289,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send a web socket binary frame
         /// </summary>
         /// <param name="Bytes">The array of bytes to send.</param>
-        public Task SendBinary(Byte[]             Bytes,
-                               CancellationToken  CancellationToken   = default)
+        public Task<SendStatus> SendBinary(Byte[]             Bytes,
+                                           CancellationToken  CancellationToken   = default)
 
             => SendWebSocketFrame(
                    WebSocketFrame.Binary(
@@ -1306,11 +1306,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region SendWebSocketFrame(WebSocketFrame, ...)
 
-        public async Task SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
-                                             CancellationToken  CancellationToken   = default)
+        public async Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+                                                         CancellationToken  CancellationToken   = default)
         {
 
-            await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame);
+            var sendStatus = await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame,
+                                                                                CancellationToken);
 
             #region OnTextMessageSent
 
@@ -1367,6 +1368,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
 
             #endregion
+
+
+            return sendStatus;
 
         }
 
