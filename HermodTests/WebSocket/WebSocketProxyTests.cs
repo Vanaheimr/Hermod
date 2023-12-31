@@ -324,12 +324,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Send messages
 
-            await webSocketClient.SendText("1234");
+            await webSocketClient.SendTextMessage("1234");
 
             while (textMessageLog.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendBinary("ABCD".ToUTF8Bytes());
+            await webSocketClient.SendBinaryMessage("ABCD".ToUTF8Bytes());
 
             while (binaryMessageLog.Count == 0)
                 Thread.Sleep(10);

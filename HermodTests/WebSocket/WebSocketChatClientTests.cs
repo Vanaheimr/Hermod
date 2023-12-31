@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Send messages
 
-            await webSocketClients.ElementAt(0).SendText("chat::Hello world!");
+            await webSocketClients.ElementAt(0).SendTextMessage("chat::Hello world!");
 
             do
             {
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (textMessageLogs.Any(list => list.Count != 2));
 
 
-            await webSocketClients.ElementAt(1).SendText("chat::What has happend?");
+            await webSocketClients.ElementAt(1).SendTextMessage("chat::What has happend?");
 
             do
             {
@@ -263,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (textMessageLogs.Any(list => list.Count != 3));
 
 
-            await webSocketClients.ElementAt(2).SendText("chat::Have a nice day!");
+            await webSocketClients.ElementAt(2).SendTextMessage("chat::Have a nice day!");
 
             do
             {

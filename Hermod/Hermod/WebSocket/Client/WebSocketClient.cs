@@ -336,35 +336,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public WebSocketClient(URL                                   RemoteURL,
-                               HTTPHostname?                         VirtualHostname              = null,
-                               String?                               Description                  = null,
-                               Boolean?                              PreferIPv4                   = null,
+        public WebSocketClient(URL                                  RemoteURL,
+                               HTTPHostname?                        VirtualHostname              = null,
+                               String?                              Description                  = null,
+                               Boolean?                             PreferIPv4                   = null,
                                RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               String?                               HTTPUserAgent                = DefaultHTTPUserAgent,
-                               IHTTPAuthentication?                  HTTPAuthentication           = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = 3,
-                               UInt32?                               InternalBufferSize           = null,
+                               X509Certificate?                     ClientCert                   = null,
+                               SslProtocols?                        TLSProtocol                  = null,
+                               String?                              HTTPUserAgent                = DefaultHTTPUserAgent,
+                               IHTTPAuthentication?                 HTTPAuthentication           = null,
+                               TimeSpan?                            RequestTimeout               = null,
+                               TransmissionRetryDelayDelegate?      TransmissionRetryDelay       = null,
+                               UInt16?                              MaxNumberOfRetries           = 3,
+                               UInt32?                              InternalBufferSize           = null,
 
-                               IEnumerable<String>?                  SecWebSocketProtocols        = null,
+                               IEnumerable<String>?                 SecWebSocketProtocols        = null,
 
-                               Boolean                               DisableWebSocketPings        = false,
-                               TimeSpan?                             WebSocketPingEvery           = null,
-                               TimeSpan?                             SlowNetworkSimulationDelay   = null,
+                               Boolean                              DisableWebSocketPings        = false,
+                               TimeSpan?                            WebSocketPingEvery           = null,
+                               TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                               Boolean                               DisableMaintenanceTasks      = false,
-                               TimeSpan?                             MaintenanceEvery             = null,
+                               Boolean                              DisableMaintenanceTasks      = false,
+                               TimeSpan?                            MaintenanceEvery             = null,
 
-                               String?                               LoggingPath                  = null,
-                               String                                LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
-                               LogfileCreatorDelegate?               LogfileCreator               = null,
-                               HTTPClientLogger?                     HTTPLogger                   = null,
-                               DNSClient?                            DNSClient                    = null)
+                               String?                              LoggingPath                  = null,
+                               String                               LoggingContext               = "logcontext", //CPClientLogger.DefaultContext,
+                               LogfileCreatorDelegate?              LogfileCreator               = null,
+                               HTTPClientLogger?                    HTTPLogger                   = null,
+                               DNSClient?                           DNSClient                    = null)
 
         {
 
@@ -938,6 +938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                   WebSocketFrame.MaskStatus.On,
                                                                   RandomExtensions.RandomBytes(4)
                                                               ),
+                                                              EventTracking_Id.New,
                                                               CancellationToken
                                                           );
 
@@ -1174,6 +1175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                       WebSocketFrame.MaskStatus.On,
                                       RandomExtensions.RandomBytes(4)
                                   ),
+                                  EventTracking_Id.New,
                                   tokenSource.Token
                               );
 
@@ -1262,14 +1264,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendText          (Text,           ...)
+        #region SendTextMessage   (Text,           ...)
 
         /// <summary>
         /// Send a web socket text frame
         /// </summary>
         /// <param name="Text">The text to send.</param>
-        public Task<SendStatus> SendText(String             Text,
-                                         CancellationToken  CancellationToken   = default)
+        public Task<SendStatus> SendTextMessage(String             Text,
+                                                EventTracking_Id?  EventTrackingId     = null,
+                                                CancellationToken  CancellationToken   = default)
 
             => SendWebSocketFrame(
                    WebSocketFrame.Text(
@@ -1278,19 +1281,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        WebSocketFrame.MaskStatus.On,
                        RandomExtensions.RandomBytes(4)
                    ),
+                   EventTrackingId,
                    CancellationToken
                );
 
         #endregion
 
-        #region SendBinary        (Bytes,          ...)
+        #region SendBinaryMessage (Bytes,          ...)
 
         /// <summary>
         /// Send a web socket binary frame
         /// </summary>
         /// <param name="Bytes">The array of bytes to send.</param>
-        public Task<SendStatus> SendBinary(Byte[]             Bytes,
-                                           CancellationToken  CancellationToken   = default)
+        public Task<SendStatus> SendBinaryMessage(Byte[]             Bytes,
+                                                  EventTracking_Id?  EventTrackingId     = null,
+                                                  CancellationToken  CancellationToken   = default)
 
             => SendWebSocketFrame(
                    WebSocketFrame.Binary(
@@ -1299,6 +1304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        WebSocketFrame.MaskStatus.On,
                        RandomExtensions.RandomBytes(4)
                    ),
+                   EventTrackingId,
                    CancellationToken
                );
 
@@ -1307,11 +1313,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region SendWebSocketFrame(WebSocketFrame, ...)
 
         public async Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+                                                         EventTracking_Id?  EventTrackingId     = null,
                                                          CancellationToken  CancellationToken   = default)
         {
 
-            var sendStatus = await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame,
-                                                                                CancellationToken);
+            var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
+
+            var sendStatus       = await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame,
+                                                                                      CancellationToken);
 
             #region OnTextMessageSent
 
@@ -1321,15 +1330,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 try
                 {
 
-                    var onTextMessageSent = OnTextMessageSent;
-                    if (onTextMessageSent is not null)
-                        await onTextMessageSent.Invoke(Timestamp.Now,
-                                                       this,
-                                                       webSocketClientConnection,
-                                                       WebSocketFrame,
-                                                       EventTracking_Id.New,
-                                                       WebSocketFrame.Payload.ToUTF8String(),
-                                                       CancellationToken);
+                    var logger = OnTextMessageSent;
+                    if (logger is not null)
+                    {
+                        try
+                        {
+
+                            await Task.WhenAll(logger.GetInvocationList().
+                                                   OfType<OnWebSocketClientTextMessageDelegate>().
+                                                   Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                 Timestamp.Now,
+                                                                                 this,
+                                                                                 webSocketClientConnection,
+                                                                                 WebSocketFrame,
+                                                                                 eventTrackingId,
+                                                                                 WebSocketFrame.Payload.ToUTF8String(),
+                                                                                 CancellationToken
+                                                                             )).
+                                                   ToArray());
+
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
+                        }
+                    }
 
                 }
                 catch (Exception e)
@@ -1346,23 +1371,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
             {
 
-                try
+                var logger = OnBinaryMessageSent;
+                if (logger is not null)
                 {
+                    try
+                    {
 
-                    var onBinaryMessageSent = OnBinaryMessageSent;
-                    if (onBinaryMessageSent is not null)
-                        await onBinaryMessageSent.Invoke(Timestamp.Now,
-                                                         this,
-                                                         webSocketClientConnection,
-                                                         WebSocketFrame,
-                                                         EventTracking_Id.New,
-                                                         WebSocketFrame.Payload,
-                                                         CancellationToken);
+                        await Task.WhenAll(logger.GetInvocationList().
+                                               OfType<OnWebSocketClientBinaryMessageDelegate>().
+                                               Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                             Timestamp.Now,
+                                                                             this,
+                                                                             webSocketClientConnection,
+                                                                             WebSocketFrame,
+                                                                             eventTrackingId,
+                                                                             WebSocketFrame.Payload,
+                                                                             CancellationToken
+                                                                         )).
+                                               ToArray());
 
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageSent));
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageSent));
+                    }
                 }
 
             }
@@ -1386,6 +1418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Reason">An optional reason for closing.</param>
         public async Task Close(WebSocketFrame.ClosingStatusCode  StatusCode          = WebSocketFrame.ClosingStatusCode.NormalClosure,
                                 String?                           Reason              = null,
+                                EventTracking_Id?                 EventTrackingId     = null,
                                 CancellationToken                 CancellationToken   = default)
         {
 
@@ -1402,6 +1435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   WebSocketFrame.MaskStatus.On,
                                   RandomExtensions.RandomBytes(4)
                               ),
+                              EventTrackingId ?? EventTracking_Id.New,
                               CancellationToken
                           );
 

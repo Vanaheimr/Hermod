@@ -249,9 +249,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (webSocketFrame.IsText || webSocketFrame.IsBinary)
                 {
 
-                    
-
                     await webSocketClient.SendWebSocketFrame(webSocketFrame,
+                                                             eventTrackingId,
                                                              cancellationToken);
 
                 }

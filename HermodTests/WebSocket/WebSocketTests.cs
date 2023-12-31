@@ -155,8 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
 
             // Send messages
-            await webSocketClient.SendText("1234");
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendTextMessage("1234");
+            await webSocketClient.SendTextMessage("ABCD");
 
             while (textMessageRequests.Count < 2)
                 Thread.Sleep(10);
@@ -265,12 +265,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 
 
             // Send messages
-            await webSocketClient.SendText("1234");
+            await webSocketClient.SendTextMessage("1234");
 
             while (textMessageRequests.Count == 0)
                 Thread.Sleep(10);
 
-            await webSocketClient.SendText("ABCD");
+            await webSocketClient.SendTextMessage("ABCD");
 
             while (textMessageRequests.Count == 1)
                 Thread.Sleep(10);
