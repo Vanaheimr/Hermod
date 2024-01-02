@@ -17,10 +17,9 @@
 
 #region Usings
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
+
 using org.GraphDefined.Vanaheimr.Illias;
-using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
