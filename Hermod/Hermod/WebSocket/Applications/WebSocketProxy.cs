@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             if (AutoConnect)
             {
-                UpstreamHTTPResponse = webSocketClient.Connect().GetAwaiter().GetResult();
+                UpstreamHTTPResponse = webSocketClient.Connect().GetAwaiter().GetResult().Item2;
             }
 
 
@@ -272,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public async Task<HTTPResponse> Connect()
         {
 
-            UpstreamHTTPResponse = await webSocketClient.Connect();
+            UpstreamHTTPResponse = (await webSocketClient.Connect()).Item2;
 
             return UpstreamHTTPResponse;
 

@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
                     textMessageLogs.Add(textMessageLog);
 
-                    httpClientResponses.Add(await webSocketClient.Connect());
+                    httpClientResponses.Add((await webSocketClient.Connect()).Item2);
 
                 }
                 catch (Exception e)

@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                     var webSocketClient  = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{HTTPPort}"));
                     webSocketClients.Add(webSocketClient);
 
-                    httpResponses1.Add(await webSocketClient.Connect());
+                    httpResponses1.Add((await webSocketClient.Connect()).Item2);
 
                 }
                 catch (Exception e)

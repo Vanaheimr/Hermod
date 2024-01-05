@@ -439,10 +439,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="RequestTimeout">An optional timeout.</param>
         /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<HTTPResponse> Connect(EventTracking_Id?  EventTrackingId     = null,
-                                          TimeSpan?          RequestTimeout      = null,
-                                          Byte               NumberOfRetries     = 0,
-                                          CancellationToken  CancellationToken   = default)
+        public Task<Tuple<WebSocketClientConnection, HTTPResponse>>
+
+            Connect(EventTracking_Id?  EventTrackingId     = null,
+                    TimeSpan?          RequestTimeout      = null,
+                    Byte               NumberOfRetries     = 0,
+                    CancellationToken  CancellationToken   = default)
+
         {
 
             HTTPResponse? waitingForHTTPResponse = null;
@@ -1124,7 +1127,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                            HTTPStatusCode = HTTPStatusCode.BadRequest
                                        };
 
-            return Task.FromResult(waitingForHTTPResponse);
+            return Task.FromResult(
+                       new Tuple<WebSocketClientConnection, HTTPResponse>(
+                           webSocketClientConnection,
+                           waitingForHTTPResponse
+                       )
+                   );
 
         }
 

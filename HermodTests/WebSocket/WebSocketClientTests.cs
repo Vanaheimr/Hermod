@@ -178,7 +178,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1     = await webSocketClient.Connect();
+            var httpResponse  = response1.Item2;
 
             #endregion
 
@@ -384,7 +385,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                        SecWebSocketProtocols: new[] { "ocpp1.6" }
                                    );
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
 
             #region Check HTTP request
@@ -586,7 +588,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                        SecWebSocketProtocols: new[] { "ocpp1.6" }
                                    );
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
 
             #region Check HTTP request
@@ -790,7 +793,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                        SecWebSocketProtocols: new[] { "ocpp1.6" }
                                    );
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
 
             #region Check HTTP request
@@ -993,7 +997,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                        HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
                                    );
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
 
             #region Check HTTP request
@@ -1212,7 +1217,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                        HTTPAuthentication:  HTTPBasicAuthentication.Create("username", "password")
                                    );
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
 
             #region Check HTTP request
@@ -1432,7 +1438,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                        HTTPAuthentication:  HTTPBasicAuthentication.Create("nameOfUser", "passphrase")
                                    );
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
 
             #region Check HTTP request

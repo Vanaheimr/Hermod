@@ -263,7 +263,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #endregion
 
-            var httpResponse     = await webSocketClient.Connect();
+            var response1        = await webSocketClient.Connect();
+            var httpResponse     = response1.Item2;
 
             #endregion
 
