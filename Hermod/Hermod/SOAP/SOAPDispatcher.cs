@@ -137,15 +137,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             if (Request.HTTPMethod == HTTPMethod.GET)
                 return await EndpointTextInfo(Request);
 
-            var XMLRequest = Request.ParseXMLRequestBody(SOAPContentType);
-            if (XMLRequest.HasErrors)
-                return XMLRequest.Error;
+            var xmlRequest = Request.ParseXMLRequestBody(SOAPContentType);
+            if (xmlRequest.HasErrors)
+                return xmlRequest.Error;
 
             var soapDispatch = soapDispatches.
                                     Select(dispatch => new {
                                         dispatch    = dispatch,
-                                        SOAPHeader  = XMLRequest.Data.Root.Descendants(v1_2.NS.SOAPEnvelope + "Header").FirstOrDefault(),
-                                        SOAPBody    = dispatch.Matcher(XMLRequest.Data.Root)
+                                        SOAPHeader  = xmlRequest.Data.Root.Descendants(v1_2.NS.SOAPEnvelope + "Header").FirstOrDefault(),
+                                        SOAPBody    = dispatch.Matcher(xmlRequest.Data.Root)
                                     }).
                                     FirstOrDefault(match => match.SOAPBody is not null);
 

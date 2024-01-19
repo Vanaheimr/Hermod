@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            var json = httpResult.Data.Trim();
+            var text = httpResult.Data.Trim();
 
             #endregion
 
@@ -400,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                JSONObject = JObject.Parse(json);
+                JSONObject = JObject.Parse(text);
 
             }
             catch (Exception e)
@@ -526,6 +526,78 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
                 return new HTTPResult<XDocument>(Request, HTTPStatusCode.BadRequest);
             }
+
+        }
+
+        #endregion
+
+        #region TryParseXMLRequestBody(this Request, out XMLDocument, out HTTPResponseBuilder, ContentType = null, AllowEmptyHTTPBody = false)
+
+        public static Boolean TryParseXMLRequestBody(this HTTPRequest           Request,
+                                                     out XDocument?             XMLDocument,
+                                                     out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                     HTTPContentType?           ContentType          = null,
+                                                     Boolean                    AllowEmptyHTTPBody   = false)
+        {
+
+            #region Allow empty HTTP body?
+
+            XMLDocument          = null;
+            HTTPResponseBuilder  = null;
+
+            if (Request.ContentLength == 0 && AllowEmptyHTTPBody)
+            {
+                HTTPResponseBuilder = HTTPResponse.OK(Request);
+                return false;
+            }
+
+            #endregion
+
+            #region Get text body
+
+            var httpResult = Request.GetRequestBodyAsUTF8String(ContentType ?? HTTPContentType.Application.XML_UTF8,
+                                                                AllowEmptyHTTPBody);
+
+            if (httpResult.HasErrors    ||
+                httpResult.Data is null ||
+                httpResult.Data.IsNullOrEmpty())
+            {
+                HTTPResponseBuilder = httpResult.Error;
+                return false;
+            }
+
+            var text = httpResult.Data.Trim();
+
+            #endregion
+
+            #region Try to parse the XML document
+
+            try
+            {
+
+                XMLDocument = XDocument.Parse(text);
+
+            }
+            catch (Exception e)
+            {
+
+                HTTPResponseBuilder = new HTTPResponse.Builder(Request) {
+                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                    ContentType     = HTTPContentType.Application.JSON_UTF8,
+                    Content         = JSONObject.Create(
+                                          new JProperty("description",  "Invalid JSON object in request body!"),
+                                          new JProperty("exception",    e.Message),
+                                          new JProperty("source",       httpResult.Data)
+                                      ).ToUTF8Bytes()
+                };
+
+                return false;
+
+            }
+
+            return true;
+
+            #endregion
 
         }
 
