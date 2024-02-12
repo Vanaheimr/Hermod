@@ -302,9 +302,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 do
                 {
 
-                    var loggingData = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
-
-                    var retry = 0;
+                    var requestData  = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                    var logFileName  = this.LogfileCreator(this.LoggingPath, this.Context, requestData.LogEventName);
+                    var retry        = 0;
+                    var data         = String.Concat(
+                                           requestData.Request.HTTPSource.Socket == requestData.Request.LocalSocket
+                                               ? $"{requestData.Request.LocalSocket} -> {requestData.Request.RemoteSocket}"
+                                               : $"{requestData.Request.HTTPSource } -> {requestData.Request.LocalSocket}",     Environment.NewLine,
+                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                           requestData.Request.Timestamp.ToIso8601(),                                           Environment.NewLine,
+                                           requestData.Request.EntirePDU,                                                       Environment.NewLine,
+                                           "--------------------------------------------------------------------------------",  Environment.NewLine
+                                       );
 
                     do
                     {
@@ -313,20 +322,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             File.AppendAllText(
-                                this.LogfileCreator(
-                                    this.LoggingPath,
-                                    this.Context,
-                                    loggingData.LogEventName
-                                ),
-                                String.Concat(
-                                    loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
-                                        ? String.Concat(loggingData.Request.LocalSocket, " -> ", loggingData.Request.RemoteSocket)
-                                        : String.Concat(loggingData.Request.HTTPSource,  " -> ", loggingData.Request.LocalSocket),
-                                    Environment.NewLine,
-                                    ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
-                                    loggingData.Request.Timestamp.ToIso8601(),                                           Environment.NewLine,
-                                    loggingData.Request.EntirePDU,                                                       Environment.NewLine,
-                                    "--------------------------------------------------------------------------------",  Environment.NewLine),
+                                logFileName,
+                                data,
                                 Encoding.UTF8
                             );
 
@@ -338,20 +335,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                                DebugX.LogT($"File access error while logging to '{logFileName}' (retry: {retry}): {e.Message}");
                                 Thread.Sleep(100);
                             }
 
                             else
                             {
-                                DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                                DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
                                 break;
                             }
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                            DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
                             break;
                         }
 
@@ -359,10 +356,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (retry++ < MaxRetries);
 
                     if (retry >= MaxRetries)
-                        DebugX.LogT("Could not write to logfile '"      + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for "   + retry + " retries!");
+                        DebugX.LogT($"Could not write to logfile '{logFileName}' for {retry} retries!");
 
                     else if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
+                        DebugX.LogT($"Successfully written to logfile '{logFileName}' after {retry} retries!");
 
                 }
                 while (!cancellationTokenSource.IsCancellationRequested);
@@ -374,9 +371,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 do
                 {
 
-                    var loggingData = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
-
-                    var retry = 0;
+                    var loggingData  = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                    var logFileName  = this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName);
+                    var retry        = 0;
+                    var data         = String.Concat(
+                                           loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
+                                               ? $"{loggingData.Request.LocalSocket} -> {loggingData.Request.RemoteSocket}"
+                                               : $"{loggingData.Request.HTTPSource } -> {loggingData.Request.LocalSocket}",                                                                  Environment.NewLine,
+                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                                                               Environment.NewLine,
+                                           loggingData.Request. Timestamp.ToIso8601(),                                                                                                       Environment.NewLine,
+                                           loggingData.Request. EntirePDU,                                                                                                                   Environment.NewLine,
+                                           "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                                                               Environment.NewLine,
+                                        $"{loggingData.Response.Timestamp.ToIso8601()} -> {(loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds} ms runtime",  Environment.NewLine,
+                                           loggingData.Response.EntirePDU,                                                                                                                   Environment.NewLine,
+                                           "--------------------------------------------------------------------------------",                                                               Environment.NewLine
+                                       );
 
                     do
                     {
@@ -385,25 +394,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             File.AppendAllText(
-                                this.LogfileCreator(
-                                    this.LoggingPath,
-                                    this.Context,
-                                    loggingData.LogEventName
-                                ),
-                                String.Concat(
-                                    loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
-                                        ? String.Concat(loggingData.Request.LocalSocket, " -> ", loggingData.Request.RemoteSocket)
-                                        : String.Concat(loggingData.Request.HTTPSource,  " -> ", loggingData.Request.LocalSocket),
-                                    Environment.NewLine,
-                                    ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                    Environment.NewLine,
-                                    loggingData.Request.Timestamp.ToIso8601(),                                                             Environment.NewLine,
-                                    loggingData.Request.EntirePDU,                                                                         Environment.NewLine,
-                                    "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                    Environment.NewLine,
-                                    loggingData.Response.Timestamp.ToIso8601(),
-                                        " -> ",
-                                        (loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds, "ms runtime",  Environment.NewLine,
-                                    loggingData.Response.EntirePDU,                                                                        Environment.NewLine,
-                                    "--------------------------------------------------------------------------------",                    Environment.NewLine),
+                                logFileName,
+                                data,
                                 Encoding.UTF8
                             );
 
@@ -415,20 +407,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             if (e.HResult != -2147024864)
                             {
-                                DebugX.LogT("File access error while logging to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' (retry: " + retry + "): " + e.Message);
+                                DebugX.LogT($"File access error while logging to '{logFileName}' (retry: {retry}): {e.Message}");
                                 Thread.Sleep(100);
                             }
 
                             else
                             {
-                                DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                                DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
                                 break;
                             }
 
                         }
                         catch (Exception e)
                         {
-                            DebugX.LogT("Could not log to '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "': " + e.Message);
+                            DebugX.LogT($"Could not log to '{logFileName}': {e.Message}");
                             break;
                         }
 
@@ -436,10 +428,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     while (retry++ < MaxRetries);
 
                     if (retry >= MaxRetries)
-                        DebugX.LogT("Could not write to logfile '"      + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' for "   + retry + " retries!");
+                        DebugX.LogT($"Could not write to logfile '{logFileName}' for {retry} retries!");
 
                     else if (retry > 0)
-                        DebugX.LogT("Successfully written to logfile '" + this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName) + "' after " + retry + " retries!");
+                        DebugX.LogT($"Successfully written to logfile '{logFileName}' after {retry} retries!");
 
                 }
                 while (!cancellationTokenSource.IsCancellationRequested);
