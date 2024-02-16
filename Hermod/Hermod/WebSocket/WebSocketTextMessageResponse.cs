@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="RequestMessage">The request message.</param>
         /// <param name="ResponseTimestamp">The response timestamp.</param>
         /// <param name="ResponseMessage">The response message.</param>
-        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         public WebSocketTextMessageResponse(DateTime          RequestTimestamp,
                                             String            RequestMessage,
                                             DateTime          ResponseTimestamp,

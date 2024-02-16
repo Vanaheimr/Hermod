@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Timestamp">The logging timestamp.</param>
     /// <param name="Server">The HTTP web socket server.</param>
     /// <param name="NewConnection">The new HTTP web socket connection.</param>
-    /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+    /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
     /// <param name="SharedSubprotocols">An enumeration of shared HTTP Web Sockets subprotocols.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
     public delegate Task                                 OnNewWebSocketConnectionDelegate        (DateTime                           Timestamp,

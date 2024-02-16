@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Parse the given JSON representation of an Open Source license.
         /// </summary>
         /// <param name="JSON">The JSON to parse.</param>
-        /// <param name="CustomOpenSourceLicenseParser">A delegate to parse custom Open Source license JSON objects.</param>
+        /// <param name="CustomOpenSourceLicenseParser">An optional delegate to parse custom Open Source license JSON objects.</param>
         public static OpenSourceLicense Parse(JObject                                          JSON,
                                               CustomJObjectParserDelegate<OpenSourceLicense>?  CustomOpenSourceLicenseParser   = null)
         {
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="JSON">The JSON to parse.</param>
         /// <param name="OpenSourceLicense">The parsed Open Source license.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomOpenSourceLicenseParser">A delegate to parse custom Open Source license JSON objects.</param>
+        /// <param name="CustomOpenSourceLicenseParser">An optional delegate to parse custom Open Source license JSON objects.</param>
         public static Boolean TryParse(JObject                                          JSON,
                                        out OpenSourceLicense?                           OpenSourceLicense,
                                        out String?                                      ErrorResponse,

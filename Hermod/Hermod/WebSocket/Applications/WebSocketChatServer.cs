@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="TextMessage">The web socket text message.</param>
-        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public async override Task<WebSocketTextMessageResponse> ProcessTextMessage(DateTime                   RequestTimestamp,
                                                                                     WebSocketServerConnection  Connection,
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
         /// <param name="BinaryMessage">The web socket binary message.</param>
-        /// <param name="EventTrackingId">The event tracking identification for correlating this request with other events.</param>
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token.</param>
         public async override Task<WebSocketBinaryMessageResponse> ProcessBinaryMessage(DateTime                   RequestTimestamp,
                                                                                         WebSocketServerConnection  Connection,
