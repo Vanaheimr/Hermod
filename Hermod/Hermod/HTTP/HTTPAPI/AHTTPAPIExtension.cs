@@ -91,7 +91,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         #region (protected override) GetResourceStream      (ResourceName, ResourceAssemblies)
 
         protected override Stream? GetResourceStream(String ResourceName)

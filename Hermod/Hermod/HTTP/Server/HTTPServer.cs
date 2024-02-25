@@ -2780,8 +2780,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   Server          = DefaultServerName,
                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
                                   Content         = JSONObject.Create(
-                                                          new JProperty("request",       Request.FirstPDULine),
-                                                          new JProperty("description",  "HTTP request handler must not be null!")
+                                                          new JProperty("request",      Request.FirstPDULine),
+                                                          new JProperty("description",  errorResponse)
                                                       ).ToUTF8Bytes(),
                                   Connection      = "close"
                               };

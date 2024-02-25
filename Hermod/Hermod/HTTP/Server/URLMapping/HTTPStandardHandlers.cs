@@ -701,35 +701,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  String            CacheControl          = "no-cache")
         {
 
-            // Get the appropriate content type based on the suffix of the requested resource
-            ResponseContentType ??= ResourceFilename.Remove(0, ResourceFilename.LastIndexOf(".") + 1) switch {
-                                        "htm"  => HTTPContentType.Text.HTML_UTF8,
-                                        "html" => HTTPContentType.Text.HTML_UTF8,
-                                        "css"  => HTTPContentType.Text.CSS_UTF8,
-                                        "gif"  => HTTPContentType.Image.GIF,
-                                        "jpg"  => HTTPContentType.Image.JPEG,
-                                        "jpeg" => HTTPContentType.Image.JPEG,
-                                        "svg"  => HTTPContentType.Image.SVG,
-                                        "png"  => HTTPContentType.Image.PNG,
-                                        "ico"  => HTTPContentType.Image.ICO,
-                                        "js"   => HTTPContentType.Text.JAVASCRIPT_UTF8,
-                                        "txt"  => HTTPContentType.Text.PLAIN,
-                                        "xml"  => HTTPContentType.Application.XML_UTF8,
-                                        _      => HTTPContentType.Application.OCTETSTREAM,
-                                    };
-
+            ResponseContentType ??= HTTPContentType.ForFileExtension(
+                ResourceFilename.Remove(0, ResourceFilename.LastIndexOf('.') + 1),
+                HTTPContentType.Application.OCTETSTREAM
+            ).First();
 
             HTTPServer.AddMethodCallback(HTTPAPI,
                                          Hostname,
                                          HTTPMethod.GET,
                                          URLTemplate,
                                          HTTPContentType: ResponseContentType,
-                                         HTTPDelegate: async Request => {
+                                         HTTPDelegate: async request => {
 
                                              var fileStream = ResourceAssembly.GetManifestResourceStream(ResourceFilename);
 
-                                             if (fileStream != null)
-                                                 return new HTTPResponse.Builder(Request) {
+                                             if (fileStream is not null)
+                                                 return new HTTPResponse.Builder(request) {
                                                      HTTPStatusCode  = HTTPStatusCode.OK,
                                                      Server          = HTTPServer.DefaultServerName,
                                                      Date            = Timestamp.Now,
@@ -746,40 +733,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  Stream? errorStream = null;
 
-                                                 Request.BestMatchingAcceptType = Request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.Text.HTML_UTF8, HTTPContentType.Text.PLAIN });
+                                                 request.BestMatchingAcceptType = request.Accept.BestMatchingContentType(new HTTPContentType[] { HTTPContentType.Text.HTML_UTF8, HTTPContentType.Text.PLAIN });
 
-                                                 if (Request.BestMatchingAcceptType == HTTPContentType.Text.HTML_UTF8)
+                                                 if (request.BestMatchingAcceptType == HTTPContentType.Text.HTML_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.Text.HTML_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.Text.PLAIN)
+                                                 else if (request.BestMatchingAcceptType == HTTPContentType.Text.PLAIN)
                                                  {
                                                      ResponseContentType = HTTPContentType.Text.PLAIN;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.txt");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.Application.JSON_UTF8)
+                                                 else if (request.BestMatchingAcceptType == HTTPContentType.Application.JSON_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.Application.JSON_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.js");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.Application.XML_UTF8)
+                                                 else if (request.BestMatchingAcceptType == HTTPContentType.Application.XML_UTF8)
                                                  {
                                                      ResponseContentType = HTTPContentType.Application.XML_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.xml");
                                                  }
 
-                                                 else if (Request.BestMatchingAcceptType == HTTPContentType.ALL)
+                                                 else if (request.BestMatchingAcceptType == HTTPContentType.ALL)
                                                  {
                                                      ResponseContentType = HTTPContentType.Text.HTML_UTF8;
                                                      errorStream         = ResourceAssembly.GetManifestResourceStream(ResourceFilename.Substring(0, ResourceFilename.LastIndexOf(".")) + ".ErrorPages." + "404.html");
                                                  }
 
                                                  if (errorStream is not null)
-                                                     return new HTTPResponse.Builder(Request) {
+                                                     return new HTTPResponse.Builder(request) {
                                                          HTTPStatusCode = HTTPStatusCode.NotFound,
                                                          ContentType    = ResponseContentType,
                                                          ContentStream  = errorStream,
@@ -792,7 +779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  #region ...or send a default error page!
 
                                                  else
-                                                     return new HTTPResponse.Builder(Request) {
+                                                     return new HTTPResponse.Builder(request) {
                                                          HTTPStatusCode  = HTTPStatusCode.NotFound,
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = Timestamp.Now,
@@ -865,10 +852,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Get the appropriate content type based on the suffix returned by the ResourceFilenameBuilder
 
-                                                                                 // NumberOfTemplateParameters
-            var resourceFilename = ResourceFilenameBuilder(Enumerable.Repeat("", URLTemplate.ToString().Count(c => c == '{')).ToArray());
+                                                                                  // NumberOfTemplateParameters
+            var resourceFilename  = ResourceFilenameBuilder(Enumerable.Repeat("", URLTemplate.ToString().Count(c => c == '{')).ToArray());
 
-            ResponseContentType = HTTPContentType.ForFileExtension(resourceFilename.Remove(0, resourceFilename.LastIndexOf('.') + 1)).FirstOrDefault();
+            ResponseContentType ??= HTTPContentType.ForFileExtension(
+                                        resourceFilename.Remove(0, resourceFilename.LastIndexOf('.') + 1),
+                                        HTTPContentType.Application.OCTETSTREAM
+                                    ).First();
 
             #endregion
 
@@ -877,38 +867,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTTPMethod.GET,
                                          URLTemplate,
                                          HTTPContentType: ResponseContentType,
-                                         HTTPDelegate: async Request => {
+                                         HTTPDelegate: request => {
 
-                                             var ResourceFilename = ResourceFilenameBuilder(Request.ParsedURLParameters);
+                                             var fileName = ResourceFilenameBuilder(request.ParsedURLParameters);
 
-                                             if (!File.Exists(ResourceFilename) && DefaultFile != null)
-                                                 ResourceFilename = DefaultFile;
+                                             if (!File.Exists(fileName) && DefaultFile is not null)
+                                                 fileName = DefaultFile;
 
-                                             if (File.Exists(ResourceFilename))
+                                             try
                                              {
 
-                                                 var fileStream = File.OpenRead(ResourceFilename);
+                                                 var fileStream = File.OpenRead(fileName);
 
-                                                 if (fileStream is not null)
-                                                     return new HTTPResponse.Builder(Request) {
-                                                         HTTPStatusCode  = HTTPStatusCode.OK,
-                                                         Server          = HTTPServer.DefaultServerName,
-                                                         Date            = Timestamp.Now,
-                                                         ContentType     = ResponseContentType,
-                                                         ContentStream   = fileStream,
-                                                         CacheControl    = CacheControl,
-                                                         Connection      = "close",
-                                                     };
+                                                 return fileStream is not null
+
+                                                            ? Task.FromResult(
+                                                                  new HTTPResponse.Builder(request) {
+                                                                      HTTPStatusCode  = HTTPStatusCode.OK,
+                                                                      Server          = HTTPServer.DefaultServerName,
+                                                                      Date            = Timestamp.Now,
+                                                                      ContentType     = ResponseContentType,
+                                                                      ContentStream   = fileStream,
+                                                                      CacheControl    = CacheControl,
+                                                                      Connection      = "close",
+                                                                  }.AsImmutable
+                                                              )
+
+                                                            : Task.FromResult(
+                                                                  new HTTPResponse.Builder(request) {
+                                                                      HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                                      Server          = HTTPServer.DefaultServerName,
+                                                                      Date            = Timestamp.Now,
+                                                                      CacheControl    = "no-cache",
+                                                                      Connection      = "close",
+                                                                  }.AsImmutable
+                                                              );
+
+                                             } catch (FileNotFoundException)
+                                             {
+
+                                                 return Task.FromResult(
+                                                            new HTTPResponse.Builder(request) {
+                                                                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                                                Server          = HTTPServer.DefaultServerName,
+                                                                Date            = Timestamp.Now,
+                                                                CacheControl    = "no-cache",
+                                                                Connection      = "close",
+                                                            }.AsImmutable
+                                                        );
 
                                              }
 
-                                             return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
-                                                 Date            = Timestamp.Now,
-                                                 CacheControl    = "no-cache",
-                                                 Connection      = "close",
-                                             };
+                                             catch (Exception e)
+                                             {
+
+                                                 return Task.FromResult(
+                                                            new HTTPResponse.Builder(request) {
+                                                                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                                Server          = HTTPServer.DefaultServerName,
+                                                                Date            = Timestamp.Now,
+                                                                ContentType     = HTTPContentType.Text.PLAIN,
+                                                                Content         = e.Message.ToUTF8Bytes(),
+                                                                CacheControl    = "no-cache",
+                                                                Connection      = "close",
+                                                            }.AsImmutable
+                                                        );
+
+                                             }
 
                                          }, AllowReplacement: URLReplacement.Fail);
 

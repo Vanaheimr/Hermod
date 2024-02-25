@@ -400,257 +400,256 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Operator +  (HTTPPath1, Text)
+        #region Operator +  (Path, Text)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a HTTP path and a string.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="Path">A HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath HTTPPath1,
-                                           String   Text)
+        public static HTTPPath operator + (HTTPPath  Path,
+                                           String    Text)
         {
 
-            if (HTTPPath1.EndsWith("/") && Text.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + Text.Substring(1));
+            if (Path.EndsWith("/") && Text.StartsWith('/'))
+                return Parse(Path.ToString() + Text[1..]);
 
-            if (!HTTPPath1.EndsWith("/") && Text.StartsWith("/") ||
-                 HTTPPath1.EndsWith("/") && !Text.StartsWith("/"))
+            if (!Path.EndsWith("/") &&  Text.StartsWith('/') ||
+                 Path.EndsWith("/") && !Text.StartsWith('/'))
             {
                 return Text.IsNotNullOrEmpty()
-                           ? Parse(HTTPPath1.ToString() + Text)
-                           : HTTPPath1;
+                           ? Parse(Path.ToString() + Text)
+                           : Path;
             }
 
             return Text.IsNotNullOrEmpty()
-                       ? Parse(HTTPPath1.ToString() + "/" + Text)
-                       : HTTPPath1;
+                       ? Parse(Path.ToString() + "/" + Text)
+                       : Path;
 
         }
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a HTTP path and a string.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="Path">A HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath? HTTPPath1, String Text)
+        public static HTTPPath operator + (HTTPPath?  Path,
+                                           String     Text)
         {
 
-            if (!HTTPPath1.HasValue)
+            if (!Path.HasValue)
                 return Parse(Text);
 
-            if (HTTPPath1.Value.EndsWith("/") && Text.StartsWith("/"))
-                return Parse(HTTPPath1.Value.ToString() + Text.Substring(1));
+            if (Path.Value.EndsWith("/") && Text.StartsWith('/'))
+                return Parse(Path.Value.ToString() + Text[1..]);
 
-            if (!HTTPPath1.Value.EndsWith("/") &&  Text.StartsWith("/") ||
-                 HTTPPath1.Value.EndsWith("/") && !Text.StartsWith("/"))
+            if (!Path.Value.EndsWith("/") &&  Text.StartsWith('/') ||
+                 Path.Value.EndsWith("/") && !Text.StartsWith('/'))
             {
                 return Text.IsNotNullOrEmpty()
-                           ? Parse(HTTPPath1.Value.ToString() + Text)
-                           : HTTPPath1.Value;
+                           ? Parse(Path.Value.ToString() + Text)
+                           : Path.Value;
             }
 
             return Text.IsNotNullOrEmpty()
-                       ? Parse(HTTPPath1.Value.ToString() + "/" + Text)
-                       : HTTPPath1.Value;
+                       ? Parse(Path.Value.ToString() + "/" + Text)
+                       : Path.Value;
 
         }
 
         #endregion
 
-        #region Operator +  (Hostname,  HTTPPath)
+        #region Operator +  (Hostname,  Path)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a HTTP hostname and HTTP path.
         /// </summary>
         /// <param name="Hostname">Another HTTP path.</param>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static String operator + (HTTPHostname Hostname,
-                                         HTTPPath     HTTPPath1)
+        /// <param name="Path">A HTTP path.</param>
+        public static String operator + (HTTPHostname  Hostname,
+                                         HTTPPath      Path)
         {
 
-            if (Hostname.ToString().EndsWith("/") && HTTPPath1.StartsWith("/"))
-                return Hostname.ToString().Substring(1) + HTTPPath1.ToString();
+            if (Hostname.ToString().EndsWith('/') && Path.StartsWith("/"))
+                return Hostname.ToString()[1..] + Path.ToString();
 
-            if (!Hostname.ToString().EndsWith("/") &&  HTTPPath1.StartsWith("/") ||
-                 Hostname.ToString().EndsWith("/") && !HTTPPath1.StartsWith("/"))
-                return Hostname + HTTPPath1.ToString();
+            if (!Hostname.ToString().EndsWith('/') &&  Path.StartsWith("/") ||
+                 Hostname.ToString().EndsWith('/') && !Path.StartsWith("/"))
+                return Hostname + Path.ToString();
 
-            return Hostname + "/" + HTTPPath1.ToString();
+            return Hostname + "/" + Path.ToString();
 
         }
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a HTTP hostname and HTTP path.
         /// </summary>
         /// <param name="Hostname">Another HTTP path.</param>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static String operator + (HTTPHostname Hostname, HTTPPath? HTTPPath1)
+        /// <param name="Path">A HTTP path.</param>
+        public static String operator + (HTTPHostname  Hostname,
+                                         HTTPPath?     Path)
         {
 
-            if (!HTTPPath1.HasValue)
+            if (!Path.HasValue)
                 return Hostname.ToString();
 
-            if (Hostname.ToString().EndsWith("/") && HTTPPath1.Value.StartsWith("/"))
-                return Hostname.ToString().Substring(1) + HTTPPath1.ToString();
+            if (Hostname.ToString().EndsWith('/') && Path.Value.StartsWith("/"))
+                return Hostname.ToString()[1..] + Path.ToString();
 
-            if (!Hostname.ToString().EndsWith("/") &&  HTTPPath1.Value.StartsWith("/") ||
-                 Hostname.ToString().EndsWith("/") && !HTTPPath1.Value.StartsWith("/"))
-                return Hostname + HTTPPath1.ToString();
+            if (!Hostname.ToString().EndsWith('/') &&  Path.Value.StartsWith("/") ||
+                 Hostname.ToString().EndsWith('/') && !Path.Value.StartsWith("/"))
+                return Hostname + Path.ToString();
 
-            return Hostname + "/" + HTTPPath1.ToString();
+            return Hostname + "/" + Path.ToString();
 
         }
 
         #endregion
 
-        #region Operator +  (Text,      HTTPPath)
+        #region Operator +  (Text,      Path)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a string and HTTP path.
         /// </summary>
         /// <param name="Text">Another HTTP path.</param>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static String operator + (String   Text,
-                                         HTTPPath HTTPPath1)
+        /// <param name="Path">A HTTP path.</param>
+        public static String operator + (String    Text,
+                                         HTTPPath  Path)
         {
 
-            if (Text.EndsWith("/") && HTTPPath1.StartsWith("/"))
-                return Text.Substring(1) + HTTPPath1.ToString();
+            if (Text.EndsWith('/') && Path.StartsWith("/"))
+                return Text[1..] + Path.ToString();
 
-            if (!Text.EndsWith("/") &&  HTTPPath1.StartsWith("/") ||
-                 Text.EndsWith("/") && !HTTPPath1.StartsWith("/"))
-                return Text + HTTPPath1.ToString();
+            if (!Text.EndsWith('/') &&  Path.StartsWith("/") ||
+                 Text.EndsWith('/') && !Path.StartsWith("/"))
+                return Text + Path.ToString();
 
-            return Text + "/" + HTTPPath1.ToString();
+            return Text + "/" + Path.ToString();
 
         }
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a string and HTTP path.
         /// </summary>
         /// <param name="Text">Another HTTP path.</param>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static String operator + (String Text, HTTPPath? HTTPPath1)
+        /// <param name="Path">A HTTP path.</param>
+        public static String operator + (String     Text,
+                                         HTTPPath?  Path)
         {
 
-            if (!HTTPPath1.HasValue)
+            if (!Path.HasValue)
                 return Text;
 
-            if (Text.EndsWith("/") && HTTPPath1.Value.StartsWith("/"))
-                return Text.Substring(1) + HTTPPath1.ToString();
+            if (Text.EndsWith('/') && Path.Value.StartsWith("/"))
+                return Text[1..] + Path.ToString();
 
-            if (!Text.EndsWith("/") &&  HTTPPath1.Value.StartsWith("/") ||
-                 Text.EndsWith("/") && !HTTPPath1.Value.StartsWith("/"))
-                return Text + HTTPPath1.ToString();
+            if (!Text.EndsWith('/') &&  Path.Value.StartsWith("/") ||
+                 Text.EndsWith('/') && !Path.Value.StartsWith("/"))
+                return Text + Path.ToString();
 
-            return Text + "/" + HTTPPath1.ToString();
+            return Text + "/" + Path.ToString();
 
         }
 
         #endregion
 
-        #region Operator +  (HTTPPath1, HTTPPath2)
+        #region Operator +  (Path1,     Path2)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <param name="HTTPPath2">Another HTTP path.</param>
-        /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath HTTPPath1,
-                                           HTTPPath HTTPPath2)
+        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path2">Another HTTP path.</param>
+        public static HTTPPath operator + (HTTPPath  Path1,
+                                           HTTPPath  Path2)
         {
 
-            if (HTTPPath1.EndsWith("/") && HTTPPath2.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.Substring(1).ToString());
+            if (Path1.EndsWith("/") && Path2.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.Substring(1).ToString());
 
-            if (!HTTPPath1.EndsWith("/") &&  HTTPPath2.StartsWith("/") ||
-                 HTTPPath1.EndsWith("/") && !HTTPPath2.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.ToString());
+            if (!Path1.EndsWith("/") &&  Path2.StartsWith("/") ||
+                 Path1.EndsWith("/") && !Path2.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(HTTPPath1.ToString() + "/" + HTTPPath2.ToString());
+            return Parse(Path1.ToString() + "/" + Path2.ToString());
 
         }
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <param name="HTTPPath2">Another HTTP path.</param>
+        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath? HTTPPath1, HTTPPath HTTPPath2)
+        public static HTTPPath operator + (HTTPPath?  Path1,
+                                           HTTPPath   Path2)
         {
 
-            if (!HTTPPath1.HasValue)
-                return HTTPPath2;
+            if (!Path1.HasValue)
+                return Path2;
 
-            if (HTTPPath1.Value.EndsWith("/") && HTTPPath2.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.Substring(1).ToString());
+            if (Path1.Value.EndsWith("/") && Path2.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.Substring(1).ToString());
 
-            if (!HTTPPath1.Value.EndsWith("/") &&  HTTPPath2.StartsWith("/") ||
-                 HTTPPath1.Value.EndsWith("/") && !HTTPPath2.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.ToString());
+            if (!Path1.Value.EndsWith("/") &&  Path2.StartsWith("/") ||
+                 Path1.Value.EndsWith("/") && !Path2.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(HTTPPath1.ToString() + "/" + HTTPPath2.ToString());
+            return Parse(Path1.ToString() + "/" + Path2.ToString());
 
         }
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <param name="HTTPPath2">Another HTTP path.</param>
+        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath HTTPPath1, HTTPPath? HTTPPath2)
+        public static HTTPPath operator + (HTTPPath   Path1,
+                                           HTTPPath?  Path2)
         {
 
-            if (!HTTPPath2.HasValue)
-                return HTTPPath1;
+            if (!Path2.HasValue)
+                return Path1;
 
-            if (HTTPPath1.EndsWith("/") && HTTPPath2.Value.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.Value.Substring(1).ToString());
+            if (Path1.EndsWith("/") && Path2.Value.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.Value.Substring(1).ToString());
 
-            if (!HTTPPath1.EndsWith("/") &&  HTTPPath2.Value.StartsWith("/") ||
-                 HTTPPath1.EndsWith("/") && !HTTPPath2.Value.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.ToString());
+            if (!Path1.EndsWith("/") &&  Path2.Value.StartsWith("/") ||
+                 Path1.EndsWith("/") && !Path2.Value.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(HTTPPath1.ToString() + "/" + HTTPPath2.ToString());
+            return Parse(Path1.ToString() + "/" + Path2.ToString());
 
         }
 
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
-        /// <param name="HTTPPath2">Another HTTP path.</param>
+        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path2">Another HTTP path.</param>
         /// <returns>true|false</returns>
-        public static HTTPPath operator + (HTTPPath? HTTPPath1, HTTPPath? HTTPPath2)
+        public static HTTPPath operator + (HTTPPath?  Path1,
+                                           HTTPPath?  Path2)
         {
 
-            if (!HTTPPath1.HasValue && !HTTPPath2.HasValue)
+            if (!Path1.HasValue && !Path2.HasValue)
                 return HTTPPath.Parse("/");
 
-            if (!HTTPPath1.HasValue)
-                return HTTPPath2.Value;
+            if (!Path1.HasValue)
+                return Path2.Value;
 
-            if (!HTTPPath2.HasValue)
-                return HTTPPath1.Value;
+            if (!Path2.HasValue)
+                return Path1.Value;
 
-            if (HTTPPath1.Value.EndsWith("/") && HTTPPath2.Value.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.Value.Substring(1).ToString());
+            if (Path1.Value.EndsWith("/") && Path2.Value.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.Value.Substring(1).ToString());
 
-            if (!HTTPPath1.Value.EndsWith("/") &&  HTTPPath2.Value.StartsWith("/") ||
-                 HTTPPath1.Value.EndsWith("/") && !HTTPPath2.Value.StartsWith("/"))
-                return Parse(HTTPPath1.ToString() + HTTPPath2.ToString());
+            if (!Path1.Value.EndsWith("/") &&  Path2.Value.StartsWith("/") ||
+                 Path1.Value.EndsWith("/") && !Path2.Value.StartsWith("/"))
+                return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(HTTPPath1.ToString() + "/" + HTTPPath2.ToString());
+            return Parse(Path1.ToString() + "/" + Path2.ToString());
 
         }
 

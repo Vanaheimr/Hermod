@@ -133,7 +133,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-
         #region TryParse(Text, out HTTPContentType)
 
         public static Boolean TryParse(String Text, out HTTPContentType? HTTPContentType)
@@ -195,17 +194,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ForMediaType(MediaType, DefaultValueFactory = null)
 
-        public static HTTPContentType? ForMediaType(String                  MediaType,
-                                                    Func<HTTPContentType>?  DefaultValueFactory   = null)
+        #region ForMediaType    (MediaType,     DefaultValue = null)
+
+        public static HTTPContentType? ForMediaType(String            MediaType,
+                                                    HTTPContentType?  DefaultValue = null)
         {
 
             if (lookup.TryGetValue(MediaType, out var HTTPContentType))
                 return HTTPContentType;
 
-            if (DefaultValueFactory is not null)
-                return DefaultValueFactory();
+            if (DefaultValue is not null)
+                return DefaultValue;
 
             return ALL;
 
@@ -213,19 +213,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ForFileExtension(FileExtension, DefaultValueFactory = null)
+        #region ForMediaType    (MediaType,     DefaultValueFactory)
 
-        public static IEnumerable<HTTPContentType> ForFileExtension(String                  FileExtension,
-                                                                    Func<HTTPContentType>?  DefaultValueFactory   = null)
+        public static HTTPContentType? ForMediaType(String                 MediaType,
+                                                    Func<HTTPContentType>  DefaultValueFactory)
+        {
+
+            if (lookup.TryGetValue(MediaType, out var HTTPContentType))
+                return HTTPContentType;
+
+            return DefaultValueFactory();
+
+        }
+
+        #endregion
+
+
+        #region ForFileExtension(FileExtension, DefaultValue = null)
+
+        public static IEnumerable<HTTPContentType> ForFileExtension(String            FileExtension,
+                                                                    HTTPContentType?  DefaultValue = null)
         {
 
             if (fileExtensionLookup.TryGetValue(FileExtension, out var httpContentTypes))
                 return httpContentTypes;
 
-            if (DefaultValueFactory is not null)
-                return new[] { DefaultValueFactory() };
+            if (DefaultValue is not null)
+                return [DefaultValue ];
 
-            return Array.Empty<HTTPContentType>();
+            return [];
+
+        }
+
+        #endregion
+
+        #region ForFileExtension(FileExtension, DefaultValueFactory)
+
+        public static IEnumerable<HTTPContentType> ForFileExtension(String                 FileExtension,
+                                                                    Func<HTTPContentType>  DefaultValueFactory)
+        {
+
+            if (fileExtensionLookup.TryGetValue(FileExtension, out var httpContentTypes))
+                return httpContentTypes;
+
+            return [ DefaultValueFactory() ];
 
         }
 
