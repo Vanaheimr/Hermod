@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -943,6 +943,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
+
+        public JObject ToJSON()
+        {
+
+            var json = JSONObject.Create(
+                           new JProperty("frame", ToString())
+                       );
+
+            return json;
+
+        }
 
 
         #region (override) ToString()

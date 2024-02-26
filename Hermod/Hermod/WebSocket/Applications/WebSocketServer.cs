@@ -213,7 +213,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      Connection,
                                                                                      EventTrackingId,
                                                                                      RequestTimestamp,
-                                                                                     TextMessage
+                                                                                     TextMessage,
+                                                                                     CancellationToken
                                                                                  )).
                                                        ToArray());
 
@@ -276,7 +277,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      Connection,
                                                                                      EventTrackingId,
                                                                                      RequestTimestamp,
-                                                                                     BinaryMessage
+                                                                                     BinaryMessage,
+                                                                                     CancellationToken
                                                                                  )).
                                                        ToArray());
 

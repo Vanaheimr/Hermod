@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        if (fileName.Contains("../"))
                            return null;
 
-                       return ResourceAssembly.GetManifestResourceStream($"{filePath}.{fileName.Replace('/', '.')}");
+                       return ResourceAssembly.GetManifestResourceStream($"{filePath}{fileName.Replace('/', '.')}");
 
                    },
                    DefaultFilename

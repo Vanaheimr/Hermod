@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a web socket close frame was received.
         /// </summary>
-        event OnCloseMessageDelegate?                 OnCloseMessageReceived;
+        event OnCloseMessageReceivedDelegate?         OnCloseMessageReceived;
 
 
         /// <summary>

@@ -39,14 +39,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                             WebSocketServerConnection    Connection,
                                                                                             EventTracking_Id             EventTrackingId,
                                                                                             DateTime                     RequestTimestamp,
-                                                                                            String                       TextMessage);
+                                                                                            String                       TextMessage,
+                                                                                            CancellationToken            CancellationToken);
 
     public delegate Task<WebSocketBinaryMessageResponse>  OnWebSocketBinaryMessage2Delegate(DateTime                     Timestamp,
                                                                                             AWebSocketServer             Server,
                                                                                             WebSocketServerConnection    Connection,
                                                                                             EventTracking_Id             EventTrackingId,
                                                                                             DateTime                     RequestTimestamp,
-                                                                                            Byte[]                       BinaryMessage);
+                                                                                            Byte[]                       BinaryMessage,
+                                                                                            CancellationToken            CancellationToken);
 
 
     /// <summary>
@@ -258,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a web socket close frame was received.
         /// </summary>
-        public event OnCloseMessageDelegate?                 OnCloseMessageReceived;
+        public event OnCloseMessageReceivedDelegate?         OnCloseMessageReceived;
 
 
         /// <summary>
@@ -996,8 +998,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         var responseTask = OnNewWebSocketConnectionLocal(Timestamp.Now,
                                                                                                          this,
                                                                                                          webSocketConnection,
-                                                                                                         EventTracking_Id.New,
                                                                                                          sharedSubprotocols,
+                                                                                                         EventTracking_Id.New,
                                                                                                          token2);
 
                                                         responseTask.Wait(TimeSpan.FromSeconds(10));

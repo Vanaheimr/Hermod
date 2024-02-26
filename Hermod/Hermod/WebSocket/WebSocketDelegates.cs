@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
     public delegate Task                                 OnNewTCPConnectionDelegate              (DateTime                           Timestamp,
                                                                                                   IWebSocketServer                   Server,
-                                                                                                  WebSocketServerConnection          newTCPConnection,
+                                                                                                  WebSocketServerConnection          NewTCPConnection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
@@ -103,8 +103,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public delegate Task                                 OnNewWebSocketConnectionDelegate        (DateTime                           Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          NewConnection,
-                                                                                                  EventTracking_Id                   EventTrackingId,
                                                                                                   IEnumerable<String>                SharedSubprotocols,
+                                                                                                  EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
 
@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnCloseMessageDelegate                  (DateTime                           Timestamp,
+    public delegate Task                                 OnCloseMessageReceivedDelegate          (DateTime                           Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,

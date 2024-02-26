@@ -1799,6 +1799,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        public JObject ToJSON()
+        {
+
+            var json = JSONObject.Create();
+
+            return json;
+
+        }
+
+
         #region ConvertContent<TResult>(ContentConverter, OnException = null)
 
         /// <summary>
