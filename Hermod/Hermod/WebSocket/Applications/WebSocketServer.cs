@@ -229,14 +229,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                        response.ResponseMessage.IsNotNullOrEmpty()).
                                      FirstOrDefault();
 
-
-            response ??= new WebSocketTextMessageResponse(
-                             RequestTimestamp,
-                             TextMessage,
-                             Timestamp.Now,
-                             TextMessage.Reverse(),
-                             EventTrackingId
-                         );
+            //ToDo: Fix me! Why is this here?!?!
+            //response ??= new WebSocketTextMessageResponse(
+            //                 RequestTimestamp,
+            //                 TextMessage,
+            //                 Timestamp.Now,
+            //                 TextMessage.Reverse(),
+            //                 EventTrackingId
+            //             );
 
             return response;
 
