@@ -27,6 +27,8 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
 
 #endregion
 
@@ -78,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return an enumeration of all currently connected HTTP web socket connections.
         /// </summary>
-        public IEnumerable<WebSocketServerConnection> WebSocketConnections
+        public IEnumerable<WebSocketServerConnection>  WebSocketConnections
         {
             get
             {
@@ -103,63 +105,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The HTTP service name.
         /// </summary>
-        public String                           HTTPServiceName               { get; }
+        public String                                  HTTPServiceName               { get; }
 
-        public ServerThreadNameCreatorDelegate  ServerThreadNameCreator       { get; }
 
-        public ServerThreadPriorityDelegate     ServerThreadPrioritySetter    { get; }
+        public Func<X509Certificate2>?                 ServerCertificateSelector     { get; }
+        public RemoteCertificateValidationHandler?     ClientCertificateValidator    { get; }
+        public LocalCertificateSelectionHandler?       ClientCertificateSelector     { get; }
+        public SslProtocols?                           AllowedTLSProtocols           { get; }
+        public Boolean?                                ClientCertificateRequired     { get; }
+        public Boolean?                                CheckCertificateRevocation    { get; }
 
-        public Boolean                          ServerThreadIsBackground      { get; }
+        public ServerThreadNameCreatorDelegate         ServerThreadNameCreator       { get; }
+        public ServerThreadPriorityDelegate            ServerThreadPrioritySetter    { get; }
+        public Boolean                                 ServerThreadIsBackground      { get; }
 
         /// <summary>
         /// The IP address to listen on.
         /// </summary>
-        public IIPAddress                       IPAddress
+        public IIPAddress                              IPAddress
             => IPSocket.IPAddress;
 
         /// <summary>
         /// The TCP port to listen on.
         /// </summary>
-        public IPPort                           IPPort
+        public IPPort                                  IPPort
             => IPSocket.Port;
 
         /// <summary>
         /// The IP socket to listen on.
         /// </summary>
-        public IPSocket                         IPSocket                      { get; }
+        public IPSocket                                IPSocket                      { get; }
 
         /// <summary>
         /// Whether the web socket TCP listener is currently running.
         /// </summary>
-        public Boolean                          IsRunning
+        public Boolean                                 IsRunning
             => isRunning;
 
         /// <summary>
         /// The supported secondary web socket protocols.
         /// </summary>
-        public HashSet<String>                  SecWebSocketProtocols         { get; }
+        public HashSet<String>                         SecWebSocketProtocols         { get; }
 
         /// <summary>
         /// Disable web socket pings.
         /// </summary>
-        public Boolean                          DisableWebSocketPings         { get; set; }
+        public Boolean                                 DisableWebSocketPings         { get; set; }
 
         /// <summary>
         /// The web socket ping interval.
         /// </summary>
-        public TimeSpan                         WebSocketPingEvery            { get; set; }
+        public TimeSpan                                WebSocketPingEvery            { get; set; }
 
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
         /// This is intended for debugging other web socket stacks.
         /// </summary>
-        public TimeSpan?                        SlowNetworkSimulationDelay    { get; set; }
+        public TimeSpan?                               SlowNetworkSimulationDelay    { get; set; }
 
 
         /// <summary>
         /// An optional DNS client to use.
         /// </summary>
-        public DNSClient?                       DNSClient                     { get; }
+        public DNSClient?                              DNSClient                     { get; }
 
         #endregion
 
@@ -280,22 +288,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// 
         /// <param name="SecWebSocketProtocols"></param>
         /// <param name="DisableWebSocketPings"></param>
         /// <param name="WebSocketPingEvery"></param>
         /// <param name="SlowNetworkSimulationDelay"></param>
+        /// 
         /// <param name="ServerCertificateSelector"></param>
         /// <param name="ClientCertificateValidator"></param>
         /// <param name="ClientCertificateSelector"></param>
         /// <param name="AllowedTLSProtocols"></param>
         /// <param name="ClientCertificateRequired"></param>
         /// <param name="CheckCertificateRevocation"></param>
+        /// 
         /// <param name="ServerThreadNameCreator"></param>
         /// <param name="ServerThreadPrioritySetter"></param>
         /// <param name="ServerThreadIsBackground"></param>
         /// <param name="ConnectionIdBuilder"></param>
         /// <param name="ConnectionTimeout"></param>
         /// <param name="MaxClientConnections"></param>
+        /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public AWebSocketServer(IIPAddress?                          IPAddress                    = null,
@@ -307,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                            WebSocketPingEvery           = null,
                                 TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                                ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                                Func<X509Certificate2>?              ServerCertificateSelector    = null,
                                 RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                 LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                 SslProtocols?                        AllowedTLSProtocols          = null,
@@ -363,22 +375,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="TCPSocket">The TCP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// 
         /// <param name="SecWebSocketProtocols"></param>
         /// <param name="DisableWebSocketPings"></param>
         /// <param name="WebSocketPingEvery"></param>
         /// <param name="SlowNetworkSimulationDelay"></param>
+        /// 
         /// <param name="ServerCertificateSelector"></param>
         /// <param name="ClientCertificateValidator"></param>
         /// <param name="ClientCertificateSelector"></param>
         /// <param name="AllowedTLSProtocols"></param>
         /// <param name="ClientCertificateRequired"></param>
         /// <param name="CheckCertificateRevocation"></param>
+        /// 
         /// <param name="ServerThreadNameCreator"></param>
         /// <param name="ServerThreadPrioritySetter"></param>
         /// <param name="ServerThreadIsBackground"></param>
         /// <param name="ConnectionIdBuilder"></param>
         /// <param name="ConnectionTimeout"></param>
         /// <param name="MaxClientConnections"></param>
+        /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public AWebSocketServer(IPSocket                             TCPSocket,
@@ -389,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 TimeSpan?                            WebSocketPingEvery           = null,
                                 TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                                ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                                Func<X509Certificate2>?              ServerCertificateSelector    = null,
                                 RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                 LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                 SslProtocols?                        AllowedTLSProtocols          = null,
@@ -420,6 +436,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.DisableWebSocketPings       = DisableWebSocketPings;
             this.WebSocketPingEvery          = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
+
+            this.ServerCertificateSelector   = ServerCertificateSelector;
+            this.ClientCertificateValidator  = ClientCertificateValidator;
+            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.AllowedTLSProtocols         = AllowedTLSProtocols;
+            this.ClientCertificateRequired   = ClientCertificateRequired;
+            this.CheckCertificateRevocation  = CheckCertificateRevocation;
+
             this.DNSClient                   = DNSClient;
 
             this.webSocketConnections        = new ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>();
@@ -639,6 +663,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         break;
 
                     var newTCPConnection = tcpListener.AcceptTcpClient();
+                    SslStream? sslStream = null;
+
+                    #endregion
+
+                    #region Do SSL/TLS
+
+                    var serverCertificate = ServerCertificateSelector?.Invoke();
+
+                    if (serverCertificate is not null)
+                    {
+
+                        try
+                        {
+
+                            //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
+
+                            sslStream      = new SslStream(innerStream:                         newTCPConnection.GetStream(),
+                                                           leaveInnerStreamOpen:                true,
+                                                           userCertificateValidationCallback:   ClientCertificateValidator is null
+                                                                                                    ? null
+                                                                                                    : (sender,
+                                                                                                       certificate,
+                                                                                                       chain,
+                                                                                                       policyErrors) => ClientCertificateValidator(sender,
+                                                                                                                                                   certificate is not null
+                                                                                                                                                       ? new X509Certificate2(certificate)
+                                                                                                                                                       : null,
+                                                                                                                                                   chain,
+                                                                                                                                                   policyErrors).Item1,
+                                                           userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                                                                                    ? null
+                                                                                                    : (sender,
+                                                                                                       targetHost,
+                                                                                                       localCertificates,
+                                                                                                       remoteCertificate,
+                                                                                                       acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                                                                                       targetHost,
+                                                                                                                                                       localCertificates.
+                                                                                                                                                           Cast<X509Certificate>().
+                                                                                                                                                           Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                                                       remoteCertificate is not null
+                                                                                                                                                           ? new X509Certificate2(remoteCertificate)
+                                                                                                                                                           : null,
+                                                                                                                                                       acceptableIssuers),
+                                                           encryptionPolicy:                    EncryptionPolicy.RequireEncryption);
+
+                            sslStream.AuthenticateAsServer(serverCertificate:                   serverCertificate,
+                                                           clientCertificateRequired:           ClientCertificateValidator is not null,
+                                                           enabledSslProtocols:                 AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                           checkCertificateRevocation:          false);
+
+                            if (sslStream.RemoteCertificate is not null)
+                            {
+
+                                //this.ClientCertificate = new X509Certificate2(sslStream.RemoteCertificate);
+
+                                //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
+
+                            }
+
+                        }
+                        catch (Exception e)
+                        {
+                            //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                            throw;
+                        }
+
+                    }
 
                     #endregion
 

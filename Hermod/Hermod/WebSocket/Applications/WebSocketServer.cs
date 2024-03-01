@@ -23,6 +23,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -67,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                TimeSpan?                            WebSocketPingEvery           = null,
                                TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                               ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                               Func<X509Certificate2>?              ServerCertificateSelector    = null,
                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                SslProtocols?                        AllowedTLSProtocols          = null,
@@ -131,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                TimeSpan?                            WebSocketPingEvery           = null,
                                TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                               ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                               Func<X509Certificate2>?              ServerCertificateSelector    = null,
                                RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                                LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                                SslProtocols?                        AllowedTLSProtocols          = null,

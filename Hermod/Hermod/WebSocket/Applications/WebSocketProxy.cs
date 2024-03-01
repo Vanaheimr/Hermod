@@ -19,7 +19,7 @@
 
 using System.Collections.Concurrent;
 using System.Security.Authentication;
-
+using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               TimeSpan?                            WebSocketPingEvery           = null,
                               TimeSpan?                            SlowNetworkSimulationDelay   = null,
 
-                              ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
+                              Func<X509Certificate2>?              ServerCertificateSelector    = null,
                               RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
                               SslProtocols?                        AllowedTLSProtocols          = null,

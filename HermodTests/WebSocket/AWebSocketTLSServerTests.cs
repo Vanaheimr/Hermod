@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
                                   HTTPPort:                    HTTPPort,
 
-                                  ServerCertificateSelector:  (tcpServer, tcpClient) => {
+                                  ServerCertificateSelector:  () => {
 
                                       return serverCertificate;
 

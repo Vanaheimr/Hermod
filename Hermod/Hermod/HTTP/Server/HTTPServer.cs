@@ -952,37 +952,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               IArrowReceiver<TCPConnection>
     {
 
-        public class HTTPRequestHandle
+        public class HTTPRequestHandle(HTTPAPI                                    HTTPAPI,
+                                       HTTPDelegate?                              RequestHandler,
+                                       HTTPRequestLogHandler?                     HTTPRequestLogger,
+                                       HTTPResponseLogHandler?                    HTTPResponseLogger,
+                                       HTTPDelegate?                              DefaultErrorHandler,
+                                       Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers)
         {
 
             #region Properties
 
-            public HTTPAPI                                    HTTPAPI                { get; }
-            public HTTPDelegate?                              RequestHandler         { get; }
-            public HTTPRequestLogHandler?                     HTTPRequestLogger      { get; }
-            public HTTPResponseLogHandler?                    HTTPResponseLogger     { get; }
-            public HTTPDelegate?                              DefaultErrorHandler    { get; }
-            public Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers          { get; }
+            public HTTPAPI                                    HTTPAPI                { get; } = HTTPAPI;
+            public HTTPDelegate?                              RequestHandler         { get; } = RequestHandler;
+            public HTTPRequestLogHandler?                     HTTPRequestLogger      { get; } = HTTPRequestLogger;
+            public HTTPResponseLogHandler?                    HTTPResponseLogger     { get; } = HTTPResponseLogger;
+            public HTTPDelegate?                              DefaultErrorHandler    { get; } = DefaultErrorHandler;
+            public Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers          { get; } = ErrorHandlers;
 
             #endregion
-
-            public HTTPRequestHandle(HTTPAPI                                    HTTPAPI,
-                                     HTTPDelegate?                              RequestHandler,
-                                     HTTPRequestLogHandler?                     HTTPRequestLogger,
-                                     HTTPResponseLogHandler?                    HTTPResponseLogger,
-                                     HTTPDelegate?                              DefaultErrorHandler,
-                                     Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers)
-
-            {
-
-                this.HTTPAPI              = HTTPAPI;
-                this.RequestHandler       = RequestHandler;
-                this.HTTPRequestLogger    = HTTPRequestLogger;
-                this.HTTPResponseLogger   = HTTPResponseLogger;
-                this.DefaultErrorHandler  = DefaultErrorHandler;
-                this.ErrorHandlers        = ErrorHandlers;
-
-            }
 
             public static HTTPRequestHandle FromURLNode(URL_Node URLNode)
 
