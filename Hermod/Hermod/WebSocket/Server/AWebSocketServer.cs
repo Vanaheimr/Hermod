@@ -606,156 +606,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             listenerThread = new Thread(async () => {
 
-                try {
-
-                #region Server setup
-
-                Thread.CurrentThread.Name          = ServerThreadNameCreator(IPSocket);
-                Thread.CurrentThread.Priority      = ServerThreadPrioritySetter(IPSocket);
-                Thread.CurrentThread.IsBackground  = ServerThreadIsBackground;
-
-                var token        = cancellationTokenSource.Token;
-                var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
-                tcpListener.Start();
-
-                isRunning        = true;
-
-                #endregion
-
-                #region Send OnServerStarted event
-
-                var onServerStarted = OnServerStarted;
-                if (onServerStarted is not null)
-                {
-                    try
-                    {
-
-                        await Task.WhenAll(onServerStarted.GetInvocationList().
-                                               OfType <OnServerStartedDelegate>().
-                                               Select (loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
-                                                                              this,
-                                                                              EventTracking_Id.New,
-                                                                              token
-                                                                          )).
-                                               ToArray());
-
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
-                    }
-                }
-
-                #endregion
-
-
-                while (!token.IsCancellationRequested)
+                try
                 {
 
-                    #region Accept new TCP connection
+                    #region Server setup
 
-                    // Wait for a new/pending client connection
-                    while (!token.IsCancellationRequested && !tcpListener.Pending())
-                        Thread.Sleep(5);
+                    Thread.CurrentThread.Name          = ServerThreadNameCreator(IPSocket);
+                    Thread.CurrentThread.Priority      = ServerThreadPrioritySetter(IPSocket);
+                    Thread.CurrentThread.IsBackground  = ServerThreadIsBackground;
 
-                    if (token.IsCancellationRequested)
-                        break;
+                    var token        = cancellationTokenSource.Token;
+                    var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
+                    tcpListener.Start();
 
-                    var newTCPConnection = tcpListener.AcceptTcpClient();
-                    SslStream? sslStream = null;
+                    isRunning        = true;
 
                     #endregion
 
-                    #region Do SSL/TLS
+                    #region Send OnServerStarted event
 
-                    var serverCertificate = ServerCertificateSelector?.Invoke();
-
-                    if (serverCertificate is not null)
-                    {
-
-                        try
-                        {
-
-                            //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
-
-                            sslStream      = new SslStream(innerStream:                         newTCPConnection.GetStream(),
-                                                           leaveInnerStreamOpen:                true,
-                                                           userCertificateValidationCallback:   ClientCertificateValidator is null
-                                                                                                    ? null
-                                                                                                    : (sender,
-                                                                                                       certificate,
-                                                                                                       chain,
-                                                                                                       policyErrors) => ClientCertificateValidator(sender,
-                                                                                                                                                   certificate is not null
-                                                                                                                                                       ? new X509Certificate2(certificate)
-                                                                                                                                                       : null,
-                                                                                                                                                   chain,
-                                                                                                                                                   policyErrors).Item1,
-                                                           userCertificateSelectionCallback:    ClientCertificateSelector is null
-                                                                                                    ? null
-                                                                                                    : (sender,
-                                                                                                       targetHost,
-                                                                                                       localCertificates,
-                                                                                                       remoteCertificate,
-                                                                                                       acceptableIssuers) => ClientCertificateSelector(sender,
-                                                                                                                                                       targetHost,
-                                                                                                                                                       localCertificates.
-                                                                                                                                                           Cast<X509Certificate>().
-                                                                                                                                                           Select(certificate => new X509Certificate2(certificate)),
-                                                                                                                                                       remoteCertificate is not null
-                                                                                                                                                           ? new X509Certificate2(remoteCertificate)
-                                                                                                                                                           : null,
-                                                                                                                                                       acceptableIssuers),
-                                                           encryptionPolicy:                    EncryptionPolicy.RequireEncryption);
-
-                            sslStream.AuthenticateAsServer(serverCertificate:                   serverCertificate,
-                                                           clientCertificateRequired:           ClientCertificateValidator is not null,
-                                                           enabledSslProtocols:                 AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
-                                                           checkCertificateRevocation:          false);
-
-                            if (sslStream.RemoteCertificate is not null)
-                            {
-
-                                //this.ClientCertificate = new X509Certificate2(sslStream.RemoteCertificate);
-
-                                //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
-
-                            }
-
-                        }
-                        catch (Exception e)
-                        {
-                            //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
-                            throw;
-                        }
-
-                    }
-
-                    #endregion
-
-                    #region OnValidateTCPConnection
-
-                    var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
-
-                    var onValidateTCPConnection = OnValidateTCPConnection;
-                    if (onValidateTCPConnection is not null)
+                    var onServerStarted = OnServerStarted;
+                    if (onServerStarted is not null)
                     {
                         try
                         {
 
-                            validatedTCPConnections = await Task.WhenAll(
-                                                                onValidateTCPConnection.GetInvocationList().
-                                                                    OfType <OnValidateTCPConnectionDelegate>().
-                                                                    Select (loggingDelegate => loggingDelegate.Invoke(
-                                                                                                   Timestamp.Now,
-                                                                                                   this,
-                                                                                                   newTCPConnection,
-                                                                                                   EventTracking_Id.New,
-                                                                                                   token
-                                                                                               )).
-                                                                    ToArray()
-                                                            );
+                            await Task.WhenAll(onServerStarted.GetInvocationList().
+                                                   OfType <OnServerStartedDelegate>().
+                                                   Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                                  Timestamp.Now,
+                                                                                  this,
+                                                                                  EventTracking_Id.New,
+                                                                                  token
+                                                                              )).
+                                                   ToArray());
 
                         }
                         catch (Exception e)
@@ -764,846 +648,962 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         }
                     }
 
-                    if (validatedTCPConnections.Length > 0 &&
-                        validatedTCPConnections.First() == ConnectionFilterResponse.Rejected())
-                    {
-                        newTCPConnection.Close();
-                    }
-
                     #endregion
 
 
-                    else
+                    while (!token.IsCancellationRequested)
                     {
 
-                        var x = Task.Factory.StartNew(async context => {
+                        #region Accept new TCP connection
 
+                        // Wait for a new/pending client connection
+                        while (!token.IsCancellationRequested && !tcpListener.Pending())
+                            Thread.Sleep(5);
+
+                        if (token.IsCancellationRequested)
+                            break;
+
+                        var newTCPConnection = tcpListener.AcceptTcpClient();
+                        SslStream? sslStream = null;
+
+                        #endregion
+
+                        #region OnValidateTCPConnection
+
+                        var validatedTCPConnections = Array.Empty<ConnectionFilterResponse>();
+
+                        var onValidateTCPConnection = OnValidateTCPConnection;
+                        if (onValidateTCPConnection is not null)
+                        {
                             try
                             {
 
-                                if (context is WebSocketServerConnection webSocketConnection)
-                                {
-
-                                    #region Data
-
-                                    Boolean        IsStillHTTP      = true;
-                                    String?        httpMethod       = null;
-                                    Byte[]         bytes            = [];
-                                    Byte[]         bytesLeftOver    = [];
-                                    HTTPResponse?  httpResponse     = null;
-
-                                    var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
-                                    var token2                      = cts2.Token;
-                                    var lastWebSocketPingTimestamp  = Timestamp.Now;
-                                    var sendErrors                  = 0;
-
-                                    #endregion
-
-                                    #region Config web socket connection
-
-                                    webSocketConnection.ReadTimeout = TimeSpan.FromSeconds(20);
-                                    webSocketConnection.WriteTimeout = TimeSpan.FromSeconds(3);
-
-                                    if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
-                                                                     new WeakReference<WebSocketServerConnection>(webSocketConnection)))
-                                    {
-
-                                        webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
-
-                                        webSocketConnections.TryAdd   (webSocketConnection.RemoteSocket,
-                                                                       new WeakReference<WebSocketServerConnection>(webSocketConnection));
-
-                                    }
-
-                                    #endregion
-
-                                    #region Send OnNewTCPConnection event
-
-                                    var onNewTCPConnection = OnNewTCPConnection;
-                                    if (onNewTCPConnection is not null)
-                                    {
-                                        try
-                                        {
-
-                                            await Task.WhenAll(onNewTCPConnection.GetInvocationList().
-                                                                   OfType<OnNewTCPConnectionDelegate>().
-                                                                   Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                                  Timestamp.Now,
-                                                                                                  this,
-                                                                                                  webSocketConnection,
-                                                                                                  EventTracking_Id.New,
-                                                                                                  token2
-                                                                                              )).
-                                                                   ToArray());
-
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
-                                        }
-                                    }
-
-                                    #endregion
-
-                                    while (!token2.IsCancellationRequested &&
-                                           !webSocketConnection.IsClosed &&
-                                            sendErrors < 3)
-                                    {
-
-                                        #region Main loop waiting for data... and sending a regular web socket ping
-
-                                        if (bytes.Length == 0)
-                                        {
-
-                                            while (webSocketConnection.DataAvailable == false &&
-                                                  !webSocketConnection.IsClosed &&
-                                                   sendErrors < 3)
-                                            {
-
-                                                #region Send a regular web socket "ping"
-
-                                                if (!DisableWebSocketPings &&
-                                                    Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
-                                                {
-
-                                                    var eventTrackingId = EventTracking_Id.New;
-                                                    var frame = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
-                                                    var success = await SendWebSocketFrame(
-                                                                                     webSocketConnection,
-                                                                                     frame,
-                                                                                     eventTrackingId,
-                                                                                     token2
-                                                                                 );
-
-                                                    if (success == SendStatus.Success)
-                                                    {
-
-                                                        sendErrors = 0;
-
-                                                        #region OnPingMessageSent
-
-                                                        try
-                                                        {
-
-                                                            OnPingMessageSent?.Invoke(Timestamp.Now,
-                                                                                      this,
-                                                                                      webSocketConnection,
-                                                                                      eventTrackingId,
-                                                                                      frame,
-                                                                                      token2);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageSent));
-                                                        }
-
-                                                        #endregion
-
-                                                    }
-                                                    else if (success == SendStatus.FatalError)
-                                                    {
-                                                        webSocketConnection.Close();
-                                                    }
-                                                    else
-                                                    {
-                                                        sendErrors++;
-                                                        DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " ping failed (" + sendErrors + ")!");
-                                                    }
-
-                                                    lastWebSocketPingTimestamp = Timestamp.Now;
-
-                                                }
-
-                                                #endregion
-
-                                                Thread.Sleep(5);
-
-                                            };
-
-                                            bytes = new Byte[bytesLeftOver.Length + webSocketConnection.Available];
-
-                                            if (bytesLeftOver.Length > 0)
-                                                Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
-
-                                            if (bytes.Length > 0)
-                                                webSocketConnection.Read(bytes,
-                                                                         bytesLeftOver.Length,
-                                                                         bytes.Length - bytesLeftOver.Length);
-
-                                            httpMethod = IsStillHTTP
-                                                             ? Encoding.UTF8.GetString(bytes, 0, 4)
-                                                             : "";
-
-                                        }
-
-                                        #endregion
-
-
-                                        #region A web socket handshake...
-
-                                        if (httpMethod == "GET ")
-                                        {
-
-                                            var sharedSubprotocols = Array.Empty<String>();
-
-                                            #region Invalid HTTP request...
-
-                                            // GET /websocket HTTP/1.1
-                                            // Host:                     example.com:33033
-                                            // Upgrade:                  websocket
-                                            // Connection:               Upgrade
-                                            // Sec-WebSocket-Key:        x3JJHMbDL1EzLkh9GBhXDw==
-                                            // Sec-WebSocket-Protocol:   ocpp1.6, ocpp1.5
-                                            // Sec-WebSocket-Version:    13
-                                            if (!HTTPRequest.TryParse(bytes, out var httpRequest) ||
-                                                 httpRequest is null)
-                                            {
-                                                httpResponse = new HTTPResponse.Builder() {
-                                                    HTTPStatusCode = HTTPStatusCode.BadRequest,
-                                                    Server = HTTPServiceName,
-                                                    Date = Timestamp.Now,
-                                                    Connection = "close"
-                                                }.AsImmutable;
-                                            }
-
-                                            #endregion
-
-                                            else
-                                            {
-
-                                                webSocketConnection.HTTPRequest = httpRequest;
-
-                                                #region OnHTTPRequest
-
-                                                var OnHTTPRequestLocal = OnHTTPRequest;
-                                                if (OnHTTPRequestLocal is not null)
-                                                {
-
-                                                    await OnHTTPRequestLocal(Timestamp.Now,
-                                                                             this,
-                                                                             httpRequest,
-                                                                             token2);
-
-                                                }
-
-                                                #endregion
-
-                                                #region OnValidateWebSocketConnection
-
-                                                var OnValidateWebSocketConnectionLocal = OnValidateWebSocketConnection;
-                                                if (OnValidateWebSocketConnectionLocal is not null)
-                                                {
-
-                                                    httpResponse = await OnValidateWebSocketConnectionLocal(Timestamp.Now,
-                                                                                                            this,
-                                                                                                            webSocketConnection,
-                                                                                                            EventTracking_Id.New,
-                                                                                                            token2);
-
-                                                }
-
-                                                #endregion
-
-                                                #region Validate HTTP web socket request
-
-                                                // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
-                                                // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
-                                                // 3. Compute SHA-1 and Base64 hash of the new value
-                                                // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
-#pragma warning disable SCS0006 // Weak hashing function.
-                                                var swk             = webSocketConnection.HTTPRequest?.SecWebSocketKey;
-                                                var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                                var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
-                                                sharedSubprotocols  = SecWebSocketProtocols.
-                                                                           Intersect(httpRequest.SecWebSocketProtocol).
-                                                                           OrderByDescending(protocol => protocol).
-                                                                           ToArray();
-#pragma warning restore SCS0006 // Weak hashing function.
-
-
-                                                // HTTP/1.1 101 Switching Protocols
-                                                // Connection:              Upgrade
-                                                // Upgrade:                 websocket
-                                                // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-                                                // Sec-WebSocket-Protocol:  ocpp1.6
-                                                // Sec-WebSocket-Version:   13
-                                                httpResponse ??= new HTTPResponse.Builder(httpRequest) {
-                                                                     HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
-                                                                     Server                = HTTPServiceName,
-                                                                     Connection            = "Upgrade",
-                                                                     Upgrade               = "websocket",
-                                                                     SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
-                                                                     SecWebSocketProtocol  = sharedSubprotocols,
-                                                                     SecWebSocketVersion   = "13"
-                                                                 }.AsImmutable;
-
-                                                #endregion
-
-                                            }
-
-                                            #region Send HTTP response
-
-                                            var success = await webSocketConnection.SendText(httpResponse.EntirePDU + "\r\n\r\n");
-
-                                            if (success == SendStatus.Success)
-                                            {
-
-                                                #region OnHTTPResponse
-
-                                                var OnHTTPResponseLocal = OnHTTPResponse;
-                                                if (OnHTTPResponseLocal is not null)
-                                                {
-
-                                                    await OnHTTPResponseLocal(Timestamp.Now,
-                                                                              this,
-                                                                              httpRequest,
-                                                                              httpResponse,
-                                                                              token2);
-
-                                                }
-
-                                                #endregion
-
-                                            }
-
-                                            #endregion
-
-                                            if (success != SendStatus.Success ||
-                                                httpResponse.Connection == "close")
-                                            {
-                                                webSocketConnection.Close();
-                                            }
-
-                                            else
-                                            {
-
-                                                #region Send OnNewWebSocketConnection event
-
-                                                try
-                                                {
-
-                                                    var OnNewWebSocketConnectionLocal = OnNewWebSocketConnection;
-                                                    if (OnNewWebSocketConnectionLocal is not null)
-                                                    {
-
-                                                        var responseTask = OnNewWebSocketConnectionLocal(Timestamp.Now,
-                                                                                                         this,
-                                                                                                         webSocketConnection,
-                                                                                                         sharedSubprotocols,
-                                                                                                         EventTracking_Id.New,
-                                                                                                         token2);
-
-                                                        responseTask.Wait(TimeSpan.FromSeconds(10));
-
-                                                    }
-
-                                                }
-                                                catch (Exception e)
-                                                {
-                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnNewWebSocketConnection));
-                                                }
-
-                                                #endregion
-
-                                                IsStillHTTP = false;
-                                                bytes = [];
-
-                                            }
-
-                                        }
-
-                                        #endregion
-
-                                        #region ...or a web socket frame...
-
-                                        else if (IsStillHTTP == false &&
-                                                 bytes.Length > 0)
-                                        {
-
-                                            if (WebSocketFrame.TryParse(bytes,
-                                                                        out var frame,
-                                                                        out var frameLength,
-                                                                        out var errorResponse) &&
-                                                frame is not null)
-                                            {
-
-                                                var now = Timestamp.Now;
-                                                var eventTrackingId = EventTracking_Id.New;
-                                                WebSocketFrame? responseFrame = null;
-
-                                                #region OnWebSocketFrameReceived
-
-                                                try
-                                                {
-
-                                                    OnWebSocketFrameReceived?.Invoke(now,
-                                                                                     this,
-                                                                                     webSocketConnection,
-                                                                                     eventTrackingId,
-                                                                                     frame,
-                                                                                     token2);
-
-                                                }
-                                                catch (Exception e)
-                                                {
-                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameReceived));
-                                                }
-
-                                                #endregion
-
-                                                switch (frame.Opcode)
-                                                {
-
-                                                    #region Text   message
-
-                                                    case WebSocketFrame.Opcodes.Text:
-
-                                                        #region OnTextMessageReceived
-
-                                                        try
-                                                        {
-
-                                                            OnTextMessageReceived?.Invoke(now,
-                                                                                          this,
-                                                                                          webSocketConnection,
-                                                                                          eventTrackingId,
-                                                                                          frame.Payload.ToUTF8String(),
-                                                                                          token2);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnTextMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        #region ProcessTextMessage
-
-                                                        WebSocketTextMessageResponse? textMessageResponse = null;
-
-                                                        try
-                                                        {
-
-                                                            textMessageResponse = await ProcessTextMessage(now,
-                                                                                                           webSocketConnection,
-                                                                                                           frame.Payload.ToUTF8String(),
-                                                                                                           eventTrackingId,
-                                                                                                           token2);
-
-                                                            // Incoming higher protocol level respones will not produce another response!
-                                                            if (textMessageResponse is not null &&
-                                                                textMessageResponse.ResponseMessage is not null &&
-                                                                textMessageResponse.ResponseMessage != "")
-                                                            {
-                                                                responseFrame = WebSocketFrame.Text(textMessageResponse.ResponseMessage);
-                                                            }
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(ProcessTextMessage));
-                                                        }
-
-                                                        #endregion
-
-                                                        #region OnTextMessageResponseSent
-
-                                                        //try
-                                                        //{
-
-                                                        //    if (responseFrame is not null && textMessageResponse is not null)
-                                                        //        OnTextMessageResponseSent?.Invoke(Timestamp.Now,
-                                                        //                                          this,
-                                                        //                                          webSocketConnection,
-                                                        //                                          textMessageResponse.EventTrackingId,
-                                                        //                                          textMessageResponse.RequestTimestamp,
-                                                        //                                          textMessageResponse.RequestMessage,
-                                                        //                                          textMessageResponse.ResponseTimestamp,
-                                                        //                                          textMessageResponse.ResponseMessage);
-
-                                                        //}
-                                                        //catch (Exception e)
-                                                        //{
-                                                        //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageResponseSent));
-                                                        //}
-
-                                                        #endregion
-
-                                                        break;
-
-                                                    #endregion
-
-                                                    #region Binary message
-
-                                                    case WebSocketFrame.Opcodes.Binary:
-
-                                                        #region OnBinaryMessageReceived
-
-                                                        try
-                                                        {
-
-                                                            OnBinaryMessageReceived?.Invoke(now,
-                                                                                            this,
-                                                                                            webSocketConnection,
-                                                                                            eventTrackingId,
-                                                                                            frame.Payload,
-                                                                                            token2);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnBinaryMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        #region ProcessBinaryMessage
-
-                                                        WebSocketBinaryMessageResponse? binaryMessageResponse = null;
-
-                                                        try
-                                                        {
-
-                                                            binaryMessageResponse = await ProcessBinaryMessage(now,
-                                                                                                               webSocketConnection,
-                                                                                                               frame.Payload,
-                                                                                                               eventTrackingId,
-                                                                                                               token2);
-
-                                                            // Incoming higher protocol level respones will not produce another response!
-                                                            if (binaryMessageResponse is not null &&
-                                                                binaryMessageResponse.ResponseMessage is not null &&
-                                                                binaryMessageResponse.ResponseMessage.Length > 0)
-                                                            {
-                                                                responseFrame = WebSocketFrame.Binary(binaryMessageResponse.ResponseMessage);
-                                                            }
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(ProcessBinaryMessage));
-                                                        }
-
-                                                        #endregion
-
-                                                        #region OnBinaryMessageResponseSent
-
-                                                        //try
-                                                        //{
-
-                                                        //    if (responseFrame is not null && binaryMessageResponse is not null)
-                                                        //        OnBinaryMessageResponseSent?.Invoke(Timestamp.Now,
-                                                        //                                            this,
-                                                        //                                            webSocketConnection,
-                                                        //                                            binaryMessageResponse.EventTrackingId,
-                                                        //                                            binaryMessageResponse.RequestTimestamp,
-                                                        //                                            binaryMessageResponse.RequestMessage,
-                                                        //                                            binaryMessageResponse.ResponseTimestamp,
-                                                        //                                            binaryMessageResponse.ResponseMessage);
-
-                                                        //}
-                                                        //catch (Exception e)
-                                                        //{
-                                                        //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnBinaryMessageResponseSent));
-                                                        //}
-
-                                                        #endregion
-
-                                                        break;
-
-                                                    #endregion
-
-                                                    #region Ping   message
-
-                                                    case WebSocketFrame.Opcodes.Ping:
-
-                                                        #region OnPingMessageReceived
-
-                                                        try
-                                                        {
-
-                                                            OnPingMessageReceived?.Invoke(now,
-                                                                                          this,
-                                                                                          webSocketConnection,
-                                                                                          eventTrackingId,
-                                                                                          frame,
-                                                                                          token2);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        responseFrame = WebSocketFrame.Pong(frame.Payload);
-
-                                                        break;
-
-                                                    #endregion
-
-                                                    #region Pong   message
-
-                                                    case WebSocketFrame.Opcodes.Pong:
-
-                                                        #region OnPongMessageReceived
-
-                                                        try
-                                                        {
-
-                                                            OnPongMessageReceived?.Invoke(now,
-                                                                                          this,
-                                                                                          webSocketConnection,
-                                                                                          eventTrackingId,
-                                                                                          frame,
-                                                                                          token2);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPongMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        break;
-
-                                                    #endregion
-
-                                                    #region Close  message
-
-                                                    case WebSocketFrame.Opcodes.Close:
-
-                                                        webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
-
-                                                        #region OnCloseMessage
-
-                                                        try
-                                                        {
-
-                                                            OnCloseMessageReceived?.Invoke(now,
-                                                                                           this,
-                                                                                           webSocketConnection,
-                                                                                           eventTrackingId,
-                                                                                           frame.GetClosingStatusCode(),
-                                                                                           frame.GetClosingReason(),
-                                                                                           token2);
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnCloseMessageReceived));
-                                                        }
-
-                                                        #endregion
-
-                                                        // The close handshake demands that we have to send a close frame back!
-                                                        await SendWebSocketFrame(
-                                                                  webSocketConnection,
-                                                                  WebSocketFrame.Close(),
-                                                                  eventTrackingId
-                                                              );
-
-                                                        webSocketConnection.Close();
-
-                                                        break;
-
-                                                        #endregion
-
-                                                }
-
-                                                #region Send immediate response frame... when available
-
-                                                if (responseFrame is not null)
-                                                {
-
-                                                    var success = await SendWebSocketFrame(webSocketConnection,
-                                                                                           responseFrame,
-                                                                                           eventTrackingId);
-
-                                                    if (success == SendStatus.Success)
-                                                    {
-
-                                                        sendErrors = 0;
-
-                                                        #region OnWebSocketFrameResponseSent
-
-                                                        //try
-                                                        //{
-
-                                                        //    if (responseFrame is not null)
-                                                        //        OnWebSocketFrameResponseSent?.Invoke(Timestamp.Now,
-                                                        //                                             this,
-                                                        //                                             webSocketConnection,
-                                                        //                                             frame,
-                                                        //                                             responseFrame,
-                                                        //                                             eventTrackingId);
-
-                                                        //}
-                                                        //catch (Exception e)
-                                                        //{
-                                                        //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnWebSocketFrameResponseSent));
-                                                        //}
-
-                                                        #endregion
-
-                                                    }
-                                                    else if (success == SendStatus.FatalError)
-                                                    {
-                                                        webSocketConnection.Close();
-                                                    }
-                                                    else
-                                                    {
-                                                        sendErrors++;
-                                                        DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " sending a web socket frame failed (" + sendErrors + ")!");
-                                                    }
-
-                                                }
-
-                                                #endregion
-
-                                                //if (frame.Opcode.IsControl())
-                                                //{
-                                                //    if (frame.FIN    == WebSocketFrame.Fin.More)
-                                                //        Console.WriteLine(">>> A control frame is fragmented!");
-                                                //}
-
-                                                if ((UInt64)bytes.Length == frameLength)
-                                                    bytes = [];
-
-                                                else
-                                                {
-                                                    // The buffer might contain additional web socket frames...
-                                                    var newBytes = new Byte[(UInt64)bytes.Length - frameLength];
-                                                    Array.Copy(bytes, (Int32)frameLength, newBytes, 0, newBytes.Length);
-                                                    bytes = newBytes;
-                                                }
-
-                                                bytesLeftOver = [];
-
-                                            }
-                                            else
-                                            {
-                                                bytesLeftOver = bytes;
-                                                DebugX.Log($"Could not parse the given web socket frame of {bytesLeftOver.Length} byte(s): {errorResponse}");
-                                                bytes = [];
-                                            }
-
-                                        }
-
-                                        #endregion
-
-                                        #region ...0 bytes read...
-
-                                        else if (bytes.Length == 0)
-                                        {
-                                            // Some kind of network error...
-                                        }
-
-                                        #endregion
-
-                                        #region ...some other crap!
-
-                                        // Can e.g. be web crawlers etc.pp
-
-                                        else
-                                        {
-                                            DebugX.Log(nameof(AWebSocketServer) + ": Closing invalid TCP connection from: " + webSocketConnection.RemoteSocket);
-                                            webSocketConnection.Close();
-                                        }
-
-                                        #endregion
-
-                                    }
-
-                                    webSocketConnection.Close();
-
-                                    webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
-
-                                    #region OnTCPConnectionClosed
-
-                                    try
-                                    {
-
-                                        OnTCPConnectionClosed?.Invoke(Timestamp.Now,
-                                                                      this,
-                                                                      webSocketConnection,
-                                                                      EventTracking_Id.New,
-                                                                      "!!!",
-                                                                      token2);
-
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnTCPConnectionClosed));
-                                    }
-
-                                    #endregion
-
-                                }
-                                else
-                                    DebugX.Log(nameof(AWebSocketServer), " The given web socket connection is invalid!");
+                                validatedTCPConnections = await Task.WhenAll(
+                                                                    onValidateTCPConnection.GetInvocationList().
+                                                                        OfType <OnValidateTCPConnectionDelegate>().
+                                                                        Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                                                       Timestamp.Now,
+                                                                                                       this,
+                                                                                                       newTCPConnection,
+                                                                                                       EventTracking_Id.New,
+                                                                                                       token
+                                                                                                   )).
+                                                                        ToArray()
+                                                                );
 
                             }
                             catch (Exception e)
                             {
-                                DebugX.Log(nameof(AWebSocketServer), " Exception in web socket server: " + e.Message + Environment.NewLine + e.StackTrace);
+                                DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
                             }
+                        }
 
-                        },
-                        new WebSocketServerConnection(
-                            this,
-                            newTCPConnection,
-                            SlowNetworkSimulationDelay: SlowNetworkSimulationDelay
-                        ),
-                        token);
+                        if (validatedTCPConnections.Length > 0 &&
+                            validatedTCPConnections.First() == ConnectionFilterResponse.Rejected())
+                        {
+                            newTCPConnection.Close();
+                        }
 
-                    }
+                        #endregion
 
-                }
+                        else
+                        {
 
-                #region Stop TCP listener
+                            try
+                            {
 
-                DebugX.Log(nameof(AWebSocketServer), " Stopping server on " + IPSocket.IPAddress + ":" + IPSocket.Port);
+                                #region Try SSL/TLS
 
-                tcpListener.Stop();
+                                var serverCertificate = ServerCertificateSelector?.Invoke();
 
-                isRunning = false;
+                                if (serverCertificate is not null)
+                                {
 
-                #endregion
+                                    //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using server certificate: " + this.ServerCertificate.Subject);
 
-                //ToDo: Request all client connections to finish!
+                                    sslStream      = new SslStream(innerStream:                         newTCPConnection.GetStream(),
+                                                                   leaveInnerStreamOpen:                true,
+                                                                   userCertificateValidationCallback:   ClientCertificateValidator is null
+                                                                                                            ? null
+                                                                                                            : (sender,
+                                                                                                               certificate,
+                                                                                                               chain,
+                                                                                                               policyErrors) => ClientCertificateValidator(sender,
+                                                                                                                                                           certificate is not null
+                                                                                                                                                               ? new X509Certificate2(certificate)
+                                                                                                                                                               : null,
+                                                                                                                                                           chain,
+                                                                                                                                                           policyErrors).Item1,
+                                                                   userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                                                                                            ? null
+                                                                                                            : (sender,
+                                                                                                               targetHost,
+                                                                                                               localCertificates,
+                                                                                                               remoteCertificate,
+                                                                                                               acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                                                                                               targetHost,
+                                                                                                                                                               localCertificates.
+                                                                                                                                                                   Cast<X509Certificate>().
+                                                                                                                                                                   Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                                                               remoteCertificate is not null
+                                                                                                                                                                   ? new X509Certificate2(remoteCertificate)
+                                                                                                                                                                   : null,
+                                                                                                                                                               acceptableIssuers),
+                                                                   encryptionPolicy:                    EncryptionPolicy.RequireEncryption);
 
-                #region Send OnServerStopped event
+                                    sslStream.AuthenticateAsServer(serverCertificate:                   serverCertificate,
+                                                                   clientCertificateRequired:           ClientCertificateValidator is not null,
+                                                                   enabledSslProtocols:                 AllowedTLSProtocols ?? SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                                   checkCertificateRevocation:          false);
 
-                var onServerStopped = OnServerStopped;
-                if (onServerStopped is not null)
-                {
-                    try
-                    {
+                                    if (sslStream.RemoteCertificate is not null)
+                                    {
 
-                        await Task.WhenAll(onServerStopped.GetInvocationList().
-                                               OfType <OnServerStoppedDelegate>().
-                                               Select (loggingDelegate => loggingDelegate.Invoke(
-                                                                              Timestamp.Now,
+                                        //this.ClientCertificate = new X509Certificate2(sslStream.RemoteCertificate);
+
+                                        //DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] New TLS connection using client certificate: " + this.ClientCertificate.Subject);
+
+                                    }
+
+                                }
+
+                                #endregion
+
+                                var x = Task.Factory.StartNew(async context => {
+
+                                    try
+                                    {
+
+                                        if (context is WebSocketServerConnection webSocketConnection)
+                                        {
+
+                                            #region Data
+
+                                            Boolean        IsStillHTTP      = true;
+                                            String?        httpMethod       = null;
+                                            Byte[]         bytes            = [];
+                                            Byte[]         bytesLeftOver    = [];
+                                            HTTPResponse?  httpResponse     = null;
+
+                                            var cts2                        = CancellationTokenSource.CreateLinkedTokenSource(token);
+                                            var token2                      = cts2.Token;
+                                            var lastWebSocketPingTimestamp  = Timestamp.Now;
+                                            var sendErrors                  = 0;
+
+                                            #endregion
+
+                                            #region Config web socket connection
+
+                                            webSocketConnection.ReadTimeout = TimeSpan.FromSeconds(20);
+                                            webSocketConnection.WriteTimeout = TimeSpan.FromSeconds(3);
+
+                                            if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,
+                                                                             new WeakReference<WebSocketServerConnection>(webSocketConnection)))
+                                            {
+
+                                                webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                                webSocketConnections.TryAdd   (webSocketConnection.RemoteSocket,
+                                                                               new WeakReference<WebSocketServerConnection>(webSocketConnection));
+
+                                            }
+
+                                            #endregion
+
+                                            #region Send OnNewTCPConnection event
+
+                                            var onNewTCPConnection = OnNewTCPConnection;
+                                            if (onNewTCPConnection is not null)
+                                            {
+                                                try
+                                                {
+
+                                                    await Task.WhenAll(onNewTCPConnection.GetInvocationList().
+                                                                           OfType<OnNewTCPConnectionDelegate>().
+                                                                           Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                                          Timestamp.Now,
+                                                                                                          this,
+                                                                                                          webSocketConnection,
+                                                                                                          EventTracking_Id.New,
+                                                                                                          token2
+                                                                                                      )).
+                                                                           ToArray());
+
+                                                }
+                                                catch (Exception e)
+                                                {
+                                                    DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                                }
+                                            }
+
+                                            #endregion
+
+                                            while (!token2.IsCancellationRequested &&
+                                                   !webSocketConnection.IsClosed &&
+                                                    sendErrors < 3)
+                                            {
+
+                                                #region Main loop waiting for data... and sending a regular web socket ping
+
+                                                if (bytes.Length == 0)
+                                                {
+
+                                                    while (webSocketConnection.DataAvailable == false &&
+                                                          !webSocketConnection.IsClosed &&
+                                                           sendErrors < 3)
+                                                    {
+
+                                                        #region Send a regular web socket "ping"
+
+                                                        if (!DisableWebSocketPings &&
+                                                            Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
+                                                        {
+
+                                                            var eventTrackingId = EventTracking_Id.New;
+                                                            var frame = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
+                                                            var success = await SendWebSocketFrame(
+                                                                                             webSocketConnection,
+                                                                                             frame,
+                                                                                             eventTrackingId,
+                                                                                             token2
+                                                                                         );
+
+                                                            if (success == SendStatus.Success)
+                                                            {
+
+                                                                sendErrors = 0;
+
+                                                                #region OnPingMessageSent
+
+                                                                try
+                                                                {
+
+                                                                    OnPingMessageSent?.Invoke(Timestamp.Now,
+                                                                                              this,
+                                                                                              webSocketConnection,
+                                                                                              eventTrackingId,
+                                                                                              frame,
+                                                                                              token2);
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageSent));
+                                                                }
+
+                                                                #endregion
+
+                                                            }
+                                                            else if (success == SendStatus.FatalError)
+                                                            {
+                                                                webSocketConnection.Close();
+                                                            }
+                                                            else
+                                                            {
+                                                                sendErrors++;
+                                                                DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " ping failed (" + sendErrors + ")!");
+                                                            }
+
+                                                            lastWebSocketPingTimestamp = Timestamp.Now;
+
+                                                        }
+
+                                                        #endregion
+
+                                                        Thread.Sleep(5);
+
+                                                    };
+
+                                                    bytes = new Byte[bytesLeftOver.Length + webSocketConnection.Available];
+
+                                                    if (bytesLeftOver.Length > 0)
+                                                        Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
+
+                                                    if (bytes.Length > 0)
+                                                        webSocketConnection.Read(bytes,
+                                                                                 bytesLeftOver.Length,
+                                                                                 bytes.Length - bytesLeftOver.Length);
+
+                                                    httpMethod = IsStillHTTP
+                                                                     ? Encoding.UTF8.GetString(bytes, 0, 4)
+                                                                     : "";
+
+                                                }
+
+                                                #endregion
+
+
+                                                #region A web socket handshake...
+
+                                                if (httpMethod == "GET ")
+                                                {
+
+                                                    var sharedSubprotocols = Array.Empty<String>();
+
+                                                    #region Invalid HTTP request...
+
+                                                    // GET /websocket HTTP/1.1
+                                                    // Host:                     example.com:33033
+                                                    // Upgrade:                  websocket
+                                                    // Connection:               Upgrade
+                                                    // Sec-WebSocket-Key:        x3JJHMbDL1EzLkh9GBhXDw==
+                                                    // Sec-WebSocket-Protocol:   ocpp1.6, ocpp1.5
+                                                    // Sec-WebSocket-Version:    13
+                                                    if (!HTTPRequest.TryParse(bytes, out var httpRequest) ||
+                                                         httpRequest is null)
+                                                    {
+                                                        httpResponse = new HTTPResponse.Builder() {
+                                                            HTTPStatusCode = HTTPStatusCode.BadRequest,
+                                                            Server = HTTPServiceName,
+                                                            Date = Timestamp.Now,
+                                                            Connection = "close"
+                                                        }.AsImmutable;
+                                                    }
+
+                                                    #endregion
+
+                                                    else
+                                                    {
+
+                                                        webSocketConnection.HTTPRequest = httpRequest;
+
+                                                        #region OnHTTPRequest
+
+                                                        var OnHTTPRequestLocal = OnHTTPRequest;
+                                                        if (OnHTTPRequestLocal is not null)
+                                                        {
+
+                                                            await OnHTTPRequestLocal(Timestamp.Now,
+                                                                                     this,
+                                                                                     httpRequest,
+                                                                                     token2);
+
+                                                        }
+
+                                                        #endregion
+
+                                                        #region OnValidateWebSocketConnection
+
+                                                        var OnValidateWebSocketConnectionLocal = OnValidateWebSocketConnection;
+                                                        if (OnValidateWebSocketConnectionLocal is not null)
+                                                        {
+
+                                                            httpResponse = await OnValidateWebSocketConnectionLocal(Timestamp.Now,
+                                                                                                                    this,
+                                                                                                                    webSocketConnection,
+                                                                                                                    EventTracking_Id.New,
+                                                                                                                    token2);
+
+                                                        }
+
+                                                        #endregion
+
+                                                        #region Validate HTTP web socket request
+
+                                                        // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                                                        // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                                                        // 3. Compute SHA-1 and Base64 hash of the new value
+                                                        // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+        #pragma warning disable SCS0006 // Weak hashing function.
+                                                        var swk             = webSocketConnection.HTTPRequest?.SecWebSocketKey;
+                                                        var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                                        var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
+                                                        sharedSubprotocols  = SecWebSocketProtocols.
+                                                                                   Intersect(httpRequest.SecWebSocketProtocol).
+                                                                                   OrderByDescending(protocol => protocol).
+                                                                                   ToArray();
+        #pragma warning restore SCS0006 // Weak hashing function.
+
+
+                                                        // HTTP/1.1 101 Switching Protocols
+                                                        // Connection:              Upgrade
+                                                        // Upgrade:                 websocket
+                                                        // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+                                                        // Sec-WebSocket-Protocol:  ocpp1.6
+                                                        // Sec-WebSocket-Version:   13
+                                                        httpResponse ??= new HTTPResponse.Builder(httpRequest) {
+                                                                             HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
+                                                                             Server                = HTTPServiceName,
+                                                                             Connection            = "Upgrade",
+                                                                             Upgrade               = "websocket",
+                                                                             SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
+                                                                             SecWebSocketProtocol  = sharedSubprotocols,
+                                                                             SecWebSocketVersion   = "13"
+                                                                         }.AsImmutable;
+
+                                                        #endregion
+
+                                                    }
+
+                                                    #region Send HTTP response
+
+                                                    var success = await webSocketConnection.SendText(httpResponse.EntirePDU + "\r\n\r\n");
+
+                                                    if (success == SendStatus.Success)
+                                                    {
+
+                                                        #region OnHTTPResponse
+
+                                                        var OnHTTPResponseLocal = OnHTTPResponse;
+                                                        if (OnHTTPResponseLocal is not null)
+                                                        {
+
+                                                            await OnHTTPResponseLocal(Timestamp.Now,
+                                                                                      this,
+                                                                                      httpRequest,
+                                                                                      httpResponse,
+                                                                                      token2);
+
+                                                        }
+
+                                                        #endregion
+
+                                                    }
+
+                                                    #endregion
+
+                                                    if (success != SendStatus.Success ||
+                                                        httpResponse.Connection == "close")
+                                                    {
+                                                        webSocketConnection.Close();
+                                                    }
+
+                                                    else
+                                                    {
+
+                                                        #region Send OnNewWebSocketConnection event
+
+                                                        try
+                                                        {
+
+                                                            var OnNewWebSocketConnectionLocal = OnNewWebSocketConnection;
+                                                            if (OnNewWebSocketConnectionLocal is not null)
+                                                            {
+
+                                                                var responseTask = OnNewWebSocketConnectionLocal(Timestamp.Now,
+                                                                                                                 this,
+                                                                                                                 webSocketConnection,
+                                                                                                                 sharedSubprotocols,
+                                                                                                                 EventTracking_Id.New,
+                                                                                                                 token2);
+
+                                                                responseTask.Wait(TimeSpan.FromSeconds(10));
+
+                                                            }
+
+                                                        }
+                                                        catch (Exception e)
+                                                        {
+                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnNewWebSocketConnection));
+                                                        }
+
+                                                        #endregion
+
+                                                        IsStillHTTP = false;
+                                                        bytes = [];
+
+                                                    }
+
+                                                }
+
+                                                #endregion
+
+                                                #region ...or a web socket frame...
+
+                                                else if (IsStillHTTP == false &&
+                                                         bytes.Length > 0)
+                                                {
+
+                                                    if (WebSocketFrame.TryParse(bytes,
+                                                                                out var frame,
+                                                                                out var frameLength,
+                                                                                out var errorResponse) &&
+                                                        frame is not null)
+                                                    {
+
+                                                        var now = Timestamp.Now;
+                                                        var eventTrackingId = EventTracking_Id.New;
+                                                        WebSocketFrame? responseFrame = null;
+
+                                                        #region OnWebSocketFrameReceived
+
+                                                        try
+                                                        {
+
+                                                            OnWebSocketFrameReceived?.Invoke(now,
+                                                                                             this,
+                                                                                             webSocketConnection,
+                                                                                             eventTrackingId,
+                                                                                             frame,
+                                                                                             token2);
+
+                                                        }
+                                                        catch (Exception e)
+                                                        {
+                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameReceived));
+                                                        }
+
+                                                        #endregion
+
+                                                        switch (frame.Opcode)
+                                                        {
+
+                                                            #region Text   message
+
+                                                            case WebSocketFrame.Opcodes.Text:
+
+                                                                #region OnTextMessageReceived
+
+                                                                try
+                                                                {
+
+                                                                    OnTextMessageReceived?.Invoke(now,
+                                                                                                  this,
+                                                                                                  webSocketConnection,
+                                                                                                  eventTrackingId,
+                                                                                                  frame.Payload.ToUTF8String(),
+                                                                                                  token2);
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnTextMessageReceived));
+                                                                }
+
+                                                                #endregion
+
+                                                                #region ProcessTextMessage
+
+                                                                WebSocketTextMessageResponse? textMessageResponse = null;
+
+                                                                try
+                                                                {
+
+                                                                    textMessageResponse = await ProcessTextMessage(now,
+                                                                                                                   webSocketConnection,
+                                                                                                                   frame.Payload.ToUTF8String(),
+                                                                                                                   eventTrackingId,
+                                                                                                                   token2);
+
+                                                                    // Incoming higher protocol level respones will not produce another response!
+                                                                    if (textMessageResponse is not null &&
+                                                                        textMessageResponse.ResponseMessage is not null &&
+                                                                        textMessageResponse.ResponseMessage != "")
+                                                                    {
+                                                                        responseFrame = WebSocketFrame.Text(textMessageResponse.ResponseMessage);
+                                                                    }
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(ProcessTextMessage));
+                                                                }
+
+                                                                #endregion
+
+                                                                #region OnTextMessageResponseSent
+
+                                                                //try
+                                                                //{
+
+                                                                //    if (responseFrame is not null && textMessageResponse is not null)
+                                                                //        OnTextMessageResponseSent?.Invoke(Timestamp.Now,
+                                                                //                                          this,
+                                                                //                                          webSocketConnection,
+                                                                //                                          textMessageResponse.EventTrackingId,
+                                                                //                                          textMessageResponse.RequestTimestamp,
+                                                                //                                          textMessageResponse.RequestMessage,
+                                                                //                                          textMessageResponse.ResponseTimestamp,
+                                                                //                                          textMessageResponse.ResponseMessage);
+
+                                                                //}
+                                                                //catch (Exception e)
+                                                                //{
+                                                                //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnTextMessageResponseSent));
+                                                                //}
+
+                                                                #endregion
+
+                                                                break;
+
+                                                            #endregion
+
+                                                            #region Binary message
+
+                                                            case WebSocketFrame.Opcodes.Binary:
+
+                                                                #region OnBinaryMessageReceived
+
+                                                                try
+                                                                {
+
+                                                                    OnBinaryMessageReceived?.Invoke(now,
+                                                                                                    this,
+                                                                                                    webSocketConnection,
+                                                                                                    eventTrackingId,
+                                                                                                    frame.Payload,
+                                                                                                    token2);
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnBinaryMessageReceived));
+                                                                }
+
+                                                                #endregion
+
+                                                                #region ProcessBinaryMessage
+
+                                                                WebSocketBinaryMessageResponse? binaryMessageResponse = null;
+
+                                                                try
+                                                                {
+
+                                                                    binaryMessageResponse = await ProcessBinaryMessage(now,
+                                                                                                                       webSocketConnection,
+                                                                                                                       frame.Payload,
+                                                                                                                       eventTrackingId,
+                                                                                                                       token2);
+
+                                                                    // Incoming higher protocol level respones will not produce another response!
+                                                                    if (binaryMessageResponse is not null &&
+                                                                        binaryMessageResponse.ResponseMessage is not null &&
+                                                                        binaryMessageResponse.ResponseMessage.Length > 0)
+                                                                    {
+                                                                        responseFrame = WebSocketFrame.Binary(binaryMessageResponse.ResponseMessage);
+                                                                    }
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(ProcessBinaryMessage));
+                                                                }
+
+                                                                #endregion
+
+                                                                #region OnBinaryMessageResponseSent
+
+                                                                //try
+                                                                //{
+
+                                                                //    if (responseFrame is not null && binaryMessageResponse is not null)
+                                                                //        OnBinaryMessageResponseSent?.Invoke(Timestamp.Now,
+                                                                //                                            this,
+                                                                //                                            webSocketConnection,
+                                                                //                                            binaryMessageResponse.EventTrackingId,
+                                                                //                                            binaryMessageResponse.RequestTimestamp,
+                                                                //                                            binaryMessageResponse.RequestMessage,
+                                                                //                                            binaryMessageResponse.ResponseTimestamp,
+                                                                //                                            binaryMessageResponse.ResponseMessage);
+
+                                                                //}
+                                                                //catch (Exception e)
+                                                                //{
+                                                                //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnBinaryMessageResponseSent));
+                                                                //}
+
+                                                                #endregion
+
+                                                                break;
+
+                                                            #endregion
+
+                                                            #region Ping   message
+
+                                                            case WebSocketFrame.Opcodes.Ping:
+
+                                                                #region OnPingMessageReceived
+
+                                                                try
+                                                                {
+
+                                                                    OnPingMessageReceived?.Invoke(now,
+                                                                                                  this,
+                                                                                                  webSocketConnection,
+                                                                                                  eventTrackingId,
+                                                                                                  frame,
+                                                                                                  token2);
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageReceived));
+                                                                }
+
+                                                                #endregion
+
+                                                                responseFrame = WebSocketFrame.Pong(frame.Payload);
+
+                                                                break;
+
+                                                            #endregion
+
+                                                            #region Pong   message
+
+                                                            case WebSocketFrame.Opcodes.Pong:
+
+                                                                #region OnPongMessageReceived
+
+                                                                try
+                                                                {
+
+                                                                    OnPongMessageReceived?.Invoke(now,
+                                                                                                  this,
+                                                                                                  webSocketConnection,
+                                                                                                  eventTrackingId,
+                                                                                                  frame,
+                                                                                                  token2);
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPongMessageReceived));
+                                                                }
+
+                                                                #endregion
+
+                                                                break;
+
+                                                            #endregion
+
+                                                            #region Close  message
+
+                                                            case WebSocketFrame.Opcodes.Close:
+
+                                                                webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                                                #region OnCloseMessage
+
+                                                                try
+                                                                {
+
+                                                                    OnCloseMessageReceived?.Invoke(now,
+                                                                                                   this,
+                                                                                                   webSocketConnection,
+                                                                                                   eventTrackingId,
+                                                                                                   frame.GetClosingStatusCode(),
+                                                                                                   frame.GetClosingReason(),
+                                                                                                   token2);
+
+                                                                }
+                                                                catch (Exception e)
+                                                                {
+                                                                    DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnCloseMessageReceived));
+                                                                }
+
+                                                                #endregion
+
+                                                                // The close handshake demands that we have to send a close frame back!
+                                                                await SendWebSocketFrame(
+                                                                          webSocketConnection,
+                                                                          WebSocketFrame.Close(),
+                                                                          eventTrackingId
+                                                                      );
+
+                                                                webSocketConnection.Close();
+
+                                                                break;
+
+                                                                #endregion
+
+                                                        }
+
+                                                        #region Send immediate response frame... when available
+
+                                                        if (responseFrame is not null)
+                                                        {
+
+                                                            var success = await SendWebSocketFrame(webSocketConnection,
+                                                                                                   responseFrame,
+                                                                                                   eventTrackingId);
+
+                                                            if (success == SendStatus.Success)
+                                                            {
+
+                                                                sendErrors = 0;
+
+                                                                #region OnWebSocketFrameResponseSent
+
+                                                                //try
+                                                                //{
+
+                                                                //    if (responseFrame is not null)
+                                                                //        OnWebSocketFrameResponseSent?.Invoke(Timestamp.Now,
+                                                                //                                             this,
+                                                                //                                             webSocketConnection,
+                                                                //                                             frame,
+                                                                //                                             responseFrame,
+                                                                //                                             eventTrackingId);
+
+                                                                //}
+                                                                //catch (Exception e)
+                                                                //{
+                                                                //    DebugX.Log(e, nameof(WebSocketServer) + "." + nameof(OnWebSocketFrameResponseSent));
+                                                                //}
+
+                                                                #endregion
+
+                                                            }
+                                                            else if (success == SendStatus.FatalError)
+                                                            {
+                                                                webSocketConnection.Close();
+                                                            }
+                                                            else
+                                                            {
+                                                                sendErrors++;
+                                                                DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " sending a web socket frame failed (" + sendErrors + ")!");
+                                                            }
+
+                                                        }
+
+                                                        #endregion
+
+                                                        //if (frame.Opcode.IsControl())
+                                                        //{
+                                                        //    if (frame.FIN    == WebSocketFrame.Fin.More)
+                                                        //        Console.WriteLine(">>> A control frame is fragmented!");
+                                                        //}
+
+                                                        if ((UInt64)bytes.Length == frameLength)
+                                                            bytes = [];
+
+                                                        else
+                                                        {
+                                                            // The buffer might contain additional web socket frames...
+                                                            var newBytes = new Byte[(UInt64)bytes.Length - frameLength];
+                                                            Array.Copy(bytes, (Int32)frameLength, newBytes, 0, newBytes.Length);
+                                                            bytes = newBytes;
+                                                        }
+
+                                                        bytesLeftOver = [];
+
+                                                    }
+                                                    else
+                                                    {
+                                                        bytesLeftOver = bytes;
+                                                        DebugX.Log($"Could not parse the given web socket frame of {bytesLeftOver.Length} byte(s): {errorResponse}");
+                                                        bytes = [];
+                                                    }
+
+                                                }
+
+                                                #endregion
+
+                                                #region ...0 bytes read...
+
+                                                else if (bytes.Length == 0)
+                                                {
+                                                    // Some kind of network error...
+                                                }
+
+                                                #endregion
+
+                                                #region ...some other crap!
+
+                                                // Can e.g. be web crawlers etc.pp
+
+                                                else
+                                                {
+                                                    DebugX.Log(nameof(AWebSocketServer) + ": Closing invalid TCP connection from: " + webSocketConnection.RemoteSocket);
+                                                    webSocketConnection.Close();
+                                                }
+
+                                                #endregion
+
+                                            }
+
+                                            webSocketConnection.Close();
+
+                                            webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
+
+                                            #region OnTCPConnectionClosed
+
+                                            try
+                                            {
+
+                                                OnTCPConnectionClosed?.Invoke(Timestamp.Now,
                                                                               this,
+                                                                              webSocketConnection,
                                                                               EventTracking_Id.New,
                                                                               "!!!",
-                                                                              token
-                                                                          )).
-                                               ToArray());
+                                                                              token2);
+
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnTCPConnectionClosed));
+                                            }
+
+                                            #endregion
+
+                                        }
+                                        else
+                                            DebugX.Log(nameof(AWebSocketServer), " The given web socket connection is invalid!");
+
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        DebugX.Log(nameof(AWebSocketServer), " Exception in web socket server: " + e.Message + Environment.NewLine + e.StackTrace);
+                                    }
+
+                                },
+                                new WebSocketServerConnection(
+                                    this,
+                                    newTCPConnection,
+                                    SlowNetworkSimulationDelay: SlowNetworkSimulationDelay
+                                ),
+                                token);
+
+                            }
+                            catch (Exception e)
+                            {
+                                DebugX.Log(" [AWebSocketServer] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                                newTCPConnection.Close();
+                            }
+
+                        }
 
                     }
-                    catch (Exception e)
+
+                    #region Stop TCP listener
+
+                    DebugX.Log(nameof(AWebSocketServer), " Stopping server on " + IPSocket.IPAddress + ":" + IPSocket.Port);
+
+                    tcpListener.Stop();
+
+                    isRunning = false;
+
+                    #endregion
+
+                    //ToDo: Request all client connections to finish!
+
+                    #region Send OnServerStopped event
+
+                    var onServerStopped = OnServerStopped;
+                    if (onServerStopped is not null)
                     {
-                        DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
-                    }
-                }
+                        try
+                        {
 
-                #endregion
+                            await Task.WhenAll(onServerStopped.GetInvocationList().
+                                                   OfType <OnServerStoppedDelegate>().
+                                                   Select (loggingDelegate => loggingDelegate.Invoke(
+                                                                                  Timestamp.Now,
+                                                                                  this,
+                                                                                  EventTracking_Id.New,
+                                                                                  "!!!",
+                                                                                  token
+                                                                              )).
+                                                   ToArray());
+
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                        }
+                    }
+
+                    #endregion
 
                 }
                 catch (Exception e)

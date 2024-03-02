@@ -21,6 +21,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.X509;
+using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.X509.Extension;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
@@ -32,7 +33,8 @@ using Org.BouncyCastle.Security;
 using BCx509 = Org.BouncyCastle.X509;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using Org.BouncyCastle.Pkcs;
+using Org.BouncyCastle.Utilities;
+using Microsoft.AspNetCore.Mvc.Routing;
 
 #endregion
 
@@ -239,10 +241,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
 
         {
 
-            var now     = Timestamp.Now;
-            var x509v3  = new X509V3CertificateGenerator();
+            var now           = Timestamp.Now;
+            var secureRandom  = new SecureRandom();
+            var x509v3        = new X509V3CertificateGenerator();
 
-            x509v3.SetSerialNumber(BigInteger.ProbablePrime(120, new Random()));
+            x509v3.SetSerialNumber(//BigInteger.ProbablePrime(120, new Random()));
+                                   BigIntegers.CreateRandomInRange(BigInteger.One, BigInteger.ValueOf(long.MaxValue), secureRandom));
             x509v3.SetSubjectDN   (new X509Name($"CN={SubjectName}, O=GraphDefined GmbH, OU=GraphDefined PKI Services"));
             x509v3.SetPublicKey   (SubjectKeyPair.Public);
             x509v3.SetNotBefore   (now);
@@ -267,7 +271,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
             {
 
                 case CertificateTypes.RootCA:
-                case CertificateTypes.CA:
 
                     x509v3.AddExtension(X509Extensions.BasicConstraints.Id,
                                         true,
@@ -284,9 +287,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                     break;
 
 
+                case CertificateTypes.CA:
+
+                    x509v3.AddExtension(X509Extensions.BasicConstraints.Id,
+                                        true,
+                                        // A CA certificate, but it cannot be used to sign other CA certificates,
+                                        // only end-entity certificates.
+                                        new BasicConstraints(0));
+
+                    x509v3.AddExtension(X509Extensions.KeyUsage,
+                                        true,
+                                        new KeyUsage(
+                                            KeyUsage.DigitalSignature |
+                                            KeyUsage.KeyCertSign |
+                                            KeyUsage.CrlSign
+                                        ));
+
+                    break;
+
+
                 case CertificateTypes.Server:
 
-                    // Set Key Usage for client certificates
+                    // Set Key Usage for server certificates
                     x509v3.AddExtension(X509Extensions.KeyUsage.Id,
                                         true,
                                         new KeyUsage(
@@ -294,10 +316,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                                             KeyUsage.KeyEncipherment
                                         ));
 
-                    // Set Extended Key Usage for client authentication
+                    // Set Extended Key Usage for server authentication
                     x509v3.AddExtension(X509Extensions.ExtendedKeyUsage.Id,
                                         false,
-                                        new ExtendedKeyUsage(KeyPurposeID.IdKPClientAuth));
+                                        new ExtendedKeyUsage(KeyPurposeID.id_kp_serverAuth));
 
                     break;
 
@@ -316,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                     // Set Extended Key Usage for client authentication
                     x509v3.AddExtension(X509Extensions.ExtendedKeyUsage.Id,
                                         false,
-                                        new ExtendedKeyUsage(KeyPurposeID.IdKPClientAuth));
+                                        new ExtendedKeyUsage(KeyPurposeID.id_kp_clientAuth));
 
                     break;
 
@@ -333,47 +355,67 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
 
         #endregion
 
-        #region ToDotNet(this Certificate, PrivateKey = null)
+        #region ToDotNet(this Certificate, PrivateKey = null, CACertificates = null)
 
         /// <summary>
         /// Convert the Bouncy Castle certificate to a .NET certificate.
         /// </summary>
         /// <param name="Certificate">A Bouncy Castle certificate.</param>
         /// <param name="PrivateKey">An optional private key to be included.</param>
-        public static X509Certificate2 ToDotNet(this BCx509.X509Certificate  Certificate,
-                                                AsymmetricKeyParameter?      PrivateKey   = null)
+        /// <param name="CACertificates">Optional CA certificates.</param>
+        public static X509Certificate2? ToDotNet(this BCx509.X509Certificate           Certificate,
+                                                 AsymmetricKeyParameter?               PrivateKey       = null,
+                                                 IEnumerable<BCx509.X509Certificate>?  CACertificates   = null)
         {
 
             if (PrivateKey is null)
                 return new (Certificate.GetEncoded());
 
-            // Create a PKCS#12 store to hold the certificate and private key
-            var store             = new Pkcs12StoreBuilder().Build();
-            var certificateEntry  = new X509CertificateEntry(Certificate);
-
-            store.SetCertificateEntry(Certificate.SubjectDN.ToString(),
-                                      certificateEntry);
-
-            store.SetKeyEntry        (Certificate.SubjectDN.ToString(),
-                                      new AsymmetricKeyEntry(PrivateKey),
-                                      new[] { certificateEntry });
-
-            using (var memoryStream = new MemoryStream())
+            if (PrivateKey is RsaPrivateCrtKeyParameters)
             {
 
-                var password = RandomExtensions.RandomString(10);
+                // Create a PKCS#12 store to hold the certificate and private key
+                var store             = new Pkcs12StoreBuilder().Build();
+                var certificateEntry  = new X509CertificateEntry(Certificate);
 
-                store.Save(memoryStream,
-                           password.ToCharArray(),
-                           new SecureRandom());
+                store.SetCertificateEntry(Certificate.SubjectDN.ToString(),
+                                          certificateEntry);
 
-                return new X509Certificate2(
-                           memoryStream.ToArray(),
-                           password,
-                           X509KeyStorageFlags.Exportable
-                       );
+                store.SetKeyEntry        (Certificate.SubjectDN.ToString(),
+                                          new AsymmetricKeyEntry(PrivateKey),
+                                          [ certificateEntry ]);
+
+                foreach (var caCertificate in (CACertificates ?? []))
+                {
+                    store.SetCertificateEntry(caCertificate.SubjectDN.ToString(),
+                                              new X509CertificateEntry(caCertificate));
+                }
+
+                using (var pfxStream = new MemoryStream())
+                {
+
+                    var password = RandomExtensions.RandomString(10);
+
+                    store.Save(pfxStream,
+                               password.ToCharArray(),
+                               new SecureRandom());
+
+                    return new X509Certificate2(
+                               pfxStream.ToArray(),
+                               password,
+                               X509KeyStorageFlags.Exportable
+                           );
+
+                }
 
             }
+
+            if (PrivateKey is ECPrivateKeyParameters)
+            {
+                // ???
+            }
+
+            return null;
 
         }
 
