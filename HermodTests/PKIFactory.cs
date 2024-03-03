@@ -374,7 +374,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
             if (PrivateKey is RsaPrivateCrtKeyParameters)
             {
 
-                // Create a PKCS#12 store to hold the certificate and private key
                 var store             = new Pkcs12StoreBuilder().Build();
                 var certificateEntry  = new X509CertificateEntry(Certificate);
 

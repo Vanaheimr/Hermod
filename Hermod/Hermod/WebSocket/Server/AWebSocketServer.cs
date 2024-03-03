@@ -29,6 +29,7 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
+using System.ComponentModel.Design;
 
 #endregion
 
@@ -107,6 +108,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public String                                  HTTPServiceName               { get; }
 
+        /// <summary>
+        /// The optional description of this HTTP Web Socket service.
+        /// </summary>
+        public I18NString                              Description                   { get; set; }
 
         public Func<X509Certificate2>?                 ServerCertificateSelector     { get; }
         public RemoteCertificateValidationHandler?     ClientCertificateValidator    { get; }
@@ -288,6 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
         /// 
         /// <param name="SecWebSocketProtocols"></param>
         /// <param name="DisableWebSocketPings"></param>
@@ -313,6 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public AWebSocketServer(IIPAddress?                          IPAddress                    = null,
                                 IPPort?                              TCPPort                      = null,
                                 String?                              HTTPServiceName              = null,
+                                I18NString?                          Description                  = null,
 
                                 IEnumerable<String>?                 SecWebSocketProtocols        = null,
                                 Boolean                              DisableWebSocketPings        = false,
@@ -341,6 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        TCPPort ?? IPPort.HTTP
                    ),
                    HTTPServiceName,
+                   Description,
 
                    SecWebSocketProtocols,
                    DisableWebSocketPings,
@@ -375,6 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="TCPSocket">The TCP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
         /// 
         /// <param name="SecWebSocketProtocols"></param>
         /// <param name="DisableWebSocketPings"></param>
@@ -399,6 +408,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public AWebSocketServer(IPSocket                             TCPSocket,
                                 String?                              HTTPServiceName              = null,
+                                I18NString?                          Description                  = null,
 
                                 IEnumerable<String>?                 SecWebSocketProtocols        = null,
                                 Boolean                              DisableWebSocketPings        = false,
@@ -425,6 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.IPSocket                    = TCPSocket;
             this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP Web Socket Service v2.0";
+            this.Description                 = Description                ?? I18NString.Empty;
             this.ServerThreadNameCreator     = ServerThreadNameCreator    ?? (socket => $"AWebSocketServer {socket}");
             this.ServerThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
             this.ServerThreadIsBackground    = ServerThreadIsBackground   ?? false;
@@ -920,9 +931,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         Array.Copy(bytesLeftOver, 0, bytes, 0, bytesLeftOver.Length);
 
                                                     if (bytes.Length > 0)
-                                                        webSocketConnection.Read(bytes,
-                                                                                 bytesLeftOver.Length,
-                                                                                 bytes.Length - bytesLeftOver.Length);
+                                                    {
+
+                                                        var read = webSocketConnection.Read(bytes,
+                                                                                            bytesLeftOver.Length,
+                                                                                            bytes.Length - bytesLeftOver.Length);
+
+                                                        if (bytes.Length != read)
+                                                            Array.Resize(ref bytes, (Int32) read);
+
+                                                    }
 
                                                     httpMethod = IsStillHTTP
                                                                      ? Encoding.UTF8.GetString(bytes, 0, 4)
@@ -952,12 +970,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     if (!HTTPRequest.TryParse(bytes, out var httpRequest) ||
                                                          httpRequest is null)
                                                     {
+
                                                         httpResponse = new HTTPResponse.Builder() {
-                                                            HTTPStatusCode = HTTPStatusCode.BadRequest,
-                                                            Server = HTTPServiceName,
-                                                            Date = Timestamp.Now,
-                                                            Connection = "close"
-                                                        }.AsImmutable;
+                                                                           HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                                           Server          = HTTPServiceName,
+                                                                           Date            = Timestamp.Now,
+                                                                           Connection      = "close"
+                                                                       }.AsImmutable;
+
                                                     }
 
                                                     #endregion
@@ -969,14 +989,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #region OnHTTPRequest
 
-                                                        var OnHTTPRequestLocal = OnHTTPRequest;
-                                                        if (OnHTTPRequestLocal is not null)
+                                                        var onHTTPRequest = OnHTTPRequest;
+                                                        if (onHTTPRequest is not null)
                                                         {
 
-                                                            await OnHTTPRequestLocal(Timestamp.Now,
-                                                                                     this,
-                                                                                     httpRequest,
-                                                                                     token2);
+                                                            await onHTTPRequest(Timestamp.Now,
+                                                                                this,
+                                                                                httpRequest,
+                                                                                token2);
 
                                                         }
 
@@ -984,15 +1004,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #region OnValidateWebSocketConnection
 
-                                                        var OnValidateWebSocketConnectionLocal = OnValidateWebSocketConnection;
-                                                        if (OnValidateWebSocketConnectionLocal is not null)
+                                                        var onValidateWebSocketConnection = OnValidateWebSocketConnection;
+                                                        if (onValidateWebSocketConnection is not null)
                                                         {
 
-                                                            httpResponse = await OnValidateWebSocketConnectionLocal(Timestamp.Now,
-                                                                                                                    this,
-                                                                                                                    webSocketConnection,
-                                                                                                                    EventTracking_Id.New,
-                                                                                                                    token2);
+                                                            httpResponse = await onValidateWebSocketConnection(Timestamp.Now,
+                                                                                                               this,
+                                                                                                               webSocketConnection,
+                                                                                                               EventTracking_Id.New,
+                                                                                                               token2);
 
                                                         }
 
@@ -1044,15 +1064,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #region OnHTTPResponse
 
-                                                        var OnHTTPResponseLocal = OnHTTPResponse;
-                                                        if (OnHTTPResponseLocal is not null)
+                                                        var onHTTPResponse = OnHTTPResponse;
+                                                        if (onHTTPResponse is not null)
                                                         {
 
-                                                            await OnHTTPResponseLocal(Timestamp.Now,
-                                                                                      this,
-                                                                                      httpRequest,
-                                                                                      httpResponse,
-                                                                                      token2);
+                                                            await onHTTPResponse(Timestamp.Now,
+                                                                                 this,
+                                                                                 httpRequest,
+                                                                                 httpResponse,
+                                                                                 token2);
 
                                                         }
 
@@ -1121,7 +1141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         frame is not null)
                                                     {
 
-                                                        var now = Timestamp.Now;
+                                                        var now             = Timestamp.Now;
                                                         var eventTrackingId = EventTracking_Id.New;
                                                         WebSocketFrame? responseFrame = null;
 
@@ -1464,14 +1484,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         //        Console.WriteLine(">>> A control frame is fragmented!");
                                                         //}
 
-                                                        if ((UInt64)bytes.Length == frameLength)
+                                                        if ((UInt64) bytes.Length == frameLength)
                                                             bytes = [];
 
                                                         else
                                                         {
                                                             // The buffer might contain additional web socket frames...
-                                                            var newBytes = new Byte[(UInt64)bytes.Length - frameLength];
-                                                            Array.Copy(bytes, (Int32)frameLength, newBytes, 0, newBytes.Length);
+                                                            var newBytes = new Byte[(UInt64) bytes.Length - frameLength];
+                                                            Array.Copy(bytes, (Int32) frameLength, newBytes, 0, newBytes.Length);
                                                             bytes = newBytes;
                                                         }
 
@@ -1550,6 +1570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 new WebSocketServerConnection(
                                     this,
                                     newTCPConnection,
+                                    sslStream,
                                     SlowNetworkSimulationDelay: SlowNetworkSimulationDelay
                                 ),
                                 token);

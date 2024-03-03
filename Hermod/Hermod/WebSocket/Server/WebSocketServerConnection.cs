@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Net.Security;
 
 #endregion
 
@@ -43,7 +44,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  TcpClient                              tcpClient;
 
+        private readonly  Stream                                 networkStream;
+
         private readonly  NetworkStream                          tcpStream;
+
+        private readonly  SslStream?                             tlsStream;
 
         public  volatile  Boolean                                IsClosed;
 
@@ -97,11 +102,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             get
             {
-                return TimeSpan.FromMilliseconds(tcpStream.ReadTimeout);
+                return TimeSpan.FromMilliseconds(networkStream.ReadTimeout);
             }
             set
             {
-                tcpStream.ReadTimeout = (Int32) value.TotalMilliseconds;
+                networkStream.ReadTimeout = (Int32) value.TotalMilliseconds;
             }
         }
 
@@ -112,11 +117,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
             get
             {
-                return TimeSpan.FromMilliseconds(tcpStream.WriteTimeout);
+                return TimeSpan.FromMilliseconds(networkStream.WriteTimeout);
             }
             set
             {
-                tcpStream.WriteTimeout = (Int32) value.TotalMilliseconds;
+                networkStream.WriteTimeout = (Int32) value.TotalMilliseconds;
             }
         }
 
@@ -170,6 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="CustomData">Optional custom data to be stored within this web socket connection.</param>
         public WebSocketServerConnection(AWebSocketServer                             WebSocketServer,
                                          TcpClient                                    TcpClient,
+                                         SslStream?                                   TLSStream,
                                          HTTPRequest?                                 HTTPRequest                  = null,
                                          HTTPResponse?                                HTTPResponse                 = null,
                                          IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null,
@@ -181,6 +187,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.WebSocketServer             = WebSocketServer;
             this.tcpClient                   = TcpClient;
             this.tcpStream                   = TcpClient.GetStream();
+            this.tlsStream                   = TLSStream;
+            this.networkStream               = (Stream?) tlsStream ?? tcpStream;
             this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint)  ?? IPSocket.Zero;
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
             this.HTTPRequest                 = HTTPRequest;
@@ -222,12 +230,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     foreach (var singleByte in Data)
                     {
 
-                        await tcpStream.WriteAsync(new[] {
-                                                       singleByte
-                                                   },
-                                                   CancellationToken);
+                        await networkStream.WriteAsync(new[] {
+                                                           singleByte
+                                                       },
+                                                       CancellationToken);
 
-                        await tcpStream.FlushAsync(CancellationToken);
+                        await networkStream.FlushAsync(CancellationToken);
 
                         await Task.Delay(SlowNetworkSimulationDelay.Value,
                                          CancellationToken);
@@ -238,10 +246,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 else
                 {
 
-                    await tcpStream.WriteAsync(Data,
-                                               CancellationToken);
+                    await networkStream.WriteAsync(Data,
+                                                   CancellationToken);
 
-                    await tcpStream.FlushAsync(CancellationToken);
+                    await networkStream.FlushAsync(CancellationToken);
 
                 }
 
@@ -336,9 +344,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
 
-                return (UInt32) tcpStream.Read(Buffer,
-                                               (Int32) Offset,
-                                               (Int32) Count);
+                return (UInt32) networkStream.Read(Buffer,
+                                                   (Int32) Offset,
+                                                   (Int32) Count);
 
             }
             catch
@@ -363,9 +371,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
 
-                return (UInt32) tcpStream.Read(Buffer,
-                                               Offset,
-                                               Count);
+                return (UInt32) networkStream.Read(Buffer,
+                                                   Offset,
+                                                   Count);
 
             }
             catch
@@ -387,7 +395,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
 
-                tcpClient.Close();
+                tlsStream?.Close();
+                tcpClient. Close();
 
                 IsClosed = true;
 

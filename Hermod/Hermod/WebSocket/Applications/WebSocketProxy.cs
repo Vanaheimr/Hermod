@@ -24,6 +24,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -73,6 +74,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
+        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
         public WebSocketProxy(URL                                  UpstreamServerURL,
@@ -81,6 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               IIPAddress?                          IPAddress                    = null,
                               IPPort?                              HTTPPort                     = null,
                               String?                              HTTPServiceName              = null,
+                              I18NString?                          Description                  = null,
 
                               IEnumerable<String>?                 SecWebSocketProtocols        = null,
                               Boolean                              DisableWebSocketPings        = false,
@@ -107,6 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             : base(IPAddress,
                    HTTPPort,
                    HTTPServiceName,
+                   Description,
 
                    SecWebSocketProtocols,
                    DisableWebSocketPings,

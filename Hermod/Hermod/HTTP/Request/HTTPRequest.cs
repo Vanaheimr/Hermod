@@ -19,6 +19,7 @@
 
 using System.Xml.Linq;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
@@ -143,10 +144,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">The HTTP request body as a string.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
-        public static Boolean TryParseUTF8StringRequestBody(this HTTPRequest           Request,
-                                                            out String?                Text,
-                                                            out HTTPResponse.Builder?  HTTPResponseBuilder,
-                                                            Boolean                    AllowEmptyHTTPBody   = false)
+        public static Boolean TryParseUTF8StringRequestBody(this HTTPRequest                                Request,
+                                                            [NotNullWhen(true)]  out String?                Text,
+                                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                            Boolean                                         AllowEmptyHTTPBody   = false)
         {
 
             #region AllowEmptyHTTPBody
@@ -276,11 +277,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
-        public static Boolean TryParseJSONArrayRequestBody(this HTTPRequest           Request,
-                                                           out JArray?                JSONArray,
-                                                           out HTTPResponse.Builder?  HTTPResponseBuilder,
-                                                           Boolean                    AllowEmptyHTTPBody   = false,
-                                                           String?                    JSONLDContext        = null)
+        public static Boolean TryParseJSONArrayRequestBody(this HTTPRequest                                Request,
+                                                           [NotNullWhen(true)]  out JArray?                JSONArray,
+                                                           [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                           Boolean                                         AllowEmptyHTTPBody   = false,
+                                                           String?                                         JSONLDContext        = null)
         {
 
             #region Allow empty HTTP body?
@@ -358,11 +359,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         /// <param name="JSONLDContext">An optional JSON-LD context for HTTP error responses.</param>
-        public static Boolean TryParseJSONObjectRequestBody(this HTTPRequest           Request,
-                                                            out JObject?               JSONObject,
-                                                            out HTTPResponse.Builder?  HTTPResponseBuilder,
-                                                            Boolean                    AllowEmptyHTTPBody   = false,
-                                                            String?                    JSONLDContext        = null)
+        public static Boolean TryParseJSONObjectRequestBody(this HTTPRequest                                Request,
+                                                            [NotNullWhen(true)]  out JObject?               JSONObject,
+                                                            [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                            Boolean                                         AllowEmptyHTTPBody   = false,
+                                                            String?                                         JSONLDContext        = null)
         {
 
             #region Allow empty HTTP body?
@@ -533,11 +534,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParseXMLRequestBody(this Request, out XMLDocument, out HTTPResponseBuilder, ContentType = null, AllowEmptyHTTPBody = false)
 
-        public static Boolean TryParseXMLRequestBody(this HTTPRequest           Request,
-                                                     out XDocument?             XMLDocument,
-                                                     out HTTPResponse.Builder?  HTTPResponseBuilder,
-                                                     HTTPContentType?           ContentType          = null,
-                                                     Boolean                    AllowEmptyHTTPBody   = false)
+        public static Boolean TryParseXMLRequestBody(this HTTPRequest                                Request,
+                                                     [NotNullWhen(true)]  out XDocument?             XMLDocument,
+                                                     [NotNullWhen(false)] out HTTPResponse.Builder?  HTTPResponseBuilder,
+                                                     HTTPContentType?                                ContentType          = null,
+                                                     Boolean                                         AllowEmptyHTTPBody   = false)
         {
 
             #region Allow empty HTTP body?
@@ -606,9 +607,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParseMultipartFormDataRequestBody(this Request, MimeMultipart, Response)
 
-        public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest   Request,
-                                                                   out Multipart?     MimeMultipart,
-                                                                   out HTTPResponse?  Response)
+        public static Boolean TryParseMultipartFormDataRequestBody(this HTTPRequest                        Request,
+                                                                   [NotNullWhen(true)]  out Multipart?     MimeMultipart,
+                                                                   [NotNullWhen(false)] out HTTPResponse?  Response)
         {
 
             #region Initial checks
@@ -641,7 +642,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParseI18NString(HTTPRequest, DescriptionJSON, out I18N, out HTTPResponse)
 
-        public static Boolean TryParseI18NString(HTTPRequest HTTPRequest, JObject DescriptionJSON, out I18NString? I18N, out HTTPResponse? HTTPResponse)
+        public static Boolean TryParseI18NString(HTTPRequest                             HTTPRequest,
+                                                 JObject                                 DescriptionJSON,
+                                                 [NotNullWhen(true)]  out I18NString?    I18N,
+                                                 [NotNullWhen(false)] out HTTPResponse?  HTTPResponse)
         {
 
             if (DescriptionJSON is null)
@@ -1130,7 +1134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region (internal) HTTPRequest(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPServer, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, CancellationToken = null, EventTrackingId = null)
+        #region (internal) HTTPRequest(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, HTTPServer = null, ...)
 
         /// <summary>
         /// Create a new http request header based on the given string representation.
@@ -1139,23 +1143,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPSource">The HTTP source.</param>
         /// <param name="LocalSocket">The local TCP/IP socket.</param>
         /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-        /// <param name="HTTPServer">The HTTP server who has received this request.</param>
         /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPServer">An optional HTTP server that has received this request.</param>
         /// 
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         internal HTTPRequest(DateTime           Timestamp,
                              HTTPSource         HTTPSource,
                              IPSocket           LocalSocket,
                              IPSocket           RemoteSocket,
-                             HTTPServer         HTTPServer,
 
                              String             HTTPHeader,
                              Byte[]?            HTTPBody                    = null,
                              Stream?            HTTPBodyStream              = null,
+                             HTTPServer?        HTTPServer                  = null,
                              X509Certificate2?  ServerCertificate           = null,
                              X509Certificate2?  ClientCertificate           = null,
 
@@ -1332,19 +1336,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static Boolean TryParse(String               Text,
-                                       out HTTPRequest?     Request,
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public static Boolean TryParse(String                                Text,
+                                       [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?            Timestamp           = null,
-                                       HTTPSource?          HTTPSource          = null,
-                                       IPSocket?            LocalSocket         = null,
-                                       IPSocket?            RemoteSocket        = null,
-                                       HTTPServer?          HTTPServer          = null,
+                                       DateTime?                             Timestamp           = null,
+                                       HTTPSource?                           HTTPSource          = null,
+                                       IPSocket?                             LocalSocket         = null,
+                                       IPSocket?                             RemoteSocket        = null,
+                                       HTTPServer?                           HTTPServer          = null,
 
-                                       CancellationToken    CancellationToken   = default,
-                                       EventTracking_Id?    EventTrackingId     = null)
+                                       EventTracking_Id?                     EventTrackingId     = null,
+                                       CancellationToken                     CancellationToken   = default)
         {
 
             if (Text.IsNeitherNullNorEmpty())
@@ -1366,7 +1370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Header  = Text.Substring(0, EndOfHeader + 2);
 
                         if (EndOfHeader + 4 < Text.Length)
-                            Body  = Text.Substring(EndOfHeader + 4).ToUTF8Bytes();
+                            Body  = Text[(EndOfHeader + 4)..].ToUTF8Bytes();
 
                     }
 
@@ -1376,13 +1380,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                  HTTPServer,
 
                                   Header,
                                   Body,
 
-                                  CancellationToken:  CancellationToken,
-                                  EventTrackingId:    EventTrackingId
+                                  HTTPServer:         HTTPServer,
+                                  EventTrackingId:    EventTrackingId,
+                                  CancellationToken:  CancellationToken
                               );
 
                     return true;
@@ -1417,20 +1421,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static Boolean TryParse(String               Text,
-                                       Byte[]               Body,
-                                       out HTTPRequest?     Request,
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public static Boolean TryParse(String                                Text,
+                                       Byte[]                                Body,
+                                       [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?            Timestamp           = null,
-                                       HTTPSource?          HTTPSource          = null,
-                                       IPSocket?            LocalSocket         = null,
-                                       IPSocket?            RemoteSocket        = null,
-                                       HTTPServer?          HTTPServer          = null,
+                                       DateTime?                             Timestamp           = null,
+                                       HTTPSource?                           HTTPSource          = null,
+                                       IPSocket?                             LocalSocket         = null,
+                                       IPSocket?                             RemoteSocket        = null,
+                                       HTTPServer?                           HTTPServer          = null,
 
-                                       CancellationToken    CancellationToken   = default,
-                                       EventTracking_Id?    EventTrackingId     = null)
+                                       EventTracking_Id?                     EventTrackingId     = null,
+                                       CancellationToken                     CancellationToken   = default)
         {
 
             if (Text.IsNeitherNullNorEmpty())
@@ -1446,13 +1450,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                  HTTPServer,
 
                                   EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
                                   Body,
 
-                                  CancellationToken:  CancellationToken,
-                                  EventTrackingId:    EventTrackingId
+                                  HTTPServer:         HTTPServer,
+                                  EventTrackingId:    EventTrackingId,
+                                  CancellationToken:  CancellationToken
                               );
 
                     return true;
@@ -1483,8 +1487,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LocalSocket">The optional local TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         public static Boolean TryParse(String               Text,
                                        Stream               Body,
                                        out HTTPRequest?     Request,
@@ -1495,8 +1499,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        IPSocket?            RemoteSocket        = null,
                                        HTTPServer?          HTTPServer          = null,
 
-                                       CancellationToken    CancellationToken   = default,
-                                       EventTracking_Id?    EventTrackingId     = null)
+                                       EventTracking_Id?    EventTrackingId     = null,
+                                       CancellationToken    CancellationToken   = default)
         {
 
             if (Text.IsNeitherNullNorEmpty())
@@ -1512,13 +1516,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                  HTTPServer,
 
                                   EndOfHeader == -1 ? Text : Text.Substring(0, EndOfHeader + 2),
                                   null,
                                   Body,
 
-                                  EventTrackingId:  EventTrackingId
+                                  HTTPServer:         HTTPServer,
+                                  EventTrackingId:    EventTrackingId,
+                                  CancellationToken:  CancellationToken
                               );
 
                     return true;
@@ -1554,17 +1559,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        public static Boolean TryParse(IEnumerable<String>  Lines,
-                                       out HTTPRequest?     Request,
+        public static Boolean TryParse(IEnumerable<String>                   Lines,
+                                       [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?            Timestamp           = null,
-                                       HTTPSource?          HTTPSource          = null,
-                                       IPSocket?            LocalSocket         = null,
-                                       IPSocket?            RemoteSocket        = null,
-                                       HTTPServer?          HTTPServer          = null,
+                                       DateTime?                             Timestamp           = null,
+                                       HTTPSource?                           HTTPSource          = null,
+                                       IPSocket?                             LocalSocket         = null,
+                                       IPSocket?                             RemoteSocket        = null,
+                                       HTTPServer?                           HTTPServer          = null,
 
-                                       EventTracking_Id?    EventTrackingId     = null,
-                                       CancellationToken    CancellationToken   = default)
+                                       EventTracking_Id?                     EventTrackingId     = null,
+                                       CancellationToken                     CancellationToken   = default)
         {
 
             if (Lines.Any())
@@ -1577,13 +1582,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                  HTTPServer,
 
                                   Lines.TakeWhile(line => line != "").        AggregateWith("\r\n"),
                                   Lines.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n").ToUTF8Bytes(),
 
-                                  CancellationToken:  CancellationToken,
-                                  EventTrackingId:    EventTrackingId
+                                  HTTPServer:         HTTPServer,
+                                  EventTrackingId:    EventTrackingId,
+                                  CancellationToken:  CancellationToken
                               );
 
                     return true;
@@ -1617,20 +1622,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static Boolean TryParse(IEnumerable<String>  Lines,
-                                       Byte[]               Body,
-                                       out HTTPRequest?     Request,
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public static Boolean TryParse(IEnumerable<String>                   Lines,
+                                       Byte[]                                Body,
+                                       [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?            Timestamp           = null,
-                                       HTTPSource?          HTTPSource          = null,
-                                       IPSocket?            LocalSocket         = null,
-                                       IPSocket?            RemoteSocket        = null,
-                                       HTTPServer?          HTTPServer          = null,
+                                       DateTime?                             Timestamp           = null,
+                                       HTTPSource?                           HTTPSource          = null,
+                                       IPSocket?                             LocalSocket         = null,
+                                       IPSocket?                             RemoteSocket        = null,
+                                       HTTPServer?                           HTTPServer          = null,
 
-                                       CancellationToken    CancellationToken   = default,
-                                       EventTracking_Id?    EventTrackingId     = null)
+                                       EventTracking_Id?                     EventTrackingId     = null,
+                                       CancellationToken                     CancellationToken   = default)
 
         {
 
@@ -1644,13 +1649,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                  HTTPServer,
-
                                   Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
                                   Body,
 
-                                  CancellationToken:  CancellationToken,
-                                  EventTrackingId:    EventTrackingId
+                                  HTTPServer:         HTTPServer,
+                                  EventTrackingId:    EventTrackingId,
+                                  CancellationToken:  CancellationToken
                               );
 
                     return true;
@@ -1680,17 +1684,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LocalSocket">The optional local TCp socket of the request.</param>
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
+        /// 
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static Boolean TryParse(IEnumerable<String>  Lines,
-                                       Stream               Body,
-                                       out HTTPRequest?     Request,
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public static Boolean TryParse(IEnumerable<String>                   Lines,
+                                       Stream                                Body,
+                                       [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?            Timestamp         = null,
-                                       HTTPSource?          HTTPSource        = null,
-                                       IPSocket?            LocalSocket       = null,
-                                       IPSocket?            RemoteSocket      = null,
-                                       HTTPServer?          HTTPServer        = null,
-                                       EventTracking_Id?    EventTrackingId   = null)
+                                       DateTime?                             Timestamp           = null,
+                                       HTTPSource?                           HTTPSource          = null,
+                                       IPSocket?                             LocalSocket         = null,
+                                       IPSocket?                             RemoteSocket        = null,
+                                       HTTPServer?                           HTTPServer          = null,
+
+                                       EventTracking_Id?                     EventTrackingId     = null,
+                                       CancellationToken                     CancellationToken   = default)
         {
 
             if (Lines.SafeAny())
@@ -1703,13 +1711,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                   LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                   RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                  HTTPServer,
-
                                   Lines.TakeWhile(line => line != "").AggregateWith("\r\n"),
                                   null,
                                   Body,
 
-                                  EventTrackingId:  EventTrackingId
+                                  HTTPServer:         HTTPServer,
+                                  EventTrackingId:    EventTrackingId,
+                                  CancellationToken:  CancellationToken
                               );
 
                     return true;
@@ -1742,19 +1750,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RemoteSocket">The optional remote TCP socket of the request.</param>
         /// <param name="HTTPServer">The optional HTTP server who has received this request.</param>
         /// 
-        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">The optional event tracking identification of the request.</param>
-        public static Boolean TryParse(Byte[]               Bytes,
-                                       out HTTPRequest?     Request,
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public static Boolean TryParse(Byte[]                                Bytes,
+                                       [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?            Timestamp           = null,
-                                       HTTPSource?          HTTPSource          = null,
-                                       IPSocket?            LocalSocket         = null,
-                                       IPSocket?            RemoteSocket        = null,
-                                       HTTPServer?          HTTPServer          = null,
+                                       DateTime?                             Timestamp           = null,
+                                       HTTPSource?                           HTTPSource          = null,
+                                       IPSocket?                             LocalSocket         = null,
+                                       IPSocket?                             RemoteSocket        = null,
+                                       HTTPServer?                           HTTPServer          = null,
 
-                                       CancellationToken    CancellationToken   = default,
-                                       EventTracking_Id?    EventTrackingId     = null)
+                                       EventTracking_Id?                     EventTrackingId     = null,
+                                       CancellationToken                     CancellationToken   = default)
         {
 
             if (Bytes.SafeAny())
@@ -1773,13 +1781,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
                                       LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                       RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
-                                      HTTPServer,
-
                                       header.        AggregateWith("\r\n"),
                                       Array.Empty<Byte>(),
 
-                                      CancellationToken:  CancellationToken,
-                                      EventTrackingId:    EventTrackingId
+                                      HTTPServer:         HTTPServer,
+                                      EventTrackingId:    EventTrackingId,
+                                      CancellationToken:  CancellationToken
                                   );
 
                     return true;
@@ -1819,15 +1826,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPRequest<TResult> ConvertContent<TResult>(Func<String, OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate                         OnException  = null)
+                                                            OnExceptionDelegate?                        OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPRequest<TResult>(this,
-                                            ContentConverter(HTTPBodyAsUTF8String,
-                                                             OnException));
+            return new HTTPRequest<TResult>(
+                       this,
+                       ContentConverter(
+                           HTTPBodyAsUTF8String,
+                           OnException
+                       )
+                   );
 
         }
 
@@ -1840,15 +1851,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPRequest<TResult> ConvertContent<TResult>(Func<Byte[], OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate                         OnException  = null)
+                                                            OnExceptionDelegate?                        OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPRequest<TResult>(this,
-                                            ContentConverter(HTTPBody,
-                                                             OnException));
+            return new HTTPRequest<TResult>(
+                       this,
+                       ContentConverter(
+                           HTTPBody,
+                           OnException
+                       )
+                   );
 
         }
 
@@ -1861,15 +1876,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ContentConverter">A delegate to convert the given HTTP response content.</param>
         /// <param name="OnException">A delegate to call whenever an exception during the conversion occures.</param>
         public HTTPRequest<TResult> ConvertContent<TResult>(Func<Stream, OnExceptionDelegate, TResult>  ContentConverter,
-                                                            OnExceptionDelegate                         OnException  = null)
+                                                            OnExceptionDelegate?                        OnException   = null)
         {
 
-            if (ContentConverter == null)
+            if (ContentConverter is null)
                 throw new ArgumentNullException(nameof(ContentConverter), "The given content converter delegate must not be null!");
 
-            return new HTTPRequest<TResult>(this,
-                                            ContentConverter(HTTPBodyStream,
-                                                             OnException));
+            return new HTTPRequest<TResult>(
+                       this,
+                       ContentConverter(
+                           HTTPBodyStream,
+                           OnException
+                       )
+                   );
 
         }
 
@@ -1884,7 +1903,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            DateTime?  ToTimestamp    = null)
         {
 
-            var _requests  = new ConcurrentBag<HTTPRequest>();
+            var requests = new ConcurrentBag<HTTPRequest>();
 
             Parallel.ForEach(Directory.EnumerateFiles(Directory.GetCurrentDirectory() + System.IO.Path.DirectorySeparatorChar + FilePath,
                                                       FilePattern,
@@ -1893,7 +1912,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                              file => {
 
-                var _request            = new List<String>();
+                var requestLines        = new List<String>();
                 var copy                = "none";
                 var relativelinenumber  = 0;
                 var RequestTimestamp    = Illias.Timestamp.Now;
@@ -1909,22 +1928,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         else if (line == ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------")
                         {
-                            copy = "request";
+                            copy               = "request";
                             relativelinenumber = 0;
                         }
 
                         else if (line == "--------------------------------------------------------------------------------")
                         {
 
-                            if ((FromTimestamp == null || RequestTimestamp >= FromTimestamp.Value) &&
-                                (  ToTimestamp == null || RequestTimestamp <    ToTimestamp.Value))
+                            if ((FromTimestamp is null || RequestTimestamp >= FromTimestamp.Value) &&
+                                (  ToTimestamp is null || RequestTimestamp <    ToTimestamp.Value))
                             {
 
-                                if (TryParse(_request,
-                                             out HTTPRequest  parsedHTTPRequest,
-                                             Timestamp:       RequestTimestamp))
+                                if (TryParse(requestLines,
+                                             out var parsedHTTPRequest,
+                                             Timestamp:  RequestTimestamp))
                                 {
-                                    _requests.Add(parsedHTTPRequest);
+                                    requests.Add(parsedHTTPRequest);
                                 }
 
                                 else
@@ -1932,13 +1951,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             }
 
-                            copy      = "none";
-                            _request  = new List<String>();
+                            copy          = "none";
+                            requestLines  = [];
 
                         }
 
                         else if (copy == "request")
-                            _request.Add(line);
+                            requestLines.Add(line);
 
                         relativelinenumber++;
 
@@ -1952,7 +1971,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             });
 
-            return _requests.OrderBy(request => request.Timestamp);
+            return requests.OrderBy(request => request.Timestamp);
 
         }
 
