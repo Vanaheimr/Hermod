@@ -125,6 +125,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public URLProtocols  Protocol       { get; }
 
+        public String?       Login          { get; }
+
+        public String?       Password       { get; }
+
         public HTTPHostname  Hostname       { get; }
 
         public IPPort?       Port           { get; }
@@ -158,6 +162,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         }
 
+        /// <summary>
+        /// Create a new uniform resource location based on the given string.
+        /// </summary>
+        /// <param name="String">The string representation of the uniform resource location.</param>
+        private URL(String        String,
+                    URLProtocols  Protocol,
+                    String?       Login,
+                    String?       Password,
+                    HTTPHostname  Hostname,
+                    IPPort?       Port,
+                    HTTPPath      Path,
+                    QueryString?  QueryString = null)
+        {
+
+            this.InternalId   = String;
+            this.Protocol     = Protocol;
+            this.Login        = Login;
+            this.Password     = Password;
+            this.Hostname     = Hostname;
+            this.Port         = Port;
+            this.Path         = Path;
+            this.QueryString  = QueryString;
+
+        }
+
         #endregion
 
 
@@ -170,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static URL Parse(String Text)
         {
 
-            if (TryParse(Text, out URL url))
+            if (TryParse(Text, out var url))
                 return url;
 
             throw new ArgumentException("The given text representation of an uniform resource location is invalid: " + Text,
@@ -189,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static URL? TryParse(String Text)
         {
 
-            if (TryParse(Text, out URL url))
+            if (TryParse(Text, out var url))
                 return url;
 
             return null;
@@ -249,19 +278,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    // A HTTP(S) port is given...
-                    if (elements[2].Contains(":"))
+                    String? login     = null;
+                    String? password  = null;
+
+                    // Login (+ password) is given...
+                    if (elements[2].Contains('@'))
                     {
 
-                        if (!HTTPHostname.TryParse(elements[2].Substring(0, elements[2].IndexOf(":")),  out hostname))
+                        var loginAndPassword = elements[2][..elements[2].IndexOf('@')];
+                        elements[2]          = elements[2][ (elements[2].IndexOf('@') + 1)..];
+
+                        if (loginAndPassword.IndexOf(':') > 0)
+                        {
+                            login     = loginAndPassword[..loginAndPassword.IndexOf(':')];
+                            password  = loginAndPassword[ (loginAndPassword.IndexOf(':') + 1)..];
+                        }
+                        else
+                            login     = loginAndPassword;
+
+                    }
+
+                    // A HTTP(S) port is given...
+                    if (elements[2].Contains(':'))
+                    {
+
+                        if (!HTTPHostname.TryParse(elements[2][..elements[2].IndexOf(':')],  out hostname))
                             return false;
 
-                        var portText = elements[2].Substring(elements[2].IndexOf(":") + 1)?.Trim();
+                        var portText = elements[2][(elements[2].IndexOf(':') + 1)..]?.Trim();
 
                         if (portText.IsNotNullOrEmpty())
                         {
 
-                            if (IPPort.TryParse(elements[2].Substring(elements[2].IndexOf(":") + 1), out IPPort _port))
+                            if (IPPort.TryParse(elements[2][(elements[2].IndexOf(":") + 1)..], out IPPort _port))
                                 port = _port;
 
                             else
@@ -316,6 +365,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     URL = new URL(
                               Text,
                               protocol,
+                              login,
+                              password,
                               hostname,
                               port,
                               path ?? HTTPPath.Parse("/"),
