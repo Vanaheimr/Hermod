@@ -474,10 +474,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 throw new ArgumentException("When a web socket mask is used the given masking key must be set!");
 
             this.Opcode      = Opcode;
-            this.Payload     = Payload    ?? Array.Empty<Byte>();
+            this.Payload     = Payload    ?? [];
             this.FIN         = FIN;
             this.Mask        = Mask;
-            this.MaskingKey  = MaskingKey ?? Array.Empty<Byte>();
+            this.MaskingKey  = MaskingKey ?? [];
             this.Rsv1        = Rsv1;
             this.Rsv2        = Rsv2;
             this.Rsv3        = Rsv3;

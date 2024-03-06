@@ -20,6 +20,7 @@
 using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
+using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
 #endregion
 
@@ -154,12 +155,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region Close()
+        #region Close(StatusCode = NormalClosure, Reason = null, CancellationToken = default)
 
         /// <summary>
         /// Close this web socket connection.
+        /// When a status code or reason is given, a HTTP Web Socket close frame will be sent.
         /// </summary>
-        void Close();
+        /// <param name="StatusCode">An optional closing status code for the HTTP Web Socket close frame.</param>
+        /// <param name="Reason">An optional closing reason for the HTTP Web Socket close frame.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        Task Close(ClosingStatusCode? StatusCode          = ClosingStatusCode.NormalClosure,
+                   String?            Reason              = null,
+                   CancellationToken  CancellationToken   = default);
 
         #endregion
 

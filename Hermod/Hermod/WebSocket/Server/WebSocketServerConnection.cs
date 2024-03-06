@@ -18,13 +18,15 @@
 #region Usings
 
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Net.Security;
+
+using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
 #endregion
 
@@ -385,15 +387,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region Close()
+        #region Close(StatusCode = NormalClosure, Reason = null, CancellationToken = default)
 
         /// <summary>
         /// Close this web socket connection.
+        /// When a status code or reason is given, a HTTP Web Socket close frame will be sent.
         /// </summary>
-        public void Close()
+        /// <param name="StatusCode">An optional closing status code for the HTTP Web Socket close frame.</param>
+        /// <param name="Reason">An optional closing reason for the HTTP Web Socket close frame.</param>
+        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        public async Task Close(ClosingStatusCode? StatusCode          = null,
+                                String?            Reason              = null,
+                                CancellationToken  CancellationToken   = default)
         {
             try
             {
+
+                if (StatusCode.HasValue || Reason is not null)
+                {
+
+                    var result = await SendWebSocketFrame(
+                                           WebSocketFrame.Close(
+                                               StatusCode ?? ClosingStatusCode.NormalClosure,
+                                               Reason
+                                           )
+                                       );
+
+                }
 
                 tlsStream?.Close();
                 tcpClient. Close();
@@ -403,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log(String.Concat(nameof(WebSocketServerConnection), ".", nameof(Close), ": Exception occured: ", e.Message));
+                DebugX.Log($"{nameof(WebSocketServerConnection)}.{nameof(Close)}(...): Exception occured: {e.Message}");
             }
         }
 
