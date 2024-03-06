@@ -937,8 +937,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                             bytesLeftOver.Length,
                                                                                             bytes.Length - bytesLeftOver.Length);
 
-                                                        if (bytes.Length != read)
-                                                            Array.Resize(ref bytes, (Int32) read);
+                                                        if (bytes.Length != (read + bytesLeftOver.Length))
+                                                            Array.Resize(ref bytes, (Int32) (read + bytesLeftOver.Length));
 
                                                     }
 
@@ -967,8 +967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     // Sec-WebSocket-Key:        x3JJHMbDL1EzLkh9GBhXDw==
                                                     // Sec-WebSocket-Protocol:   ocpp1.6, ocpp1.5
                                                     // Sec-WebSocket-Version:    13
-                                                    if (!HTTPRequest.TryParse(bytes, out var httpRequest) ||
-                                                         httpRequest is null)
+                                                    if (!HTTPRequest.TryParse(bytes, out var httpRequest))
                                                     {
 
                                                         httpResponse = new HTTPResponse.Builder() {
@@ -1500,8 +1499,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     }
                                                     else
                                                     {
+                                                        //DebugX.Log($"Could not parse the given web socket frame of {bytesLeftOver.Length} byte(s): {errorResponse}");
                                                         bytesLeftOver = bytes;
-                                                        DebugX.Log($"Could not parse the given web socket frame of {bytesLeftOver.Length} byte(s): {errorResponse}");
                                                         bytes = [];
                                                     }
 

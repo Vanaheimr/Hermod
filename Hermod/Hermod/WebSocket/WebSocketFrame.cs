@@ -18,7 +18,10 @@
 #region Usings
 
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -713,10 +716,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region TryParse(ByteArray, out Frame, out Length)
 
-        public static Boolean TryParse(Byte[]               ByteArray,
-                                       out WebSocketFrame?  Frame,
-                                       out UInt64           Length,
-                                       out String?          ErrorResponse)
+        public static Boolean TryParse(Byte[]                                    ByteArray,
+                                       [NotNullWhen(true)]  out WebSocketFrame?  Frame,
+                                       [NotNullWhen(true)]  out UInt64           Length,
+                                       [NotNullWhen(false)] out String?          ErrorResponse)
         {
 
             try
