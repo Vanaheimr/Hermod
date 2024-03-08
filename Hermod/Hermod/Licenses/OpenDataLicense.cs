@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// No license, ask the data source for more details.
         /// </summary>
         public static readonly OpenDataLicense None                              = new (OpenDataLicense_Id.Parse("None"),
-                                                                                        I18NString.Create(Languages.en, "None"));
+                                                                                        I18NString.Create("None"));
 
 
         // Open Data licenses
@@ -347,14 +347,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Open Data Commons: Public Domain Dedication and License (PDDL)
         /// </summary>
         public static readonly OpenDataLicense PublicDomainDedicationAndLicense  = new (OpenDataLicense_Id.Parse("PDDL"),
-                                                                                        I18NString.Create(Languages.en, "Open Data Commons: Public Domain Dedication and License"),
+                                                                                        I18NString.Create("Open Data Commons: Public Domain Dedication and License"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/pddl/"));
 
         /// <summary>
         /// Open Data Commons: Attribution License (ODC-By)
         /// </summary>
         public static readonly OpenDataLicense AttributionLicense                = new (OpenDataLicense_Id.Parse("ODC-By"),
-                                                                                        I18NString.Create(Languages.en, "Open Data Commons: Attribution License"),
+                                                                                        I18NString.Create("Open Data Commons: Attribution License"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/by/"));
 
         /// <summary>
@@ -362,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Attribution and Share-Alike for Data/Databases
         /// </summary>
         public static readonly OpenDataLicense OpenDatabaseLicense               = new (OpenDataLicense_Id.Parse("ODbL"),
-                                                                                        I18NString.Create(Languages.en, "Open Data Commons: Open Data Commons Open Database License"),
+                                                                                        I18NString.Create("Open Data Commons: Open Data Commons Open Database License"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/odbl/"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/odbl/summary/"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/odbl/1.0/"));
@@ -404,7 +404,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Creative Commons Attribution 4.0 International (CC BY 4.0)
         /// </summary>
         public static readonly OpenDataLicense CreativeCommons_BY_4              = new (OpenDataLicense_Id.Parse("CC BY 4.0"),
-                                                                                        I18NString.Create(Languages.en, "Creative Commons Attribution 4.0 International"),
+                                                                                        I18NString.Create("Creative Commons Attribution 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by/4.0/legalcode"));
 
@@ -412,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
         /// </summary>
         public static readonly OpenDataLicense CreativeCommons_BY_SA_4           = new (OpenDataLicense_Id.Parse("CC BY-SA 4.0"),
-                                                                                        I18NString.Create(Languages.en, "Creative Commons Attribution-ShareAlike 4.0 International"),
+                                                                                        I18NString.Create("Creative Commons Attribution-ShareAlike 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-sa/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-sa/4.0/legalcode"));
 
@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Creative Commons Attribution-NoDerivs 4.0 International (CC BY-ND 4.0)
         /// </summary>
         public static readonly OpenDataLicense CreativeCommons_BY_ND_4           = new (OpenDataLicense_Id.Parse("CC BY-ND 4.0"),
-                                                                                        I18NString.Create(Languages.en, "Creative Commons Attribution-NoDerivs 4.0 International"),
+                                                                                        I18NString.Create("Creative Commons Attribution-NoDerivs 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nd/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nd/4.0/legalcode"));
 
@@ -428,7 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
         /// </summary>
         public static readonly OpenDataLicense CreativeCommons_BY_NC_4           = new (OpenDataLicense_Id.Parse("CC BY-NC 4.0"),
-                                                                                        I18NString.Create(Languages.en, "Creative Commons Attribution-NonCommercial 4.0 International"),
+                                                                                        I18NString.Create("Creative Commons Attribution-NonCommercial 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc/4.0/legalcode"));
 
@@ -436,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
         /// </summary>
         public static readonly OpenDataLicense CreativeCommons_BY_NC_SA_4        = new (OpenDataLicense_Id.Parse("CC BY-NC-SA 4.0"),
-                                                                                        I18NString.Create(Languages.en, "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International"),
+                                                                                        I18NString.Create("Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-sa/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode"));
 
@@ -444,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International (CC BY-NC-ND 4.0)
         /// </summary>
         public static readonly OpenDataLicense CreativeCommons_BY_NC_ND_4        = new (OpenDataLicense_Id.Parse("CC BY-NC-ND 4.0"),
-                                                                                        I18NString.Create(Languages.en, "Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International"),
+                                                                                        I18NString.Create("Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-nd/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-nd/4.0/legalcode"));
 
