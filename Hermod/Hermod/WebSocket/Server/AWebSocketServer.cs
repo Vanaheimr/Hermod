@@ -868,14 +868,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             Timestamp.Now > lastWebSocketPingTimestamp + WebSocketPingEvery)
                                                         {
 
-                                                            var eventTrackingId = EventTracking_Id.New;
-                                                            var frame = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
-                                                            var success = await SendWebSocketFrame(
-                                                                                             webSocketConnection,
-                                                                                             frame,
-                                                                                             eventTrackingId,
-                                                                                             token2
-                                                                                         );
+                                                            var eventTrackingId  = EventTracking_Id.New;
+                                                            var frame            = WebSocketFrame.Ping(Guid.NewGuid().ToByteArray());
+                                                            var success          = await SendWebSocketFrame(
+                                                                                                      webSocketConnection,
+                                                                                                      frame,
+                                                                                                      eventTrackingId,
+                                                                                                      token2
+                                                                                                  );
 
                                                             if (success == SendStatus.Success)
                                                             {
@@ -905,12 +905,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             }
                                                             else if (success == SendStatus.FatalError)
                                                             {
-                                                                webSocketConnection.Close();
+                                                                await webSocketConnection.Close(
+                                                                          WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                      );
                                                             }
                                                             else
                                                             {
                                                                 sendErrors++;
-                                                                DebugX.Log("Web socket connection with " + webSocketConnection.RemoteSocket + " ping failed (" + sendErrors + ")!");
+                                                                DebugX.Log($"Web socket connection to {webSocketConnection.RemoteSocket}: Ping failed ({sendErrors})!");
                                                             }
 
                                                             lastWebSocketPingTimestamp = Timestamp.Now;
@@ -1082,7 +1084,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     if (success != SendStatus.Success ||
                                                         httpResponse.Connection == "close")
                                                     {
-                                                        webSocketConnection.Close();
+                                                        await webSocketConnection.Close(
+                                                                  WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                              );
                                                     }
 
                                                     else
@@ -1411,13 +1415,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 #endregion
 
                                                                 // The close handshake demands that we have to send a close frame back!
-                                                                await SendWebSocketFrame(
-                                                                          webSocketConnection,
-                                                                          WebSocketFrame.Close(),
-                                                                          eventTrackingId
+                                                                await webSocketConnection.Close(
+                                                                          WebSocketFrame.ClosingStatusCode.NormalClosure
                                                                       );
-
-                                                                webSocketConnection.Close();
 
                                                                 break;
 
@@ -1463,7 +1463,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             }
                                                             else if (success == SendStatus.FatalError)
                                                             {
-                                                                webSocketConnection.Close();
+                                                                await webSocketConnection.Close(
+                                                                          WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                      );
                                                             }
                                                             else
                                                             {
@@ -1521,15 +1523,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 else
                                                 {
-                                                    DebugX.Log(nameof(AWebSocketServer) + ": Closing invalid TCP connection from: " + webSocketConnection.RemoteSocket);
-                                                    webSocketConnection.Close();
+
+                                                    DebugX.Log($"{nameof(AWebSocketServer)}: Closing invalid TCP connection from: {webSocketConnection.RemoteSocket}!");
+
+                                                    await webSocketConnection.Close(
+                                                              WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                          );
+
                                                 }
 
                                                 #endregion
 
                                             }
 
-                                            webSocketConnection.Close();
+                                            await webSocketConnection.Close(
+                                                      WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                  );
 
                                             webSocketConnections.TryRemove(webSocketConnection.RemoteSocket, out _);
 

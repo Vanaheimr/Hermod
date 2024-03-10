@@ -398,17 +398,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             try
             {
 
+                if (IsClosed)
+                    return;
+
                 if (StatusCode.HasValue || Reason is not null)
-                {
-
-                    var result = await SendWebSocketFrame(
-                                           WebSocketFrame.Close(
-                                               StatusCode ?? ClosingStatusCode.NormalClosure,
-                                               Reason
-                                           )
-                                       );
-
-                }
+                    await SendWebSocketFrame(
+                              WebSocketFrame.Close(
+                                  StatusCode ?? ClosingStatusCode.NormalClosure,
+                                  Reason
+                              ),
+                              CancellationToken
+                          );
 
                 tcpSocket.Close();
 
