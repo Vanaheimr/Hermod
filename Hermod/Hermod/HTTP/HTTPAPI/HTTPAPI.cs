@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly List<HTTPRequestLogHandler> subscribers;
+        private readonly List<HTTPRequestLogHandler> subscribers = [];
 
         #endregion
 
@@ -56,9 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new async event notifying about incoming HTTP requests.
         /// </summary>
         public HTTPRequestLogEvent()
-        {
-            subscribers = new List<HTTPRequestLogHandler>();
-        }
+        { }
 
         #endregion
 
@@ -67,12 +65,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPRequestLogEvent operator + (HTTPRequestLogEvent e, HTTPRequestLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
-
-            if (e == null)
-                e = new HTTPRequestLogEvent();
 
             lock (e.subscribers)
             {
@@ -85,9 +77,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPRequestLogEvent Add(HTTPRequestLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
 
             lock (subscribers)
             {
@@ -105,12 +94,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPRequestLogEvent operator - (HTTPRequestLogEvent e, HTTPRequestLogHandler callback)
         {
 
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
-
-            if (e == null)
-                return null;
-
             lock (e.subscribers)
             {
                 e.subscribers.Remove(callback);
@@ -122,9 +105,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPRequestLogEvent Remove(HTTPRequestLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
 
             lock (subscribers)
             {
@@ -151,14 +131,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPRequest  Request)
         {
 
-            HTTPRequestLogHandler[] _invocationList;
+            HTTPRequestLogHandler[] invocationList;
 
             lock (subscribers)
             {
-                _invocationList = subscribers.ToArray();
+                invocationList = [.. subscribers];
             }
 
-            foreach (var callback in _invocationList)
+            foreach (var callback in invocationList)
                 await callback(ServerTimestamp, HTTPAPI, Request).ConfigureAwait(false);
 
         }
@@ -177,24 +157,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Task WhenAny(DateTime      ServerTimestamp,
                             HTTPAPI       HTTPAPI,
                             HTTPRequest   Request,
-                            TimeSpan?     Timeout = null)
+                            TimeSpan?     Timeout   = null)
         {
 
-            List<Task> _invocationList;
+            List<Task> invocationList;
 
             lock (subscribers)
             {
 
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                        ToList();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                     ToList();
 
                 if (Timeout.HasValue)
-                    _invocationList.Add(Task.Delay(Timeout.Value));
+                    invocationList.Add(Task.Delay(Timeout.Value));
 
             }
 
-            return Task.WhenAny(_invocationList);
+            return Task.WhenAny(invocationList);
 
         }
 
@@ -212,33 +192,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTime           ServerTimestamp,
-                                    HTTPAPI            HTTPAPI,
-                                    HTTPRequest        Request,
-                                    Func<T, Boolean>   VerifyResult,
-                                    TimeSpan?          Timeout        = null,
-                                    Func<TimeSpan, T>  DefaultResult  = null)
+        public Task<T> WhenFirst<T>(DateTime            ServerTimestamp,
+                                    HTTPAPI             HTTPAPI,
+                                    HTTPRequest         Request,
+                                    Func<T, Boolean>    VerifyResult,
+                                    TimeSpan?           Timeout         = null,
+                                    Func<TimeSpan, T>?  DefaultResult   = null)
         {
 
             #region Data
 
-            List<Task>  _invocationList;
-            Task        WorkDone;
-            Task<T>     Result;
-            DateTime    StartTime    = Timestamp.Now;
-            Task        TimeoutTask  = null;
+            List<Task>  invocationList;
+            Task?       WorkDone;
+            Task<T>?    Result;
+            DateTime    StartTime     = Timestamp.Now;
+            Task?       TimeoutTask   = null;
 
             #endregion
 
             lock (subscribers)
             {
 
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                        ToList();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                     ToList();
 
                 if (Timeout.HasValue)
-                    _invocationList.Add(TimeoutTask = Task.Run(() => System.Threading.Thread.Sleep(Timeout.Value)));
+                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
 
             }
 
@@ -248,17 +228,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    WorkDone = Task.WhenAny(_invocationList);
+                    WorkDone = Task.WhenAny(invocationList);
 
-                    _invocationList.Remove(WorkDone);
+                    invocationList.Remove(WorkDone);
 
                     if (WorkDone != TimeoutTask)
                     {
 
                         Result = WorkDone as Task<T>;
 
-                        if (Result != null &&
-                            !EqualityComparer<T>.Default.Equals(Result.Result, default(T)) &&
+                        if (Result is not null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
                             VerifyResult(Result.Result))
                         {
                             return Result;
@@ -274,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
             }
-            while (!(WorkDone == TimeoutTask || _invocationList.Count == 0));
+            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
 
             return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
 
@@ -295,16 +275,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPRequest   Request)
         {
 
-            Task[] _invocationList;
+            Task[] invocationList;
 
             lock (subscribers)
             {
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                        ToArray();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                     ToArray();
             }
 
-            return Task.WhenAll(_invocationList);
+            return Task.WhenAll(invocationList);
 
         }
 
@@ -324,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly List<HTTPResponseLogHandler> subscribers;
+        private readonly List<HTTPResponseLogHandler> subscribers = [];
 
         #endregion
 
@@ -334,9 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new async event notifying about HTTP responses.
         /// </summary>
         public HTTPResponseLogEvent()
-        {
-            subscribers = new List<HTTPResponseLogHandler>();
-        }
+        { }
 
         #endregion
 
@@ -345,12 +323,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static HTTPResponseLogEvent operator + (HTTPResponseLogEvent e, HTTPResponseLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
-
-            if (e == null)
-                e = new HTTPResponseLogEvent();
 
             lock (e.subscribers)
             {
@@ -363,9 +335,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPResponseLogEvent Add(HTTPResponseLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
 
             lock (subscribers)
             {
@@ -383,12 +352,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponseLogEvent operator - (HTTPResponseLogEvent e, HTTPResponseLogHandler callback)
         {
 
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
-
-            if (e == null)
-                return null;
-
             lock (e.subscribers)
             {
                 e.subscribers.Remove(callback);
@@ -400,9 +363,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPResponseLogEvent Remove(HTTPResponseLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
 
             lock (subscribers)
             {
@@ -431,14 +391,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPResponse  Response)
         {
 
-            HTTPResponseLogHandler[] _invocationList;
+            HTTPResponseLogHandler[] invocationList;
 
             lock (subscribers)
             {
-                _invocationList = subscribers.ToArray();
+                invocationList = [.. subscribers];
             }
 
-            foreach (var callback in _invocationList)
+            foreach (var callback in invocationList)
                 await callback(ServerTimestamp, HTTPAPI, Request, Response).ConfigureAwait(false);
 
         }
@@ -462,21 +422,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             TimeSpan?     Timeout = null)
         {
 
-            List<Task> _invocationList;
+            List<Task> invocationList;
 
             lock (subscribers)
             {
 
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                        ToList();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                     ToList();
 
                 if (Timeout.HasValue)
-                    _invocationList.Add(Task.Delay(Timeout.Value));
+                    invocationList.Add(Task.Delay(Timeout.Value));
 
             }
 
-            return Task.WhenAny(_invocationList);
+            return Task.WhenAny(invocationList);
 
         }
 
@@ -506,23 +466,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            List<Task>  _invocationList;
-            Task        WorkDone;
-            Task<T>     Result;
-            DateTime    StartTime    = Timestamp.Now;
-            Task        TimeoutTask  = null;
+            List<Task>  invocationList;
+            Task?       WorkDone;
+            Task<T>?    Result;
+            DateTime    StartTime     = Timestamp.Now;
+            Task?       TimeoutTask   = null;
 
             #endregion
 
             lock (subscribers)
             {
 
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                        ToList();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                     ToList();
 
                 if (Timeout.HasValue)
-                    _invocationList.Add(TimeoutTask = Task.Run(() => System.Threading.Thread.Sleep(Timeout.Value)));
+                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
 
             }
 
@@ -532,17 +492,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    WorkDone = Task.WhenAny(_invocationList);
+                    WorkDone = Task.WhenAny(invocationList);
 
-                    _invocationList.Remove(WorkDone);
+                    invocationList.Remove(WorkDone);
 
                     if (WorkDone != TimeoutTask)
                     {
 
                         Result = WorkDone as Task<T>;
 
-                        if (Result != null &&
-                            !EqualityComparer<T>.Default.Equals(Result.Result, default(T)) &&
+                        if (Result is not null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
                             VerifyResult(Result.Result))
                         {
                             return Result;
@@ -558,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
             }
-            while (!(WorkDone == TimeoutTask || _invocationList.Count == 0));
+            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
 
             return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
 
@@ -581,16 +541,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPResponse  Response)
         {
 
-            Task[] _invocationList;
+            Task[] invocationList;
 
             lock (subscribers)
             {
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                        ToArray();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                     ToArray();
             }
 
-            return Task.WhenAll(_invocationList);
+            return Task.WhenAll(invocationList);
 
         }
 
@@ -610,7 +570,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly List<HTTPErrorLogHandler> subscribers;
+        private readonly List<HTTPErrorLogHandler> subscribers = [];
 
         #endregion
 
@@ -620,9 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new async event notifying about HTTP errors.
         /// </summary>
         public HTTPErrorLogEvent()
-        {
-            subscribers = new List<HTTPErrorLogHandler>();
-        }
+        { }
 
         #endregion
 
@@ -632,11 +590,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPErrorLogEvent operator + (HTTPErrorLogEvent e, HTTPErrorLogHandler callback)
         {
 
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
-
-            if (e == null)
-                e = new HTTPErrorLogEvent();
+            e ??= new HTTPErrorLogEvent();
 
             lock (e.subscribers)
             {
@@ -649,9 +603,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPErrorLogEvent Add(HTTPErrorLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
 
             lock (subscribers)
             {
@@ -669,12 +620,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPErrorLogEvent operator - (HTTPErrorLogEvent e, HTTPErrorLogHandler callback)
         {
 
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
-
-            if (e == null)
-                return null;
-
             lock (e.subscribers)
             {
                 e.subscribers.Remove(callback);
@@ -686,9 +631,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPErrorLogEvent Remove(HTTPErrorLogHandler callback)
         {
-
-            if (callback == null)
-                throw new NullReferenceException("callback is null");
 
             lock (subscribers)
             {
@@ -717,18 +659,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPAPI       HTTPAPI,
                                       HTTPRequest   Request,
                                       HTTPResponse  Response,
-                                      String        Error          = null,
-                                      Exception     LastException  = null)
+                                      String?       Error           = null,
+                                      Exception?    LastException   = null)
         {
 
-            HTTPErrorLogHandler[] _invocationList;
+            HTTPErrorLogHandler[] invocationList;
 
             lock (subscribers)
             {
-                _invocationList = subscribers.ToArray();
+                invocationList = subscribers.ToArray();
             }
 
-            foreach (var callback in _invocationList)
+            foreach (var callback in invocationList)
                 await callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException).ConfigureAwait(false);
 
         }
@@ -751,26 +693,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPAPI       HTTPAPI,
                             HTTPRequest   Request,
                             HTTPResponse  Response,
-                            String        Error          = null,
-                            Exception     LastException  = null,
-                            TimeSpan?     Timeout        = null)
+                            String?       Error           = null,
+                            Exception?    LastException   = null,
+                            TimeSpan?     Timeout         = null)
         {
 
-            List<Task> _invocationList;
+            List<Task> invocationList;
 
             lock (subscribers)
             {
 
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
-                                        ToList();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
+                                     ToList();
 
                 if (Timeout.HasValue)
-                    _invocationList.Add(Task.Delay(Timeout.Value));
+                    invocationList.Add(Task.Delay(Timeout.Value));
 
             }
 
-            return Task.WhenAny(_invocationList);
+            return Task.WhenAny(invocationList);
 
         }
 
@@ -791,36 +733,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTime           ServerTimestamp,
-                                    HTTPAPI            HTTPAPI,
-                                    HTTPRequest        Request,
-                                    HTTPResponse       Response,
-                                    String             Error,
-                                    Exception          LastException,
-                                    Func<T, Boolean>   VerifyResult,
-                                    TimeSpan?          Timeout        = null,
-                                    Func<TimeSpan, T>  DefaultResult  = null)
+        public Task<T> WhenFirst<T>(DateTime            ServerTimestamp,
+                                    HTTPAPI             HTTPAPI,
+                                    HTTPRequest         Request,
+                                    HTTPResponse        Response,
+                                    String              Error,
+                                    Exception           LastException,
+                                    Func<T, Boolean>    VerifyResult,
+                                    TimeSpan?           Timeout        = null,
+                                    Func<TimeSpan, T>?  DefaultResult  = null)
+
+            where T: notnull
+
         {
 
             #region Data
 
-            List<Task>  _invocationList;
-            Task        WorkDone;
-            Task<T>     Result;
-            DateTime    StartTime    = Timestamp.Now;
-            Task        TimeoutTask  = null;
+            List<Task>  invocationList;
+            Task?       WorkDone;
+            Task<T>?    Result;
+            DateTime    StartTime     = Timestamp.Now;
+            Task?       TimeoutTask   = null;
 
             #endregion
 
             lock (subscribers)
             {
 
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
-                                        ToList();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
+                                     ToList();
 
                 if (Timeout.HasValue)
-                    _invocationList.Add(TimeoutTask = Task.Run(() => System.Threading.Thread.Sleep(Timeout.Value)));
+                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
 
             }
 
@@ -830,17 +775,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    WorkDone = Task.WhenAny(_invocationList);
+                    WorkDone = Task.WhenAny(invocationList);
 
-                    _invocationList.Remove(WorkDone);
+                    invocationList.Remove(WorkDone);
 
                     if (WorkDone != TimeoutTask)
                     {
 
                         Result = WorkDone as Task<T>;
 
-                        if (Result != null &&
-                            !EqualityComparer<T>.Default.Equals(Result.Result, default(T)) &&
+                        if (Result is not null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
                             VerifyResult(Result.Result))
                         {
                             return Result;
@@ -856,9 +801,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
 
             }
-            while (!(WorkDone == TimeoutTask || _invocationList.Count == 0));
+            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
 
-            return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
+            return Task.FromResult((DefaultResult is not null
+                                        ? DefaultResult(Timestamp.Now - StartTime)
+                                        : default)!);
 
         }
 
@@ -879,20 +826,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             HTTPAPI       HTTPAPI,
                             HTTPRequest   Request,
                             HTTPResponse  Response,
-                            String        Error          = null,
-                            Exception     LastException  = null)
+                            String?       Error          = null,
+                            Exception?    LastException  = null)
         {
 
-            Task[] _invocationList;
+            Task[] invocationList;
 
             lock (subscribers)
             {
-                _invocationList = subscribers.
-                                        Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
-                                        ToArray();
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, Error, LastException)).
+                                     ToArray();
             }
 
-            return Task.WhenAll(_invocationList);
+            return Task.WhenAll(invocationList);
 
         }
 

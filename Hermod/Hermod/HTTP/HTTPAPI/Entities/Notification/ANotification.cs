@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Clear   (OnCleared = null)
 
-        internal void Clear(Action OnCleared = null)
+        internal void Clear(Action? OnCleared = null)
         {
             lock (_NotificationMessageTypes)
             {

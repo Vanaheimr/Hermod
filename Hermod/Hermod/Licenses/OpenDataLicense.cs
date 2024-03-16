@@ -112,13 +112,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="URLs">Optional URLs for more information on the Open Data license.</param>
         public OpenDataLicense(OpenDataLicense_Id  Id,
                                params URL[]        URLs)
-        {
 
-            this.Id           = Id;
-            this.Description  = I18NString.Empty;
-            this.URLs         = URLs?.Distinct() ?? Array.Empty<URL>();
+            : this(Id,
+                   I18NString.Empty,
+                   URLs)
 
-        }
+        { }
 
         #endregion
 
@@ -137,7 +136,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.Id           = Id;
             this.Description  = Description      ?? I18NString.Empty;
-            this.URLs         = URLs?.Distinct() ?? Array.Empty<URL>();
+            this.URLs         = URLs?.Distinct() ?? [];
+
+            unchecked
+            {
+
+                hashCode = this.Id.         GetHashCode() * 5 ^
+                           this.Description.GetHashCode() * 3 ^
+                           this.URLs.       CalcHashCode();
+
+            }
 
         }
 
@@ -618,21 +626,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
         /// Return the hash code of this object.
         /// </summary>
         /// <returns>The hash code of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return Id.          GetHashCode()        * 5 ^
-                      (Description?.GetHashCode()  ?? 0) * 3 ^
-                       URLs?.       CalcHashCode() ?? 0;
-
-            }
-        }
+            => hashCode;
 
         #endregion
 
@@ -648,8 +649,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    Id.ToString(),
 
                    Description.IsNotNullOrEmpty()
-                       ? ": " + Description
-                       : String.Empty
+                       ? $": {Description}"
+                       : ""
 
                );
 

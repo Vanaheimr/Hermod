@@ -92,25 +92,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly Channel<RequestData>     cliRequestChannel;
-        private readonly Channel<ResponseData>    cliResponseChannel;
+        private        readonly  Channel<RequestData>                           cliRequestChannel;
+        private        readonly  Channel<ResponseData>                          cliResponseChannel;
 
-        private readonly Channel<RequestData>     discRequestChannel;
-        private readonly Channel<ResponseData>    discResponseChannel;
+        private        readonly  Channel<RequestData>                           discRequestChannel;
+        private        readonly  Channel<ResponseData>                          discResponseChannel;
 
-        private readonly CancellationTokenSource  cancellationTokenSource;
+        private        readonly  CancellationTokenSource                        cancellationTokenSource;
 
         /// <summary>
         /// The maximum number of retries to write to a logfile.
         /// </summary>
-        public  static readonly Byte      MaxRetries          = 5;
+        public  static readonly  Byte                                           MaxRetries          = 5;
 
         /// <summary>
         /// Maximum waiting time to enter a lock around a logfile.
         /// </summary>
-        public  static readonly TimeSpan  MaxWaitingForALock  = TimeSpan.FromSeconds(15);
+        public  static readonly  TimeSpan                                       MaxWaitingForALock  = TimeSpan.FromSeconds(15);
 
-        protected readonly ConcurrentDictionary<String, HashSet<String>> groupTags;
+        protected      readonly  ConcurrentDictionary<String, HashSet<String>>  groupTags           = [];
 
         #endregion
 
@@ -158,8 +158,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogHTTPError_toHTTPSSE">A delegate to log HTTP errors to a HTTP server sent events source.</param>
         /// 
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
-        public AHTTPLogger(String                       LoggingPath,
-                           String                       Context,
+        public AHTTPLogger(String?                      LoggingPath                 = null,
+                           String?                      Context                     = null,
 
                            HTTPRequestLoggerDelegate?   LogHTTPRequest_toConsole    = null,
                            HTTPResponseLoggerDelegate?  LogHTTPResponse_toConsole   = null,
@@ -182,9 +182,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Init data structures
 
-            this.LoggingPath  = LoggingPath ?? "";
+            this.LoggingPath  = LoggingPath ?? AppContext.BaseDirectory;
             this.Context      = Context     ?? "";
-            this.groupTags    = new ConcurrentDictionary<String, HashSet<String>>();
 
             #endregion
 
