@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -36,7 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Data
 
-        private readonly EMailAddress[] _MailAddressList;
+        private        readonly EMailAddress[]  mailAddressList = [];
+
+        private static readonly String[]        separators      = [ ",", ";" ];
 
         #endregion
 
@@ -46,12 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The number of stored e-mail addresses.
         /// </summary>
         public UInt64 Length
-        {
-            get
-            {
-                return (UInt64) _MailAddressList.Length;
-            }
-        }
+            => (UInt64) mailAddressList.Length;
 
         #endregion
 
@@ -61,15 +54,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Create a new e-mail address list.
         /// </summary>
         /// <param name="EMailAddressList">A list of e-mail addresses.</param>
-        private EMailAddressList(EMailAddress[] EMailAddressList = null)
+        private EMailAddressList(params EMailAddress[] EMailAddressList)
         {
 
-            _MailAddressList = EMailAddressList ?? new EMailAddress[0];
-
-            if (_MailAddressList.Length > 0)
-                _MailAddressList = _MailAddressList.
-                                        Where(address => address != null).
-                                        ToArray();
+            if (EMailAddressList is not null && EMailAddressList.Length != 0)
+                mailAddressList = EMailAddressList;
 
         }
 
@@ -85,12 +74,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressList Add(params EMailAddress[] EMailAddresses)
         {
 
-            if (EMailAddresses != null && EMailAddresses.Length > 0)
-            {
-                var _List = new List<EMailAddress>(_MailAddressList);
-                _List.AddRange(EMailAddresses);
-                return new EMailAddressList(_List.ToArray());
-            }
+            if (EMailAddresses is not null && EMailAddresses.Length > 0)
+                return new EMailAddressList([.. mailAddressList, .. EMailAddresses]);
 
             return this;
 
@@ -107,12 +92,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressList Add(IEnumerable<EMailAddress> EMailAddresses)
         {
 
-            if (EMailAddresses != null && EMailAddresses.Any())
-            {
-                var _List = new List<EMailAddress>(_MailAddressList);
-                _List.AddRange(EMailAddresses);
-                return new EMailAddressList(_List.ToArray());
-            }
+            if (EMailAddresses is not null && EMailAddresses.Any())
+                return new EMailAddressList([.. mailAddressList, .. EMailAddresses]);
 
             return this;
 
@@ -129,12 +110,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressList Add(EMailAddressList EMailAddressList)
         {
 
-            if (EMailAddressList._MailAddressList.Length > 0)
-            {
-                var _List = new List<EMailAddress>(_MailAddressList);
-                _List.AddRange(EMailAddressList._MailAddressList);
-                return new EMailAddressList(_List.ToArray());
-            }
+            if (EMailAddressList.Length > 0)
+                return new EMailAddressList([.. mailAddressList, .. EMailAddressList]);
 
             return this;
 
@@ -144,29 +121,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
         public static EMailAddressList Empty
-
-            => new EMailAddressList();
-
+            => new ();
 
         public static EMailAddressList Create(params EMailAddress[] EMailAddressList)
-
-            => new EMailAddressList(EMailAddressList);
+            => new (EMailAddressList);
 
 
         public static EMailAddressList Create(IEnumerable<EMailAddress> EMailAddressList)
-
-            => EMailAddressList != null && EMailAddressList.Any()
+            => EMailAddressList is not null && EMailAddressList.Any()
                    ? new EMailAddressList(EMailAddressList.ToArray())
                    : new EMailAddressList();
 
 
         public static EMailAddressList Parse(String EMailAddressListString)
 
-            => new EMailAddressList(EMailAddressListString.
-                                        Split (new String[] { ",", ";" }, StringSplitOptions.None).
-                                        Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
-                                        Where (addresses => addresses != null).
-                                        ToArray());
+            => new (EMailAddressListString.
+                        Split (separators, StringSplitOptions.None).
+                        Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
+                        Where (addresses => addresses is not null).
+                        Cast<EMailAddress>().
+                        ToArray());
 
 
         #region Implicitly convert EMailAddress            -> EMailAddressList
@@ -178,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <returns>A new e-mail address list.</returns>
         public static implicit operator EMailAddressList(EMailAddress EMailAddress)
 
-            => new EMailAddressList(new EMailAddress[] { EMailAddress });
+            => new ([ EMailAddress ]);
 
         #endregion
 
@@ -191,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <returns>A new e-mail address list.</returns>
         public static implicit operator EMailAddressList(SimpleEMailAddress SimpleEMailAddress)
 
-            => new EMailAddressList(new EMailAddress[] { SimpleEMailAddress });
+            => new ([ SimpleEMailAddress ]);
 
         #endregion
 
@@ -199,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public static implicit operator EMailAddressList(EMailAddressListBuilder Builder)
 
-            => new EMailAddressList(Builder.ToArray());
+            => new (Builder.ToArray());
 
         #endregion
 
@@ -211,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public IEnumerator<EMailAddress> GetEnumerator()
         {
-            foreach (var emailaddress in _MailAddressList)
+            foreach (var emailaddress in mailAddressList)
                 yield return emailaddress;
         }
 
@@ -220,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-            return _MailAddressList.GetEnumerator();
+            return mailAddressList.GetEnumerator();
         }
 
         #endregion
@@ -233,10 +207,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override String ToString()
         {
 
-            if (_MailAddressList == null || _MailAddressList.Length == 0)
+            if (mailAddressList is null || mailAddressList.Length == 0)
                 return String.Empty;
 
-            return _MailAddressList.
+            return mailAddressList.
                        Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
                                         ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
                                         : "<" + EMA.Address.Value + ">").
@@ -258,7 +232,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Data
 
-        private readonly List<EMailAddress> _MailAddressList;
+        private        readonly List<EMailAddress>  mailAddressList  = [];
+        private static readonly String[]            separators       = [ ",", ";" ];
 
         #endregion
 
@@ -268,12 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// The number of stored e-mail addresses.
         /// </summary>
         public UInt64 Length
-        {
-            get
-            {
-                return (UInt64) _MailAddressList.Count;
-            }
-        }
+            => (UInt64) mailAddressList.Count;
 
         #endregion
 
@@ -283,28 +253,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Create a new e-mail address list.
         /// </summary>
         /// <param name="EMailAddressList">A list of e-mail addresses.</param>
-        private EMailAddressListBuilder(IEnumerable<EMailAddress> EMailAddressList = null)
+        private EMailAddressListBuilder(IEnumerable<EMailAddress>? EMailAddressList = null)
         {
-            this._MailAddressList = EMailAddressList != null
-                                        ? new List<EMailAddress>(EMailAddressList)
-                                        : new List<EMailAddress>();
+
+            if (EMailAddressList is not null && EMailAddressList.Any())
+                mailAddressList.AddRange(EMailAddressList);
+
         }
 
         #endregion
 
 
         public static EMailAddressListBuilder Empty
-            => new EMailAddressListBuilder();
+            => new ();
 
         public static EMailAddressListBuilder Create(params EMailAddress[] EMailAddressListBuilder)
-
-            => new EMailAddressListBuilder(EMailAddressListBuilder);
+            => new (EMailAddressListBuilder);
 
         public static EMailAddressListBuilder Create(IEnumerable<EMailAddress> EMailAddressListBuilder)
-
-            => EMailAddressListBuilder != null && EMailAddressListBuilder.Any()
-                   ? new EMailAddressListBuilder(EMailAddressListBuilder.ToArray())
-                   : new EMailAddressListBuilder();
+            => new (EMailAddressListBuilder);
 
 
         #region Add(params EMailAddresses)
@@ -316,8 +283,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressListBuilder Add(params EMailAddress[] EMailAddresses)
         {
 
-            if (EMailAddresses != null && EMailAddresses.Length > 0)
-                _MailAddressList.AddRange(EMailAddresses);
+            if (EMailAddresses is not null && EMailAddresses.Length > 0)
+                mailAddressList.AddRange(EMailAddresses);
 
             return this;
 
@@ -334,8 +301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressListBuilder Add(IEnumerable<EMailAddress> EMailAddresses)
         {
 
-            if (EMailAddresses != null && EMailAddresses.Any())
-                _MailAddressList.AddRange(EMailAddresses);
+            if (EMailAddresses is not null && EMailAddresses.Any())
+                mailAddressList.AddRange(EMailAddresses);
 
             return this;
 
@@ -352,8 +319,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressListBuilder Add(EMailAddressListBuilder EMailAddressListBuilder)
         {
 
-            if (EMailAddressListBuilder._MailAddressList.Count > 0)
-                _MailAddressList.AddRange(EMailAddressListBuilder._MailAddressList);
+            if (EMailAddressListBuilder.Length > 0)
+                mailAddressList.AddRange(EMailAddressListBuilder.mailAddressList);
 
             return this;
 
@@ -369,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public EMailAddressListBuilder Clear()
         {
 
-            this._MailAddressList.Clear();
+            mailAddressList.Clear();
 
             return this;
 
@@ -381,11 +348,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public static EMailAddressListBuilder Parse(String EMailAddressListBuilderString)
 
-            => new EMailAddressListBuilder(EMailAddressListBuilderString.
-                                               Split (new String[] { ",", ";" }, StringSplitOptions.None).
-                                               Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
-                                               Where (addresses => addresses != null).
-                                               ToArray());
+            => new (EMailAddressListBuilderString.
+                        Split (separators, StringSplitOptions.None).
+                        Select(textaddr  => EMailAddress.Parse(textaddr.Trim())).
+                        Where (addresses => addresses is not null).
+                        Cast<EMailAddress>().
+                        ToArray());
 
 
 
@@ -399,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <returns>A new e-mail address list.</returns>
         public static implicit operator EMailAddressListBuilder(EMailAddress EMailAddress)
 
-            => new EMailAddressListBuilder(new EMailAddress[] { EMailAddress });
+            => new ([ EMailAddress ]);
 
         #endregion
 
@@ -412,7 +380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <returns>A new e-mail address list.</returns>
         public static implicit operator EMailAddressListBuilder(SimpleEMailAddress SimpleEMailAddress)
 
-            => new EMailAddressListBuilder(new EMailAddress[] { SimpleEMailAddress });
+            => new ([ SimpleEMailAddress ]);
 
         #endregion
 
@@ -420,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         public static implicit operator EMailAddressListBuilder(EMailAddressList List)
 
-            => new EMailAddressListBuilder(List.ToArray());
+            => new (List);
 
         #endregion
 
@@ -432,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         public IEnumerator<EMailAddress> GetEnumerator()
         {
-            foreach (var emailaddress in _MailAddressList)
+            foreach (var emailaddress in mailAddressList)
                 yield return emailaddress;
         }
 
@@ -441,7 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-            return _MailAddressList.GetEnumerator();
+            return mailAddressList.GetEnumerator();
         }
 
         #endregion
@@ -454,10 +422,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override String ToString()
         {
 
-            if (_MailAddressList == null || _MailAddressList.Count == 0)
+            if (mailAddressList is null || mailAddressList.Count == 0)
                 return String.Empty;
 
-            return _MailAddressList.
+            return mailAddressList.
                        Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
                                         ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
                                         : "<" + EMA.Address.Value + ">").

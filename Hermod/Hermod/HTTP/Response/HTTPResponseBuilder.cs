@@ -787,7 +787,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            #region (static) ClientError       (Request, Configurator = null)
+            #region (static) ClientError        (Request, Configurator = null)
 
             /// <summary>
             /// Create a new 0-ClientError HTTP response and apply the given delegate.
@@ -830,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            #region (static) OK                (Request, Configurator = null)
+            #region (static) OK                 (Request, Configurator = null)
 
             /// <summary>
             /// Create a new 200-OK HTTP response and apply the given delegate.
@@ -872,20 +872,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region (static) BadRequest        (Request, Configurator = null)
+            #region (static) BadRequest         (Request, Configurator = null, CloseConnection = true)
 
             /// <summary>
             /// Create a new 400-BadRequest HTTP response and apply the given delegate.
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            /// <param name="CloseConnection">Whether to close to connection (default: true)</param>
             public static Builder BadRequest(HTTPRequest       Request,
-                                             Action<Builder>?  Configurator = null)
+                                             Action<Builder>?  Configurator      = null,
+                                             Boolean?          CloseConnection   = true)
             {
 
                 var response = new Builder(Request) {
                                    HTTPStatusCode = HTTPStatusCode.BadRequest
                                };
+
+                if (CloseConnection ?? true)
+                    response.Connection = "close";
 
                 Configurator?.Invoke(response);
 
@@ -898,13 +903,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Request">A HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+            /// <param name="CloseConnection">Whether to close to connection (default: true)</param>
             public static Builder BadRequest(HTTPRequest             Request,
-                                             Func<Builder, Builder>  Configurator)
+                                             Func<Builder, Builder>  Configurator,
+                                             Boolean?                CloseConnection   = true)
             {
 
                 var response = new Builder(Request) {
                                    HTTPStatusCode = HTTPStatusCode.BadRequest
                                };
+
+                if (CloseConnection ?? true)
+                    response.Connection = "close";
 
                 return Configurator is not null
                            ? Configurator(response)
@@ -914,7 +924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region (static) ServiceUnavailable(Request, Configurator = null)
+            #region (static) ServiceUnavailable (Request, Configurator = null)
 
             /// <summary>
             /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
@@ -956,7 +966,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region (static) FailedDependency  (Request, Configurator = null)
+            #region (static) FailedDependency   (Request, Configurator = null)
 
             /// <summary>
             /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
@@ -998,7 +1008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region (static) GatewayTimeout    (Request, Configurator = null)
+            #region (static) GatewayTimeout     (Request, Configurator = null)
 
             /// <summary>
             /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.

@@ -1397,17 +1397,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) BadRequest        (Request, Configurator = null)
+        #region (static) BadRequest        (Request, Configurator = null, CloseConnection = null)
 
         /// <summary>
         /// Create a new 400-BadRequest HTTP response and apply the given delegate.
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
-        public static Builder BadRequest(HTTPRequest      Request,
-                                         Action<Builder>  Configurator = null)
+        /// <param name="CloseConnection">Whether to close to connection (default: true)</param>
+        public static Builder BadRequest(HTTPRequest       Request,
+                                         Action<Builder>?  Configurator      = null,
+                                         Boolean?          CloseConnection   = null)
 
-            => Builder.BadRequest(Request, Configurator);
+            => Builder.BadRequest(
+                   Request,
+                   Configurator,
+                   CloseConnection
+               );
 
 
         /// <summary>
@@ -1415,10 +1421,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Request">A HTTP request.</param>
         /// <param name="Configurator">A delegate to configure the HTTP response.</param>
+        /// <param name="CloseConnection">Whether to close to connection (default: true)</param>
         public static Builder BadRequest(HTTPRequest             Request,
-                                         Func<Builder, Builder>  Configurator)
+                                         Func<Builder, Builder>  Configurator,
+                                         Boolean?                CloseConnection   = null)
 
-            => Builder.BadRequest(Request, Configurator);
+            => Builder.BadRequest(
+                   Request,
+                   Configurator,
+                   CloseConnection
+               );
 
         #endregion
 
