@@ -1763,48 +1763,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Auth
 
-        private readonly List<HTTPAuth2Delegate> _HTTPAuths = new();
+        private readonly List<HTTPAuth2Delegate> httpAuths = [];
 
         public void AddAuth(HTTPAuth1Delegate Filter)
         {
-            _HTTPAuths.Add((server, request) => Filter(request));
+            httpAuths.Add((server, request) => Filter(request));
         }
 
         public void AddAuth(HTTPAuth2Delegate Filter)
         {
-            _HTTPAuths.Add(Filter);
+            httpAuths.Add(Filter);
         }
 
         #endregion
 
         #region HTTP Filters
 
-        private readonly List<HTTPFilter2Delegate> _HTTPFilters = new List<HTTPFilter2Delegate>();
+        private readonly List<HTTPFilter2Delegate> httpFilters = [];
 
         public void AddFilter(HTTPFilter1Delegate Filter)
         {
-            _HTTPFilters.Add((server, request) => Filter(request));
+            httpFilters.Add((server, request) => Filter(request));
         }
 
         public void AddFilter(HTTPFilter2Delegate Filter)
         {
-            _HTTPFilters.Add(Filter);
+            httpFilters.Add(Filter);
         }
 
         #endregion
 
         #region HTTP Rewrites
 
-        private readonly List<HTTPRewrite2Delegate> _HTTPRewrites = new List<HTTPRewrite2Delegate>();
+        private readonly List<HTTPRewrite2Delegate> httpRewrites = [];
 
         public void Rewrite(HTTPRewrite1Delegate Rewrite)
         {
-            _HTTPRewrites.Add((server, request) => Rewrite(request));
+            httpRewrites.Add((server, request) => Rewrite(request));
         }
 
         public void Rewrite(HTTPRewrite2Delegate Rewrite)
         {
-            _HTTPRewrites.Add(Rewrite);
+            httpRewrites.Add(Rewrite);
         }
 
         #endregion
@@ -2542,7 +2542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             IUser? user = null;
 
-            foreach (var httpAuth in _HTTPAuths.ReverseAndReturn())
+            foreach (var httpAuth in httpAuths.ReverseAndReturn())
             {
 
                 user = httpAuth(this, Request);
@@ -2560,7 +2560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             HTTPResponse? httpResponse = null;
 
-            foreach (var httpFilter in _HTTPFilters.ReverseAndReturn())
+            foreach (var httpFilter in httpFilters.ReverseAndReturn())
             {
 
                 httpResponse = httpFilter(this, Request);
@@ -2574,7 +2574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Process HTTP rewrites...
 
-            foreach (var httpRewrite in _HTTPRewrites.ReverseAndReturn())
+            foreach (var httpRewrite in httpRewrites.ReverseAndReturn())
             {
 
                 var newRequest = httpRewrite(this, Request);
