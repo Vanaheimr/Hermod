@@ -13064,11 +13064,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new ("ECDSA",
                     ECParameters.Curve.DecodePoint(PublicKey),
-                    new ECDomainParameters(ECParameters.Curve,
-                                           ECParameters.G,
-                                           ECParameters.N,
-                                           ECParameters.H,
-                                           ECParameters.GetSeed()));
+                    new ECDomainParameters(
+                        ECParameters.Curve,
+                        ECParameters.G,
+                        ECParameters.N,
+                        ECParameters.H,
+                        ECParameters.GetSeed()
+                    )
+                   );
 
         #endregion
 
@@ -13090,11 +13093,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => new ("ECDSA",
                     ECParameters.Curve.DecodePoint(PublicKeyHEX.HexStringToByteArray()),
-                    new ECDomainParameters(ECParameters.Curve,
-                                           ECParameters.G,
-                                           ECParameters.N,
-                                           ECParameters.H,
-                                           ECParameters.GetSeed()));
+                    new ECDomainParameters(
+                        ECParameters.Curve,
+                        ECParameters.G,
+                        ECParameters.N,
+                        ECParameters.H,
+                        ECParameters.GetSeed()
+                    )
+                   );
 
         #endregion
 

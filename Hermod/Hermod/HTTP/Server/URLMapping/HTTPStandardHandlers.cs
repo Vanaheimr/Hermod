@@ -441,7 +441,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         Hostname,
                         HTTPMethod.GET,
-                        URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                        [
+                            URLTemplate,
+                            URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                                               ? "{ResourceName}"
+                                               : "/{ResourceName}")
+                        ],
 
                         HTTPDelegate:       GetFromResourceAssembly(
                                                 URLTemplate,

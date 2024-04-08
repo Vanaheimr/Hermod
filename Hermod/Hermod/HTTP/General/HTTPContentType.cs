@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Diagnostics;
-
+using System.Reflection;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -92,6 +92,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public IEnumerable<String>  FileExtensions
             => fileExtensions;
+
+        #endregion
+
+
+        #region (static) HTTPContentType()
+
+        /// <summary>
+        /// In order to discover all values within the subclasses during type initialization!
+        /// </summary>
+        static HTTPContentType()
+        {
+
+            var list         = new List<Object?>();
+            var nestedTypes  = typeof(HTTPContentType).GetNestedTypes(BindingFlags.Public | BindingFlags.Static);
+
+            foreach (var nestedType in nestedTypes)
+            {
+                var properties = nestedType.GetProperties(BindingFlags.Static | BindingFlags.Public);
+                foreach (var property in properties)
+                {
+                    list.Add(property.GetValue(null));
+                }
+            }
+
+            list.Clear();
+
+        }
 
         #endregion
 

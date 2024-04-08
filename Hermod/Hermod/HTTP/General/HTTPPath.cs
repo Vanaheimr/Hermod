@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Text = Text.Trim().Replace("//", "/");
 
-            if (!Text.StartsWith("/"))
+            if (!Text.StartsWith('/'))
                 Text = "/" + Text;
 
             try
@@ -193,86 +193,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         public HTTPPath Substring(Int32 StartIndex)
-            => Parse(InternalId.Substring(StartIndex));
+            => Parse(InternalId[StartIndex..]);
 
         public HTTPPath Substring(Int32 StartIndex, Int32 EndIndex)
             => Parse(InternalId.Substring(StartIndex, EndIndex));
 
 
-        public Int32 IndexOf(char value, int startIndex, int count)
-            => InternalId.IndexOf(value, startIndex, count);
+        public Int32 IndexOf(Char value, Int32 StartIndex, Int32 Count)
+            => InternalId.IndexOf(value, StartIndex, Count);
 
-        public Int32 IndexOf(char value, int startIndex)
-            => InternalId.IndexOf(value, startIndex);
+        public Int32 IndexOf(Char Value, Int32 StartIndex)
+            => InternalId.IndexOf(Value, StartIndex);
 
-        public Int32 IndexOf(String value)
-            => InternalId.IndexOf(value);
+        public Int32 IndexOf(String Value)
+            => InternalId.IndexOf(Value);
 
-        public Int32 IndexOf(String value, int startIndex)
-            => InternalId.IndexOf(value, startIndex);
+        public Int32 IndexOf(String Value, Int32 StartIndex)
+            => InternalId.IndexOf(Value, StartIndex);
 
-        public Int32 IndexOf(String value, int startIndex, int count)
-            => InternalId.IndexOf(value, startIndex, count);
+        public Int32 IndexOf(String Value, Int32 StartIndex, Int32 Count)
+            => InternalId.IndexOf(Value, StartIndex, Count);
 
-        public Int32 IndexOf(String value, StringComparison comparisonType)
-            => InternalId.IndexOf(value, comparisonType);
+        public Int32 IndexOf(String Value, StringComparison ComparisonType)
+            => InternalId.IndexOf(Value, ComparisonType);
 
-        public Int32 IndexOf(String value, int startIndex, StringComparison comparisonType)
-            => InternalId.IndexOf(value, startIndex, comparisonType);
+        public Int32 IndexOf(String Value, Int32 StartIndex, StringComparison ComparisonType)
+            => InternalId.IndexOf(Value, StartIndex, ComparisonType);
 
-        public Int32 IndexOf(char value)
-            => InternalId.IndexOf(value);
-
-
-        public Int32 LastIndexOf(char value, int startIndex, int count)
-            => InternalId.LastIndexOf(value, startIndex, count);
-
-        public Int32 LastIndexOf(char value, int startIndex)
-            => InternalId.LastIndexOf(value, startIndex);
-
-        public Int32 LastIndexOf(String value)
-            => InternalId.LastIndexOf(value);
-
-        public Int32 LastIndexOf(String value, int startIndex)
-            => InternalId.LastIndexOf(value, startIndex);
-
-        public Int32 LastIndexOf(String value, int startIndex, int count)
-            => InternalId.LastIndexOf(value, startIndex, count);
-
-        public Int32 LastIndexOf(String value, StringComparison comparisonType)
-            => InternalId.LastIndexOf(value, comparisonType);
-
-        public Int32 LastIndexOf(String value, int startIndex, StringComparison comparisonType)
-            => InternalId.LastIndexOf(value, startIndex, comparisonType);
-
-        public Int32 LastIndexOf(char value)
-            => InternalId.LastIndexOf(value);
+        public Int32 IndexOf(Char Value)
+            => InternalId.IndexOf(Value);
 
 
-        public Boolean StartsWith(String value, StringComparison comparisonType)
-            => InternalId.StartsWith(value, comparisonType);
+        public Int32 LastIndexOf(Char Value, Int32 StartIndex, Int32 Count)
+            => InternalId.LastIndexOf(Value, StartIndex, Count);
 
-        public Boolean StartsWith(String value, bool ignoreCase, CultureInfo culture)
-            => InternalId.StartsWith(value, ignoreCase, culture);
+        public Int32 LastIndexOf(Char Value, Int32 StartIndex)
+            => InternalId.LastIndexOf(Value, StartIndex);
 
-        public Boolean StartsWith(String value)
-            => InternalId.StartsWith(value);
+        public Int32 LastIndexOf(String Value)
+            => InternalId.LastIndexOf(Value);
 
-        public Boolean StartsWith(HTTPPath value)
-            => InternalId.StartsWith(value.ToString());
+        public Int32 LastIndexOf(String Value, Int32 StartIndex)
+            => InternalId.LastIndexOf(Value, StartIndex);
+
+        public Int32 LastIndexOf(String Value, Int32 StartIndex, Int32 Count)
+            => InternalId.LastIndexOf(Value, StartIndex, Count);
+
+        public Int32 LastIndexOf(String Value, StringComparison ComparisonType)
+            => InternalId.LastIndexOf(Value, ComparisonType);
+
+        public Int32 LastIndexOf(String Value, Int32 StartIndex, StringComparison ComparisonType)
+            => InternalId.LastIndexOf(Value, StartIndex, ComparisonType);
+
+        public Int32 LastIndexOf(Char Value)
+            => InternalId.LastIndexOf(Value);
 
 
-        public Boolean EndsWith(String value)
-            => InternalId.EndsWith(value);
+        public Boolean StartsWith(String Value, StringComparison ComparisonType)
+            => InternalId.StartsWith(Value, ComparisonType);
 
-        public Boolean EndsWith(String value, StringComparison comparisonType)
-            => InternalId.EndsWith(value, comparisonType);
+        public Boolean StartsWith(String Value, Boolean IgnoreCase, CultureInfo Culture)
+            => InternalId.StartsWith(Value, IgnoreCase, Culture);
 
-        public Boolean EndsWith(String value, bool ignoreCase, CultureInfo culture)
-            => InternalId.EndsWith(value, ignoreCase, culture);
+        public Boolean StartsWith(String Value)
+            => InternalId.StartsWith(Value);
 
-        public Boolean EndsWith(HTTPPath value)
-            => InternalId.EndsWith(value.ToString());
+        public Boolean StartsWith(HTTPPath Value)
+            => InternalId.StartsWith(Value.ToString());
+
+
+        public Boolean EndsWith(String Value)
+            => InternalId.EndsWith(Value);
+
+        public Boolean EndsWith(String Value, StringComparison ComparisonType)
+            => InternalId.EndsWith(Value, ComparisonType);
+
+        public Boolean EndsWith(String Value, Boolean IgnoreCase, CultureInfo Culture)
+            => InternalId.EndsWith(Value, IgnoreCase, Culture);
+
+        public Boolean EndsWith(HTTPPath Value)
+            => InternalId.EndsWith(Value.ToString());
 
 
         #region Operator overloading
@@ -477,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  Hostname.ToString().EndsWith('/') && !Path.StartsWith("/"))
                 return Hostname + Path.ToString();
 
-            return Hostname + "/" + Path.ToString();
+            return $"{Hostname}/{Path}";
 
         }
 
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  Hostname.ToString().EndsWith('/') && !Path.Value.StartsWith("/"))
                 return Hostname + Path.ToString();
 
-            return Hostname + "/" + Path.ToString();
+            return $"{Hostname}/{Path}";
 
         }
 
@@ -524,7 +524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  Text.EndsWith('/') && !Path.StartsWith("/"))
                 return Text + Path.ToString();
 
-            return Text + "/" + Path.ToString();
+            return $"{Text}/{Path}";
 
         }
 
@@ -547,7 +547,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  Text.EndsWith('/') && !Path.Value.StartsWith("/"))
                 return Text + Path.ToString();
 
-            return Text + "/" + Path.ToString();
+            return $"{Text}/{Path}";
 
         }
 
@@ -571,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                  Path1.EndsWith("/") && !Path2.StartsWith("/"))
                 return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(Path1.ToString() + "/" + Path2.ToString());
+            return Parse($"{Path1}/{Path2}");
 
         }
 
@@ -589,13 +589,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return Path2;
 
             if (Path1.Value.EndsWith("/") && Path2.StartsWith("/"))
-                return Parse(Path1.ToString() + Path2.Substring(1).ToString());
+                return Parse(Path1.ToString() + Path2.ToString()[1..]);
 
             if (!Path1.Value.EndsWith("/") &&  Path2.StartsWith("/") ||
                  Path1.Value.EndsWith("/") && !Path2.StartsWith("/"))
                 return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(Path1.ToString() + "/" + Path2.ToString());
+            return Parse($"{Path1}/{Path2}");
 
         }
 
@@ -613,13 +613,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return Path1;
 
             if (Path1.EndsWith("/") && Path2.Value.StartsWith("/"))
-                return Parse(Path1.ToString() + Path2.Value.Substring(1).ToString());
+                return Parse(Path1.ToString() + Path2.Value.ToString()[1..]);
 
             if (!Path1.EndsWith("/") &&  Path2.Value.StartsWith("/") ||
                  Path1.EndsWith("/") && !Path2.Value.StartsWith("/"))
                 return Parse(Path1.ToString() + Path2.ToString());
 
-            return Parse(Path1.ToString() + "/" + Path2.ToString());
+            return Parse($"{Path1}/{Path2}");
 
         }
 
@@ -633,23 +633,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            HTTPPath?  Path2)
         {
 
-            if (!Path1.HasValue && !Path2.HasValue)
-                return HTTPPath.Parse("/");
+            if (Path1.HasValue && Path2.HasValue)
+            {
 
-            if (!Path1.HasValue)
-                return Path2.Value;
+                if (Path1.Value.EndsWith("/") && Path2.Value.StartsWith("/"))
+                    return Parse(Path1.ToString() + Path2.Value.ToString()[1..]);
 
-            if (!Path2.HasValue)
+                if (!Path1.Value.EndsWith("/") &&  Path2.Value.StartsWith("/") ||
+                     Path1.Value.EndsWith("/") && !Path2.Value.StartsWith("/"))
+                    return Parse(Path1.ToString() + Path2.ToString());
+
+                return Parse($"{Path1}/{Path2}");
+
+            }
+
+            if (Path1.HasValue)
                 return Path1.Value;
 
-            if (Path1.Value.EndsWith("/") && Path2.Value.StartsWith("/"))
-                return Parse(Path1.ToString() + Path2.Value.Substring(1).ToString());
+            if (Path2.HasValue)
+                return Path2.Value;
 
-            if (!Path1.Value.EndsWith("/") &&  Path2.Value.StartsWith("/") ||
-                 Path1.Value.EndsWith("/") && !Path2.Value.StartsWith("/"))
-                return Parse(Path1.ToString() + Path2.ToString());
-
-            return Parse(Path1.ToString() + "/" + Path2.ToString());
+            return Root;
 
         }
 

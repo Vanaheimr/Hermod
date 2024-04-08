@@ -1913,44 +1913,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            lock (hostnameNodes)
-            {
+            #region Initial Checks
 
-                #region Initial Checks
+            if (HTTPDelegate is null)
+                throw new ArgumentNullException(nameof(HTTPDelegate), "The given parameter must not be null!");
 
-                if (HTTPDelegate is null)
-                    throw new ArgumentNullException(nameof(HTTPDelegate), "The given parameter must not be null!");
+            var hostname = Hostname ?? HTTPHostname.Any;
 
-                var hostname = Hostname ?? HTTPHostname.Any;
+            if (HTTPMethod is null && HTTPContentType is not null)
+                throw new ArgumentException("If HTTPMethod is null the HTTPContentType must also be null!");
 
-                if (HTTPMethod is null && HTTPContentType is not null)
-                    throw new ArgumentException("If HTTPMethod is null the HTTPContentType must also be null!");
+            #endregion
 
-                #endregion
+            if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
+                hostnameNode = hostnameNodes.AddAndReturnValue(
+                                                 hostname,
+                                                 new HostnameNode(
+                                                     HTTPAPI,
+                                                     hostname
+                                                 )
+                                             );
 
-                if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
-                    hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(HTTPAPI, hostname));
+            hostnameNode.AddHandler(
+                             HTTPAPI,
+                             HTTPDelegate,
 
-                hostnameNode.AddHandler(
-                    HTTPAPI,
-                    HTTPDelegate,
+                             URLTemplate,
+                             HTTPMethod,
+                             HTTPContentType,
 
-                    URLTemplate,
-                    HTTPMethod,
-                    HTTPContentType,
+                             URLAuthentication,
+                             HTTPMethodAuthentication,
+                             ContentTypeAuthentication,
 
-                    URLAuthentication,
-                    HTTPMethodAuthentication,
-                    ContentTypeAuthentication,
+                             HTTPRequestLogger,
+                             HTTPResponseLogger,
 
-                    HTTPRequestLogger,
-                    HTTPResponseLogger,
-
-                    DefaultErrorHandler,
-                    AllowReplacement
-                );
-
-            }
+                             DefaultErrorHandler,
+                             AllowReplacement
+                         );
 
         }
 
@@ -1997,19 +1998,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            AddHandler(null,
-                       HTTPDelegate,
-                       Hostname,
-                       URLTemplate,
-                       HTTPMethod,
-                       HTTPContentType,
-                       URLAuthentication,
-                       HTTPMethodAuthentication,
-                       ContentTypeAuthentication,
-                       HTTPRequestLogger,
-                       HTTPResponseLogger,
-                       DefaultErrorHandler,
-                       AllowReplacement);
+            AddHandler(
+                null,
+                HTTPDelegate,
+                Hostname,
+                URLTemplate,
+                HTTPMethod,
+                HTTPContentType,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                AllowReplacement
+            );
 
         }
 
