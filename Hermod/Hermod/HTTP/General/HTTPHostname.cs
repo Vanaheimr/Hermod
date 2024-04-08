@@ -17,7 +17,8 @@
 
 #region Usings
 
-using System;
+using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -56,6 +57,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           IComparable<HTTPHostname>
 
     {
+
+        #region Data
+
+        private static readonly Regex regEx = new ("^([a-z0-9-]+(\\.[a-z0-9-]+)*)$");
+
+        #endregion
 
         #region Properties
 
@@ -101,28 +108,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP 'ANY' host or "*".
         /// </summary>
         public static HTTPHostname Any
-            => new HTTPHostname("*", null);
+            => new ("*", null);
 
 
         /// <summary>
         /// Return an new HTTP hostname having a hostname wildcard, e.g. "*:443".
         /// </summary>
         public HTTPHostname AnyHost
-            => new HTTPHostname("*", Port);
+            => new ("*", Port);
 
 
         /// <summary>
         /// Return an new HTTP hostname having a port wildcard, e.g. "localhost:*".
         /// </summary>
         public HTTPHostname AnyPort
-            => new HTTPHostname(Name, null);
+            => new (Name, null);
 
 
         /// <summary>
         /// The HTTP 'localhost' host.
         /// </summary>
         public static HTTPHostname Localhost
-            => new HTTPHostname("localhost", null);
+            => new ("localhost", null);
 
         #endregion
 
@@ -134,8 +141,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private HTTPHostname(String   Name,
                              UInt16?  Port = null)
         {
-
-            Name = Name?.Trim();
 
             this.Name  = Name.IsNullOrEmpty() ? "*" : Name;
             this.Port  = Port;
@@ -154,10 +159,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPHostname Parse(String Text)
         {
 
-            if (TryParse(Text, out HTTPHostname Hostname))
-                return Hostname;
+            if (TryParse(Text, out var httpHostname))
+                return httpHostname;
 
-            throw new ArgumentException("The given text '" + Text + "' is not a valid HTTP hostname!", nameof(Text));
+            throw new ArgumentException($"Invalid text representation of a HTTP hostname: '{Text}'!",
+                                        nameof(Text));
 
         }
 
@@ -174,13 +180,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          UInt16  Port)
         {
 
-            if (Text != null)
-                Text = Text.Trim().ToLower();
-
-            if (TryParse(Text, Port, out HTTPHostname httpHostname))
+            if (TryParse(Text, Port, out var httpHostname))
                 return httpHostname;
 
-            throw new ArgumentException("The given text '" + Text + "' is not a valid HTTP hostname!", nameof(Text));
+            throw new ArgumentException($"Invalid text representation of a HTTP hostname: '{Text}:{Port}'!",
+                                        nameof(Text));
 
         }
 
@@ -195,10 +199,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPHostname? TryParse(String Text)
         {
 
-            if (TryParse(Text, out HTTPHostname Hostname))
-                return Hostname;
+            if (TryParse(Text, out var httpHostname))
+                return httpHostname;
 
-            return new HTTPHostname?();
+            return null;
 
         }
 
@@ -211,13 +215,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">The text representation of a HTTP hostname.</param>
         /// <param name="Port">The TCP/IP port.</param>
-        public static HTTPHostname? TryParse(String Text, UInt16 Port)
+        public static HTTPHostname? TryParse(String  Text,
+                                             UInt16  Port)
         {
 
-            if (TryParse(Text, Port, out HTTPHostname Hostname))
-                return Hostname;
+            if (TryParse(Text, Port, out var httpHostname))
+                return httpHostname;
 
-            return new HTTPHostname?();
+            return null;
 
         }
 
@@ -230,62 +235,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">The text representation of a HTTP hostname.</param>
         /// <param name="Hostname">The parsed HTTP hostname.</param>
-        public static Boolean TryParse(String Text, out HTTPHostname Hostname)
+        public static Boolean TryParse(String                                Text,
+                                       [NotNullWhen(true)] out HTTPHostname  Hostname)
         {
 
-            if (Text != null)
-                Text = Text.Trim().ToLower();
+            Text = Text.Trim().ToLower();
 
             if (Text.IsNullOrEmpty())
             {
-                Hostname = default(HTTPHostname);
+                Hostname = default;
                 return false;
             }
 
-            var Parts = Text.Split(':');
+            var parts     = Text.Split(':');
+            var hostname  = parts.Length > 0 ? parts[0]?.Trim() : null;
+            var portText  = parts.Length > 1 ? parts[1]?.Trim() : null;
 
-            if (Parts[0] != null)
-                Parts[0] = Parts[0].Trim().ToLower();
-
-            if (Parts[0].IsNullOrEmpty())
-            {
-                Hostname = default(HTTPHostname);
-                return false;
-            }
-
-            if (Parts.Length == 1)
-            {
-                Hostname = new HTTPHostname(Parts[0]);
-                return true;
-            }
-
-            if (Parts.Length == 2)// || Parts[0].IsNullOrEmpty())
+            if (hostname is not null &&
+               (hostname == "*" || regEx.IsMatch(hostname)))
             {
 
-                if (Parts[1] != null)
-                    Parts[1] = Parts[1].Trim();
-
-                if (Parts[1].IsNullOrEmpty())
+                if (portText is null)
                 {
-                    Hostname = default(HTTPHostname);
-                    return false;
-                }
-
-                if (Parts[1] == "*")
-                {
-                    Hostname = new HTTPHostname(Parts[0].Trim());
+                    Hostname = new HTTPHostname(hostname);
                     return true;
                 }
 
-                if (UInt16.TryParse(Parts[1].Trim(), out ushort Port))
+                if (portText is not null && UInt16.TryParse(portText, out var port))
                 {
-                    Hostname = new HTTPHostname(Parts[0].Trim(), Port);
+                    Hostname = new HTTPHostname(hostname, port);
                     return true;
                 }
 
             }
 
-            Hostname = default(HTTPHostname);
+            Hostname = default;
             return false;
 
         }
@@ -300,20 +284,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">The text representation of a HTTP hostname.</param>
         /// <param name="Port">The TCP/IP port.</param>
         /// <param name="Hostname">The parsed HTTP hostname.</param>
-        public static Boolean TryParse(String Text, UInt16 Port, out HTTPHostname Hostname)
+        public static Boolean TryParse(String                                Text,
+                                       UInt16                                Port,
+                                       [NotNullWhen(true)] out HTTPHostname  Hostname)
         {
 
-            if (Text != null)
-                Text = Text.Trim().ToLower();
+            Text = Text.Trim().ToLower();
 
-            if (Text.IsNullOrEmpty() || Text.Contains(":"))
+            if (Text == "*" || regEx.IsMatch(Text))
             {
-                Hostname = default(HTTPHostname);
-                return false;
+                Hostname = new HTTPHostname(Text, Port);
+                return true;
             }
 
-            Hostname = new HTTPHostname(Text, Port);
-            return true;
+            Hostname = default;
+            return false;
 
         }
 
@@ -326,8 +311,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPHostname Clone
 
-            => new HTTPHostname(new String(Name.ToCharArray()),
-                                Port);
+            => new (new String(Name.ToCharArray()),
+                    Port);
 
         #endregion
 
@@ -342,20 +327,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPHostname Hostname1, HTTPHostname Hostname2)
-        {
+        public static Boolean operator == (HTTPHostname Hostname1,
+                                           HTTPHostname Hostname2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(Hostname1, Hostname2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) Hostname1 == null) || ((Object) Hostname2 == null))
-                return false;
-
-            return Hostname1.Equals(Hostname2);
-
-        }
+            => Hostname1.Equals(Hostname2);
 
         #endregion
 
@@ -367,20 +342,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPHostname Hostname1, String Hostname2)
-        {
+        public static Boolean operator == (HTTPHostname Hostname1,
+                                           String       Hostname2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(Hostname1, Hostname2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) Hostname1 == null) || ((Object) Hostname2 == null))
-                return false;
-
-            return Hostname1.Name.Equals(Hostname2);
-
-        }
+            => Hostname1.Name.Equals(Hostname2);
 
         #endregion
 
@@ -392,10 +357,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPHostname Hostname1, HTTPHostname Hostname2)
-        {
-            return !(Hostname1 == Hostname2);
-        }
+        public static Boolean operator != (HTTPHostname Hostname1,
+                                           HTTPHostname Hostname2)
+
+            => !Hostname1.Equals(Hostname2);
 
         #endregion
 
@@ -407,10 +372,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPHostname Hostname1, String Hostname2)
-        {
-            return !(Hostname1 == Hostname2);
-        }
+        public static Boolean operator != (HTTPHostname Hostname1,
+                                           String       Hostname2)
+
+            => !Hostname1.Name.Equals(Hostname2);
 
         #endregion
 
@@ -422,15 +387,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPHostname Hostname1, HTTPHostname Hostname2)
-        {
+        public static Boolean operator < (HTTPHostname Hostname1,
+                                          HTTPHostname Hostname2)
 
-            if ((Object) Hostname1 == null)
-                throw new ArgumentNullException("The given Hostname1 must not be null!");
-
-            return Hostname1.CompareTo(Hostname2) < 0;
-
-        }
+            => Hostname1.CompareTo(Hostname2) < 0;
 
         #endregion
 
@@ -442,10 +402,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPHostname Hostname1, HTTPHostname Hostname2)
-        {
-            return !(Hostname1 > Hostname2);
-        }
+        public static Boolean operator <= (HTTPHostname Hostname1,
+                                           HTTPHostname Hostname2)
+
+            => Hostname1.CompareTo(Hostname2) <= 0;
 
         #endregion
 
@@ -457,15 +417,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPHostname Hostname1, HTTPHostname Hostname2)
-        {
+        public static Boolean operator > (HTTPHostname Hostname1,
+                                          HTTPHostname Hostname2)
 
-            if ((Object) Hostname1 == null)
-                throw new ArgumentNullException("The given Hostname1 must not be null!");
-
-            return Hostname1.CompareTo(Hostname2) > 0;
-
-        }
+            => Hostname1.CompareTo(Hostname2) > 0;
 
         #endregion
 
@@ -477,10 +432,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Hostname1">A HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPHostname Hostname1, HTTPHostname Hostname2)
-        {
-            return !(Hostname1 < Hostname2);
-        }
+        public static Boolean operator >= (HTTPHostname Hostname1,
+                                           HTTPHostname Hostname2)
+
+            => Hostname1.CompareTo(Hostname2) >= 0;
 
         #endregion
 
@@ -491,39 +446,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP hostnames.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
+        /// <param name="Object">A HTTP hostname to compare with.</param>
         public Int32 CompareTo(Object Object)
-        {
 
-            if (Object == null)
-                throw new ArgumentNullException("The given object must not be null!");
-
-            if (!(Object is HTTPHostname httpHostname))
-                throw new ArgumentException("The given object is not a HTTP hostname!");
-
-            return CompareTo(httpHostname);
-
-        }
+            => Object is HTTPHostname httpHostname
+                   ? CompareTo(httpHostname)
+                   : throw new ArgumentException("The given object is not a HTTP hostname!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(Hostname)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP hostnames.
         /// </summary>
-        /// <param name="Hostname">An object to compare with.</param>
+        /// <param name="Hostname">A HTTP hostname to compare with.</param>
         public Int32 CompareTo(HTTPHostname Hostname)
-        {
 
-            if ((Object) Hostname == null)
-                throw new ArgumentNullException("The given HTTP hostname must not be null!");
-
-            return ToString().CompareTo(Hostname.ToString());
-
-        }
+            => ToString().CompareTo(Hostname.ToString());
 
         #endregion
 
@@ -534,41 +477,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP hostnames for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A HTTP hostname to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is HTTPHostname httpHostname))
-                return false;
-
-            return Equals(httpHostname);
-
-        }
+            => Object is HTTPHostname httpHostname &&
+                   Equals(httpHostname);
 
         #endregion
 
         #region Equals(Hostname)
 
         /// <summary>
-        /// Compares two Hostnames for equality.
+        /// Compares two HTTP hostnames for equality.
         /// </summary>
-        /// <param name="Hostname">A Hostname to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
+        /// <param name="Hostname">A HTTP hostname to compare with.</param>
         public Boolean Equals(HTTPHostname Hostname)
-        {
 
-            if ((Object) Hostname == null)
-                return false;
-
-            return ToString().Equals(Hostname.ToString());
-
-        }
+            => String.Equals(ToString(),
+                             Hostname.ToString(),
+                             StringComparison.Ordinal);
 
         #endregion
 
@@ -596,7 +525,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => Name + (Port.HasValue ? ":" + Port.Value.ToString() : "");
+
+            => String.Concat(
+
+                   Name,
+
+                   Port.HasValue
+                       ? $":{Port.Value}"
+                       : ""
+
+               );
 
         #endregion
 

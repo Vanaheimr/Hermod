@@ -35,10 +35,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        /// <summary>
-        /// A mapping from URIs to URINodes.
-        /// </summary>
-        private readonly ConcurrentDictionary<HTTPPath, URL_Node> urlNodes = [];
+        private        readonly  ConcurrentDictionary<HTTPPath, URL_Node>  urlNodes    = [];
+
+        private static readonly  Char[]                                    separator   = [ ':' ];
 
         #endregion
 
@@ -81,8 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Check Hostname
 
-            var    HostHeader  = Hostname.ToString().Split(new Char[1] { ':' }, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
-            UInt16 HostPort    = 80;
+            var    hostHeader  = Hostname.ToString().Split(separator, StringSplitOptions.None).Select(v => v.Trim()).ToArray();
+            UInt16 hostPort    = 80;
 
             // 1.2.3.4          => 1.2.3.4:80
             // 1.2.3.4:80       => ok
@@ -94,15 +93,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             // rfc 2616 - 3.2.2
             // If the port is empty or not given, port 80 is assumed.
-            if (HostHeader.Length == 1)
-                this.Hostname = HTTPHostname.Parse(Hostname + ":" + HostPort);
+            if (hostHeader.Length == 1)
+                this.Hostname = HTTPHostname.Parse(Hostname + ":" + hostPort);
 
-            else if ((HostHeader.Length == 2 && !UInt16.TryParse(HostHeader[1], out HostPort) && HostHeader[1] != "*") ||
-                      HostHeader.Length  > 2)
+            else if ((hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out hostPort) && hostHeader[1] != "*") ||
+                      hostHeader.Length  > 2)
                       throw new ArgumentException("Invalid Hostname!", nameof(Hostname));
 
             else
-                this.Hostname = HTTPHostname.Parse(HostHeader[0] + ":" + HostHeader[1]);
+                this.Hostname = HTTPHostname.Parse(hostHeader[0] + ":" + hostHeader[1]);
 
             #endregion
 

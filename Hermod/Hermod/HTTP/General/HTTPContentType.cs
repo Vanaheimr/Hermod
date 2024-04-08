@@ -17,8 +17,9 @@
 
 #region Usings
 
-using System.Diagnostics;
 using System.Reflection;
+using System.Diagnostics;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion

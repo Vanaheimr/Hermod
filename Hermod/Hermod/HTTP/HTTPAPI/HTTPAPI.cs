@@ -455,13 +455,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTime           ServerTimestamp,
-                                    HTTPAPI            HTTPAPI,
-                                    HTTPRequest        Request,
-                                    HTTPResponse       Response,
-                                    Func<T, Boolean>   VerifyResult,
-                                    TimeSpan?          Timeout        = null,
-                                    Func<TimeSpan, T>  DefaultResult  = null)
+        public Task<T> WhenFirst<T>(DateTime            ServerTimestamp,
+                                    HTTPAPI             HTTPAPI,
+                                    HTTPRequest         Request,
+                                    HTTPResponse        Response,
+                                    Func<T, Boolean>    VerifyResult,
+                                    TimeSpan?           Timeout        = null,
+                                    Func<TimeSpan, T>?  DefaultResult  = null)
         {
 
             #region Data
@@ -995,14 +995,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// The default HTTP server name.
-        /// </summary>
-        public  const              String                  DefaultHTTPServerName           = "GraphDefined HTTP API";
-
-        /// <summary>
         /// The default HTTP service name.
         /// </summary>
         public  const              String                  DefaultHTTPServiceName          = "GraphDefined HTTP API";
+
+        /// <summary>
+        /// The default HTTP server name.
+        /// </summary>
+        public  const              String                  DefaultHTTPServerName           = DefaultHTTPServiceName;
 
         /// <summary>
         /// The default HTTP server port.
@@ -1013,7 +1013,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The default HTTP URL path prefix.
         /// </summary>
         public  static readonly    HTTPPath                DefaultURLPathPrefix            = HTTPPath.Parse("/");
-
 
         /// <summary>
         /// The HTTP root for embedded ressources.
@@ -1934,7 +1933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource> EventSources(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
 
             => HTTPServer.EventSources(IncludeEventSource);
 
@@ -1943,7 +1942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a filtered enumeration of all event sources.
         /// </summary>
         /// <param name="IncludeEventSource">An event source filter delegate.</param>
-        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean> IncludeEventSource = null)
+        public IEnumerable<IHTTPEventSource<TData>> EventSources<TData>(Func<IHTTPEventSource, Boolean>? IncludeEventSource = null)
 
             => HTTPServer.EventSources<TData>(IncludeEventSource);
 

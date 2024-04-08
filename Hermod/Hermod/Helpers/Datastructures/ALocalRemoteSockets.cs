@@ -15,13 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Net;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 {
 
@@ -39,17 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// The local IP address.
         /// </summary>
         public IIPAddress LocalIPAddress
-        {
-            get
-            {
-
-                if (LocalSocket != null)
-                    return LocalSocket.IPAddress;
-
-                throw new Exception("The LocalSocket is null!");
-
-            }
-        }
+            => LocalSocket.IPAddress;
 
         #endregion
 
@@ -59,23 +42,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// The local IP port.
         /// </summary>
         public IPPort LocalPort
-        {
-            get
-            {
-
-                if (LocalSocket != null)
-                    return LocalSocket.Port;
-
-                throw new Exception("The LocalSocket is null!");
-
-            }
-        }
+            => LocalSocket.Port;
 
         #endregion
 
         #region LocalSocket
 
-        private IPSocket _LocalSocket;
+        private IPSocket localSocket;
 
         /// <summary>
         /// The local socket.
@@ -85,18 +58,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 
             get
             {
-                return _LocalSocket;
+                return localSocket;
             }
 
             set
             {
-
-                if (value != null)
-                    _LocalSocket = value;
-
-                else
-                    throw new ArgumentException("The LocalSocket must not be null!");
-
+                localSocket = value;
             }
 
         }
@@ -110,17 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// The remote IP address.
         /// </summary>
         public IIPAddress RemoteIPAddress
-        {
-            get
-            {
-
-                if (_RemoteSocket != null)
-                    return _RemoteSocket.IPAddress;
-
-                throw new Exception("The RemoteSocket is null!");
-
-            }
-        }
+            => remoteSocket.IPAddress;
 
         #endregion
 
@@ -130,23 +87,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// The remote IP port.
         /// </summary>
         public IPPort RemotePort
-        {
-            get
-            {
-
-                if (_RemoteSocket != null)
-                    return _RemoteSocket.Port;
-
-                throw new Exception("The RemoteSocket is null!");
-
-            }
-        }
+            => remoteSocket.Port;
 
         #endregion
 
         #region RemoteSocket
 
-        private IPSocket _RemoteSocket;
+        private IPSocket remoteSocket;
 
         /// <summary>
         /// The remote socket.
@@ -156,18 +103,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
 
             get
             {
-                return _RemoteSocket;
+                return remoteSocket;
             }
 
             set
             {
-
-                if (value != null)
-                    _RemoteSocket = value;
-
-                else
-                    throw new ArgumentException("The RemoteSocket must not be null!");
-
+                remoteSocket = value;
             }
 
         }
@@ -222,9 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return LocalSocket.ToString() + " [local] <-> " + RemoteSocket.ToString() + " [remote]";
-        }
+            => $"{LocalSocket} [local] <-> {RemoteSocket} [remote]";
 
         #endregion
 

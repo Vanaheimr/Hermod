@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.BouncyCastle
 
         #region TryReadPublicKeyRing(Text, out PublicKeyRing)
 
-        public static Boolean TryReadPublicKeyRing(String Text, out PgpPublicKeyRing PublicKeyRing)
+        public static Boolean TryReadPublicKeyRing(String Text, out PgpPublicKeyRing? PublicKeyRing)
         {
 
             PublicKeyRing = null;
@@ -105,11 +105,11 @@ namespace org.GraphDefined.Vanaheimr.BouncyCastle
             {
 
                 var InputStream = PgpUtilities.GetDecoderStream(Text.ToMemoryStream());
-                if (InputStream == null)
+                if (InputStream is null)
                     return false;
 
                 var PublicKeyRingBundle = new PgpPublicKeyRingBundle(InputStream);
-                if (PublicKeyRingBundle != null)
+                if (PublicKeyRingBundle is not null)
                     PublicKeyRing = PublicKeyRingBundle.GetKeyRings().Cast<PgpPublicKeyRing>().First();
 
                 else
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.BouncyCastle
                 return PublicKeyRing != null;
 
             }
-            catch (Exception e)
+            catch
             {
                 return false;
             }

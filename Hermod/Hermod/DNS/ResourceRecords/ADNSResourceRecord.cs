@@ -15,13 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.IO;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -34,107 +27,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        #region Name
+        public String           Name          { get; }
 
-        private readonly String _Name;
+        public UInt16           Type          { get; }
 
-        public String Name
-        {
-            get
-            {
-                return _Name;
-            }
-        }
+        public DNSQueryClasses  Class         { get; }
 
-        #endregion
+        public TimeSpan         TimeToLive    { get; }
 
-        #region Type
-
-        private readonly UInt16 _Type;
-
-        public UInt16 Type
-        {
-            get
-            {
-                return _Type;
-            }
-        }
-
-        #endregion
-
-        #region Class
-
-        private readonly DNSQueryClasses _Class;
-
-        public DNSQueryClasses Class
-        {
-            get
-            {
-                return _Class;
-            }
-        }
-
-        #endregion
-
-        #region TimeToLive
-
-        private readonly TimeSpan _TimeToLive;
-
-        public TimeSpan TimeToLive
-        {
-            get
-            {
-                return _TimeToLive;
-            }
-        }
-
-        #endregion
-
-        #region EndOfLife // [NoDNSPaketInformation]
 
         [NoDNSPaketInformation]
-        private readonly DateTime _EndOfLife;
+        public DateTime         EndOfLife     { get; }
+
 
         [NoDNSPaketInformation]
-        public DateTime EndOfLife
-        {
-            get
-            {
-                return _EndOfLife;
-            }
-        }
+        public IIPAddress?      Source        { get; }
 
-        #endregion
-
-        #region Source // [NoDNSPaketInformation]
-
-        [NoDNSPaketInformation]
-        private readonly IIPAddress _Source;
-
-        [NoDNSPaketInformation]
-        public IIPAddress Source
-        {
-            get
-            {
-                return _Source;
-            }
-        }
-
-        #endregion
-
-        #region RText
-
-        private readonly String _RText;
-
-        public String RText
-        {
-            get
-            {
-                return _RText;
-            }
-        }
-
-        #endregion
+        public String?          RText         { get; }
 
         #endregion
 
@@ -145,17 +54,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         protected ADNSResourceRecord(Stream DNSStream, UInt16 Type)
         {
 
-            this._Name          = DNSTools.ExtractName(DNSStream);
+            this.Name          = DNSTools.ExtractName(DNSStream);
 
-            this._Type = Type;
+            this.Type = Type;
             //this._Type          = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
 
             //if (_Type != Type)
             //    throw new ArgumentException("Invalid DNS RR Type!");
 
-            this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this._EndOfLife     = Illias.Timestamp.Now + _TimeToLive;
+            this.Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this.TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
 
             var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
 
@@ -170,11 +79,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                      Stream  DNSStream)
         {
 
-            this._Name          = Name;
-            this._Type          = Type;
-            this._Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this._TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this._EndOfLife     = Illias.Timestamp.Now + _TimeToLive;
+            this.Name          = Name;
+            this.Type          = Type;
+            this.Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this.TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
 
             var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
 
@@ -190,11 +99,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                      TimeSpan         TimeToLive)
         {
 
-            this._Name          = Name;
-            this._Type          = Type;
-            this._Class         = Class;
-            this._TimeToLive    = TimeToLive;
-            this._EndOfLife     = Illias.Timestamp.Now + _TimeToLive;
+            this.Name          = Name;
+            this.Type          = Type;
+            this.Class         = Class;
+            this.TimeToLive    = TimeToLive;
+            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
 
         }
 
@@ -209,12 +118,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                      String           RText)
         {
 
-            this._Name          = Name;
-            this._Type          = Type;
-            this._Class         = Class;
-            this._TimeToLive    = TimeToLive;
-            this._EndOfLife     = Illias.Timestamp.Now + _TimeToLive;
-            this._RText         = RText;
+            this.Name          = Name;
+            this.Type          = Type;
+            this.Class         = Class;
+            this.TimeToLive    = TimeToLive;
+            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
+            this.RText         = RText;
 
         }
 
@@ -228,9 +137,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return String.Concat("Name=", _Name, ", Type=", _Type, ", Class=", _Class, ", TTL=", _TimeToLive, " EndOfLife=" + EndOfLife, ", Source=", Source.ToString());
-        }
+
+            => String.Concat(
+
+                   $"Name={Name}, Type={Type}, Class={Class}, TTL={TimeToLive.TotalSeconds} seconds, EndOfLife='{EndOfLife}'",
+
+                   Source is not null
+                       ? $"Source = {Source}"
+                       : ""
+
+               );
 
         #endregion
 

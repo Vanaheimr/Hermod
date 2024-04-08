@@ -882,17 +882,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching error handler for the given parameters.
         /// </summary>
-        public Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String           Host,
-                                                                      String           URL, 
-                                                                      HTTPMethod?      HTTPMethod       = null,
-                                                                      HTTPContentType  HTTPContentType  = null,
-                                                                      HTTPStatusCode   HTTPStatusCode   = null)
+        public Tuple<MethodInfo, IEnumerable<Object>> GetErrorHandler(String            Host,
+                                                                      String            URL,
+                                                                      HTTPMethod?       HTTPMethod        = null,
+                                                                      HTTPContentType?  HTTPContentType   = null,
+                                                                      HTTPStatusCode?   HTTPStatusCode    = null)
 
-            => httpServer.GetErrorHandler(Host,
-                                           URL,
-                                           HTTPMethod,
-                                           HTTPContentType,
-                                           HTTPStatusCode);
+            => httpServer.GetErrorHandler(
+                              Host,
+                              URL,
+                              HTTPMethod,
+                              HTTPContentType,
+                              HTTPStatusCode
+                          );
 
         #endregion
 
