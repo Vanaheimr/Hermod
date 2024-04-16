@@ -959,7 +959,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    DebugX.LogException(e);
                                                                }
 
-                                                               return Array.Empty<String>();
+                                                               return [];
 
                                                            }).
                                          Where            (fileName => {
