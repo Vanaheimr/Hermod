@@ -2970,13 +2970,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            return Task.FromResult(
                                new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode  = HTTPStatusCode.OK,
-                                   Server          = HTTPServer.DefaultHTTPServerName,
-                                   ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                   CacheControl    = "no-cache",
-                                   Connection      = "keep-alive",
-                                   KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
-                                   Content         = httpEvents.ToUTF8Bytes()
+                                   HTTPStatusCode            = HTTPStatusCode.OK,
+                                   Server                    = HTTPServer.DefaultHTTPServerName,
+                                   ContentType               = HTTPContentType.Text.EVENTSTREAM,
+                                   CacheControl              = "no-cache",
+                                   Connection                = "keep-alive",
+                                   AccessControlAllowOrigin  = "*",
+                                   KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                   Content                   = httpEvents.ToUTF8Bytes()
                                }.AsImmutable);
 
                        },
