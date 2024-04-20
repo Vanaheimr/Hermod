@@ -1313,7 +1313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 //            TLSStream = new SslStream(TCPStream,
                 //                                      false,
                 //                                      RemoteCertificateValidator,
-                //                                      ClientCertificateSelector,
+                //                                      LocalCertificateSelector,
                 //                                      EncryptionPolicy.RequireEncryption)
                 //            {
 

@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
-        LocalCertificateSelectionHandler?                          ClientCertificateSelector     { get; }
+        LocalCertificateSelectionHandler?                          LocalCertificateSelector     { get; }
 
         /// <summary>
         /// The TLS protocol(s) allowed for this connection.

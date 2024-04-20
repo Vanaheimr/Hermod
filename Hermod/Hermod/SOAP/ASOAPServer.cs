@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="URLPrefix">An optional prefix for the HTTP URIs.</param>
         /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
@@ -185,8 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
                               ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
                               RemoteTLSClientCertificateValidationHandler<ASOAPServer>?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                          ClientCertificateSelector    = null,
-                              SslProtocols                                               AllowedTLSProtocols          = SslProtocols.Tls12,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                              SslProtocols                                               AllowedTLSProtocols          = SslProtocols.Tls12 | SslProtocols.Tls13,
                               HTTPPath?                                                  URLPrefix                    = null,
                               HTTPContentType?                                           SOAPContentType              = null,
                               Boolean                                                    RegisterHTTPRootService      = true,
@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                        SOAPContentType:             SOAPContentType ?? DefaultContentType,
                        ServerCertificateSelector:   ServerCertificateSelector,
                        ClientCertificateValidator:  null,
-                       ClientCertificateSelector:   ClientCertificateSelector,
+                       LocalCertificateSelector:   LocalCertificateSelector,
                        AllowedTLSProtocols:         AllowedTLSProtocols,
                        DNSClient:                   DNSClient,
                        AutoStart:                   false

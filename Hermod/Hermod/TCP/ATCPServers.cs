@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionHandler?                        ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?                        LocalCertificateSelector       { get; }
 
         /// <summary>
         /// The TLS protocol(s) allowed for this connection.
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ClientCertificateRequired">Whether a TLS client certificate is required.</param>
         /// <param name="CheckCertificateRevocation">Whether the TLS client certificate should be checked for revocation.</param>
@@ -418,7 +418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                            ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
                            RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
-                           LocalCertificateSelectionHandler?                        ClientCertificateSelector    = null,
+                           LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
                            SslProtocols?                                            AllowedTLSProtocols          = null,
                            Boolean?                                                 ClientCertificateRequired    = null,
                            Boolean?                                                 CheckCertificateRevocation   = null,
@@ -438,7 +438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.tcpServers                  = [];
 
             this.ServerCertificateSelector   = ServerCertificateSelector;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCertificateValidator  = ClientCertificateValidator;
             this.AllowedTLSProtocols         = AllowedTLSProtocols        ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
@@ -486,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                                                        ServerCertificateSelector,
                                                                        ClientCertificateValidator,
-                                                                       ClientCertificateSelector,
+                                                                       LocalCertificateSelector,
                                                                        AllowedTLSProtocols,
                                                                        ClientCertificateRequired,
                                                                        CheckCertificateRevocation,
@@ -536,7 +536,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                                                        ServerCertificateSelector,
                                                                        ClientCertificateValidator,
-                                                                       ClientCertificateSelector,
+                                                                       LocalCertificateSelector,
                                                                        AllowedTLSProtocols,
                                                                        ClientCertificateRequired,
                                                                        CheckCertificateRevocation,

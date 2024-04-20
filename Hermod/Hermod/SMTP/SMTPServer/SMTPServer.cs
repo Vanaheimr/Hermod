@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="AllowStartTLS">Allow to start TLS via the 'STARTTLS' SMTP command.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
@@ -204,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                           ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
                           RemoteTLSClientCertificateValidationHandler<SMTPServer>?  ClientCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?                         ClientCertificateSelector    = null,
+                          LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
                           SslProtocols?                                             AllowedTLSProtocols          = null,
                           Boolean?                                                  ClientCertificateRequired    = null,
                           Boolean?                                                  CheckCertificateRevocation   = null,
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                    ServerCertificateSelector,
                    null,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,

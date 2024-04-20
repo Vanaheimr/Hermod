@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                               Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
                               RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                               ClientCertificateSelector    = null,
+                              LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                               SslProtocols?                                                   AllowedTLSProtocols          = null,
                               Boolean?                                                        ClientCertificateRequired    = null,
                               Boolean?                                                        CheckCertificateRevocation   = null,
@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,

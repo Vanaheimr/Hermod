@@ -270,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="IPSocket">The IP socket to listen.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
                             ServerCertificateSelectorDelegate?                          ServerCertificateSelector    = null,
                             RemoteTLSClientCertificateValidationHandler<TCPCSVServer>?  ClientCertificateValidator   = null,
-                            LocalCertificateSelectionHandler?                           ClientCertificateSelector    = null,
+                            LocalCertificateSelectionHandler?                           LocalCertificateSelector     = null,
                             SslProtocols?                                               AllowedTLSProtocols          = null,
                             Boolean?                                                    ClientCertificateRequired    = null,
                             Boolean?                                                    CheckCertificateRevocation   = null,
@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,

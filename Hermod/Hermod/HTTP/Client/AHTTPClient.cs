@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionHandler?                          ClientCertificateSelector     { get; }
+        public LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
 
         /// <summary>
         /// The TLS client certificate to use of HTTP authentication.
@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">An optional description of this HTTP client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
@@ -544,7 +544,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               String?                                                    Description                  = null,
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                          ClientCertificateSelector    = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                               X509Certificate?                                           ClientCert                   = null,
                               SslProtocols?                                              TLSProtocol                  = null,
                               String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
@@ -564,7 +564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Description                 = Description;
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
             this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
@@ -582,8 +582,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              ? IPPort.HTTP
                                                                              : IPPort.HTTPS);
 
-            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
-                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
+                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
 
         }
 
@@ -909,13 +909,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                                  },
 
-                                            userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                            userCertificateSelectionCallback:    LocalCertificateSelector is null
                                                                                      ? null
                                                                                      : (sender,
                                                                                         targetHost,
                                                                                         localCertificates,
                                                                                         remoteCertificate,
-                                                                                        acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                        acceptableIssuers) => LocalCertificateSelector(sender,
                                                                                                                                         targetHost,
                                                                                                                                         localCertificates.
                                                                                                                                             Cast<X509Certificate>().

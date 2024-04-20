@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                                ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
                                RemoteTLSClientCertificateValidationHandler<ModbusTCPServer>?  ClientCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                              ClientCertificateSelector    = null,
+                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
                                SslProtocols?                                                  AllowedTLSProtocols          = null,
                                Boolean?                                                       ClientCertificateRequired    = null,
                                Boolean?                                                       CheckCertificateRevocation   = null,
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                                  ServerCertificateSelector,
                                  null,
-                                 ClientCertificateSelector,
+                                 LocalCertificateSelector,
                                  AllowedTLSProtocols,
                                  ClientCertificateRequired,
                                  CheckCertificateRevocation,
