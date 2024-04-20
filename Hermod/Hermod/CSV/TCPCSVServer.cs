@@ -27,6 +27,7 @@ using System.Security.Authentication;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -66,6 +67,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// </summary>
         public Char[]  SplitCharacters    { get; }
 
+        public new RemoteTLSClientCertificateValidationHandler<TCPCSVServer>? ClientCertificateValidator { get; set; }
+
         #endregion
 
         #region Events
@@ -98,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="TCPPort">The listening port</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServiceBanner">Service banner.</param>
@@ -110,26 +113,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
-        public TCPCSVServer(IPPort                               TCPPort,
-                            String?                              ServiceName                  = null,
-                            String                               ServiceBanner                = __DefaultServiceBanner,
-                            IEnumerable<Char>?                   SplitCharacters              = null,
+        public TCPCSVServer(IPPort                                                      TCPPort,
+                            String?                                                     ServiceName                  = null,
+                            String                                                      ServiceBanner                = __DefaultServiceBanner,
+                            IEnumerable<Char>?                                          SplitCharacters              = null,
 
-                            ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                            RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                            LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                            SslProtocols?                        AllowedTLSProtocols          = null,
-                            Boolean?                             ClientCertificateRequired    = null,
-                            Boolean?                             CheckCertificateRevocation   = null,
+                            ServerCertificateSelectorDelegate?                          ServerCertificateSelector    = null,
+                            RemoteTLSClientCertificateValidationHandler<TCPCSVServer>?  ClientCertificateValidator   = null,
+                            LocalCertificateSelectionHandler?                           LocalCertificateSelector     = null,
+                            SslProtocols?                                               AllowedTLSProtocols          = null,
+                            Boolean?                                                    ClientCertificateRequired    = null,
+                            Boolean?                                                    CheckCertificateRevocation   = null,
 
-                            ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                            ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                            Boolean?                             ServerThreadIsBackground     = null,
-                            ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                            TimeSpan?                            ConnectionTimeout            = null,
-                            UInt32?                              MaxClientConnections         = null,
+                            ServerThreadNameCreatorDelegate?                            ServerThreadNameCreator      = null,
+                            ServerThreadPriorityDelegate?                               ServerThreadPrioritySetter   = null,
+                            Boolean?                                                    ServerThreadIsBackground     = null,
+                            ConnectionIdBuilder?                                        ConnectionIdBuilder          = null,
+                            TimeSpan?                                                   ConnectionTimeout            = null,
+                            UInt32?                                                     MaxClientConnections         = null,
 
-                            Boolean                              AutoStart                    = false)
+                            Boolean                                                     AutoStart                    = false)
 
             : this(IPv4Address.Any,
                    TCPPort,
@@ -139,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
@@ -167,39 +170,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServiceBanner">Service banner.</param>
         /// <param name="SplitCharacters">An enumeration of delimiters to split the incoming CSV line into individual elements.</param>
-        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP/CSV server thread immediately (default: no).</param>
-        public TCPCSVServer(IIPAddress                           IIPAddress,
-                            IPPort                               Port,
+        public TCPCSVServer(IIPAddress                                                  IIPAddress,
+                            IPPort                                                      Port,
 
-                            String?                              ServiceName                  = null,
-                            String                               ServiceBanner                = __DefaultServiceBanner,
-                            IEnumerable<Char>?                   SplitCharacters              = null,
+                            String?                                                     ServiceName                  = null,
+                            String                                                      ServiceBanner                = __DefaultServiceBanner,
+                            IEnumerable<Char>?                                          SplitCharacters              = null,
 
-                            ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                            RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                            LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                            SslProtocols?                        AllowedTLSProtocols          = null,
-                            Boolean?                             ClientCertificateRequired    = null,
-                            Boolean?                             CheckCertificateRevocation   = null,
+                            ServerCertificateSelectorDelegate?                          ServerCertificateSelector    = null,
+                            RemoteTLSClientCertificateValidationHandler<TCPCSVServer>?  ClientCertificateValidator   = null,
+                            LocalCertificateSelectionHandler?                           LocalCertificateSelector     = null,
+                            SslProtocols?                                               AllowedTLSProtocols          = null,
+                            Boolean?                                                    ClientCertificateRequired    = null,
+                            Boolean?                                                    CheckCertificateRevocation   = null,
 
-                            ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                            ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                            Boolean?                             ServerThreadIsBackground     = null,
-                            ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                            TimeSpan?                            ConnectionTimeout            = null,
-                            UInt32?                              MaxClientConnections         = null,
+                            ServerThreadNameCreatorDelegate?                            ServerThreadNameCreator      = null,
+                            ServerThreadPriorityDelegate?                               ServerThreadPrioritySetter   = null,
+                            Boolean?                                                    ServerThreadIsBackground     = null,
+                            ConnectionIdBuilder?                                        ConnectionIdBuilder          = null,
+                            TimeSpan?                                                   ConnectionTimeout            = null,
+                            UInt32?                                                     MaxClientConnections         = null,
 
-                            Boolean                              AutoStart                    = false)
+                            Boolean                                                     AutoStart                    = false)
 
             : base(IIPAddress,
                    Port,
@@ -207,8 +208,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ServiceBanner,
 
                    ServerCertificateSelector,
-                   ClientCertificateValidator,
-                   ClientCertificateSelector,
+                   null,
+                   //(sender,
+                   // certificate,
+                   // certificateChain,
+                   // tlsServer,
+                   // policyErrors) => DoClientCertificateValidator(sender,
+                   //                                               certificate,
+                   //                                               certificateChain,
+                   //                                               policyErrors),
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
@@ -224,13 +233,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         {
 
-            this.ServiceBanner            = ServiceBanner;
-            this.SplitCharacters          = SplitCharacters != null ? SplitCharacters.ToArray() : DefaultSplitCharacters;
+            this.ServiceBanner               = ServiceBanner;
+            this.SplitCharacters             = SplitCharacters is not null ? SplitCharacters.ToArray() : DefaultSplitCharacters;
 
-            this._TCPCSVProcessor         = new TCPCSVProcessor(this.SplitCharacters);
+            this.ClientCertificateValidator  = ClientCertificateValidator;
+            base.ClientCertificateValidator  = (sender,
+                                                certificate,
+                                                certificateChain,
+                                                tlsServer,
+                                                policyErrors) => DoClientCertificateValidator(
+                                                                     sender,
+                                                                     certificate,
+                                                                     certificateChain,
+                                                                     policyErrors
+                                                                 );
+
+            this._TCPCSVProcessor            = new TCPCSVProcessor(this.SplitCharacters);
             this.SendTo(_TCPCSVProcessor);
 
-            this._TCPCSVCommandProcessor  = new TCPCSVCommandProcessor();
+            this._TCPCSVCommandProcessor     = new TCPCSVCommandProcessor();
             this._TCPCSVProcessor.ConnectTo(_TCPCSVCommandProcessor);
             this._TCPCSVCommandProcessor.OnNotification += ProcessBoomerang;
 
@@ -261,26 +282,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
-        public TCPCSVServer(IPSocket                             IPSocket,
-                            String?                              ServiceName                  = null,
-                            String                               ServiceBanner                = __DefaultServiceBanner,
-                            IEnumerable<Char>?                   SplitCharacters              = null,
+        public TCPCSVServer(IPSocket                                                    IPSocket,
+                            String?                                                     ServiceName                  = null,
+                            String                                                      ServiceBanner                = __DefaultServiceBanner,
+                            IEnumerable<Char>?                                          SplitCharacters              = null,
 
-                            ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                            RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                            LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                            SslProtocols?                        AllowedTLSProtocols          = null,
-                            Boolean?                             ClientCertificateRequired    = null,
-                            Boolean?                             CheckCertificateRevocation   = null,
+                            ServerCertificateSelectorDelegate?                          ServerCertificateSelector    = null,
+                            RemoteTLSClientCertificateValidationHandler<TCPCSVServer>?  ClientCertificateValidator   = null,
+                            LocalCertificateSelectionHandler?                           ClientCertificateSelector    = null,
+                            SslProtocols?                                               AllowedTLSProtocols          = null,
+                            Boolean?                                                    ClientCertificateRequired    = null,
+                            Boolean?                                                    CheckCertificateRevocation   = null,
 
-                            ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                            ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                            Boolean?                             ServerThreadIsBackground     = null,
-                            ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                            TimeSpan?                            ConnectionTimeout            = null,
-                            UInt32?                              MaxClientConnections         = null,
+                            ServerThreadNameCreatorDelegate?                            ServerThreadNameCreator      = null,
+                            ServerThreadPriorityDelegate?                               ServerThreadPrioritySetter   = null,
+                            Boolean?                                                    ServerThreadIsBackground     = null,
+                            ConnectionIdBuilder?                                        ConnectionIdBuilder          = null,
+                            TimeSpan?                                                   ConnectionTimeout            = null,
+                            UInt32?                                                     MaxClientConnections         = null,
 
-                            Boolean                              AutoStart                    = false)
+                            Boolean                                                     AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,
@@ -309,6 +330,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #endregion
 
         #endregion
+
+
+        private (Boolean, IEnumerable<String>) DoClientCertificateValidator(Object             Sender,
+                                                                            X509Certificate2?  Certificate,
+                                                                            X509Chain?         CertificateChain,
+                                                                            SslPolicyErrors    PolicyErrors)
+
+            => this.ClientCertificateValidator?.Invoke(
+                   Sender,
+                   Certificate,
+                   CertificateChain,
+                   this,
+                   PolicyErrors
+               ) ?? (false, []);
 
 
         #region ProcessBoomerang(ConnectionId, Timestamp, CSVArray)

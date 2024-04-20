@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -37,72 +36,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote URL of the OICP HTTP endpoint to connect to.
         /// </summary>
-        URL                                   RemoteURL                     { get; }
+        URL                                                        RemoteURL                     { get; }
 
         /// <summary>
         /// An optional HTTP virtual hostname.
         /// </summary>
-        HTTPHostname?                         VirtualHostname               { get; }
+        HTTPHostname?                                              VirtualHostname               { get; }
 
         /// <summary>
         /// An optional description of this CPO client.
         /// </summary>
-        String?                               Description                   { get; set; }
+        String?                                                    Description                   { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
         /// </summary>
-        RemoteCertificateValidationHandler?  RemoteCertificateValidator    { get; }
+        RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
-        X509Certificate?                      ClientCert                    { get; }
+        X509Certificate?                                           ClientCert                    { get; }
 
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        SslProtocols                          TLSProtocol                   { get; }
+        SslProtocols                                               TLSProtocol                   { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        Boolean                               PreferIPv4                    { get; }
+        Boolean                                                    PreferIPv4                    { get; }
 
         /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
-        String                                HTTPUserAgent                 { get; }
+        String                                                     HTTPUserAgent                 { get; }
 
         /// <summary>
         /// The timeout for HTTP requests.
         /// </summary>
-        TimeSpan                              RequestTimeout                { get; set; }
+        TimeSpan                                                   RequestTimeout                { get; set; }
 
         /// <summary>
         /// The delay between transmission retries.
         /// </summary>
-        TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
+        TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }
 
         /// <summary>
         /// The maximum number of transmission retries for HTTP request.
         /// </summary>
-        UInt16                                MaxNumberOfRetries            { get; }
+        UInt16                                                     MaxNumberOfRetries            { get; }
 
         /// <summary>
         /// Make use of HTTP pipelining.
         /// </summary>
-        Boolean                               UseHTTPPipelining             { get; }
+        Boolean                                                    UseHTTPPipelining             { get; }
 
         /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
-        HTTPClientLogger?                     HTTPLogger                    { get; }
+        HTTPClientLogger?                                          HTTPLogger                    { get; }
 
         /// <summary>
         /// The DNS client to use.
         /// </summary>
-        DNSClient?                            DNSClient                     { get; }
+        DNSClient?                                                 DNSClient                     { get; }
 
 
 

@@ -179,31 +179,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        protected ASOAPServer(String HTTPServerName = DefaultHTTPServerName,
-                              IPPort? TCPPort = null,
-                              String? ServiceName = null,
+        protected ASOAPServer(String                                                     HTTPServerName               = DefaultHTTPServerName,
+                              IPPort?                                                    TCPPort                      = null,
+                              String?                                                    ServiceName                  = null,
 
-                              ServerCertificateSelectorDelegate? ServerCertificateSelector = null,
-                              RemoteCertificateValidationHandler? ClientCertificateValidator = null,
-                              LocalCertificateSelectionHandler? ClientCertificateSelector = null,
-                              SslProtocols AllowedTLSProtocols = SslProtocols.Tls12,
-                              HTTPPath? URLPrefix = null,
-                              HTTPContentType? SOAPContentType = null,
-                              Boolean RegisterHTTPRootService = true,
-                              DNSClient? DNSClient = null,
-                              Boolean AutoStart = false)
+                              ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
+                              RemoteTLSClientCertificateValidationHandler<ASOAPServer>?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?                          ClientCertificateSelector    = null,
+                              SslProtocols                                               AllowedTLSProtocols          = SslProtocols.Tls12,
+                              HTTPPath?                                                  URLPrefix                    = null,
+                              HTTPContentType?                                           SOAPContentType              = null,
+                              Boolean                                                    RegisterHTTPRootService      = true,
+                              DNSClient?                                                 DNSClient                    = null,
+                              Boolean                                                    AutoStart                    = false)
 
-            : this(new SOAPServer(TCPPort: TCPPort ?? DefaultHTTPServerPort,
-                                  DefaultServerName: HTTPServerName,
-                                  ServiceName: ServiceName,
+            : this(new SOAPServer(
+                       TCPPort:                     TCPPort ?? DefaultHTTPServerPort,
+                       DefaultServerName:           HTTPServerName,
+                       ServiceName:                 ServiceName,
 
-                                  SOAPContentType: SOAPContentType ?? DefaultContentType,
-                                  ServerCertificateSelector: ServerCertificateSelector,
-                                  ClientCertificateValidator: ClientCertificateValidator,
-                                  ClientCertificateSelector: ClientCertificateSelector,
-                                  AllowedTLSProtocols: AllowedTLSProtocols,
-                                  DNSClient: DNSClient,
-                                  AutoStart: false),
+                       SOAPContentType:             SOAPContentType ?? DefaultContentType,
+                       ServerCertificateSelector:   ServerCertificateSelector,
+                       ClientCertificateValidator:  null,
+                       ClientCertificateSelector:   ClientCertificateSelector,
+                       AllowedTLSProtocols:         AllowedTLSProtocols,
+                       DNSClient:                   DNSClient,
+                       AutoStart:                   false
+                   ),
                    URLPrefix)
 
         {

@@ -104,90 +104,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The remote hostname of the Modbus device to connect to.
         /// </summary>
-        public HTTPHostname?                         RemoteHostname                { get; }
+        public HTTPHostname?                                                  RemoteHostname                { get; }
 
         /// <summary>
         /// The remote IP address of the Modbus device to connect to.
         /// </summary>
-        public IIPAddress                            RemoteIPAddress               { get; }
+        public IIPAddress                                                     RemoteIPAddress               { get; }
 
         /// <summary>
         /// The remote TCP port of the Modbus device to connect to.
         /// </summary>
-        public IPPort                                RemoteTCPPort                 { get; }
+        public IPPort                                                         RemoteTCPPort                 { get; }
 
         /// <summary>
         /// The remote TCP socket of the Modbus device to connect to.
         /// </summary>
-        public IPSocket?                             RemoteTCPSocket               { get; }
+        public IPSocket?                                                      RemoteTCPSocket               { get; }
 
         /// <summary>
         /// The remote Modbus unit/device address.
         /// </summary>
-        public Byte                                  UnitAddress                   { get; }
+        public Byte                                                           UnitAddress                   { get; }
 
 
-        public Int16                                 StartingAddressOffset         { get; }
+        public Int16                                                          StartingAddressOffset         { get; }
 
         /// <summary>
         /// An optional description of this Modbus/TCP client.
         /// </summary>
-        public String?                               Description                   { get; set; }
+        public String?                                                        Description                   { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationHandler?  RemoteCertificateValidator    { get; }
+        public RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionHandler?    ClientCertificateSelector     { get; }
+        public LocalCertificateSelectionHandler?                              LocalCertificateSelector     { get; }
 
         /// <summary>
         /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
-        public X509Certificate?                      ClientCert                    { get; }
+        public X509Certificate?                                               ClientCert                    { get; }
 
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                          TLSProtocol                   { get; }
+        public SslProtocols                                                   TLSProtocol                   { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                               PreferIPv4                    { get; }
+        public Boolean                                                        PreferIPv4                    { get; }
 
         /// <summary>
         /// The timeout for requests.
         /// </summary>
-        public TimeSpan                              RequestTimeout                { get; set; }
+        public TimeSpan                                                       RequestTimeout                { get; set; }
 
         /// <summary>
         /// The delay between transmission retries.
         /// </summary>
-        public TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
+        public TransmissionRetryDelayDelegate                                 TransmissionRetryDelay        { get; }
 
         /// <summary>
         /// The maximum number of retries when communicationg with a remote Modbus device to connect to.
         /// </summary>
-        public UInt16                                MaxNumberOfRetries            { get; }
+        public UInt16                                                         MaxNumberOfRetries            { get; }
 
         /// <summary>
         /// Whether to pipeline multiple Modbus request through a single TCP connection.
         /// </summary>
-        public Boolean                               UseRequestPipelining          { get; }
+        public Boolean                                                        UseRequestPipelining          { get; }
 
         /// <summary>
         /// The Modbus/TCP client logger.
         /// </summary>
-        public ModbusTCPClientLogger?                Logger                        { get; set; }
+        public ModbusTCPClientLogger?                                         Logger                        { get; set; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient                             DNSClient                     { get; }
+        public DNSClient                                                      DNSClient                     { get; }
 
 
         #region Available
@@ -315,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of Modbus/TLS authentication.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
@@ -325,22 +325,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
         /// <param name="Logger">A Modbus/TCP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(HTTPHostname                          RemoteHostname,
-                               IPPort?                               RemoteTCPPort                = null,
-                               Byte?                                 UnitAddress                  = null,
-                               Int16?                                StartingAddressOffset        = null,
-                               String?                               Description                  = null,
-                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining         = false,
-                               ModbusTCPClientLogger?                Logger                       = null,
-                               DNSClient?                            DNSClient                    = null)
+        public ModbusTCPClient(HTTPHostname                                                   RemoteHostname,
+                               IPPort?                                                        RemoteTCPPort                = null,
+                               Byte?                                                          UnitAddress                  = null,
+                               Int16?                                                         StartingAddressOffset        = null,
+                               String?                                                        Description                  = null,
+                               RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
+                               X509Certificate?                                               ClientCert                   = null,
+                               SslProtocols?                                                  TLSProtocol                  = null,
+                               Boolean?                                                       PreferIPv4                   = null,
+                               TimeSpan?                                                      RequestTimeout               = null,
+                               TransmissionRetryDelayDelegate?                                TransmissionRetryDelay       = null,
+                               UInt16?                                                        MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                               Boolean                                                        UseRequestPipelining         = false,
+                               ModbusTCPClientLogger?                                         Logger                       = null,
+                               DNSClient?                                                     DNSClient                    = null)
 
         {
 
@@ -352,9 +352,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
             this.Description                 = Description;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
+            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RequestTimeout              = RequestTimeout         ?? DefaultRequestTimeout;
             this.TransmissionRetryDelay      = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
@@ -363,8 +363,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.Logger                      = Logger;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 
-            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
-                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
+                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
 
 #pragma warning disable SCS0005 // Weak random number generator.
             this.internalInvocationId        = Random.Shared.Next(1000);
@@ -384,7 +384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of Modbus/TLS authentication.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
@@ -394,22 +394,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
         /// <param name="Logger">A Modbus/TCP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(IIPAddress                            RemoteIPAddress,
-                               IPPort?                               RemoteTCPPort                = null,
-                               Byte?                                 UnitAddress                  = null,
-                               Int16?                                StartingAddressOffset        = null,
-                               String?                               Description                  = null,
-                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining         = false,
-                               ModbusTCPClientLogger?                Logger                       = null,
-                               DNSClient?                            DNSClient                    = null)
+        public ModbusTCPClient(IIPAddress                                                     RemoteIPAddress,
+                               IPPort?                                                        RemoteTCPPort                = null,
+                               Byte?                                                          UnitAddress                  = null,
+                               Int16?                                                         StartingAddressOffset        = null,
+                               String?                                                        Description                  = null,
+                               RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
+                               X509Certificate?                                               ClientCert                   = null,
+                               SslProtocols?                                                  TLSProtocol                  = null,
+                               Boolean?                                                       PreferIPv4                   = null,
+                               TimeSpan?                                                      RequestTimeout               = null,
+                               TransmissionRetryDelayDelegate?                                TransmissionRetryDelay       = null,
+                               UInt16?                                                        MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                               Boolean                                                        UseRequestPipelining         = false,
+                               ModbusTCPClientLogger?                                         Logger                       = null,
+                               DNSClient?                                                     DNSClient                    = null)
 
         {
 
@@ -421,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.StartingAddressOffset       = StartingAddressOffset  ?? 0;
             this.Description                 = Description;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.LocalCertificateSelector   = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
             this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12;
             this.PreferIPv4                  = PreferIPv4             ?? false;
@@ -432,8 +432,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             this.Logger                      = Logger;
             this.DNSClient                   = DNSClient              ?? new DNSClient();
 
-            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
-                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
+                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
 
 #pragma warning disable SCS0005 // Weak random number generator.
             this.internalInvocationId        = Random.Shared.Next(1000);
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UnitAddress">An optional remote Modbus unit/device address.</param>
         /// <param name="Description">An optional description of this Modbus/TCP client.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of Modbus/TLS authentication.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
@@ -462,21 +462,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <param name="UseRequestPipelining">Whether to pipeline multiple Modbus/TCP request through a single TCP/TLS connection.</param>
         /// <param name="Logger">A Modbus/TCP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public ModbusTCPClient(URL                                   RemoteURL,
-                               Byte?                                 UnitAddress                  = null,
-                               Int16?                                StartingAddressOffset        = null,
-                               String?                               Description                  = null,
-                               RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               X509Certificate?                      ClientCert                   = null,
-                               SslProtocols?                         TLSProtocol                  = null,
-                               Boolean?                              PreferIPv4                   = null,
-                               TimeSpan?                             RequestTimeout               = null,
-                               TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                               UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                               Boolean                               UseRequestPipelining         = false,
-                               ModbusTCPClientLogger?                Logger                       = null,
-                               DNSClient?                            DNSClient                    = null)
+        public ModbusTCPClient(URL                                                            RemoteURL,
+                               Byte?                                                          UnitAddress                  = null,
+                               Int16?                                                         StartingAddressOffset        = null,
+                               String?                                                        Description                  = null,
+                               RemoteTLSServerCertificateValidationHandler<ModbusTCPClient>?  RemoteCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
+                               X509Certificate?                                               ClientCert                   = null,
+                               SslProtocols?                                                  TLSProtocol                  = null,
+                               Boolean?                                                       PreferIPv4                   = null,
+                               TimeSpan?                                                      RequestTimeout               = null,
+                               TransmissionRetryDelayDelegate?                                TransmissionRetryDelay       = null,
+                               UInt16?                                                        MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                               Boolean                                                        UseRequestPipelining         = false,
+                               ModbusTCPClientLogger?                                         Logger                       = null,
+                               DNSClient?                                                     DNSClient                    = null)
 
             : this(RemoteURL.Hostname,
                    RemoteURL.Port,
@@ -484,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                    StartingAddressOffset,
                    Description,
                    RemoteCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
                    PreferIPv4,

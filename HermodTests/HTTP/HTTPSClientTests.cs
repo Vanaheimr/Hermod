@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS
 
             var httpsClient    = new HTTPSClient(
                                      URL.Parse($"https://127.0.0.1:{HTTPSPort}"),
-                                     RemoteCertificateValidator: (sender, certificate, chain, policyErrors) => {
+                                     RemoteCertificateValidator: (sender, certificate, chain, server, policyErrors) => {
 
                                          // Certificate verification
                                          if (certificate is null ||

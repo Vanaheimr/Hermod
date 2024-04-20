@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net.Security;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -198,33 +197,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the SMTP server thread immediately (default: no).</param>
-        public SMTPServer(IPPort?                              TCPPort                      = null,
-                          String                               DefaultServerName            = __DefaultServerName,
-                          String?                              ServiceName                  = null,
-                          Boolean?                             AllowStartTLS                = true,
+        public SMTPServer(IPPort?                                                   TCPPort                      = null,
+                          String                                                    DefaultServerName            = __DefaultServerName,
+                          String?                                                   ServiceName                  = null,
+                          Boolean?                                                  AllowStartTLS                = true,
 
-                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                          SslProtocols?                        AllowedTLSProtocols          = null,
-                          Boolean?                             ClientCertificateRequired    = null,
-                          Boolean?                             CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<SMTPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                         ClientCertificateSelector    = null,
+                          SslProtocols?                                             AllowedTLSProtocols          = null,
+                          Boolean?                                                  ClientCertificateRequired    = null,
+                          Boolean?                                                  CheckCertificateRevocation   = null,
 
-                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                          Boolean?                             ServerThreadIsBackground     = null,
-                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                          TimeSpan?                            ConnectionTimeout            = null,
-                          UInt32?                              MaxClientConnections         = null,
+                          ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                          Boolean?                                                  ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                          TimeSpan?                                                 ConnectionTimeout            = null,
+                          UInt32?                                                   MaxClientConnections         = null,
 
-                          DNSClient?                           DNSClient                    = null,
-                          Boolean                              AutoStart                    = false)
+                          DNSClient?                                                DNSClient                    = null,
+                          Boolean                                                   AutoStart                    = false)
 
             : base(ServiceName,
                    DefaultServerName,
 
                    ServerCertificateSelector,
-                   ClientCertificateValidator,
+                   null,
                    ClientCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
@@ -245,8 +244,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             this._DefaultServerName         = DefaultServerName;
             this.AllowStartTLS              = AllowStartTLS ?? (ServerCertificateSelector != null);
 
-            _SMTPConnection                 = new SMTPConnection(DefaultServerName,
-                                                                 this.AllowStartTLS);
+            _SMTPConnection                 = new SMTPConnection(
+                                                  DefaultServerName,
+                                                  this.AllowStartTLS
+                                              );
+
             _SMTPConnection.MAIL_FROMFilter += Process_MAIL_FROMFilter;
             _SMTPConnection.RCPT_TOFilter   += Process_RCPT_TOFilter;
             _SMTPConnection.OnNotification  += ProcessNotification;

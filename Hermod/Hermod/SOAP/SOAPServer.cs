@@ -92,27 +92,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
-        public SOAPServer(IPPort                               TCPPort,
-                          String                               DefaultServerName            = HTTPServer.DefaultHTTPServerName,
-                          String?                              ServiceName                  = null,
-                          HTTPContentType?                     SOAPContentType              = null,
+        public SOAPServer(IPPort                                                    TCPPort,
+                          String                                                    DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String?                                                   ServiceName                  = null,
+                          HTTPContentType?                                          SOAPContentType              = null,
 
-                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                          SslProtocols?                        AllowedTLSProtocols          = null,
-                          Boolean?                             ClientCertificateRequired    = null,
-                          Boolean?                             CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<SOAPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                         ClientCertificateSelector    = null,
+                          SslProtocols?                                             AllowedTLSProtocols          = null,
+                          Boolean?                                                  ClientCertificateRequired    = null,
+                          Boolean?                                                  CheckCertificateRevocation   = null,
 
-                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                          Boolean?                             ServerThreadIsBackground     = null,
-                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                          TimeSpan?                            ConnectionTimeout            = null,
-                          UInt32?                              MaxClientConnections         = null,
+                          ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                          Boolean?                                                  ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                          TimeSpan?                                                 ConnectionTimeout            = null,
+                          UInt32?                                                   MaxClientConnections         = null,
 
-                          DNSClient?                           DNSClient                    = null,
-                          Boolean                              AutoStart                    = false)
+                          DNSClient?                                                DNSClient                    = null,
+                          Boolean                                                   AutoStart                    = false)
 
             : this(new HTTPServer(
                        TCPPort,
@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                        ServiceName,
 
                        ServerCertificateSelector,
-                       ClientCertificateValidator,
+                       null,
                        ClientCertificateSelector,
                        AllowedTLSProtocols,
                        ClientCertificateRequired,

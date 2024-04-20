@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -45,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -55,29 +54,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        public JSONClient(URL                                   RemoteURL,
-                          HTTPHostname?                         VirtualHostname              = null,
-                          String?                               Description                  = null,
-                          Boolean?                              PreferIPv4                   = null,
-                          RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                          X509Certificate?                      ClientCert                   = null,
-                          SslProtocols?                         TLSProtocol                  = null,
-                          String                                HTTPUserAgent                = DefaultHTTPUserAgent,
-                          IHTTPAuthentication?                  HTTPAuthentication           = null,
-                          TimeSpan?                             RequestTimeout               = null,
-                          TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                          UInt16?                               MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                          UInt32?                               InternalBufferSize           = null,
-                          Boolean?                              DisableLogging               = false,
-                          DNSClient?                            DNSClient                    = null)
+        public JSONClient(URL                                                        RemoteURL,
+                          HTTPHostname?                                              VirtualHostname              = null,
+                          String?                                                    Description                  = null,
+                          Boolean?                                                   PreferIPv4                   = null,
+                          RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                          X509Certificate?                                           ClientCert                   = null,
+                          SslProtocols?                                              TLSProtocol                  = null,
+                          String                                                     HTTPUserAgent                = DefaultHTTPUserAgent,
+                          IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                          TimeSpan?                                                  RequestTimeout               = null,
+                          TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
+                          UInt16?                                                    MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                          UInt32?                                                    InternalBufferSize           = null,
+                          Boolean?                                                   DisableLogging               = false,
+                          DNSClient?                                                 DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
                    PreferIPv4,
                    RemoteCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
                    HTTPUserAgent,

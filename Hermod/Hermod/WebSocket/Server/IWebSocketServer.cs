@@ -20,6 +20,7 @@
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -34,20 +35,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Properties
 
-        Boolean                                 DisableWebSocketPings        { get; set; }
-        DNSClient?                              DNSClient                    { get; }
-        String                                  HTTPServiceName              { get; }
-        IIPAddress                              IPAddress                    { get; }
-        IPPort                                  IPPort                       { get; }
-        IPSocket                                IPSocket                     { get; }
-        Boolean                                 IsRunning                    { get; }
-        HashSet<String>                         SecWebSocketProtocols        { get; }
-        Boolean                                 ServerThreadIsBackground     { get; }
-        ServerThreadNameCreatorDelegate         ServerThreadNameCreator      { get; }
-        ServerThreadPriorityDelegate            ServerThreadPrioritySetter   { get; }
-        TimeSpan?                               SlowNetworkSimulationDelay   { get; set; }
-        IEnumerable<WebSocketServerConnection>  WebSocketConnections         { get; }
-        TimeSpan                                WebSocketPingEvery           { get; set; }
+        Boolean                                 DisableWebSocketPings           { get; set; }
+        DNSClient?                              DNSClient                       { get; }
+        String                                  HTTPServiceName                 { get; }
+        IIPAddress                              IPAddress                       { get; }
+        IPPort                                  IPPort                          { get; }
+        IPSocket                                IPSocket                        { get; }
+        Boolean                                 IsRunning                       { get; }
+        HashSet<String>                         SecWebSocketProtocols           { get; }
+        Boolean                                 ServerThreadIsBackground        { get; }
+        ServerThreadNameCreatorDelegate         ServerThreadNameCreator         { get; }
+        ServerThreadPriorityDelegate            ServerThreadPrioritySetter      { get; }
+        TimeSpan?                               SlowNetworkSimulationDelay      { get; set; }
+        IEnumerable<WebSocketServerConnection>  WebSocketConnections            { get; }
+        TimeSpan                                WebSocketPingEvery              { get; set; }
+
+        List<X509Certificate2>                  TrustedClientCertificates       { get; }
+        List<X509Certificate2>                  TrustedCertificatAuthorities    { get; }
 
         #endregion
 
