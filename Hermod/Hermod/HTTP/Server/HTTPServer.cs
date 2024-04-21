@@ -2603,7 +2603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var newRequest = httpRewrite(this, Request);
 
-                if (newRequest != null)
+                if (newRequest is not null)
                 {
                     Request = newRequest;
                     break;

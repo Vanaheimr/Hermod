@@ -3432,6 +3432,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGetHTTPUser(HTTPRequest Request, out IUser? User)
         {
 
+            if (Request.User is not null)
+            {
+                User = Request.User;
+                return true;
+            }
+
             #region Get user from cookie...
 
             if (Request.Cookies is not null                                                            &&
@@ -3563,6 +3569,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
                                         ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
                                         : [];
+
+            if (User is not null &&
+                User.Equals(Anonymous))
+            {
+
+                Organizations         = [];
+                ErrorResponseBuilder  = null;
+
+                return true;
+
+            }
 
             ErrorResponseBuilder  = Organizations.Count != 0
                                         ? null
