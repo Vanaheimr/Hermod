@@ -51,6 +51,7 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -3552,12 +3553,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryGetHTTPUser (Request, User, Organizations, ErrorResponseBuilder, AccessLevel = ReadOnly, Recursive = false)
 
-        public Boolean TryGetHTTPUser(HTTPRequest                 Request,
-                                      out IUser?                  User,
-                                      out HashSet<IOrganization>  Organizations,
-                                      out HTTPResponse.Builder?   ErrorResponseBuilder,
-                                      Access_Levels               AccessLevel  = Access_Levels.ReadOnly,
-                                      Boolean                     Recursive    = false)
+        public Boolean TryGetHTTPUser(HTTPRequest                                     Request,
+                                      [NotNullWhen(true)]  out IUser?                 User,
+                                      out HashSet<IOrganization>                      Organizations,
+                                      [NotNullWhen(false)] out HTTPResponse.Builder?  ErrorResponseBuilder,
+                                      Access_Levels                                   AccessLevel  = Access_Levels.ReadOnly,
+                                      Boolean                                         Recursive    = false)
         {
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
@@ -3591,9 +3592,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
                                         ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
-                                        : new HashSet<IOrganization>();
+                                        : [];
 
-            if (!Organizations.Any())
+            if (Organizations.Count == 0)
             {
 
                 ResponseBuilder.HTTPStatusCode      = HTTPStatusCode.Unauthorized;
