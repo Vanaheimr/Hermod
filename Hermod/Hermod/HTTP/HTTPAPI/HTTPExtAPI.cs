@@ -2075,7 +2075,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
@@ -2123,76 +2123,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPExtAPI(HTTPHostname?                        HTTPHostname                     = null,
-                          String?                              ExternalDNSName                  = null,
-                          IPPort?                              HTTPServerPort                   = null,
-                          HTTPPath?                            BasePath                         = null,
-                          String?                              HTTPServerName                   = DefaultHTTPServerName,
+        public HTTPExtAPI(HTTPHostname?                                              HTTPHostname                     = null,
+                          String?                                                    ExternalDNSName                  = null,
+                          IPPort?                                                    HTTPServerPort                   = null,
+                          HTTPPath?                                                  BasePath                         = null,
+                          String?                                                    HTTPServerName                   = DefaultHTTPServerName,
 
-                          HTTPPath?                            URLPathPrefix                    = null,
-                          String?                              HTTPServiceName                  = DefaultHTTPServiceName,
-                          String?                              HTMLTemplate                     = null,
-                          JObject?                             APIVersionHashes                 = null,
+                          HTTPPath?                                                  URLPathPrefix                    = null,
+                          String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
+                          String?                                                    HTMLTemplate                     = null,
+                          JObject?                                                   APIVersionHashes                 = null,
 
-                          ServerCertificateSelectorDelegate?   ServerCertificateSelector        = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator       = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector        = null,
-                          SslProtocols?                        AllowedTLSProtocols              = null,
-                          Boolean?                             ClientCertificateRequired        = null,
-                          Boolean?                             CheckCertificateRevocation       = null,
+                          ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
+                          RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator       = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector         = null,
+                          SslProtocols?                                              AllowedTLSProtocols              = null,
+                          Boolean?                                                   ClientCertificateRequired        = null,
+                          Boolean?                                                   CheckCertificateRevocation       = null,
 
-                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator          = null,
-                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter       = null,
-                          Boolean?                             ServerThreadIsBackground         = null,
-                          ConnectionIdBuilder?                 ConnectionIdBuilder              = null,
-                          TimeSpan?                            ConnectionTimeout                = null,
-                          UInt32?                              MaxClientConnections             = null,
+                          ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator          = null,
+                          ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter       = null,
+                          Boolean?                                                   ServerThreadIsBackground         = null,
+                          ConnectionIdBuilder?                                       ConnectionIdBuilder              = null,
+                          TimeSpan?                                                  ConnectionTimeout                = null,
+                          UInt32?                                                    MaxClientConnections             = null,
 
-                          Organization_Id?                     AdminOrganizationId              = null,
-                          EMailAddress?                        APIRobotEMailAddress             = null,
-                          String?                              APIRobotGPGPassphrase            = null,
-                          ISMTPClient?                         SMTPClient                       = null,
+                          Organization_Id?                                           AdminOrganizationId              = null,
+                          EMailAddress?                                              APIRobotEMailAddress             = null,
+                          String?                                                    APIRobotGPGPassphrase            = null,
+                          ISMTPClient?                                               SMTPClient                       = null,
 
-                          PasswordQualityCheckDelegate?        PasswordQualityCheck             = null,
-                          HTTPCookieName?                      CookieName                       = null,
-                          Boolean                              UseSecureCookies                 = true,
-                          TimeSpan?                            MaxSignInSessionLifetime         = null,
-                          Languages?                           DefaultLanguage                  = null,
-                          Byte?                                MinUserIdLength                  = null,
-                          Byte?                                MinRealmLength                   = null,
-                          Byte?                                MinUserNameLength                = null,
-                          Byte?                                MinUserGroupIdLength             = null,
-                          UInt16?                              MinAPIKeyLength                  = null,
-                          Byte?                                MinMessageIdLength               = null,
-                          Byte?                                MinOrganizationIdLength          = null,
-                          Byte?                                MinOrganizationGroupIdLength     = null,
-                          Byte?                                MinNotificationMessageIdLength   = null,
-                          Byte?                                MinNewsPostingIdLength           = null,
-                          Byte?                                MinNewsBannerIdLength            = null,
-                          Byte?                                MinFAQIdLength                   = null,
+                          PasswordQualityCheckDelegate?                              PasswordQualityCheck             = null,
+                          HTTPCookieName?                                            CookieName                       = null,
+                          Boolean                                                    UseSecureCookies                 = true,
+                          TimeSpan?                                                  MaxSignInSessionLifetime         = null,
+                          Languages?                                                 DefaultLanguage                  = null,
+                          Byte?                                                      MinUserIdLength                  = null,
+                          Byte?                                                      MinRealmLength                   = null,
+                          Byte?                                                      MinUserNameLength                = null,
+                          Byte?                                                      MinUserGroupIdLength             = null,
+                          UInt16?                                                    MinAPIKeyLength                  = null,
+                          Byte?                                                      MinMessageIdLength               = null,
+                          Byte?                                                      MinOrganizationIdLength          = null,
+                          Byte?                                                      MinOrganizationGroupIdLength     = null,
+                          Byte?                                                      MinNotificationMessageIdLength   = null,
+                          Byte?                                                      MinNewsPostingIdLength           = null,
+                          Byte?                                                      MinNewsBannerIdLength            = null,
+                          Byte?                                                      MinFAQIdLength                   = null,
 
-                          Boolean?                             DisableMaintenanceTasks          = null,
-                          TimeSpan?                            MaintenanceInitialDelay          = null,
-                          TimeSpan?                            MaintenanceEvery                 = null,
+                          Boolean?                                                   DisableMaintenanceTasks          = null,
+                          TimeSpan?                                                  MaintenanceInitialDelay          = null,
+                          TimeSpan?                                                  MaintenanceEvery                 = null,
 
-                          Boolean?                             DisableWardenTasks               = null,
-                          TimeSpan?                            WardenInitialDelay               = null,
-                          TimeSpan?                            WardenCheckEvery                 = null,
+                          Boolean?                                                   DisableWardenTasks               = null,
+                          TimeSpan?                                                  WardenInitialDelay               = null,
+                          TimeSpan?                                                  WardenCheckEvery                 = null,
 
-                          IEnumerable<URLWithAPIKey>?          RemoteAuthServers                = null,
-                          IEnumerable<APIKey_Id>?              RemoteAuthAPIKeys                = null,
+                          IEnumerable<URLWithAPIKey>?                                RemoteAuthServers                = null,
+                          IEnumerable<APIKey_Id>?                                    RemoteAuthAPIKeys                = null,
 
-                          Boolean?                             IsDevelopment                    = null,
-                          IEnumerable<String>?                 DevelopmentServers               = null,
-                          Boolean                              SkipURLTemplates                 = false,
-                          String?                              DatabaseFileName                 = DefaultHTTPExtAPI_DatabaseFileName,
-                          Boolean                              DisableNotifications             = false,
-                          Boolean                              DisableLogging                   = false,
-                          String?                              LoggingPath                      = null,
-                          String?                              LogfileName                      = DefaultHTTPExtAPI_LogfileName,
-                          LogfileCreatorDelegate?              LogfileCreator                   = null,
-                          DNSClient?                           DNSClient                        = null,
-                          Boolean                              AutoStart                        = false)
+                          Boolean?                                                   IsDevelopment                    = null,
+                          IEnumerable<String>?                                       DevelopmentServers               = null,
+                          Boolean                                                    SkipURLTemplates                 = false,
+                          String?                                                    DatabaseFileName                 = DefaultHTTPExtAPI_DatabaseFileName,
+                          Boolean                                                    DisableNotifications             = false,
+                          Boolean                                                    DisableLogging                   = false,
+                          String?                                                    LoggingPath                      = null,
+                          String?                                                    LogfileName                      = DefaultHTTPExtAPI_LogfileName,
+                          LogfileCreatorDelegate?                                    LogfileCreator                   = null,
+                          DNSClient?                                                 DNSClient                        = null,
+                          Boolean                                                    AutoStart                        = false)
 
             : base(HTTPHostname,
                    ExternalDNSName,
@@ -2207,7 +2207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    ServerCertificateSelector,
                    ClientCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
@@ -3239,9 +3239,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 using (var httpsClient = new HTTPSClient(
                                                              notification.RemoteURL,
                                                              RemoteCertificateValidator:  notification.RemoteURL.Protocol == URLProtocols.https
-                                                                                              ? (sender, certificate, chain, policyErrors) => (true, Array.Empty<String>())
+                                                                                              ? (sender, certificate, chain, server, policyErrors) => (true, Array.Empty<String>())
                                                                                               : null,
-                                                             ClientCertificateSelector:   null,
+                                                             LocalCertificateSelector:   null,
                                                              ClientCert:                  null,
                                                              HTTPUserAgent:               null,
                                                              RequestTimeout:              null,
@@ -3433,6 +3433,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGetHTTPUser(HTTPRequest Request, out IUser? User)
         {
 
+            if (Request.User is not null)
+            {
+                User = Request.User;
+                return true;
+            }
+
             #region Get user from cookie...
 
             if (Request.Cookies is not null                                                            &&
@@ -3564,6 +3570,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
                                         ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
                                         : [];
+
+            if (User is not null &&
+                User.Equals(Anonymous))
+            {
+
+                Organizations         = [];
+                ErrorResponseBuilder  = null;
+
+                return true;
+
+            }
 
             ErrorResponseBuilder  = Organizations.Count != 0
                                         ? null
@@ -11323,7 +11340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                             //VirtualHostname,
                                                                             //Description,
                                                                             //RemoteCertificateValidator,
-                                                                            //ClientCertificateSelector,
+                                                                            //LocalCertificateSelector,
                                                                             //ClientCert,
                                                                             //HTTPUserAgent,
                                                                             //RequestTimeout,
@@ -13460,7 +13477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                         //VirtualHostname,
                                                                         //Description,
                                                                         //RemoteCertificateValidator,
-                                                                        //ClientCertificateSelector,
+                                                                        //LocalCertificateSelector,
                                                                         //ClientCert,
                                                                         //HTTPUserAgent,
                                                                         //RequestTimeout,

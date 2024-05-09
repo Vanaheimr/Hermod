@@ -20,6 +20,7 @@
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using Newtonsoft.Json.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -58,6 +59,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   WebSocketServerConnection          NewTCPConnection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
+
+    public delegate Task                                 OnNewTLSConnectionDelegate              (DateTime                           Timestamp,
+                                                                                                  IWebSocketServer                   Server,
+                                                                                                  WebSocketServerConnection          NewTLSConnection,
+                                                                                                  EventTracking_Id                   EventTrackingId,
+                                                                                                  CancellationToken                  CancellationToken);
+
 
     /// <summary>
     /// A delegate for logging the initial WebSocket HTTP request.

@@ -1160,7 +1160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServerThreadNameCreator">Sets the optional name of the TCP server thread.</param>
@@ -1186,47 +1186,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPAPI(HTTPHostname?                        HTTPHostname                 = null,
-                       String?                              ExternalDNSName              = null,
-                       IPPort?                              HTTPServerPort               = null,
-                       HTTPPath?                            BasePath                     = null,
-                       String?                              HTTPServerName               = DefaultHTTPServerName,
+        public HTTPAPI(HTTPHostname?                                              HTTPHostname                 = null,
+                       String?                                                    ExternalDNSName              = null,
+                       IPPort?                                                    HTTPServerPort               = null,
+                       HTTPPath?                                                  BasePath                     = null,
+                       String?                                                    HTTPServerName               = DefaultHTTPServerName,
 
-                       HTTPPath?                            URLPathPrefix                = null,
-                       String?                              HTTPServiceName              = DefaultHTTPServiceName,
-                       String?                              HTMLTemplate                 = null,
-                       JObject?                             APIVersionHashes             = null,
+                       HTTPPath?                                                  URLPathPrefix                = null,
+                       String?                                                    HTTPServiceName              = DefaultHTTPServiceName,
+                       String?                                                    HTMLTemplate                 = null,
+                       JObject?                                                   APIVersionHashes             = null,
 
-                       ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                       RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                       LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                       SslProtocols?                        AllowedTLSProtocols          = null,
-                       Boolean?                             ClientCertificateRequired    = null,
-                       Boolean?                             CheckCertificateRevocation   = null,
+                       ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
+                       RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator   = null,
+                       LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                       SslProtocols?                                              AllowedTLSProtocols          = null,
+                       Boolean?                                                   ClientCertificateRequired    = null,
+                       Boolean?                                                   CheckCertificateRevocation   = null,
 
-                       ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                       ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                       Boolean?                             ServerThreadIsBackground     = null,
-                       ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                       TimeSpan?                            ConnectionTimeout            = null,
-                       UInt32?                              MaxClientConnections         = null,
+                       ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator      = null,
+                       ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter   = null,
+                       Boolean?                                                   ServerThreadIsBackground     = null,
+                       ConnectionIdBuilder?                                       ConnectionIdBuilder          = null,
+                       TimeSpan?                                                  ConnectionTimeout            = null,
+                       UInt32?                                                    MaxClientConnections         = null,
 
-                       Boolean?                             DisableMaintenanceTasks      = null,
-                       TimeSpan?                            MaintenanceInitialDelay      = null,
-                       TimeSpan?                            MaintenanceEvery             = null,
+                       Boolean?                                                   DisableMaintenanceTasks      = null,
+                       TimeSpan?                                                  MaintenanceInitialDelay      = null,
+                       TimeSpan?                                                  MaintenanceEvery             = null,
 
-                       Boolean?                             DisableWardenTasks           = null,
-                       TimeSpan?                            WardenInitialDelay           = null,
-                       TimeSpan?                            WardenCheckEvery             = null,
+                       Boolean?                                                   DisableWardenTasks           = null,
+                       TimeSpan?                                                  WardenInitialDelay           = null,
+                       TimeSpan?                                                  WardenCheckEvery             = null,
 
-                       Boolean?                             IsDevelopment                = null,
-                       IEnumerable<String>?                 DevelopmentServers           = null,
-                       Boolean?                             DisableLogging               = null,
-                       String?                              LoggingPath                  = null,
-                       String?                              LogfileName                  = null,
-                       LogfileCreatorDelegate?              LogfileCreator               = null,
-                       DNSClient?                           DNSClient                    = null,
-                       Boolean                              AutoStart                    = false)
+                       Boolean?                                                   IsDevelopment                = null,
+                       IEnumerable<String>?                                       DevelopmentServers           = null,
+                       Boolean?                                                   DisableLogging               = null,
+                       String?                                                    LoggingPath                  = null,
+                       String?                                                    LogfileName                  = null,
+                       LogfileCreatorDelegate?                                    LogfileCreator               = null,
+                       DNSClient?                                                 DNSClient                    = null,
+                       Boolean                                                    AutoStart                    = false)
 
             : this(new HTTPServer(
                        HTTPServerPort ?? DefaultHTTPServerPort,
@@ -1235,7 +1235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                        ServerCertificateSelector,
                        ClientCertificateValidator,
-                       ClientCertificateSelector,
+                       LocalCertificateSelector,
                        AllowedTLSProtocols,
                        ClientCertificateRequired,
                        CheckCertificateRevocation,

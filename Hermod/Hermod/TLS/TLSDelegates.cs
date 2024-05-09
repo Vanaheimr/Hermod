@@ -19,6 +19,9 @@
 
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
@@ -31,11 +34,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="Sender">An object that contains state information for this validation.</param>
     /// <param name="Certificate">The certificate used to authenticate the remote party.</param>
     /// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
+    /// <param name="TLSClient">The TLS client.</param>
     /// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
-    public delegate (Boolean, IEnumerable<String>) RemoteCertificateValidationHandler(Object             Sender,
-                                                                                      X509Certificate2?  Certificate,
-                                                                                      X509Chain?         CertificateChain,
-                                                                                      SslPolicyErrors    PolicyErrors);
+    public delegate (Boolean, IEnumerable<String>) RemoteTLSServerCertificateValidationHandler<T>(Object              Sender,
+                                                                                                  X509Certificate2?   Certificate,
+                                                                                                  X509Chain?          CertificateChain,
+                                                                                                  T                   TLSClient,
+                                                                                                  SslPolicyErrors     PolicyErrors)
+        where T: class;
+
+    /// <summary>
+    /// Verifies the remote Transport Layer Security (TLS) certificate used for authentication.
+    /// </summary>
+    /// <param name="Sender">An object that contains state information for this validation.</param>
+    /// <param name="Certificate">The certificate used to authenticate the remote party.</param>
+    /// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
+    /// <param name="TLSServer">The TLS server.</param>
+    /// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
+    public delegate (Boolean, IEnumerable<String>) RemoteTLSClientCertificateValidationHandler<T>(Object              Sender,
+                                                                                                  X509Certificate2?   Certificate,
+                                                                                                  X509Chain?          CertificateChain,
+                                                                                                  T                   TLSServer,
+                                                                                                  SslPolicyErrors     PolicyErrors)
+        where T: class;
+
+
+    ///// <summary>
+    ///// Verifies the remote Transport Layer Security (TLS) certificate used for authentication.
+    ///// </summary>
+    ///// <param name="Sender">An object that contains state information for this validation.</param>
+    ///// <param name="Certificate">The certificate used to authenticate the remote party.</param>
+    ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
+    ///// <param name="WebSocketServer">The HTTP Web Socket server.</param>
+    ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
+    //public delegate (Boolean, IEnumerable<String>) RemoteHTTPSClientCertificateValidationHandler(Object              Sender,
+    //                                                                                             X509Certificate2?   Certificate,
+    //                                                                                             X509Chain?          CertificateChain,
+    //                                                                                             IHTTPServer         HTTPSServer,
+    //                                                                                             SslPolicyErrors     PolicyErrors);
+
+
+    ///// <summary>
+    ///// Verifies the remote Transport Layer Security (TLS) certificate used for authentication.
+    ///// </summary>
+    ///// <param name="Sender">An object that contains state information for this validation.</param>
+    ///// <param name="Certificate">The certificate used to authenticate the remote party.</param>
+    ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
+    ///// <param name="WebSocketServer">The HTTP Web Socket server.</param>
+    ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
+    //public delegate (Boolean, IEnumerable<String>) RemoteWebSocketClientCertificateValidationHandler(Object              Sender,
+    //                                                                                                 X509Certificate2?   Certificate,
+    //                                                                                                 X509Chain?          CertificateChain,
+    //                                                                                                 IWebSocketServer    WebSocketServer,
+    //                                                                                                 SslPolicyErrors     PolicyErrors);
 
     /// <summary>
     /// Selects the local Transport Layer Security (TLS) certificate used for authentication.
@@ -45,10 +96,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <param name="LocalCertificates">An enumeration of local certificates.</param>
     /// <param name="RemoteCertificate">The certificate used to authenticate the remote party.</param>
     /// <param name="AcceptableIssuers">An enumeration of certificate issuers acceptable to the remote party.</param>
-    public delegate X509Certificate LocalCertificateSelectionHandler(Object                         Sender,
-                                                                     String                         TargetHost,
-                                                                     IEnumerable<X509Certificate2>  LocalCertificates,
-                                                                     X509Certificate2?              RemoteCertificate,
-                                                                     IEnumerable<String>            AcceptableIssuers);
+    public delegate X509Certificate LocalCertificateSelectionHandler(Object                          Sender,
+                                                                     String                          TargetHost,
+                                                                     IEnumerable<X509Certificate2>   LocalCertificates,
+                                                                     X509Certificate2?               RemoteCertificate,
+                                                                     IEnumerable<String>             AcceptableIssuers);
 
 }

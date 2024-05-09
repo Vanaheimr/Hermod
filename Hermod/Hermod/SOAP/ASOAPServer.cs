@@ -172,38 +172,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="URLPrefix">An optional prefix for the HTTP URIs.</param>
         /// <param name="SOAPContentType">The HTTP content type for SOAP messages.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        protected ASOAPServer(String HTTPServerName = DefaultHTTPServerName,
-                              IPPort? TCPPort = null,
-                              String? ServiceName = null,
+        protected ASOAPServer(String                                                     HTTPServerName               = DefaultHTTPServerName,
+                              IPPort?                                                    TCPPort                      = null,
+                              String?                                                    ServiceName                  = null,
 
-                              ServerCertificateSelectorDelegate? ServerCertificateSelector = null,
-                              RemoteCertificateValidationHandler? ClientCertificateValidator = null,
-                              LocalCertificateSelectionHandler? ClientCertificateSelector = null,
-                              SslProtocols AllowedTLSProtocols = SslProtocols.Tls12,
-                              HTTPPath? URLPrefix = null,
-                              HTTPContentType? SOAPContentType = null,
-                              Boolean RegisterHTTPRootService = true,
-                              DNSClient? DNSClient = null,
-                              Boolean AutoStart = false)
+                              ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
+                              RemoteTLSClientCertificateValidationHandler<ASOAPServer>?  ClientCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                              SslProtocols                                               AllowedTLSProtocols          = SslProtocols.Tls12 | SslProtocols.Tls13,
+                              HTTPPath?                                                  URLPrefix                    = null,
+                              HTTPContentType?                                           SOAPContentType              = null,
+                              Boolean                                                    RegisterHTTPRootService      = true,
+                              DNSClient?                                                 DNSClient                    = null,
+                              Boolean                                                    AutoStart                    = false)
 
-            : this(new SOAPServer(TCPPort: TCPPort ?? DefaultHTTPServerPort,
-                                  DefaultServerName: HTTPServerName,
-                                  ServiceName: ServiceName,
+            : this(new SOAPServer(
+                       TCPPort:                     TCPPort ?? DefaultHTTPServerPort,
+                       DefaultServerName:           HTTPServerName,
+                       ServiceName:                 ServiceName,
 
-                                  SOAPContentType: SOAPContentType ?? DefaultContentType,
-                                  ServerCertificateSelector: ServerCertificateSelector,
-                                  ClientCertificateValidator: ClientCertificateValidator,
-                                  ClientCertificateSelector: ClientCertificateSelector,
-                                  AllowedTLSProtocols: AllowedTLSProtocols,
-                                  DNSClient: DNSClient,
-                                  AutoStart: false),
+                       SOAPContentType:             SOAPContentType ?? DefaultContentType,
+                       ServerCertificateSelector:   ServerCertificateSelector,
+                       ClientCertificateValidator:  null,
+                       LocalCertificateSelector:   LocalCertificateSelector,
+                       AllowedTLSProtocols:         AllowedTLSProtocols,
+                       DNSClient:                   DNSClient,
+                       AutoStart:                   false
+                   ),
                    URLPrefix)
 
         {

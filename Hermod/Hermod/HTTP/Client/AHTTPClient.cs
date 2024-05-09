@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Illias.Geometry;
+using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
@@ -173,102 +174,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote URL of the HTTP endpoint to connect to.
         /// </summary>
-        public URL                                   RemoteURL                     { get; }
+        public URL                                                        RemoteURL                     { get; }
 
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        public IIPAddress?                           RemoteIPAddress               { get; private set; }
+        public IIPAddress?                                                RemoteIPAddress               { get; private set; }
 
         /// <summary>
         /// The HTTP/TCP port to connect to.
         /// </summary>
-        public IPPort?                               RemotePort                    { get; }
+        public IPPort?                                                    RemotePort                    { get; }
 
         /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
-        public HTTPHostname?                         VirtualHostname               { get; }
+        public HTTPHostname?                                              VirtualHostname               { get; }
 
         /// <summary>
         /// The remote TLS certificate validator.
         /// </summary>
-        public RemoteCertificateValidationHandler?   RemoteCertificateValidator    { get; }
+        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
         /// </summary>
-        public LocalCertificateSelectionHandler?     ClientCertificateSelector     { get; }
+        public LocalCertificateSelectionHandler?                          LocalCertificateSelector      { get; }
 
         /// <summary>
         /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
-        public X509Certificate?                      ClientCert                    { get; }
+        public X509Certificate?                                           ClientCert                    { get; }
 
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                          TLSProtocol                   { get; }
+        public SslProtocols                                               TLSProtocol                   { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                               PreferIPv4                    { get; }
+        public Boolean                                                    PreferIPv4                    { get; }
 
         /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
-        public String                                HTTPUserAgent                 { get; }
+        public String                                                     HTTPUserAgent                 { get; }
 
         /// <summary>
         /// The optional HTTP authentication to use, e.g. HTTP Basic Auth.
         /// </summary>
-        public IHTTPAuthentication?                  HTTPAuthentication            { get; }
+        public IHTTPAuthentication?                                       HTTPAuthentication            { get; }
 
         /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
-        public TimeSpan                              RequestTimeout                { get; set; }
+        public TimeSpan                                                   RequestTimeout                { get; set; }
 
         /// <summary>
         /// The delay between transmission retries.
         /// </summary>
-        public TransmissionRetryDelayDelegate        TransmissionRetryDelay        { get; }
+        public TransmissionRetryDelayDelegate                             TransmissionRetryDelay        { get; }
 
         /// <summary>
         /// The size of the internal HTTP client buffers.
         /// </summary>
-        public UInt32                                InternalBufferSize            { get; }
+        public UInt32                                                     InternalBufferSize            { get; }
 
         /// <summary>
         /// The maximum number of retries when communicationg with the remote HTTP service.
         /// </summary>
-        public UInt16                                MaxNumberOfRetries            { get; }
+        public UInt16                                                     MaxNumberOfRetries            { get; }
 
         /// <summary>
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
         /// </summary>
-        public Boolean                               UseHTTPPipelining             { get; }
+        public Boolean                                                    UseHTTPPipelining             { get; }
 
         /// <summary>
         /// An optional description of this HTTP client.
         /// </summary>
-        public String?                               Description                   { get; set; }
+        public String?                                                    Description                   { get; set; }
 
         /// <summary>
         /// Disable any logging.
         /// </summary>
-        public Boolean                               DisableLogging                { get; }
+        public Boolean                                                    DisableLogging                { get; }
 
         /// <summary>
         /// The HTTP client logger.
         /// </summary>
-        public HTTPClientLogger?                     HTTPLogger                    { get; set; }
+        public HTTPClientLogger?                                          HTTPLogger                    { get; set; }
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient                             DNSClient                     { get; }
+        public DNSClient                                                  DNSClient                     { get; }
 
 
         #region TCP Socket
@@ -525,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Description">An optional description of this HTTP client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
@@ -538,24 +539,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DisableLogging">Disable logging.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        protected AHTTPClient(URL                                  RemoteURL,
-                              HTTPHostname?                        VirtualHostname              = null,
-                              String?                              Description                  = null,
-                              Boolean?                             PreferIPv4                   = null,
-                              RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                              X509Certificate?                     ClientCert                   = null,
-                              SslProtocols?                        TLSProtocol                  = null,
-                              String?                              HTTPUserAgent                = DefaultHTTPUserAgent,
-                              IHTTPAuthentication?                 HTTPAuthentication           = null,
-                              TimeSpan?                            RequestTimeout               = null,
-                              TransmissionRetryDelayDelegate?      TransmissionRetryDelay       = null,
-                              UInt16?                              MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
-                              UInt32?                              InternalBufferSize           = DefaultInternalBufferSize,
-                              Boolean?                             UseHTTPPipelining            = null,
-                              Boolean?                             DisableLogging               = false,
-                              HTTPClientLogger?                    HTTPLogger                   = null,
-                              DNSClient?                           DNSClient                    = null)
+        protected AHTTPClient(URL                                                        RemoteURL,
+                              HTTPHostname?                                              VirtualHostname              = null,
+                              String?                                                    Description                  = null,
+                              Boolean?                                                   PreferIPv4                   = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                              X509Certificate?                                           ClientCert                   = null,
+                              SslProtocols?                                              TLSProtocol                  = null,
+                              String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
+                              IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                              TimeSpan?                                                  RequestTimeout               = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
+                              UInt16?                                                    MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
+                              UInt32?                                                    InternalBufferSize           = DefaultInternalBufferSize,
+                              Boolean?                                                   UseHTTPPipelining            = null,
+                              Boolean?                                                   DisableLogging               = false,
+                              HTTPClientLogger?                                          HTTPLogger                   = null,
+                              DNSClient?                                                 DNSClient                    = null)
         {
 
             this.RemoteURL                   = RemoteURL;
@@ -563,7 +564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Description                 = Description;
             this.PreferIPv4                  = PreferIPv4             ?? false;
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
             this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.HTTPUserAgent               = HTTPUserAgent          ?? DefaultHTTPUserAgent;
@@ -581,8 +582,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              ? IPPort.HTTP
                                                                              : IPPort.HTTPS);
 
-            if (this.ClientCertificateSelector is null && this.ClientCert is not null)
-                this.ClientCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
+            if (this.LocalCertificateSelector is null && this.ClientCert is not null)
+                this.LocalCertificateSelector = (sender, targetHost, localCertificates, remoteCertificate, acceptableIssuers) => this.ClientCert;
 
         }
 
@@ -891,12 +892,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                  chain,
                                                                                  policyErrors) => {
 
-                                                                                     var check = RemoteCertificateValidator(sender,
-                                                                                                                            certificate is not null
-                                                                                                                                ? new X509Certificate2(certificate)
-                                                                                                                                : null,
-                                                                                                                            chain,
-                                                                                                                            policyErrors);
+                                                                                     var check = RemoteCertificateValidator(
+                                                                                                     sender,
+                                                                                                     certificate is not null
+                                                                                                         ? new X509Certificate2(certificate)
+                                                                                                         : null,
+                                                                                                     chain,
+                                                                                                     null,
+                                                                                                     policyErrors
+                                                                                                 );
 
                                                                                      if (check.Item2.Any())
                                                                                          remoteCertificateValidatorErrors.AddRange(check.Item2);
@@ -905,13 +909,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                                  },
 
-                                            userCertificateSelectionCallback:    ClientCertificateSelector is null
+                                            userCertificateSelectionCallback:    LocalCertificateSelector is null
                                                                                      ? null
                                                                                      : (sender,
                                                                                         targetHost,
                                                                                         localCertificates,
                                                                                         remoteCertificate,
-                                                                                        acceptableIssuers) => ClientCertificateSelector(sender,
+                                                                                        acceptableIssuers) => LocalCertificateSelector(sender,
                                                                                                                                         targetHost,
                                                                                                                                         localCertificates.
                                                                                                                                             Cast<X509Certificate>().

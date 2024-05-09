@@ -121,65 +121,198 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // Map folders
 
-        #region (private static) GetFromResourceAssembly(URLTemplate, DefaultServerName, ResourceAssembly, ResourcePath, ...)
+        #region (private static) GetFromResourceAssembly   (URLTemplate, DefaultServerName, ResourceAssembly, ResourcePath, ...)
 
-        private static HTTPDelegate GetFromResourceAssembly(HTTPPath  URLTemplate,
-                                                            String    DefaultServerName,
-                                                            Assembly  ResourceAssembly,
-                                                            String    ResourcePath,
-                                                            String    DefaultFilename   = "index.html")
+        private static HTTPDelegate GetFromResourceAssembly(HTTPPath                       URLTemplate,
+                                                            String                         DefaultServerName,
+                                                            Assembly                       ResourceAssembly,
+                                                            String                         ResourcePath,
+                                                            String                         DefaultFilename       = "index.html",
+                                                            Func<String, String, String>?  HTMLTemplateHandler   = null)
 
             => ExportFolderDelegate(
                    URLTemplate,
                    DefaultServerName,
-                   ResourcePath,
-                   (filePath, fileName) => {
+                   filePath => {
 
                        // Avoid directory/path traversal attacks!
-                       if (fileName.Contains("../"))
+                       if (filePath.Contains("../"))
                            return null;
 
-                       return ResourceAssembly.GetManifestResourceStream($"{filePath}{fileName.Replace('/', '.')}");
+                       return ResourceAssembly.GetManifestResourceStream($"{ResourcePath}{filePath.Replace('/', '.')}");
 
                    },
-                   DefaultFilename
+                   DefaultFilename,
+                   HTMLTemplateHandler
                );
 
         #endregion
 
-        #region (private static) GetFromFileSystem      (URLTemplate, DefaultServerName,                   ResourcePath, ...)
+        #region (private static) GetFromResourceAssemblies (URLTemplate, DefaultServerName, ResourceAssemblies, ResourcePath, ...)
 
-        private static HTTPDelegate GetFromFileSystem(HTTPPath  URLTemplate,
-                                                      String    DefaultServerName,
-                                                      String    ResourcePath,
-                                                      String    DefaultFilename   = "index.html")
+        private static HTTPDelegate GetFromResourceAssemblies(HTTPPath                       URLTemplate,
+                                                              String                         DefaultServerName,
+                                                              Tuple<String, Assembly>[]      ResourceAssemblies,
+                                                              String                         DefaultFilename       = "index.html",
+                                                              Func<String, String, String>?  HTMLTemplateHandler   = null)
 
             => ExportFolderDelegate(
                    URLTemplate,
                    DefaultServerName,
-                   ResourcePath,
-                   (filePath, fileName) => {
+                   filePath => {
+
+                       // Avoid directory/path traversal attacks!
+                       if (filePath.Contains("../"))
+                           return null;
+
+                       foreach (var resourceAssembly in ResourceAssemblies)
+                       {
+                           try
+                           {
+
+                               var file = resourceAssembly.Item2.GetManifestResourceStream($"{resourceAssembly.Item1}{filePath.Replace('/', '.')}");
+
+                               if (file is not null)
+                                   return file;
+
+                           }
+                           catch
+                           { }
+                       }
+
+                       return null;
+
+                   },
+                   DefaultFilename,
+                   HTMLTemplateHandler
+               );
+
+        #endregion
+
+        #region (private static) GetFromFileSystem         (URLTemplate, DefaultServerName,                   ResourcePath, ...)
+
+        private static HTTPDelegate GetFromFileSystem(HTTPPath                       URLTemplate,
+                                                      String                         DefaultServerName,
+                                                      String                         ResourcePath,
+                                                      String                         DefaultFilename       = "index.html",
+                                                      Func<String, String, String>?  HTMLTemplateHandler   = null)
+
+            => ExportFolderDelegate(
+                   URLTemplate,
+                   DefaultServerName,
+                   filePath => {
 
                        // Resolve full path to avoid directory/path traversal attacks!
-                       var fullPath = Path.GetFullPath(Path.Combine(filePath, fileName.Replace('/', Path.DirectorySeparatorChar)));
+                       var fullPath = Path.GetFullPath(Path.Combine(ResourcePath, filePath.Replace('/', Path.DirectorySeparatorChar)));
 
                        return fullPath.StartsWith(ResourcePath, StringComparison.OrdinalIgnoreCase)
                                            ? File.OpenRead(fullPath)
                                            : null;
 
                    },
-                   DefaultFilename
+                   DefaultFilename,
+                   HTMLTemplateHandler
                );
 
         #endregion
 
-        #region (private static) ExportFolderDelegate   (URLTemplate, DefaultServerName,                   ResourcePath, FileStreamProvider, ...)
+        #region (private static) ExportFolderDelegate      (URLTemplate, DefaultServerName,                   ResourcePath, FileStreamProvider, ...)
+
+        //private static HTTPDelegate ExportFolderDelegate(HTTPPath                       URLTemplate,
+        //                                                 String                         DefaultServerName,
+        //                                                 String                         ResourcePath,
+        //                                                 Func<String, String, Stream?>  FileStreamProvider,
+        //                                                 String                         DefaultFilename       = "index.html",
+        //                                                 Func<String, String, String>?  HTMLTemplateHandler   = null)
+
+        //    => (httpRequest) => {
+
+        //           try
+        //           {
+
+        //               var numberOfTemplateParameters  = URLTemplate.ToString().Count(c => c == '{');
+
+        //               var filePath                    = httpRequest.ParsedURLParameters.Length > numberOfTemplateParameters
+        //                                                     ? httpRequest.ParsedURLParameters.Last().URLDecode()
+        //                                                     : DefaultFilename;
+
+        //               var fileStream                  = FileStreamProvider(ResourcePath, filePath);
+
+        //               if (HTMLTemplateHandler is not null &&
+        //                   fileStream          is not null &&
+        //                   fileStream.Length > 0 &&
+        //                   filePath.EndsWith(".html"))
+        //               {
+        //                   fileStream = new MemoryStream(HTMLTemplateHandler(filePath, fileStream.ToByteArray().ToUTF8String()).ToUTF8Bytes());
+        //               }
+
+        //               return Task.FromResult(
+        //                          fileStream is null
+
+        //                              ? new HTTPResponse.Builder(httpRequest) {
+        //                                    HTTPStatusCode   = HTTPStatusCode.NotFound,
+        //                                    Server           = DefaultServerName,
+        //                                    Date             = Timestamp.Now,
+        //                                    CacheControl     = "no-cache",
+        //                                    Connection       = "close",
+        //                                }.AsImmutable
+
+        //                              : new HTTPResponse.Builder(httpRequest) {
+        //                                    HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                    Server          = DefaultServerName,
+        //                                    Date            = Timestamp.Now,
+        //                                    ContentType     = HTTPContentType.ForFileExtension(
+        //                                                          filePath.Remove(0, filePath.LastIndexOf('.') + 1),
+        //                                                          () => HTTPContentType.Application.OCTETSTREAM
+        //                                                      ).FirstOrDefault(),
+        //                                    ContentStream   = fileStream,
+        //                                    CacheControl    = "public, max-age=300",
+        //                                    //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+        //                                    KeepAlive       = new KeepAliveType(
+        //                                                          TimeSpan.FromMinutes(15),
+        //                                                          500
+        //                                                      ),
+        //                                    Connection      = "Keep-Alive",
+        //                                }.AsImmutable
+
+        //                      );
+
+        //           }
+
+        //           #region Handle exceptions
+
+        //           catch (Exception e)
+        //           {
+
+        //               return Task.FromResult(
+        //                          new HTTPResponse.Builder(httpRequest) {
+        //                              HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+        //                              Server          = DefaultServerName,
+        //                              Date            = Timestamp.Now,
+        //                              ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                              Content         = JSONObject.Create(
+        //                                                    new JProperty("message", e.Message)
+        //                                                ).ToUTF8Bytes(),
+        //                              CacheControl    = "no-cache",
+        //                              Connection      = "close",
+        //                          }.AsImmutable
+        //                      );
+
+        //           }
+
+        //           #endregion
+
+        //    };
+
+        #endregion
+
+        #region (private static) ExportFolderDelegate      (URLTemplate, DefaultServerName, FileStreamProvider, ...)
 
         private static HTTPDelegate ExportFolderDelegate(HTTPPath                       URLTemplate,
                                                          String                         DefaultServerName,
-                                                         String                         ResourcePath,
-                                                         Func<String, String, Stream?>  FileStreamProvider,
-                                                         String                         DefaultFilename   = "index.html")
+                                                         Func<String, Stream?>          FileStreamProvider,
+                                                         String                         DefaultFilename       = "index.html",
+                                                         Func<String, String, String>?  HTMLTemplateHandler   = null)
 
             => (httpRequest) => {
 
@@ -189,10 +322,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        var numberOfTemplateParameters  = URLTemplate.ToString().Count(c => c == '{');
 
                        var filePath                    = httpRequest.ParsedURLParameters.Length > numberOfTemplateParameters
-                                                             ? httpRequest.ParsedURLParameters.Last()
+                                                             ? httpRequest.ParsedURLParameters.Last().URLDecode()
                                                              : DefaultFilename;
 
-                       var fileStream                  = FileStreamProvider(ResourcePath, filePath);
+                       var fileStream                  = FileStreamProvider(filePath);
+
+                       if (HTMLTemplateHandler is not null &&
+                           fileStream          is not null &&
+                           fileStream.Length > 0 &&
+                           filePath.EndsWith(".html"))
+                       {
+                           fileStream = new MemoryStream(HTMLTemplateHandler(filePath, fileStream.ToByteArray().ToUTF8String()).ToUTF8Bytes());
+                       }
 
                        return Task.FromResult(
                                   fileStream is null
@@ -419,7 +560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region MapResourceAssemblyFolder(this HTTPAPI,    Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, ...)
+        #region MapResourceAssemblyFolder   (this HTTPAPI,    Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, ...)
 
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
@@ -464,7 +605,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region MapResourceAssemblyFolder(this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, ...)
+        #region MapResourceAssemblyFolder   (this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ResourceAssembly = null, ...)
 
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
@@ -474,20 +615,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourcePath">The path to the file within the assembly.</param>
         /// <param name="ResourceAssembly">Optionally the assembly where the resources are located (default: the calling assembly).</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void MapResourceAssemblyFolder(this HTTPExtAPI   HTTPExtAPI,
-                                                     HTTPHostname      Hostname,
-                                                     HTTPPath          URLTemplate,
-                                                     String            ResourcePath,
-                                                     Assembly?         ResourceAssembly        = null,
-                                                     String            DefaultFilename         = "index.html",
-                                                     Boolean           RequireAuthentication   = true)
+        public static void MapResourceAssemblyFolder(this HTTPExtAPI                HTTPExtAPI,
+                                                     HTTPHostname                   Hostname,
+                                                     HTTPPath                       URLTemplate,
+                                                     String                         ResourcePath,
+                                                     Assembly?                      ResourceAssembly        = null,
+                                                     String                         DefaultFilename         = "index.html",
+                                                     Boolean                        RequireAuthentication   = true,
+                                                     Func<String, String, String>?  HTMLTemplateHandler     = null)
         {
 
             HTTPExtAPI.AddMethodCallback(
 
                            Hostname,
                            HTTPMethod.GET,
-                           URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                           [
+                               URLTemplate,
+                               URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                                                  ? "{ResourceName}"
+                                                  : "/{ResourceName}")
+                           ],
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -514,7 +661,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     HTTPExtAPI.HTTPServer.DefaultServerName,
                                                                     ResourceAssembly ??= Assembly.GetCallingAssembly(),
                                                                     ResourcePath,
-                                                                    DefaultFilename
+                                                                    DefaultFilename,
+                                                                    HTMLTemplateHandler
                                                                 )(httpRequest);
 
                                                      }
@@ -524,7 +672,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPExtAPI.HTTPServer.DefaultServerName,
                                                          ResourceAssembly ??= Assembly.GetCallingAssembly(),
                                                          ResourcePath,
-                                                         DefaultFilename
+                                                         DefaultFilename,
+                                                         HTMLTemplateHandler
                                                      ),
 
                            AllowReplacement:   URLReplacement.Fail
@@ -535,7 +684,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region MapFileSystemFolder      (this HTTPAPI,    Hostname, URLTemplate, ResourcePath, ...)
+
+        #region MapResourceAssembliesFolder (this HTTPExtAPI, Hostname, URLTemplate, ResourceAssemblies, ...)
+
+        /// <summary>
+        /// Returns internal resources embedded within the given assemblies.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">An URL template.</param>
+        /// <param name="ResourceAssemblies">The assemblies where the resources are located.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void MapResourceAssembliesFolder(this HTTPExtAPI                HTTPExtAPI,
+                                                       HTTPHostname                   Hostname,
+                                                       HTTPPath                       URLTemplate,
+                                                       Tuple<String, Assembly>[]      ResourceAssemblies,
+                                                       String                         DefaultFilename         = "index.html",
+                                                       Boolean                        RequireAuthentication   = true,
+                                                       Func<String, String, String>?  HTMLTemplateHandler     = null)
+        {
+
+            HTTPExtAPI.AddMethodCallback(
+
+                           Hostname,
+                           HTTPMethod.GET,
+                           [
+                               URLTemplate,
+                               URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                                                  ? "{ResourceName}"
+                                                  : "/{ResourceName}")
+                           ],
+
+                           HTTPDelegate:       RequireAuthentication
+
+                                                   ? httpRequest => {
+
+                                                         #region Get HTTP user and its organizations
+
+                                                         // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                                         if (!HTTPExtAPI.TryGetHTTPUser(
+                                                                             httpRequest,
+                                                                             out var httpUser,
+                                                                             out var httpOrganizations,
+                                                                             out var response,
+                                                                             Recursive: true
+                                                                         ))
+                                                         {
+                                                             return Task.FromResult(response!.AsImmutable);
+                                                         }
+
+                                                         #endregion
+
+                                                         return GetFromResourceAssemblies(
+                                                                    URLTemplate,
+                                                                    HTTPExtAPI.HTTPServer.DefaultServerName,
+                                                                    ResourceAssemblies,
+                                                                    DefaultFilename,
+                                                                    HTMLTemplateHandler
+                                                                )(httpRequest);
+
+                                                     }
+
+                                                   : GetFromResourceAssemblies(
+                                                         URLTemplate,
+                                                         HTTPExtAPI.HTTPServer.DefaultServerName,
+                                                         ResourceAssemblies,
+                                                         DefaultFilename,
+                                                         HTMLTemplateHandler
+                                                     ),
+
+                           AllowReplacement:   URLReplacement.Fail
+
+                       );
+
+        }
+
+        #endregion
+
+
+        #region MapFileSystemFolder         (this HTTPAPI,    Hostname, URLTemplate, ResourcePath, ...)
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -545,13 +771,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLTemplate">A HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
-        public static void MapFileSystemFolder(this HTTPAPI         HTTPAPI,
-                                               HTTPHostname         Hostname,
-                                               HTTPPath             URLTemplate,
-                                               String               ResourcePath,
-                                               String               DefaultFilename          = "index.html",
-                                               HTTPEventSource_Id?  EventSourceId            = null,
-                                               HTTPPath?            EventSourceURLTemplate   = null)
+        public static void MapFileSystemFolder(this HTTPAPI                   HTTPAPI,
+                                               HTTPHostname                   Hostname,
+                                               HTTPPath                       URLTemplate,
+                                               String                         ResourcePath,
+                                               String                         DefaultFilename          = "index.html",
+                                               Func<String, String, String>?  HTMLTemplateHandler      = null,
+                                               HTTPEventSource_Id?            EventSourceId            = null,
+                                               HTTPPath?                      EventSourceURLTemplate   = null)
         {
 
             #region Setup file system watcher
@@ -580,7 +807,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                 HTTPAPI.HTTPServer.DefaultServerName,
                                                 ResourcePath,
                                                 //fileName => GetFromFileSystem(ResourcePath, fileName),
-                                                DefaultFilename
+                                                DefaultFilename,
+                                                HTMLTemplateHandler
                                             ),
 
                         AllowReplacement:   URLReplacement.Fail
@@ -591,7 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region MapFileSystemFolder      (this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ...)
+        #region MapFileSystemFolder         (this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ...)
 
         /// <summary>
         /// Returns resources from the given file system location.
@@ -602,14 +830,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
-        public static void MapFileSystemFolder(this HTTPExtAPI      HTTPExtAPI,
-                                               HTTPHostname         Hostname,
-                                               HTTPPath             URLTemplate,
-                                               String               ResourcePath,
-                                               String               DefaultFilename          = "index.html",
-                                               HTTPEventSource_Id?  EventSourceId            = null,
-                                               HTTPPath?            EventSourceURLTemplate   = null,
-                                               Boolean              RequireAuthentication    = true)
+        public static void MapFileSystemFolder(this HTTPExtAPI                HTTPExtAPI,
+                                               HTTPHostname                   Hostname,
+                                               HTTPPath                       URLTemplate,
+                                               String                         ResourcePath,
+                                               String                         DefaultFilename          = "index.html",
+                                               Func<String, String, String>?  HTMLTemplateHandler      = null,
+                                               HTTPEventSource_Id?            EventSourceId            = null,
+                                               HTTPPath?                      EventSourceURLTemplate   = null,
+                                               Boolean                        RequireAuthentication    = true)
         {
 
             #region Setup file system watcher
@@ -659,7 +888,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     HTTPExtAPI.HTTPServer.DefaultServerName,
                                                                     ResourcePath,
                                                                     //fileName => GetFromFileSystem(ResourcePath, fileName),
-                                                                    DefaultFilename
+                                                                    DefaultFilename,
+                                                                    HTMLTemplateHandler
                                                                 )(httpRequest);
 
                                                      }
@@ -669,7 +899,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          HTTPExtAPI.HTTPServer.DefaultServerName,
                                                          ResourcePath,
                                                          //fileName => GetFromFileSystem(ResourcePath, fileName),
-                                                         DefaultFilename
+                                                         DefaultFilename,
+                                                         HTMLTemplateHandler
                                                      ),
 
                            AllowReplacement:   URLReplacement.Fail

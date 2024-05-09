@@ -23,6 +23,7 @@ using System.Security.Authentication;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -49,37 +50,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
-        public DNSClient                             DNSClient                       { get; }
+        public DNSClient                                                DNSClient                       { get; }
 
         /// <summary>
         /// The optional delegate to select a TLS server certificate.
         /// </summary>
-        public ServerCertificateSelectorDelegate?    ServerCertificateSelector       { get; }
+        public ServerCertificateSelectorDelegate?                       ServerCertificateSelector       { get; }
 
         /// <summary>
         /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationHandler?  ClientCertificateValidator      { get; }
+        public RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator      { get; set; }
 
         /// <summary>
         /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionHandler?    ClientCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?                        LocalCertificateSelector       { get; }
 
         /// <summary>
         /// The TLS protocol(s) allowed for this connection.
         /// </summary>
-        public SslProtocols                          AllowedTLSProtocols             { get; }
+        public SslProtocols                                             AllowedTLSProtocols             { get; }
 
         /// <summary>
         /// Whether a TLS client certificate is required.
         /// </summary>
-        public Boolean                               ClientCertificateRequired       { get; }
+        public Boolean                                                  ClientCertificateRequired       { get; }
 
         /// <summary>
         /// Whether the TLS client certificate should be checked for revocation.
         /// </summary>
-        public Boolean                               CheckCertificateRevocation      { get; }
+        public Boolean                                                  CheckCertificateRevocation      { get; }
 
 
         #region ServiceName
@@ -398,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ClientCertificateRequired">Whether a TLS client certificate is required.</param>
         /// <param name="CheckCertificateRevocation">Whether the TLS client certificate should be checked for revocation.</param>
@@ -412,32 +413,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String?                              ServiceName                  = null,
-                           String?                              ServiceBanner                = null,
+        public ATCPServers(String?                                                  ServiceName                  = null,
+                           String?                                                  ServiceBanner                = null,
 
-                           ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                           RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                           LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                           SslProtocols?                        AllowedTLSProtocols          = null,
-                           Boolean?                             ClientCertificateRequired    = null,
-                           Boolean?                             CheckCertificateRevocation   = null,
+                           ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
+                           RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
+                           LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
+                           SslProtocols?                                            AllowedTLSProtocols          = null,
+                           Boolean?                                                 ClientCertificateRequired    = null,
+                           Boolean?                                                 CheckCertificateRevocation   = null,
 
-                           ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                           ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                           Boolean?                             ServerThreadIsBackground     = null,
-                           ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                           TimeSpan?                            ConnectionTimeout            = null,
-                           UInt32?                              MaxClientConnections         = null,
+                           ServerThreadNameCreatorDelegate?                         ServerThreadNameCreator      = null,
+                           ServerThreadPriorityDelegate?                            ServerThreadPrioritySetter   = null,
+                           Boolean?                                                 ServerThreadIsBackground     = null,
+                           ConnectionIdBuilder?                                     ConnectionIdBuilder          = null,
+                           TimeSpan?                                                ConnectionTimeout            = null,
+                           UInt32?                                                  MaxClientConnections         = null,
 
-                           DNSClient?                           DNSClient                    = null,
-                           Boolean                              AutoStart                    = false)
+                           DNSClient?                                               DNSClient                    = null,
+                           Boolean                                                  AutoStart                    = false)
 
         {
 
-            this.tcpServers                  = new List<TCPServer>();
+            this.tcpServers                  = [];
 
             this.ServerCertificateSelector   = ServerCertificateSelector;
-            this.ClientCertificateSelector   = ClientCertificateSelector;
+            this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCertificateValidator  = ClientCertificateValidator;
             this.AllowedTLSProtocols         = AllowedTLSProtocols        ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
@@ -485,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                                                        ServerCertificateSelector,
                                                                        ClientCertificateValidator,
-                                                                       ClientCertificateSelector,
+                                                                       LocalCertificateSelector,
                                                                        AllowedTLSProtocols,
                                                                        ClientCertificateRequired,
                                                                        CheckCertificateRevocation,
@@ -535,7 +536,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                                                                        ServerCertificateSelector,
                                                                        ClientCertificateValidator,
-                                                                       ClientCertificateSelector,
+                                                                       LocalCertificateSelector,
                                                                        AllowedTLSProtocols,
                                                                        ClientCertificateRequired,
                                                                        CheckCertificateRevocation,

@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this HTTP/SOAP client.</param>
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
-        /// <param name="ClientCertificateSelector">A delegate to select a TLS client certificate.</param>
+        /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
         /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
@@ -126,34 +126,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="HTTPLogger">A HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
-        protected ASOAPClient(URL                                   RemoteURL,
-                              HTTPHostname?                         VirtualHostname              = null,
-                              String?                               Description                  = null,
-                              Boolean?                              PreferIPv4                   = null,
-                              RemoteCertificateValidationHandler?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                              X509Certificate?                      ClientCert                   = null,
-                              SslProtocols?                         TLSProtocol                  = null,
-                              String                                HTTPUserAgent                = DefaultHTTPUserAgent,
-                              IHTTPAuthentication?                  HTTPAuthentication           = null,
-                              HTTPPath?                             URLPathPrefix                = null,
-                              Tuple<String, String>?                WSSLoginPassword             = null,
-                              HTTPContentType?                      HTTPContentType              = null,
-                              TimeSpan?                             RequestTimeout               = null,
-                              TransmissionRetryDelayDelegate?       TransmissionRetryDelay       = null,
-                              UInt16?                               MaxNumberOfRetries           = null,
-                              UInt32?                               InternalBufferSize           = null,
-                              Boolean                               UseHTTPPipelining            = false,
-                              Boolean?                              DisableLogging               = false,
-                              HTTPClientLogger?                     HTTPLogger                   = null,
-                              DNSClient?                            DNSClient                    = null)
+        protected ASOAPClient(URL                                                        RemoteURL,
+                              HTTPHostname?                                              VirtualHostname              = null,
+                              String?                                                    Description                  = null,
+                              Boolean?                                                   PreferIPv4                   = null,
+                              RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
+                              LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                              X509Certificate?                                           ClientCert                   = null,
+                              SslProtocols?                                              TLSProtocol                  = null,
+                              String                                                     HTTPUserAgent                = DefaultHTTPUserAgent,
+                              IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                              HTTPPath?                                                  URLPathPrefix                = null,
+                              Tuple<String, String>?                                     WSSLoginPassword             = null,
+                              HTTPContentType?                                           HTTPContentType              = null,
+                              TimeSpan?                                                  RequestTimeout               = null,
+                              TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
+                              UInt16?                                                    MaxNumberOfRetries           = null,
+                              UInt32?                                                    InternalBufferSize           = null,
+                              Boolean                                                    UseHTTPPipelining            = false,
+                              Boolean?                                                   DisableLogging               = false,
+                              HTTPClientLogger?                                          HTTPLogger                   = null,
+                              DNSClient?                                                 DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
                    Description,
                    PreferIPv4,
                    RemoteCertificateValidator,
-                   ClientCertificateSelector,
+                   LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,

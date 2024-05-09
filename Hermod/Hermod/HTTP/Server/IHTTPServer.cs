@@ -154,44 +154,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
         /// </summary>
-        String                               DefaultServerName             { get; }
+        String                                                     DefaultServerName             { get; }
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        HTTPSecurity?                        HTTPSecurity                  { get; }
+        HTTPSecurity?                                              HTTPSecurity                  { get; }
 
         /// <summary>
         /// The optional delegate to select a TLS server certificate.
         /// </summary>
-        ServerCertificateSelectorDelegate?   ServerCertificateSelector     { get; }
+        ServerCertificateSelectorDelegate?                         ServerCertificateSelector     { get; }
 
         /// <summary>
         /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
-        RemoteCertificateValidationHandler?  ClientCertificateValidator    { get; }
+        RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator    { get; }
 
         /// <summary>
         /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
-        LocalCertificateSelectionHandler?    ClientCertificateSelector     { get; }
+        LocalCertificateSelectionHandler?                          LocalCertificateSelector     { get; }
 
         /// <summary>
         /// The TLS protocol(s) allowed for this connection.
         /// </summary>
-        SslProtocols                         AllowedTLSProtocols           { get; }
+        SslProtocols                                               AllowedTLSProtocols           { get; }
 
         /// <summary>
         /// Is the server already started?
         /// </summary>
-        Boolean                              IsStarted                     { get; }
+        Boolean                                                    IsStarted                     { get; }
 
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
-        UInt64                               NumberOfClients               { get; }
+        UInt64                                                     NumberOfClients               { get; }
 
-        DNSClient                            DNSClient                     { get; }
+        DNSClient                                                  DNSClient                     { get; }
 
 
 

@@ -15,13 +15,18 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Aegir;
-using org.GraphDefined.Vanaheimr.Hermod;
-using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using org.GraphDefined.Vanaheimr.Illias;
+
 using Org.BouncyCastle.Bcpg.OpenPgp;
+
+using org.GraphDefined.Vanaheimr.Aegir;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -125,7 +130,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         User2UserEdge AddOutgoingEdge(User2UserEdgeTypes EdgeLabel, IUser Target, PrivacyLevel PrivacyLevel = PrivacyLevel.World);
         User2UserGroupEdge AddToUserGroup(User2UserGroupEdgeLabel EdgeLabel, IUserGroup Target, PrivacyLevel PrivacyLevel = PrivacyLevel.World);
         User Clone(User_Id? NewUserId = null);
-        int CompareTo(User User);
         void CopyAllLinkedDataFrom(IUser OldUser);
         IEnumerable<User2OrganizationEdgeLabel> EdgeLabels(IOrganization Organization);
         IEnumerable<User2UserGroupEdgeLabel> EdgeLabels(UserGroup UserGroup);
@@ -133,9 +137,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         IEnumerable<User2OrganizationEdge> Edges(IOrganization Organization, User2OrganizationEdgeLabel EdgeLabel);
         IEnumerable<User2UserGroupEdge> Edges(User2UserGroupEdgeLabel EdgeLabel, UserGroup UserGroup);
         IEnumerable<User2UserGroupEdge> Edges(UserGroup UserGroup);
-        bool Equals(object? Object);
-        bool Equals(User User);
-        int GetHashCode();
         JObject GetNotificationInfo(uint NotificationId);
         JObject GetNotificationInfos();
         IEnumerable<ANotification> GetNotifications(NotificationMessageType? NotificationMessageType = null);
@@ -151,7 +152,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         bool RemoveOutEdge(User2UserGroupEdge Edge);
         User.Builder ToBuilder(User_Id? NewUserId = null);
         JObject ToJSON(bool Embedded = false, InfoStatus ExpandOrganizations = InfoStatus.Hidden, InfoStatus ExpandGroups = InfoStatus.Hidden, bool IncludeLastChange = true, CustomJObjectSerializerDelegate<User>? CustomUserSerializer = null);
-        string ToString();
         IEnumerable<User2UserGroupEdge> User2GroupOutEdges(Func<User2UserGroupEdgeLabel, bool> User2GroupEdgeFilter);
         IEnumerable<IUserGroup> UserGroups(bool RequireReadWriteAccess = false, bool Recursive = false);
         IEnumerable<IUserGroup> UserGroups(User2UserGroupEdgeLabel EdgeFilter);

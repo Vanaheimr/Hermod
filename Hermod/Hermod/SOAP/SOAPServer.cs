@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
         /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
@@ -92,27 +92,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
-        public SOAPServer(IPPort                               TCPPort,
-                          String                               DefaultServerName            = HTTPServer.DefaultHTTPServerName,
-                          String?                              ServiceName                  = null,
-                          HTTPContentType?                     SOAPContentType              = null,
+        public SOAPServer(IPPort                                                    TCPPort,
+                          String                                                    DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String?                                                   ServiceName                  = null,
+                          HTTPContentType?                                          SOAPContentType              = null,
 
-                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                          SslProtocols?                        AllowedTLSProtocols          = null,
-                          Boolean?                             ClientCertificateRequired    = null,
-                          Boolean?                             CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<SOAPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                          SslProtocols?                                             AllowedTLSProtocols          = null,
+                          Boolean?                                                  ClientCertificateRequired    = null,
+                          Boolean?                                                  CheckCertificateRevocation   = null,
 
-                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                          Boolean?                             ServerThreadIsBackground     = null,
-                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                          TimeSpan?                            ConnectionTimeout            = null,
-                          UInt32?                              MaxClientConnections         = null,
+                          ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                          Boolean?                                                  ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                          TimeSpan?                                                 ConnectionTimeout            = null,
+                          UInt32?                                                   MaxClientConnections         = null,
 
-                          DNSClient?                           DNSClient                    = null,
-                          Boolean                              AutoStart                    = false)
+                          DNSClient?                                                DNSClient                    = null,
+                          Boolean                                                   AutoStart                    = false)
 
             : this(new HTTPServer(
                        TCPPort,
@@ -120,8 +120,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                        ServiceName,
 
                        ServerCertificateSelector,
-                       ClientCertificateValidator,
-                       ClientCertificateSelector,
+                       null,
+                       LocalCertificateSelector,
                        AllowedTLSProtocols,
                        ClientCertificateRequired,
                        CheckCertificateRevocation,

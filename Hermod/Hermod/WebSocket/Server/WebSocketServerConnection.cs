@@ -20,6 +20,7 @@
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
 
@@ -163,6 +164,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
         }
 
+        public X509Certificate2?        ClientCertificate             { get; private set; }
+
         #endregion
 
         #region Constructor(s)
@@ -178,6 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public WebSocketServerConnection(AWebSocketServer                             WebSocketServer,
                                          TcpClient                                    TcpClient,
                                          SslStream?                                   TLSStream,
+                                         X509Certificate2?                            ClientCertificate            = null,
                                          HTTPRequest?                                 HTTPRequest                  = null,
                                          HTTPResponse?                                HTTPResponse                 = null,
                                          IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null,
@@ -193,6 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.networkStream               = (Stream?) tlsStream ?? tcpStream;
             this.LocalSocket                 = IPSocket.FromIPEndPoint(TcpClient.Client.LocalEndPoint)  ?? IPSocket.Zero;
             this.RemoteSocket                = IPSocket.FromIPEndPoint(TcpClient.Client.RemoteEndPoint) ?? IPSocket.Zero;
+            this.ClientCertificate           = ClientCertificate;
             this.HTTPRequest                 = HTTPRequest;
             this.HTTPResponse                = HTTPResponse;
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;

@@ -67,55 +67,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
         /// </summary>
-        public String                                DefaultServerName
+        public String                                                     DefaultServerName
             => httpServer.DefaultServerName;
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        public HTTPSecurity?                         HTTPSecurity
+        public HTTPSecurity?                                              HTTPSecurity
             => httpServer.HTTPSecurity;
 
         /// <summary>
         /// The optional delegate to select a TLS server certificate.
         /// </summary>
-        public ServerCertificateSelectorDelegate?    ServerCertificateSelector
+        public ServerCertificateSelectorDelegate?                         ServerCertificateSelector
             => httpServer.ServerCertificateSelector;
 
         /// <summary>
         /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
-        public RemoteCertificateValidationHandler?  ClientCertificateValidator
+        public RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator
             => httpServer.ClientCertificateValidator;
 
         /// <summary>
         /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionHandler?    ClientCertificateSelector
-            => httpServer.ClientCertificateSelector;
+        public LocalCertificateSelectionHandler?                          LocalCertificateSelector
+            => httpServer.LocalCertificateSelector;
 
         /// <summary>
         /// The TLS protocol(s) allowed for this connection.
         /// </summary>
-        public SslProtocols                          AllowedTLSProtocols
+        public SslProtocols                                               AllowedTLSProtocols
             => httpServer.AllowedTLSProtocols;
 
         /// <summary>
         /// Is the server already started?
         /// </summary>
-        public Boolean                               IsStarted
+        public Boolean                                                    IsStarted
             => httpServer.IsStarted;
 
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
-        public UInt64                                NumberOfClients
+        public UInt64                                                     NumberOfClients
             => httpServer.NumberOfClients;
 
         /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
-        public DNSClient                             DNSClient
+        public DNSClient                                                  DNSClient
             => httpServer.DNSClient;
 
         #endregion
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServerThreadNameCreator">Sets the optional name of the TCP server thread.</param>
@@ -164,26 +164,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                              TCPPort                      = null,
-                          String                               DefaultServerName            = HTTPServer.DefaultHTTPServerName,
-                          String?                              ServiceName                  = null,
+        public HTTPServer(IPPort?                                                    TCPPort                      = null,
+                          String                                                     DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String?                                                    ServiceName                  = null,
 
-                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                          SslProtocols?                        AllowedTLSProtocols          = null,
-                          Boolean?                             ClientCertificateRequired    = null,
-                          Boolean?                             CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                          SslProtocols?                                              AllowedTLSProtocols          = null,
+                          Boolean?                                                   ClientCertificateRequired    = null,
+                          Boolean?                                                   CheckCertificateRevocation   = null,
 
-                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                          Boolean?                             ServerThreadIsBackground     = true,
-                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                          TimeSpan?                            ConnectionTimeout            = null,
-                          UInt32?                              MaxClientConnections         = TCPServer.__DefaultMaxClientConnections,
+                          ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter   = null,
+                          Boolean?                                                   ServerThreadIsBackground     = true,
+                          ConnectionIdBuilder?                                       ConnectionIdBuilder          = null,
+                          TimeSpan?                                                  ConnectionTimeout            = null,
+                          UInt32?                                                    MaxClientConnections         = TCPServer.__DefaultMaxClientConnections,
 
-                          DNSClient?                           DNSClient                    = null,
-                          Boolean                              AutoStart                    = false)
+                          DNSClient?                                                 DNSClient                    = null,
+                          Boolean                                                    AutoStart                    = false)
 
             : this(new HTTPServer(
                        TCPPort,
@@ -192,7 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                        ServerCertificateSelector,
                        ClientCertificateValidator,
-                       ClientCertificateSelector,
+                       LocalCertificateSelector,
                        AllowedTLSProtocols,
                        ClientCertificateRequired,
                        CheckCertificateRevocation,
@@ -1033,16 +1033,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The default HTTP servername, used whenever
         /// no HTTP Host-header had been given.
         /// </summary>
-        public String              DefaultServerName    { get; }
+        public String                                                         DefaultServerName             { get; }
 
         /// <summary>
         /// An associated HTTP security object.
         /// </summary>
-        public HTTPSecurity?       HTTPSecurity         { get; }
+        public HTTPSecurity?                                                  HTTPSecurity                  { get; }
 
-        public RequestLogHandler?  RequestLogger        { get; }
 
-        public AccessLogHandler?   ResponseLogger       { get; }
+        /// <summary>
+        /// The optional delegate to verify the TLS client certificate used for authentication.
+        /// </summary>
+        public new RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator    { get; }
+
+
+        public RequestLogHandler?                                             RequestLogger                 { get; }
+
+        public AccessLogHandler?                                              ResponseLogger                { get; }
 
         #endregion
 
@@ -1076,7 +1083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="ClientCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
+        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
         /// 
         /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
@@ -1088,33 +1095,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
-        public HTTPServer(IPPort?                              HTTPPort                     = null,
-                          String?                              DefaultServerName            = null,
-                          String?                              ServiceName                  = null,
+        public HTTPServer(IPPort?                                                    HTTPPort                     = null,
+                          String?                                                    DefaultServerName            = null,
+                          String?                                                    ServiceName                  = null,
 
-                          ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                          RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                          LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                          SslProtocols?                        AllowedTLSProtocols          = null,
-                          Boolean?                             ClientCertificateRequired    = null,
-                          Boolean?                             CheckCertificateRevocation   = null,
+                          ServerCertificateSelectorDelegate?                         ServerCertificateSelector    = null,
+                          RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator   = null,
+                          LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
+                          SslProtocols?                                              AllowedTLSProtocols          = null,
+                          Boolean?                                                   ClientCertificateRequired    = null,
+                          Boolean?                                                   CheckCertificateRevocation   = null,
 
-                          ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                          ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                          Boolean?                             ServerThreadIsBackground     = null,
-                          ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                          TimeSpan?                            ConnectionTimeout            = null,
-                          UInt32?                              MaxClientConnections         = null,
+                          ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator      = null,
+                          ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter   = null,
+                          Boolean?                                                   ServerThreadIsBackground     = null,
+                          ConnectionIdBuilder?                                       ConnectionIdBuilder          = null,
+                          TimeSpan?                                                  ConnectionTimeout            = null,
+                          UInt32?                                                    MaxClientConnections         = null,
 
-                          DNSClient?                           DNSClient                    = null,
-                          Boolean                              AutoStart                    = false)
+                          DNSClient?                                                 DNSClient                    = null,
+                          Boolean                                                    AutoStart                    = false)
 
             : base(ServiceName                  ?? DefaultHTTPServiceName,
                    DefaultServerName            ?? DefaultHTTPServerName,
 
                    ServerCertificateSelector,
-                   ClientCertificateValidator,
-                   ClientCertificateSelector,
+                   null,
+                   LocalCertificateSelector,
                    AllowedTLSProtocols,
                    ClientCertificateRequired,
                    CheckCertificateRevocation,
@@ -1136,6 +1143,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.DefaultServerName  = DefaultServerName ?? DefaultHTTPServerName;
             this.hostnameNodes      = new ConcurrentDictionary<HTTPHostname,       HostnameNode>();
             this.eventSources       = new ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>();
+
+            this.ClientCertificateValidator  = ClientCertificateValidator;
+            //base.ClientCertificateValidator  = (sender,
+            //                                    certificate,
+            //                                    certificateChain,
+            //                                    tlsServer,
+            //                                    policyErrors) => DoClientCertificateValidator(
+            //                                                         sender,
+            //                                                         certificate,
+            //                                                         certificateChain,
+            //                                                         policyErrors
+            //                                                     );
 
             AttachTCPPort(HTTPPort ?? (ServerCertificateSelector is null
                                            ? IPPort.HTTP
@@ -2584,7 +2603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var newRequest = httpRewrite(this, Request);
 
-                if (newRequest != null)
+                if (newRequest is not null)
                 {
                     Request = newRequest;
                     break;
@@ -2970,13 +2989,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            return Task.FromResult(
                                new HTTPResponse.Builder(request) {
-                                   HTTPStatusCode  = HTTPStatusCode.OK,
-                                   Server          = HTTPServer.DefaultHTTPServerName,
-                                   ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                   CacheControl    = "no-cache",
-                                   Connection      = "keep-alive",
-                                   KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
-                                   Content         = httpEvents.ToUTF8Bytes()
+                                   HTTPStatusCode            = HTTPStatusCode.OK,
+                                   Server                    = HTTPServer.DefaultHTTPServerName,
+                                   ContentType               = HTTPContentType.Text.EVENTSTREAM,
+                                   CacheControl              = "no-cache",
+                                   Connection                = "keep-alive",
+                                   AccessControlAllowOrigin  = "*",
+                                   KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                   Content                   = httpEvents.ToUTF8Bytes()
                                }.AsImmutable);
 
                        },

@@ -23,6 +23,7 @@ using System.Security.Authentication;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -121,23 +122,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Constructor(s)
 
-        public ModbusTCPServer(IPPort                               TCPPort,
+        public ModbusTCPServer(IPPort                                                         TCPPort,
 
-                               ServerCertificateSelectorDelegate?   ServerCertificateSelector    = null,
-                               RemoteCertificateValidationHandler?  ClientCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?    ClientCertificateSelector    = null,
-                               SslProtocols?                        AllowedTLSProtocols          = null,
-                               Boolean?                             ClientCertificateRequired    = null,
-                               Boolean?                             CheckCertificateRevocation   = null,
+                               ServerCertificateSelectorDelegate?                             ServerCertificateSelector    = null,
+                               RemoteTLSClientCertificateValidationHandler<ModbusTCPServer>?  ClientCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                              LocalCertificateSelector     = null,
+                               SslProtocols?                                                  AllowedTLSProtocols          = null,
+                               Boolean?                                                       ClientCertificateRequired    = null,
+                               Boolean?                                                       CheckCertificateRevocation   = null,
 
-                               ServerThreadNameCreatorDelegate?     ServerThreadNameCreator      = null,
-                               ServerThreadPriorityDelegate?        ServerThreadPrioritySetter   = null,
-                               Boolean?                             ServerThreadIsBackground     = null,
-                               ConnectionIdBuilder?                 ConnectionIdBuilder          = null,
-                               TimeSpan?                            ConnectionTimeout            = null,
-                               UInt32?                              MaxClientConnections         = null,
+                               ServerThreadNameCreatorDelegate?                               ServerThreadNameCreator      = null,
+                               ServerThreadPriorityDelegate?                                  ServerThreadPrioritySetter   = null,
+                               Boolean?                                                       ServerThreadIsBackground     = null,
+                               ConnectionIdBuilder?                                           ConnectionIdBuilder          = null,
+                               TimeSpan?                                                      ConnectionTimeout            = null,
+                               UInt32?                                                        MaxClientConnections         = null,
 
-                               Boolean                              AutoStart                    = false)
+                               Boolean                                                        AutoStart                    = false)
         {
 
             this.TCPServer = new TCPServer(
@@ -146,8 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                  null,
 
                                  ServerCertificateSelector,
-                                 ClientCertificateValidator,
-                                 ClientCertificateSelector,
+                                 null,
+                                 LocalCertificateSelector,
                                  AllowedTLSProtocols,
                                  ClientCertificateRequired,
                                  CheckCertificateRevocation,
