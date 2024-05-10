@@ -1022,10 +1022,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default maintenance interval.
         /// </summary>
-        public readonly            TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
+        public           readonly  TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
 
-        private readonly           Timer                   MaintenanceTimer;
-
+        private          readonly  Timer                   MaintenanceTimer;
 
         protected static readonly  TimeSpan                SemaphoreSlimTimeout            = TimeSpan.FromSeconds(5);
 
@@ -1392,15 +1391,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
             this.MaintenanceTimer         = new Timer(
                                                 DoMaintenanceSync,
-                                                null,
-                                                this.MaintenanceEvery,
+                                                this,
+                                                MaintenanceInitialDelay ?? this.MaintenanceEvery,
                                                 this.MaintenanceEvery
                                             );
 
             // Setup Warden
-            this.Warden = new Warden.Warden(WardenInitialDelay ?? TimeSpan.FromMinutes(3),
-                                            WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
-                                            DNSClient);
+            this.Warden = new Warden.Warden(
+                              WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+                              WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                              DNSClient
+                          );
 
             #region Warden: Observe CPU/RAM
 
@@ -1953,18 +1954,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (Timer) DoMaintenance(State)
 
-        private void DoMaintenanceSync(Object State)
+        private void DoMaintenanceSync(Object? State)
         {
             if (ReloadFinished && !DisableMaintenanceTasks)
-                DoMaintenance(State).Wait();
+                DoMaintenanceAsync(State).ConfigureAwait(false);
         }
 
-        protected internal virtual async Task _DoMaintenance(Object State)
-        {
+        protected internal virtual Task DoMaintenance(Object? State)
+            => Task.CompletedTask;
 
-        }
-
-        private async Task DoMaintenance(Object State)
+        private async Task DoMaintenanceAsync(Object? State)
         {
 
             if (await MaintenanceSemaphore.WaitAsync(SemaphoreSlimTimeout).
@@ -1973,7 +1972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    await _DoMaintenance(State);
+                    await DoMaintenance(State);
 
                 }
                 catch (Exception e)
