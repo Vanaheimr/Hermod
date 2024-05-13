@@ -186,20 +186,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        APIKey_Id?            APIKeyURI = null)
         {
 
+            APIKey = null;
+
             try
             {
 
-                APIKey = null;
+                if (JSON?.HasValues != true)
+                {
+                    ErrorResponse = "The given JSON object must not be null or empty!";
+                    return false;
+                }
 
                 #region Parse APIKey                    [optional]
 
                 // Verify that a given API key is at least valid.
-                if (!JSON.ParseOptional("@id",
-                                        "API key",
-                                        APIKey_Id.TryParse,
-                                        out APIKey_Id? APIKeyBody,
-                                        out ErrorResponse))
+                if (JSON.ParseOptional("@id",
+                                       "API key",
+                                       APIKey_Id.TryParse,
+                                       out APIKey_Id? APIKeyBody,
+                                       out ErrorResponse))
                 {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                if (APIKeyURI is null && APIKeyBody is null)
+                {
+                    ErrorResponse = "The API key is missing!";
                     return false;
                 }
 
@@ -261,14 +274,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #region Parse Description               [optional]
 
                 if (JSON.ParseOptional("description",
-                                             "description",
-                                             out I18NString Description,
-                                             out ErrorResponse))
+                                       "description",
+                                       out I18NString? Description,
+                                       out ErrorResponse))
                 {
-
                     if (ErrorResponse is not null)
                         return false;
-
                 }
 
                 #endregion
@@ -305,10 +316,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              out DateTime? NotBefore,
                                              out ErrorResponse))
                 {
-
                     if (ErrorResponse is not null)
                         return false;
-
                 }
 
                 #endregion
@@ -320,26 +329,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              out DateTime? NotAfter,
                                              out ErrorResponse))
                 {
-
                     if (ErrorResponse is not null)
                         return false;
-
                 }
 
                 #endregion
 
                 #region Parse ValidRemoteIPAddresses    [optional]
 
-                if (!JSON.ParseOptionalHashSet("validRemoteIPAddresses",
-                                              "valid remote IP addresses",
-                                              IPAddress.TryParse,
-                                              out HashSet<IIPAddress> ValidRemoteIPAddresses,
-                                              out ErrorResponse))
+                if (JSON.ParseOptionalHashSet("validRemoteIPAddresses",
+                                             "valid remote IP addresses",
+                                             IPAddress.TryParse,
+                                             out HashSet<IIPAddress> ValidRemoteIPAddresses,
+                                             out ErrorResponse))
                 {
-
                     if (ErrorResponse is not null)
                         return false;
-
                 }
 
                 #endregion
@@ -357,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                APIKey = new APIKey(APIKeyBody ?? APIKeyURI.Value,
+                APIKey = new APIKey((APIKeyBody ?? APIKeyURI).Value,
                                     UserId,
                                     Description,
                                     AccessRights,
@@ -373,10 +378,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e)
             {
-                ErrorResponse  = e.Message;
                 APIKey         = null;
-                return false;
+                ErrorResponse  = "The given JSON representation of an API key is invalid: " + e.Message;
             }
+
+            return false;
 
         }
 
