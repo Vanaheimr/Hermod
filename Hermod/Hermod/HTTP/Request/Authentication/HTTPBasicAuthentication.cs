@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -96,10 +97,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Password,
                           out var httpBasicAuthentication))
             {
-                return httpBasicAuthentication!;
+                return httpBasicAuthentication;
             }
 
-            throw new ArgumentException("The given username or password of a HTTP Basic Authentication is invalid!");
+            throw new ArgumentException($"The given username '{Username}' or password '{Password}' is invalid!");
 
         }
 
@@ -137,9 +138,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Username">A username.</param>
         /// <param name="Password">A password.</param>
         /// <param name="BasicAuthentication">The created HTTP Basic Authentication.</param>
-        public static Boolean TryCreate(String                        Username,
-                                        String                        Password,
-                                        out HTTPBasicAuthentication?  BasicAuthentication)
+        public static Boolean TryCreate(String                                            Username,
+                                        String                                            Password,
+                                        [NotNullWhen(true)] out HTTPBasicAuthentication?  BasicAuthentication)
         {
 
             BasicAuthentication = null;
