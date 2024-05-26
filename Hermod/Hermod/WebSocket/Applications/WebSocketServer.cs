@@ -271,13 +271,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var responses = Array.Empty<WebSocketBinaryMessageResponse>();
 
-            var onTextMessage = OnTextMessage;
-            if (onTextMessage is not null)
+            var onBinaryMessage = OnBinaryMessage;
+            if (onBinaryMessage is not null)
             {
                 try
                 {
 
-                    responses = await Task.WhenAll(onTextMessage.GetInvocationList().
+                    responses = await Task.WhenAll(onBinaryMessage.GetInvocationList().
                                                        OfType<OnWebSocketBinaryMessage2Delegate>().
                                                        Select(loggingDelegate => loggingDelegate.Invoke(
                                                                                      RequestTimestamp,
@@ -293,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnBinaryMessage)}");
                 }
             }
 

@@ -296,6 +296,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         public IEnumerable<String>                  SecWebSocketProtocols           { get; }
 
+        public Boolean                              CloseConnectionOnUnexpectedFrames    { get; set; } = false;
+
         /// <summary>
         /// The optional error message when this client closed the HTTP WebSocket connection.
         /// </summary>
@@ -977,10 +979,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #endregion
 
-                                                #region ...unknown
+                                                #region ...unknown/unexpected
 
                                                 default:
-                                                    DebugX.Log(nameof(WebSocketClient), " Received unknown " + frame.Opcode + " frame!");
+
+                                                    DebugX.Log(nameof(WebSocketClient), $" Received unknown {frame.Opcode} frame!");
+
+                                                    if (CloseConnectionOnUnexpectedFrames)
+                                                        await webSocketClientConnection.Close(WebSocketFrame.ClosingStatusCode.ProtocolError);
 
                                                 break;
 
