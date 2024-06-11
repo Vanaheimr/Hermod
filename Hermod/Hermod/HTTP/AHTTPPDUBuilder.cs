@@ -609,7 +609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods);
+                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods) ?? [];
             }
 
             set
@@ -631,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowHeaders);
+                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowHeaders) ?? [];
             }
 
             set

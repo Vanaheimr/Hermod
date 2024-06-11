@@ -545,7 +545,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlAllowMethods = new ("Access-Control-Allow-Methods",
                                                                                                              RequestPathSemantic.EndToEnd,
-                                                                                                             StringParser: StringParsers.NullableHashSetOfStrings);
+                                                                                                             MultipleValuesAsList:  true,
+                                                                                                             StringParser:          StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
