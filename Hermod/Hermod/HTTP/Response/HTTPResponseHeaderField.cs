@@ -24,29 +24,16 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    #region HTTPResponseHeaderField
-
-    public class HTTPResponseHeaderField : HTTPHeaderField
+    /// <summary>
+    /// A HTTP response header field.
+    /// </summary>
+    /// <param name="Name">The name of the HTTP response header field.</param>
+    /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
+    public class HTTPResponseHeaderField(String               Name,
+                                         RequestPathSemantic  RequestPathSemantic) : HTTPHeaderField(Name,
+                                                                                                     HeaderFieldType.Response,
+                                                                                                     RequestPathSemantic)
     {
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Creates a new HTTP response header field.
-        /// </summary>
-        /// <param name="Name">The name of the HTTP response header field.</param>
-        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
-        public HTTPResponseHeaderField(String               Name,
-                                       RequestPathSemantic  RequestPathSemantic)
-
-            : base(Name,
-                   HeaderFieldType.Response,
-                   RequestPathSemantic)
-
-        { }
-
-        #endregion
-
 
         #region Age
 
@@ -621,42 +608,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     }
 
-    #endregion
 
-    #region HTTPResponseHeaderField<T>
+    /// <summary>
+    /// A generic HTTP response header field.
+    /// </summary>
+    /// <param name="Name">The name of the HTTP response header field.</param>
+    /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
+    /// <param name="MultipleValuesAsList">When set to true header fields having multiple values will be serialized as a comma separated list, otherwise as multiple lines.</param>
+    /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
+    /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
+    public class HTTPResponseHeaderField<T>(String                                          Name,
+                                            RequestPathSemantic                             RequestPathSemantic,
+                                            Boolean?                                        MultipleValuesAsList   = null,
+                                            TryParser<T>?                                   StringParser           = null,
+                                            HTTPHeaderField<T>.ValueSerializerDelegate<T>?  ValueSerializer        = null) : HTTPHeaderField<T>(Name,
+                                                                                                                                                HeaderFieldType.Response,
+                                                                                                                                                RequestPathSemantic,
+                                                                                                                                                MultipleValuesAsList,
+                                                                                                                                                StringParser,
+                                                                                                                                                ValueSerializer)
 
-    public class HTTPResponseHeaderField<T> : HTTPHeaderField<T>
-    {
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Creates a new HTTP response header field.
-        /// </summary>
-        /// <param name="Name">The name of the HTTP response header field.</param>
-        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
-        /// <param name="MultipleValuesAsList">When set to true header fields having multiple values will be serialized as a comma separated list, otherwise as multiple lines.</param>
-        /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
-        /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
-        public HTTPResponseHeaderField(String                       Name,
-                                       RequestPathSemantic          RequestPathSemantic,
-                                       Boolean?                     MultipleValuesAsList   = null,
-                                       TryParser<T>?                StringParser           = null,
-                                       ValueSerializerDelegate<T>?  ValueSerializer        = null)
-
-            : base(Name,
-                   HeaderFieldType.Response,
-                   RequestPathSemantic,
-                   MultipleValuesAsList,
-                   StringParser,
-                   ValueSerializer)
-
-        { }
-
-        #endregion
-
-    }
-
-    #endregion
+    { }
 
 }

@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderFields(HTTPHeaderField.ContentLanguage);
+                return GetHeaderFields(HTTPHeaderField.ContentLanguage, []);
             }
 
             set
@@ -522,7 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol);
+                return GetHeaderFields(HTTPHeaderField.SecWebSocketProtocol, []);
             }
 
             set
@@ -609,7 +609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods) ?? [];
+                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowMethods, []);
             }
 
             set
@@ -631,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowHeaders) ?? [];
+                return GetHeaderFields(HTTPResponseHeaderField.AccessControlAllowHeaders, []);
             }
 
             set
@@ -984,10 +984,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 if (valueOrValues is null)
-                    return Array.Empty<String>();
+                    return [];
 
                 if (valueOrValues is String Text)
-                    return new String[] { Text };
+                    return [ Text ];
 
                 if (valueOrValues is String[] Texts)
                     return Texts;
@@ -995,12 +995,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var result = valueOrValues.ToString();
 
                 return result is null
-                           ? Array.Empty<String>()
-                           : new[] { result };
+                           ? []
+                           : [ result ];
 
             }
 
-            return Array.Empty<String>();
+            return [];
 
         }
 
@@ -1012,8 +1012,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return the values of the given HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
+        protected T GetHeaderFields<T>(HTTPHeaderField<T> HeaderField)
+        {
+
+            if (headerFields.TryGetValue(HeaderField.Name, out var values))
+            {
+
+                if (values is String Text)
+                {
+                    if (HeaderField.StringParser is not null &&
+                        HeaderField.StringParser(Text, out var valuesT) &&
+                        valuesT is not null)
+                    {
+                        return valuesT;
+                    }
+                }
+
+                if (values is T listOfValues)
+                    return listOfValues;
+
+            }
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region (protected) GetHeaderFields<T>(HeaderField, DefaultValueT)
+
+        /// <summary>
+        /// Return the values of the given HTTP header field.
+        /// </summary>
+        /// <param name="HeaderField">The HTTP header field.</param>
+        /// <param name="DefaultValueT">The default value.</param>
         protected T GetHeaderFields<T>(HTTPHeaderField<T> HeaderField,
-                                       T                  DefaultValueT = default)
+                                       T                  DefaultValueT)
         {
 
             if (headerFields.TryGetValue(HeaderField.Name, out var values))
@@ -1058,15 +1092,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (FieldName.IsNotNullOrEmpty())
             {
 
-                if (Value is not null)
-                {
-                    if (headerFields.ContainsKey(FieldName))
-                        headerFields[FieldName] = Value;
-                    else
-                        headerFields.Add(FieldName, Value);
-                }
-                else
+                if (Value is null)
                     headerFields.Remove(FieldName);
+
+                else if (!headerFields.TryAdd(FieldName, Value))
+                    headerFields[FieldName] = Value;
 
             }
 
@@ -1088,16 +1118,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               Object?          Value)
         {
 
-            if (Value is not null)
-            {
-                if (headerFields.ContainsKey(HeaderField.Name))
-                    headerFields[HeaderField.Name] = Value;
-                else
-                    headerFields.Add(HeaderField.Name, Value);
-            }
-
-            else
+            if (Value is null)
                 headerFields.Remove(HeaderField.Name);
+
+            else if (!headerFields.TryAdd(HeaderField.Name, Value))
+                headerFields[HeaderField.Name] = Value;
 
             return this;
 
@@ -1113,16 +1138,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AHTTPPDUBuilder SetHeaderField<T>(HTTPHeaderField<T> HeaderField, Object? Value)
         {
 
-            if (Value is not null)
-            {
-                if (headerFields.ContainsKey(HeaderField.Name))
-                    headerFields[HeaderField.Name] = Value;
-                else
-                    headerFields.Add(HeaderField.Name, Value);
-            }
-
-            else
+            if (Value is null)
                 headerFields.Remove(HeaderField.Name);
+
+            else if (!headerFields.TryAdd(HeaderField.Name, Value))
+                headerFields[HeaderField.Name] = Value;
 
             return this;
 

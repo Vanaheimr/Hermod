@@ -428,7 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 get
                 {
-                    return GetHeaderFields<String>(HTTPResponseHeaderField.WWWAuthenticate);
+                    return GetHeaderFields(HTTPResponseHeaderField.WWWAuthenticate);
                 }
 
                 set
