@@ -188,44 +188,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Reload old data from logfile(s)...
 
-                if (LogfileReloadSearchPattern != null)
+                if (LogfileReloadSearchPattern is not null)
                 {
 
                     var httpSSEs = new List<String[]>();
 
-                    foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
-                                                                         LogfileReloadSearchPattern,
-                                                                         SearchOption.TopDirectoryOnly).
-                                                          OrderByDescending(file => file))
+                    try
                     {
 
-                        DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
+                        foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
+                                                                             LogfileReloadSearchPattern,
+                                                                             SearchOption.TopDirectoryOnly).
+                                                              OrderByDescending(file => file))
+                        {
 
-                        File.ReadAllLines(logfilename).
-                             Reverse().
-                             Where  (line => line.IsNotNullOrEmpty() &&
-                                            !line.StartsWith("//")   &&
-                                            !line.StartsWith("#")).
-                             Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
-                             Select (line => line.Split(RS)).
-                             ForEach(line => {
+                            DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
 
-                                                 if (line.Length >= 3           &&
-                                                     line.Length <= 4           &&
-                                                     line[0].IsNotNullOrEmpty() &&
-                                                     line[2].IsNotNullOrEmpty())
-                                                 {
-                                                     httpSSEs.Add(line);
-                                                 }
+                            File.ReadAllLines(logfilename).
+                                 Reverse().
+                                 Where  (line => line.IsNotNullOrEmpty() &&
+                                                !line.StartsWith("//")   &&
+                                                !line.StartsWith("#")).
+                                 Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
+                                 Select (line => line.Split(RS)).
+                                 ForEach(line => {
 
-                                                 else
-                                                     DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
+                                                     if (line.Length >= 3           &&
+                                                         line.Length <= 4           &&
+                                                         line[0].IsNotNullOrEmpty() &&
+                                                         line[2].IsNotNullOrEmpty())
+                                                     {
+                                                         httpSSEs.Add(line);
+                                                     }
 
-                                             });
+                                                     else
+                                                         DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
 
-                        if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
-                            break;
+                                                 });
 
+                            if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
+                                break;
+
+                        }
+
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        // Will fail, when part of the file system path is not accessible!
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogException(e, "While creating a HTTP Event Source!");
                     }
 
                     httpSSEs.Reverse();
