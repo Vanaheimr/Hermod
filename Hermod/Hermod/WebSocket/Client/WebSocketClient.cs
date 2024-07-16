@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                String?                                                         Description                  = null,
                                Boolean?                                                        PreferIPv4                   = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                               LocalCertificateSelector    = null,
+                               LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                X509Certificate?                                                ClientCert                   = null,
                                SslProtocols?                                                   TLSProtocol                  = null,
                                String?                                                         HTTPUserAgent                = DefaultHTTPUserAgent,
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.HTTPLogger                         = HTTPLogger;
             this.DNSClient                          = DNSClient;
 
-            this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? Array.Empty<String>();
+            this.SecWebSocketProtocols              = SecWebSocketProtocols   ?? [];
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -952,7 +952,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Ping: {
 
-                                                    DebugX.Log(nameof(WebSocketClient) + ": Ping received: " + frame.Payload.ToUTF8String());
+                                                    DebugX.Log($"{nameof(WebSocketClient)}[{Description}] Ping received: {frame.Payload.ToUTF8String()}");
 
                                                     await SendWebSocketFrame(
                                                               WebSocketFrame.Pong(
@@ -973,8 +973,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 #region Pong
 
                                                 case WebSocketFrame.Opcodes.Pong: {
-                                                    DebugX.Log(nameof(WebSocketClient) + ": Pong received: " + frame.Payload.ToUTF8String());
-                                                }
+                                                    DebugX.Log($"{nameof(WebSocketClient)}[{Description}] Pong received: {frame.Payload.ToUTF8String()}");
+                                                    }
                                                 break;
 
                                                 #endregion
@@ -1296,7 +1296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendTextMessage   (Text,           ...)
+        #region SendTextMessage    (Text,           ...)
 
         /// <summary>
         /// Send a web socket text frame
@@ -1319,7 +1319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendBinaryMessage (Bytes,          ...)
+        #region SendBinaryMessage  (Bytes,          ...)
 
         /// <summary>
         /// Send a web socket binary frame
@@ -1342,7 +1342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendWebSocketFrame(WebSocketFrame, ...)
+        #region SendWebSocketFrame (WebSocketFrame, ...)
 
         public async Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                                          EventTracking_Id?  EventTrackingId     = null,
