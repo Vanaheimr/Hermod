@@ -237,14 +237,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                        response.ResponseMessage.IsNotNullOrEmpty()).
                                      FirstOrDefault();
 
-            //ToDo: Fix me! Why is this here?!?!
-            //response ??= new WebSocketTextMessageResponse(
-            //                 RequestTimestamp,
-            //                 TextMessage,
-            //                 Timestamp.Now,
-            //                 TextMessage.Reverse(),
-            //                 EventTrackingId
-            //             );
+            response ??= new WebSocketTextMessageResponse(
+                             RequestTimestamp,
+                             TextMessage,
+                             Timestamp.Now,
+                             "Unkown error!",
+                             EventTrackingId,
+                             CancellationToken
+                         );
 
             return response;
 
@@ -306,8 +306,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                              RequestTimestamp,
                              BinaryMessage,
                              Timestamp.Now,
-                             BinaryMessage.Reverse(),
-                             EventTrackingId
+                             "Unkown error!".ToUTF8Bytes(),
+                             EventTrackingId,
+                             CancellationToken
                          );
 
             return response;

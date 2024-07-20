@@ -58,6 +58,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     public interface IWebSocketClient : IHTTPClient
     {
 
+
+        /// <summary>
+        /// An event sent whenever a text message was sent.
+        /// </summary>
+        event OnWebSocketClientTextMessageDelegate?     OnTextMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a text message was received.
+        /// </summary>
+        event OnWebSocketClientTextMessageDelegate?     OnTextMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a binary message was sent.
+        /// </summary>
+        event OnWebSocketClientBinaryMessageDelegate?   OnBinaryMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a binary message was received.
+        /// </summary>
+        event OnWebSocketClientBinaryMessageDelegate?   OnBinaryMessageReceived;
+
+
         new RemoteTLSServerCertificateValidationHandler<IWebSocketClient>? RemoteCertificateValidator { get; }
 
     }
@@ -307,11 +330,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Events
 
-        public event OnWebSocketClientTextMessageDelegate?    OnTextMessageReceived;
         public event OnWebSocketClientTextMessageDelegate?    OnTextMessageSent;
+        public event OnWebSocketClientTextMessageDelegate?    OnTextMessageReceived;
 
-        public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageReceived;
         public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageSent;
+        public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageReceived;
 
         #region HTTPRequest-/ResponseLog
 

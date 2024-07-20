@@ -211,8 +211,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                              RequestTimestamp,
                              TextMessage,
                              Timestamp.Now,
-                             String.Empty,
-                             EventTrackingId
+                             "Unknown Error!",
+                             EventTrackingId,
+                             CancellationToken
                          );
 
             return response;
@@ -275,8 +276,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                              RequestTimestamp,
                              BinaryMessage,
                              Timestamp.Now,
-                             [],
-                             EventTrackingId
+                             "Unkown error!".ToUTF8Bytes(),
+                             EventTrackingId,
+                             CancellationToken
                          );
 
             return response;

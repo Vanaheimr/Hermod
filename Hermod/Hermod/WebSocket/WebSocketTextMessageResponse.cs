@@ -25,66 +25,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// A HTTP web socket text message response.
+    /// A HTTP Web Socket text message response.
     /// </summary>
-    public class WebSocketTextMessageResponse
+    /// <param name="RequestTimestamp">The request timestamp.</param>
+    /// <param name="RequestMessage">The request message.</param>
+    /// <param name="ResponseTimestamp">The response timestamp.</param>
+    /// <param name="ResponseMessage">The response message.</param>
+    /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
+    public class WebSocketTextMessageResponse(DateTime           RequestTimestamp,
+                                              String             RequestMessage,
+                                              DateTime           ResponseTimestamp,
+                                              String             ResponseMessage,
+                                              EventTracking_Id   EventTrackingId,
+                                              CancellationToken  CancellationToken)
     {
-
-        #region Properties
 
         /// <summary>
         /// The request timestamp.
         /// </summary>
-        public DateTime          RequestTimestamp     { get; }
+        public DateTime           RequestTimestamp     { get; } = RequestTimestamp;
 
         /// <summary>
         /// The request message.
         /// </summary>
-        public String            RequestMessage       { get; }
+        public String             RequestMessage       { get; } = RequestMessage;
 
         /// <summary>
         /// The response timestamp.
         /// </summary>
-        public DateTime          ResponseTimestamp    { get; }
+        public DateTime           ResponseTimestamp    { get; } = ResponseTimestamp;
 
         /// <summary>
         /// The response message.
         /// </summary>
-        public String            ResponseMessage      { get; }
+        public String             ResponseMessage      { get; } = ResponseMessage;
 
         /// <summary>
         /// The event tracking identification for correlating this request with other events.
         /// </summary>
-        public EventTracking_Id  EventTrackingId      { get; }
+        public EventTracking_Id   EventTrackingId      { get; } = EventTrackingId;
 
-        #endregion
 
-        #region Constructor(s)
+        public CancellationToken  CancellationToken    { get; } = CancellationToken;
 
-        /// <summary>
-        /// Create a new HTTP web socket text message response.
-        /// </summary>
-        /// <param name="RequestTimestamp">The request timestamp.</param>
-        /// <param name="RequestMessage">The request message.</param>
-        /// <param name="ResponseTimestamp">The response timestamp.</param>
-        /// <param name="ResponseMessage">The response message.</param>
-        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-        public WebSocketTextMessageResponse(DateTime          RequestTimestamp,
-                                            String            RequestMessage,
-                                            DateTime          ResponseTimestamp,
-                                            String            ResponseMessage,
-                                            EventTracking_Id  EventTrackingId)
-        {
-
-            this.RequestTimestamp   = RequestTimestamp;
-            this.RequestMessage     = RequestMessage;
-            this.ResponseTimestamp  = ResponseTimestamp;
-            this.ResponseMessage    = ResponseMessage;
-            this.EventTrackingId    = EventTrackingId;
-
-        }
-
-        #endregion
 
     }
 

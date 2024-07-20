@@ -1739,8 +1739,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        RequestTimestamp,
                        TextMessage,
                        Timestamp.Now,
-                       String.Empty,
-                       EventTrackingId
+                       "No text message handler found!!",
+                       EventTrackingId,
+                       CancellationToken
                    )
                );
 
@@ -1767,8 +1768,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                        RequestTimestamp,
                        BinaryMessage,
                        Timestamp.Now,
-                       Array.Empty<Byte>(),
-                       EventTrackingId
+                       "No binary message handler found!".ToUTF8Bytes(),
+                       EventTrackingId,
+                       CancellationToken
                    )
                );
 
