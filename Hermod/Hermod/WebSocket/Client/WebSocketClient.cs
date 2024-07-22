@@ -468,21 +468,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             => Task.CompletedTask;
 
 
-        #region Connect(EventTrackingId = null, RequestTimeout = null, NumberOfRetries = 0)
+        #region Connect(EventTrackingId = null, RequestTimeout = null, MaxNumberOfRetries = 0)
 
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
         /// <param name="EventTrackingId"></param>
         /// <param name="RequestTimeout">An optional timeout.</param>
-        /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
+        /// <param name="MaxNumberOfRetries">The maximum number of retransmissions of this request.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
         public Task<Tuple<WebSocketClientConnection, HTTPResponse>>
 
-            Connect(EventTracking_Id?  EventTrackingId     = null,
-                    TimeSpan?          RequestTimeout      = null,
-                    Byte               NumberOfRetries     = 0,
-                    CancellationToken  CancellationToken   = default)
+            Connect(EventTracking_Id?             EventTrackingId      = null,
+                    TimeSpan?                     RequestTimeout       = null,
+                    UInt16?                       MaxNumberOfRetries   = 0,
+                    Action<HTTPRequest.Builder>?  HTTPRequestBuilder   = null,
+                    CancellationToken             CancellationToken    = default)
 
         {
 
@@ -735,22 +736,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             // Connection:              Upgrade
                             // Upgrade:                 websocket
                             // Sec-WebSocket-Key:       x3JJHMbDL1EzLkh9GBhXDw==
-                            // Sec-WebSocket-Protocol:  ocpp1.6, ocpp1.5
+                            // Sec-WebSocket-Protocol:  ocpp2.1, ocpp2.0.1
                             // Sec-WebSocket-Version:   13
 
-                            var swkaSHA1Base64    = RandomExtensions.RandomBytes(16).ToBase64();
-                            var expectedWSAccept  = System.Security.Cryptography.SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
+                            var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
+                            var expectedWSAccept    = System.Security.Cryptography.SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
 
-                            httpRequest           = new HTTPRequest.Builder {
-                                                        Path                  = RemoteURL.Path,
-                                                        Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
-                                                        Connection            = "Upgrade",
-                                                        Upgrade               = "websocket",
-                                                        SecWebSocketKey       = swkaSHA1Base64,
-                                                        SecWebSocketProtocol  = SecWebSocketProtocols,
-                                                        SecWebSocketVersion   = "13",
-                                                        Authorization         = HTTPAuthentication
-                                                    }.AsImmutable;
+                            var httpRequestBuilder  = new HTTPRequest.Builder {
+                                                          Path                  = RemoteURL.Path,
+                                                          Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
+                                                          Connection            = "Upgrade",
+                                                          Upgrade               = "websocket",
+                                                          SecWebSocketKey       = swkaSHA1Base64,
+                                                          SecWebSocketProtocol  = SecWebSocketProtocols,
+                                                          SecWebSocketVersion   = "13",
+                                                          Authorization         = HTTPAuthentication
+                                                      };
+
+                            HTTPRequestBuilder?.Invoke(httpRequestBuilder);
+
+                            httpRequest             = httpRequestBuilder.AsImmutable;
 
                             #region Call the optional HTTP request log delegate
 

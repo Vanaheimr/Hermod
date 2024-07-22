@@ -20,6 +20,7 @@
 using System.Text;
 using System.Collections;
 using System.Net.Sockets;
+using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
@@ -670,7 +671,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        public Boolean TryGetHeaderField(String FieldName, out Object? Value)
+        public Boolean TryGetHeaderField(String                           FieldName,
+                                         [NotNullWhen(true)] out Object?  Value)
 
             => headerFields.TryGetValue(FieldName, out Value);
 
@@ -684,7 +686,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HeaderField">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        public Boolean TryGetHeaderField<T>(HTTPHeaderField<T> HeaderField, out T? Value)
+        public Boolean TryGetHeaderField<T>(HTTPHeaderField<T>          HeaderField,
+                                            [NotNullWhen(true)] out T?  Value)
         {
 
             if (headerFields.TryGetValue(HeaderField.Name, out var value) &&
