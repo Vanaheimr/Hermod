@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         private                   Thread                   networkingThread;
 
 
-        private WebSocketClientConnection webSocketClientConnection;
+        protected WebSocketClientConnection webSocketClientConnection;
 
         #endregion
 
