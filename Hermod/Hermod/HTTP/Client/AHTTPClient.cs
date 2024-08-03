@@ -623,6 +623,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region CreateRequest(HTTPMethod, RequestURL, BuilderAction = null, Authentication = null)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>
+        /// <param name="HTTPMethod">A HTTP method.</param>
+        /// <param name="RequestURL">The URL of this request.</param>
+        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
+                                                 URL                           RequestURL,
+                                                 Action<HTTPRequest.Builder>?  BuilderAction    = null,
+                                                 IHTTPAuthentication?          Authentication   = null)
+        {
+
+            var builder      = new HTTPRequest.Builder(this) {
+                Host         = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
+                HTTPMethod   = HTTPMethod,
+                Path         = RequestURL.Path,
+                QueryString  = RequestURL.QueryString ?? QueryString.New
+            };
+
+            if (BuilderAction is not null)
+                BuilderAction?.Invoke(builder);
+
+            if (Authentication is not null)
+                builder.Authorization ??= Authentication;
+
+            return builder;
+
+        }
+
+        #endregion
+
 
         #region Execute(HTTPRequestDelegate, RequestLogDelegate = null, ResponseLogDelegate = null, Timeout = null, CancellationToken = null)
 

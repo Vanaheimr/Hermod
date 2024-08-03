@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The HTTP query string.
             /// </summary>
-            public QueryString  QueryString     { get; }
+            public QueryString  QueryString     { get; internal set; }
 
             #endregion
 
