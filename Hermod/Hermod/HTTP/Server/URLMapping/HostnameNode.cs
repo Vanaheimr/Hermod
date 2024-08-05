@@ -118,6 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPDelegate             HTTPDelegate,
 
                                HTTPPath?                URLTemplate                 = null,
+                               Boolean                  OpenEnd                     = false,
                                HTTPMethod?              Method                      = null,
                                HTTPContentType?         HTTPContentType             = null,
 
@@ -142,6 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               new URL_Node(
                                   HTTPAPI,
                                   URLTemplate.Value,
+                                  OpenEnd,
                                   URLAuthentication
                               )
                           );

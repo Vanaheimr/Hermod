@@ -588,6 +588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                ? "{ResourceName}"
                                                : "/{ResourceName}")
                         ],
+                        OpenEnd:            true,
 
                         HTTPDelegate:       GetFromResourceAssembly(
                                                 URLTemplate,
@@ -635,6 +636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ? "{ResourceName}"
                                                   : "/{ResourceName}")
                            ],
+                           OpenEnd:            true,
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -713,6 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ? "{ResourceName}"
                                                   : "/{ResourceName}")
                            ],
+                           OpenEnd:            true,
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -801,6 +804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Hostname,
                         HTTPMethod.GET,
                         URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                        OpenEnd:            true,
 
                         HTTPDelegate:       GetFromFileSystem(
                                                 URLTemplate,
@@ -862,6 +866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Hostname,
                            HTTPMethod.GET,
                            URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                           OpenEnd:            true,
 
                            HTTPDelegate:       RequireAuthentication
 

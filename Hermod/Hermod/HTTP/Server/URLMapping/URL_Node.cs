@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Text;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -37,6 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
+        private static readonly Regex replaceLastParameter = new Regex(@"\{[^/]+\}$");
+        private static readonly Regex replaceAllParameters = new Regex(@"\{[^/]+\}");
+
         /// <summary>
         /// A mapping from HTTPMethods to HTTPMethodNodes.
         /// </summary>
@@ -55,6 +57,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The URL template for this service.
         /// </summary>
         public HTTPPath                                  URITemplate            { get; }
+
+        /// <summary>
+        /// Whether the URL template matches subdirectories at the end of the template.
+        /// </summary>
+        public Boolean                                   OpenEnd                { get; }
 
         /// <summary>
         /// The URI regex for this service.
@@ -122,23 +129,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Creates a new URLNode.
         /// </summary>
         /// <param name="URITemplate">The URI template for this service.</param>
+        /// <param name="OpenEnd">Whether the URL template matches subdirectories at the end of the template.</param>
         /// <param name="URIAuthentication">This and all subordinated nodes demand an explicit URI authentication.</param>
         internal URL_Node(HTTPAPI              HTTPAPI,
                           HTTPPath             URITemplate,
+                          Boolean              OpenEnd             = false,
                           HTTPAuthentication?  URIAuthentication   = null)
 
         {
 
             this.HTTPAPI                = HTTPAPI;
             this.URITemplate            = URITemplate;
+            this.OpenEnd                = OpenEnd;
             this.URIAuthentication      = URIAuthentication;
 
-            var replaceLastParameter    = new Regex(@"\{[^/]+\}$");
             this.ParameterCount         = (UInt16) replaceLastParameter.Matches(URITemplate.ToString()).Count;
-            var URLTemplate2            = replaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)");
+            var URLTemplate2            = OpenEnd
+                                             ? replaceLastParameter.Replace(URITemplate.ToString(), "([^\n]+)")
+                                             : replaceLastParameter.Replace(URITemplate.ToString(), "([^/]+)");
             var URLTemplateWithoutVars  = replaceLastParameter.Replace(URITemplate.ToString(), "");
 
-            var replaceAllParameters    = new Regex(@"\{[^/]+\}");
             this.ParameterCount        += (UInt16) replaceAllParameters.Matches(URLTemplate2).Count;
             this.URLRegex               = new Regex("^" + replaceAllParameters.Replace(URLTemplate2, "([^/]+)") + "$");
             this.SortLength             = (UInt16) replaceAllParameters.Replace(URLTemplateWithoutVars, "").Length;
