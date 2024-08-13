@@ -28,6 +28,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using System.Net;
 
 #endregion
 
@@ -140,7 +141,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The IP socket to listen on.
         /// </summary>
-        public IPSocket                                                        IPSocket                      { get; }
+        public IPSocket                                                        IPSocket                      { get; private set; }
 
         /// <summary>
         /// Whether the web socket TCP listener is currently running.
@@ -351,7 +352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             : this(new IPSocket(
                        IPAddress ?? IPv4Address.Any,   // 0.0.0.0  IPv4+IPv6 sockets seem to fail on Win11!
-                       TCPPort ?? IPPort.HTTP
+                       TCPPort   ?? IPPort.HTTP
                    ),
                    HTTPServiceName,
                    Description,
@@ -637,6 +638,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     tcpListener.Start();
 
                     isRunning        = true;
+
+                    this.IPSocket    = new IPSocket(
+                                           IPAddress,
+                                           IPPort.Parse(((IPEndPoint) tcpListener.LocalEndpoint).Port)
+                                       );
 
                     #endregion
 

@@ -17,15 +17,15 @@
 
 #region Usings
 
+using System.Net;
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Collections.Concurrent;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod.Services.CSV;
-using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -91,12 +91,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Gets the port on which the TCP server listens.
         /// </summary>
-        public IPPort                            Port                                   { get; }
+        public IPPort                            Port                                   { get; private set; }
 
         /// <summary>
         /// Gets the IP socket on which the TCP server listens.
         /// </summary>
-        public IPSocket                          IPSocket                               { get; }
+        public IPSocket                          IPSocket                               { get; private set; }
 
         /// <summary>
         /// The optional TLS certificate.
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The optional priority of the TCP server thread.
         /// </summary>
-        public ServerThreadPriorityDelegate      ServerThreadPrioritySetter                   { get; set; }
+        public ServerThreadPriorityDelegate      ServerThreadPrioritySetter             { get; set; }
 
         /// <summary>
         /// Whether the TCP server thread is a background thread or not.
@@ -141,22 +141,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// A delegate to build a connection identification based on IP socket information.
         /// </summary>
         public ConnectionIdBuilder               ConnectionIdBuilder                    { get; set; }
-
-
-        /// <summary>
-        /// A delegate to set the name of the TCP connection threads.
-        /// </summary>
-        //public ConnectionThreadsNameBuilder      ConnectionThreadsNameBuilder           { get; set; }
-
-        /// <summary>
-        /// A delegate to set the priority of the TCP connection threads.
-        /// </summary>
-        //public ConnectionThreadsPriorityBuilder  ConnectionThreadsPriorityBuilder       { get; set; }
-
-        /// <summary>
-        /// Whether the TCP server thread is a background thread or not.
-        /// </summary>
-        //public Boolean                           ConnectionThreadsAreBackground         { get; set; }
 
         /// <summary>
         /// The TCP client timeout for all incoming client connections.
@@ -347,10 +331,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
             this.ClientCertificateValidator  = ClientCertificateValidator;
             this.CheckCertificateRevocation  = CheckCertificateRevocation ?? false;
-            this.IPSocket                    = new IPSocket   (this.IPAddress,
-                                                               this.Port);
-            this.tcpListener                 = new TcpListener(new System.Net.IPAddress(this.IPAddress.GetBytes()),
-                                                               this.Port.ToInt32());
+
+            this.IPSocket                    = new IPSocket   (
+                                                   this.IPAddress,
+                                                   this.Port
+                                               );
+
+            this.tcpListener                 = new TcpListener(
+                                                   new System.Net.IPAddress(
+                                                       this.IPAddress.GetBytes()
+                                                   ),
+                                                   this.Port.ToInt32()
+                                               );
 
             // TCP Server
             this.ServiceName                 = ServiceName      is not null && ServiceName.  Trim().IsNotNullOrEmpty()
@@ -780,9 +772,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                DebugX.LogT("Starting '" + ServiceName + "' on TCP port " + Port);
-
                 tcpListener.Start((Int32) this.MaxClientConnections);
+
+                Port      = IPPort.Parse(((IPEndPoint) tcpListener.LocalEndpoint).Port);
+
+                IPSocket  = new IPSocket(
+                                IPAddress,
+                                Port
+                            );
+
+                DebugX.LogT($"Started '{ServiceName}' on TCP port {Port}");
 
             }
             catch (Exception e)
@@ -796,11 +795,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 if (listenerThread is null)
                 {
-                    DebugX.LogT("An exception occured in Hermod.TCPServer.Start(MaxClientConnections) [_ListenerThread == null]!");
+                    DebugX.LogT($"An exception occured in Hermod.{nameof(TCPServer)}.{nameof(Start)}(MaxClientConnections) [_ListenerThread == null]!");
                     return false;
                 }
 
-                // Start the TCPListenerThread
                 listenerThread.Start();
 
             }

@@ -2378,7 +2378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!SkipURLTemplates)
                 RegisterURLTemplates();
 
-            DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
+            //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
 
             if (AutoStart)
                 Start();
@@ -2417,55 +2417,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileName">The name of the logfile.</param>
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPExtAPI(HTTPServer               HTTPServer,
-                          HTTPHostname?            HTTPHostname              = null,
-                          String?                  ExternalDNSName           = "",
-                          String?                  HTTPServiceName           = DefaultHTTPServiceName,
-                          HTTPPath?                BasePath                  = null,
+        public HTTPExtAPI(HTTPServer                     HTTPServer,
+                          HTTPHostname?                  HTTPHostname                     = null,
+                          String?                        ExternalDNSName                  = "",
+                          String?                        HTTPServiceName                  = DefaultHTTPServiceName,
+                          HTTPPath?                      BasePath                         = null,
 
-                          HTTPPath?                URLPathPrefix             = null,
-                          String?                  HTMLTemplate              = null,
-                          JObject?                 APIVersionHashes          = null,
+                          HTTPPath?                      URLPathPrefix                    = null,
+                          String?                        HTMLTemplate                     = null,
+                          JObject?                       APIVersionHashes                 = null,
 
-                          Organization_Id?                     AdminOrganizationId              = null,
-                          EMailAddress?                        APIRobotEMailAddress             = null,
-                          String?                              APIRobotGPGPassphrase            = null,
-                          ISMTPClient?                         SMTPClient                       = null,
+                          Organization_Id?               AdminOrganizationId              = null,
+                          EMailAddress?                  APIRobotEMailAddress             = null,
+                          String?                        APIRobotGPGPassphrase            = null,
+                          ISMTPClient?                   SMTPClient                       = null,
 
-                          PasswordQualityCheckDelegate?        PasswordQualityCheck             = null,
-                          HTTPCookieName?                      CookieName                       = null,
-                          Boolean                              UseSecureCookies                 = true,
-                          TimeSpan?                            MaxSignInSessionLifetime         = null,
-                          Languages?                           DefaultLanguage                  = null,
-                          Byte?                                MinUserIdLength                  = null,
-                          Byte?                                MinRealmLength                   = null,
-                          Byte?                                MinUserNameLength                = null,
-                          Byte?                                MinUserGroupIdLength             = null,
-                          UInt16?                              MinAPIKeyLength                  = null,
-                          Byte?                                MinMessageIdLength               = null,
-                          Byte?                                MinOrganizationIdLength          = null,
-                          Byte?                                MinOrganizationGroupIdLength     = null,
-                          Byte?                                MinNotificationMessageIdLength   = null,
-                          Byte?                                MinNewsPostingIdLength           = null,
-                          Byte?                                MinNewsBannerIdLength            = null,
-                          Byte?                                MinFAQIdLength                   = null,
+                          PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
+                          HTTPCookieName?                CookieName                       = null,
+                          Boolean                        UseSecureCookies                 = true,
+                          TimeSpan?                      MaxSignInSessionLifetime         = null,
+                          Languages?                     DefaultLanguage                  = null,
+                          Byte?                          MinUserIdLength                  = null,
+                          Byte?                          MinRealmLength                   = null,
+                          Byte?                          MinUserNameLength                = null,
+                          Byte?                          MinUserGroupIdLength             = null,
+                          UInt16?                        MinAPIKeyLength                  = null,
+                          Byte?                          MinMessageIdLength               = null,
+                          Byte?                          MinOrganizationIdLength          = null,
+                          Byte?                          MinOrganizationGroupIdLength     = null,
+                          Byte?                          MinNotificationMessageIdLength   = null,
+                          Byte?                          MinNewsPostingIdLength           = null,
+                          Byte?                          MinNewsBannerIdLength            = null,
+                          Byte?                          MinFAQIdLength                   = null,
 
-                          Boolean?                 DisableMaintenanceTasks   = false,
-                          TimeSpan?                MaintenanceInitialDelay   = null,
-                          TimeSpan?                MaintenanceEvery          = null,
+                          Boolean?                       DisableMaintenanceTasks          = false,
+                          TimeSpan?                      MaintenanceInitialDelay          = null,
+                          TimeSpan?                      MaintenanceEvery                 = null,
 
-                          Boolean?                 DisableWardenTasks        = false,
-                          TimeSpan?                WardenInitialDelay        = null,
-                          TimeSpan?                WardenCheckEvery          = null,
+                          Boolean?                       DisableWardenTasks               = false,
+                          TimeSpan?                      WardenInitialDelay               = null,
+                          TimeSpan?                      WardenCheckEvery                 = null,
 
-                          Boolean?                 IsDevelopment             = false,
-                          IEnumerable<String>?     DevelopmentServers        = null,
-                          Boolean                  SkipURLTemplates          = false,
-                          Boolean?                 DisableLogging            = false,
-                          String?                  LoggingPath               = null,
-                          String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
-                          LogfileCreatorDelegate?  LogfileCreator            = null,
-                          Boolean                  AutoStart                 = false)
+                          Boolean?                       IsDevelopment                    = false,
+                          IEnumerable<String>?           DevelopmentServers               = null,
+                          Boolean                        SkipURLTemplates                 = false,
+                          Boolean?                       DisableLogging                   = false,
+                          String?                        LoggingPath                      = null,
+                          String?                        LogfileName                      = DefaultHTTPAPI_LogfileName,
+                          LogfileCreatorDelegate?        LogfileCreator                   = null,
+                          Boolean                        AutoStart                        = false)
 
         {
 
@@ -2609,7 +2609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!SkipURLTemplates)
                 RegisterURLTemplates();
 
-            DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
+            //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
 
             if (AutoStart)
                 Start();
