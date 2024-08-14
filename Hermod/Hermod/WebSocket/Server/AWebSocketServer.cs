@@ -633,6 +633,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     Thread.CurrentThread.Priority      = ServerThreadPrioritySetter(IPSocket);
                     Thread.CurrentThread.IsBackground  = ServerThreadIsBackground;
 
+                    DebugX.Log($"{Description.FirstText()}: {IPSocket}");
+
                     var token        = cancellationTokenSource.Token;
                     var tcpListener  = new TcpListener(IPSocket.ToIPEndPoint());
                     tcpListener.Start();
@@ -1687,7 +1689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, nameof(AWebSocketServer));
+                    DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(Start)}()");
                 }
 
             });
