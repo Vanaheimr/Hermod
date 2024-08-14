@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -63,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPClient(URL                              RemoteURL,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
@@ -122,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPClient(IIPAddress                       RemoteIPAddress,
                           IPPort?                          RemotePort               = null,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
@@ -175,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPClient(IPSocket                         RemoteSocket,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
@@ -230,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPClient(HTTPHostname                     RemoteHost,
                           IPPort?                          RemotePort               = null,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
                           String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
                           IHTTPAuthentication?             HTTPAuthentication       = null,

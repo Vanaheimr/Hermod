@@ -20,6 +20,7 @@
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
@@ -56,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="DNSClient">The DNS client to use.</param>
         public JSONClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
-                          String?                                                    Description                  = null,
+                          I18NString?                                                Description                  = null,
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,

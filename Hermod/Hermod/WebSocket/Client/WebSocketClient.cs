@@ -147,17 +147,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The remote URL of the HTTP endpoint to connect to.
         /// </summary>
-        public URL                                                             RemoteURL                       { get; }
+        public URL                                                             RemoteURL                                 { get; }
 
         /// <summary>
         /// The virtual HTTP hostname to connect to.
         /// </summary>
-        public HTTPHostname?                                                   VirtualHostname                 { get; }
+        public HTTPHostname?                                                   VirtualHostname                           { get; }
 
         /// <summary>
         /// An optional description of this HTTP client.
         /// </summary>
-        public String?                                                         Description                               { get; set; }
+        public I18NString?                                                     Description                               { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -177,37 +177,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The TLS client certificate to use of HTTP authentication.
         /// </summary>
-        public X509Certificate?                                                ClientCert                      { get; }
+        public X509Certificate?                                                ClientCert                                { get; }
 
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                                                    TLSProtocol                     { get; }
+        public SslProtocols                                                    TLSProtocol                               { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                                                         PreferIPv4                      { get; }
+        public Boolean                                                         PreferIPv4                                { get; }
 
         /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
-        public String                                                          HTTPUserAgent                   { get; }
+        public String                                                          HTTPUserAgent                             { get; }
 
         /// <summary>
         /// The timeout for upstream requests.
         /// </summary>
-        public TimeSpan                                                        RequestTimeout                  { get; set; }
+        public TimeSpan                                                        RequestTimeout                            { get; set; }
 
         /// <summary>
         /// The delay between transmission retries.
         /// </summary>
-        public TransmissionRetryDelayDelegate                                  TransmissionRetryDelay          { get; }
+        public TransmissionRetryDelayDelegate                                  TransmissionRetryDelay                    { get; }
 
         /// <summary>
         /// The maximum number of retries when communicationg with the remote OICP service.
         /// </summary>
-        public UInt16                                                          MaxNumberOfRetries              { get; }
+        public UInt16                                                          MaxNumberOfRetries                        { get; }
 
         /// <summary>
         /// Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The CPO client (HTTP client) logger.
         /// </summary>
-        public HTTPClientLogger?                                               HTTPLogger                      { get; set; }
+        public HTTPClientLogger?                                               HTTPLogger                                { get; set; }
 
 
 
@@ -226,19 +226,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient?                                                      DNSClient                       { get; }
+        public DNSClient?                                                      DNSClient                                 { get; }
 
 
 
         /// <summary>
         /// Our local IP port.
         /// </summary>
-        public IPPort                                                          LocalPort                       { get; private set; }
+        public IPPort                                                          LocalPort                                 { get; private set; }
 
         /// <summary>
         /// The IP Address to connect to.
         /// </summary>
-        public IIPAddress?                                                     RemoteIPAddress                 { get; protected set; }
+        public IIPAddress?                                                     RemoteIPAddress                           { get; protected set; }
 
 
         public Int32? Available
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="DNSClient">The DNS client to use.</param>
         public WebSocketClient(URL                                                             RemoteURL,
                                HTTPHostname?                                                   VirtualHostname              = null,
-                               String?                                                         Description                  = null,
+                               I18NString?                                                     Description                  = null,
                                Boolean?                                                        PreferIPv4                   = null,
                                RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
@@ -1226,7 +1226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         pingCounter++;
 
-                        var payload = pingCounter + ":" + Guid.NewGuid().ToString();
+                        var payload = $"{pingCounter}:{UUIDv7.Generate()}";
 
                         await SendWebSocketFrame(
                                   WebSocketFrame.Ping(
@@ -1239,7 +1239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   tokenSource.Token
                               );
 
-                        DebugX.Log(nameof(WebSocketClient) + ": Ping sent:     '" + payload + "'!");
+                        DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}': Ping sent:     '{payload}'!");
 
                     }
 

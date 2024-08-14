@@ -20,6 +20,7 @@
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -69,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(URL                                                        RemoteURL,
                            HTTPHostname?                                              VirtualHostname              = null,
-                           String?                                                    Description                  = null,
+                           I18NString?                                                Description                  = null,
                            Boolean?                                                   PreferIPv4                   = null,
                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                            LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
@@ -135,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPSClient(IIPAddress                                                 RemoteIPAddress,
                            IPPort?                                                    RemotePort                   = null,
                            HTTPHostname?                                              VirtualHostname              = null,
-                           String?                                                    Description                  = null,
+                           I18NString?                                                Description                  = null,
                            Boolean?                                                   PreferIPv4                   = null,
                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                            LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
@@ -199,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(IPSocket                                                   RemoteSocket,
                            HTTPHostname?                                              VirtualHostname              = null,
-                           String?                                                    Description                  = null,
+                           I18NString?                                                Description                  = null,
                            Boolean?                                                   PreferIPv4                   = null,
                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                            LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
@@ -265,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPSClient(HTTPHostname                                               RemoteHost,
                            IPPort?                                                    RemotePort                   = null,
                            HTTPHostname?                                              VirtualHostname              = null,
-                           String?                                                    Description                  = null,
+                           I18NString?                                                Description                  = null,
                            Boolean?                                                   PreferIPv4                   = null,
                            RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                            LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,

@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An optional description of this HTTP client.
         /// </summary>
-        public String?                                                    Description                   { get; set; }
+        public I18NString?                                                Description                   { get; set; }
 
         /// <summary>
         /// Disable any logging.
@@ -541,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         protected AHTTPClient(URL                                                        RemoteURL,
                               HTTPHostname?                                              VirtualHostname              = null,
-                              String?                                                    Description                  = null,
+                              I18NString?                                                Description                  = null,
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,

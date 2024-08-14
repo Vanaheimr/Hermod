@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="DNSClient">The DNS client to use.</param>
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
-                          String?                                                    Description                  = null,
+                          I18NString?                                                Description                  = null,
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
@@ -390,7 +390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
                           Boolean                                                    UseFakeURLPrefix             = true,
-                          String?                                                    Description                  = null,
+                          I18NString?                                                Description                  = null,
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,

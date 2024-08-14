@@ -1648,7 +1648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region Stop TCP listener
 
-                    DebugX.Log(nameof(AWebSocketServer), " Stopping server on " + IPSocket.IPAddress + ":" + IPSocket.Port);
+                    DebugX.Log($" Stopping HTTP Web Socket server '{Description.FirstText()}' on {IPSocket}");
 
                     tcpListener.Stop();
 
@@ -1712,6 +1712,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             cancellationTokenSource.Cancel();
+
+            foreach (var webSocketConnection in WebSocketConnections)
+                await webSocketConnection.Close(CancellationToken: cancellationTokenSource.Token);
 
             if (Wait)
             {
