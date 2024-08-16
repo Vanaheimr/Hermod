@@ -174,11 +174,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                    webSocketFrame,
                                                    cancellationToken);
 
-                    await SendOnTextMessageSent(timestamp,
-                                                connection,
-                                                eventTrackingId,
-                                                textMessage,
-                                                cancellationToken);
+                    //await SendOnTextMessageSent(timestamp,
+                    //                            connection,
+                    //                            eventTrackingId,
+                    //                            textMessage,
+                    //                            cancellationToken);
 
                 }
 
@@ -209,11 +209,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                    webSocketFrame,
                                                    cancellationToken);
 
-                    await SendOnBinaryMessageSent(timestamp,
-                                                  connection,
-                                                  eventTrackingId,
-                                                  binaryMessage,
-                                                  cancellationToken);
+                    //await SendOnBinaryMessageSent(timestamp,
+                    //                              connection,
+                    //                              eventTrackingId,
+                    //                              binaryMessage,
+                    //                              cancellationToken);
 
                 }
 

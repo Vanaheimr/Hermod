@@ -31,54 +31,180 @@ using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using System.Runtime.CompilerServices;
+using Org.BouncyCastle.Asn1.Ocsp;
+using System.Reflection;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+    public delegate Task  OnWebSocketClientFrameSentDelegate             (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          WebSocketFrame                     Frame,
+                                                                          SentStatus                         SentStatus,
+                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientTextMessageDelegate  (DateTime                    Timestamp,
-                                                                 WebSocketClient             Client,
-                                                                 WebSocketClientConnection   Connection,
-                                                                 WebSocketFrame              Frame,
-                                                                 EventTracking_Id            EventTrackingId,
-                                                                 String                      TextMessage,
-                                                                 CancellationToken           CancellationToken);
+    public delegate Task  OnWebSocketClientFrameReceivedDelegate         (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          WebSocketFrame                     Frame,
+                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientBinaryMessageDelegate(DateTime                    Timestamp,
-                                                                 WebSocketClient             Client,
-                                                                 WebSocketClientConnection   Connection,
-                                                                 WebSocketFrame              Frame,
-                                                                 EventTracking_Id            EventTrackingId,
-                                                                 Byte[]                      BinaryMessage,
-                                                                 CancellationToken           CancellationToken);
+
+    public delegate Task  OnWebSocketClientTextMessageSentDelegate       (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          String                             TextMessage,
+                                                                          SentStatus                         SentStatus,
+                                                                          CancellationToken                  CancellationToken);
+
+    public delegate Task  OnWebSocketClientTextMessageReceivedDelegate   (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          String                             TextMessage,
+                                                                          CancellationToken                  CancellationToken);
+
+
+    public delegate Task  OnWebSocketClientBinaryMessageSentDelegate     (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          Byte[]                             BinaryMessage,
+                                                                          SentStatus                         SentStatus,
+                                                                          CancellationToken                  CancellationToken);
+
+    public delegate Task  OnWebSocketClientBinaryMessageReceivedDelegate (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          Byte[]                             BinaryMessage,
+                                                                          CancellationToken                  CancellationToken);
+
+
+    public delegate Task  OnWebSocketClientPingMessageSentDelegate       (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          Byte[]                             PingMessage,
+                                                                          SentStatus                         SentStatus,
+                                                                          CancellationToken                  CancellationToken);
+
+    public delegate Task  OnWebSocketClientPingMessageReceivedDelegate   (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          Byte[]                             PingMessage,
+                                                                          CancellationToken                  CancellationToken);
+
+
+    public delegate Task  OnWebSocketClientPongMessageSentDelegate       (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          Byte[]                             PongMessage,
+                                                                          SentStatus                         SentStatus,
+                                                                          CancellationToken                  CancellationToken);
+
+    public delegate Task  OnWebSocketClientPongMessageReceivedDelegate   (DateTime                           Timestamp,
+                                                                          WebSocketClient                    Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          Byte[]                             PongMessage,
+                                                                          CancellationToken                  CancellationToken);
+
+
+    public delegate Task  OnWebSocketClientCloseMessageSentDelegate      (DateTime                           Timestamp,
+                                                                          IWebSocketClient                   Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          WebSocketFrame.ClosingStatusCode   StatusCode,
+                                                                          String?                            Reason,
+                                                                          SentStatus                         SentStatus,
+                                                                          CancellationToken                  CancellationToken);
+
+    public delegate Task  OnWebSocketClientCloseMessageReceivedDelegate  (DateTime                           Timestamp,
+                                                                          IWebSocketClient                   Client,
+                                                                          WebSocketClientConnection          Connection,
+                                                                          WebSocketFrame                     Frame,
+                                                                          EventTracking_Id                   EventTrackingId,
+                                                                          WebSocketFrame.ClosingStatusCode   StatusCode,
+                                                                          String?                            Reason,
+                                                                          CancellationToken                  CancellationToken);
+
 
 
     public interface IWebSocketClient : IHTTPClient
     {
 
-
         /// <summary>
         /// An event sent whenever a text message was sent.
         /// </summary>
-        event OnWebSocketClientTextMessageDelegate?     OnTextMessageSent;
+        event OnWebSocketClientTextMessageSentDelegate?         OnTextMessageSent;
 
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        event OnWebSocketClientTextMessageDelegate?     OnTextMessageReceived;
+        event OnWebSocketClientTextMessageReceivedDelegate?     OnTextMessageReceived;
 
 
         /// <summary>
         /// An event sent whenever a binary message was sent.
         /// </summary>
-        event OnWebSocketClientBinaryMessageDelegate?   OnBinaryMessageSent;
+        event OnWebSocketClientBinaryMessageSentDelegate?       OnBinaryMessageSent;
 
         /// <summary>
         /// An event sent whenever a binary message was received.
         /// </summary>
-        event OnWebSocketClientBinaryMessageDelegate?   OnBinaryMessageReceived;
+        event OnWebSocketClientBinaryMessageReceivedDelegate?   OnBinaryMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was sent.
+        /// </summary>
+        event OnWebSocketClientPingMessageSentDelegate?         OnPingMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was received.
+        /// </summary>
+        event OnWebSocketClientPingMessageReceivedDelegate?     OnPingMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was sent.
+        /// </summary>
+        event OnWebSocketClientPongMessageSentDelegate?         OnPongMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was received.
+        /// </summary>
+        event OnWebSocketClientPongMessageReceivedDelegate?     OnPongMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a HTTP Web Socket CLOSE frame was sent.
+        /// </summary>
+        event OnWebSocketClientCloseMessageSentDelegate?        OnCloseMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a HTTP Web Socket CLOSE frame was received.
+        /// </summary>
+        event OnWebSocketClientCloseMessageReceivedDelegate     OnCloseMessageReceived;
 
 
         new RemoteTLSServerCertificateValidationHandler<IWebSocketClient>? RemoteCertificateValidator { get; }
@@ -128,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly          CancellationTokenSource  networkingCancellationTokenSource;
         private readonly          CancellationToken        networkingCancellationToken;
-        private                   Thread                   networkingThread;
+        private                   Task                     networkingThread;
 
 
         protected WebSocketClientConnection webSocketClientConnection;
@@ -155,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public HTTPHostname?                                                   VirtualHostname                           { get; }
 
         /// <summary>
-        /// An optional description of this HTTP client.
+        /// An optional description of this HTTP Web Socket client.
         /// </summary>
         public I18NString?                                                     Description                               { get; set; }
 
@@ -290,51 +416,100 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
 
-        public IHTTPAuthentication?                 HTTPAuthentication              { get; }
+        public IHTTPAuthentication?                 HTTPAuthentication                   { get; }
 
 
         /// <summary>
         /// Disable all maintenance tasks.
         /// </summary>
-        public Boolean                              DisableMaintenanceTasks         { get; set; }
+        public Boolean                              DisableMaintenanceTasks              { get; set; }
 
         /// <summary>
         /// The maintenance interval.
         /// </summary>
-        public TimeSpan                             MaintenanceEvery                { get; }
+        public TimeSpan                             MaintenanceEvery                     { get; }
 
         /// <summary>
         /// Disable web socket pings.
         /// </summary>
-        public Boolean                              DisableWebSocketPings           { get; set; }
+        public Boolean                              DisableWebSocketPings                { get; set; }
 
         /// <summary>
         /// The web socket ping interval.
         /// </summary>
-        public TimeSpan                             WebSocketPingEvery              { get; }
+        public TimeSpan                             WebSocketPingEvery                   { get; }
 
 
-        public TimeSpan?                            SlowNetworkSimulationDelay      { get; set; }
+        public TimeSpan?                            SlowNetworkSimulationDelay           { get; set; }
 
 
-        public IEnumerable<String>                  SecWebSocketProtocols           { get; }
+        public IEnumerable<String>                  SecWebSocketProtocols                { get; }
 
         public Boolean                              CloseConnectionOnUnexpectedFrames    { get; set; } = false;
 
         /// <summary>
         /// The optional error message when this client closed the HTTP WebSocket connection.
         /// </summary>
-        public String?                              ClientCloseMessage              { get; private set; }
+        public String?                              ClientCloseMessage                   { get; private set; }
 
         #endregion
 
         #region Events
 
-        public event OnWebSocketClientTextMessageDelegate?    OnTextMessageSent;
-        public event OnWebSocketClientTextMessageDelegate?    OnTextMessageReceived;
+        /// <summary>
+        /// An event sent whenever a text message was sent.
+        /// </summary>
+        public event OnWebSocketClientTextMessageSentDelegate?         OnTextMessageSent;
 
-        public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageSent;
-        public event OnWebSocketClientBinaryMessageDelegate?  OnBinaryMessageReceived;
+        /// <summary>
+        /// An event sent whenever a text message was received.
+        /// </summary>
+        public event OnWebSocketClientTextMessageReceivedDelegate?     OnTextMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a binary message was sent.
+        /// </summary>
+        public event OnWebSocketClientBinaryMessageSentDelegate?       OnBinaryMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a binary message was received.
+        /// </summary>
+        public event OnWebSocketClientBinaryMessageReceivedDelegate?   OnBinaryMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was sent.
+        /// </summary>
+        public event OnWebSocketClientPingMessageSentDelegate?         OnPingMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was received.
+        /// </summary>
+        public event OnWebSocketClientPingMessageReceivedDelegate?     OnPingMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was sent.
+        /// </summary>
+        public event OnWebSocketClientPongMessageSentDelegate?         OnPongMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was received.
+        /// </summary>
+        public event OnWebSocketClientPongMessageReceivedDelegate?     OnPongMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a HTTP Web Socket CLOSE frame was sent.
+        /// </summary>
+        public event OnWebSocketClientCloseMessageSentDelegate?        OnCloseMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a HTTP Web Socket CLOSE frame was received.
+        /// </summary>
+        public event OnWebSocketClientCloseMessageReceivedDelegate     OnCloseMessageReceived;
+
 
         #region HTTPRequest-/ResponseLog
 
@@ -426,17 +601,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.DisableMaintenanceTasks            = DisableMaintenanceTasks;
             this.MaintenanceEvery                   = MaintenanceEvery        ?? DefaultMaintenanceEvery;
-            this.MaintenanceTimer                   = new Timer(DoMaintenanceSync,
-                                                                null,
-                                                                this.MaintenanceEvery,
-                                                                this.MaintenanceEvery);
+            this.MaintenanceTimer                   = new Timer(
+                                                          DoMaintenanceSync,
+                                                          null,
+                                                          this.MaintenanceEvery,
+                                                          this.MaintenanceEvery
+                                                      );
 
             this.DisableWebSocketPings              = DisableWebSocketPings;
             this.WebSocketPingEvery                 = WebSocketPingEvery      ?? DefaultWebSocketPingEvery;
-            this.WebSocketPingTimer                 = new Timer(DoWebSocketPingSync,
-                                                                null,
-                                                                this.WebSocketPingEvery,
-                                                                this.WebSocketPingEvery);
+            this.WebSocketPingTimer                 = new Timer(
+                                                          DoWebSocketPingSync,
+                                                          null,
+                                                          this.WebSocketPingEvery,
+                                                          this.WebSocketPingEvery
+                                                      );
 
             this.SlowNetworkSimulationDelay         = SlowNetworkSimulationDelay;
 
@@ -492,7 +671,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (networkingThread is null)
             {
 
-                networkingThread = new Thread(async () => {
+                networkingThread = Task.Run(async () => {
 
                     do
                     {
@@ -794,12 +973,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             #region Wait for HTTP response
 
                             var buffer  = new Byte[16 * 1024];
-                            var pos     = 0;
+                            var pos     = 0U;
 
                             do
                             {
 
-                                pos += HTTPStream.Read(buffer, pos, 2048);
+                                pos += (UInt32) HTTPStream.Read(buffer, (Int32) pos, 2048);
 
                                 if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
                                     throw new HTTPTimeoutException(sw.Elapsed);
@@ -872,11 +1051,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                         do
                                         {
 
-                                            var read = HTTPStream.Read(buffer2, 0, buffer2.Length);
+                                            var read = webSocketClientConnection.Read(buffer2, 0, buffer2.Length);
 
                                             if (read > 0)
                                             {
-                                                Array.Resize(ref buffer, pos+read);
+                                                Array.Resize(ref buffer, (Int32) (pos + read));
                                                 Array.Copy(buffer2, 0, buffer, pos, read);
                                                 pos += read;
                                             }
@@ -888,13 +1067,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                         } while (webSocketClientConnection.DataAvailable);
 
-                                        Array.Resize(ref buffer, pos);
+                                        Array.Resize(ref buffer, (Int32) pos);
 
                                         if (WebSocketFrame.TryParse(buffer,
                                                                     out var frame,
                                                                     out var frameLength,
-                                                                    out var errorResponse) &&
-                                            frame is not null)
+                                                                    out var errorResponse))
                                         {
 
                                             switch (frame.Opcode)
@@ -902,85 +1080,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region Text
 
-                                                case WebSocketFrame.Opcodes.Text: {
+                                                case WebSocketFrame.Opcodes.Text:
 
                                                     #region OnTextMessageReceived
 
-                                                    try
-                                                    {
-
-                                                            var onTextMessageReceived = OnTextMessageReceived;
-                                                            if (onTextMessageReceived is not null)
-                                                                await onTextMessageReceived.Invoke(Timestamp.Now,
-                                                                                                   this,
-                                                                                                   webSocketClientConnection,
-                                                                                                   frame,
-                                                                                                   EventTracking_Id.New,
-                                                                                                   frame.Payload.ToUTF8String(),
-                                                                                                   CancellationToken);
-
-                                                    }
-                                                    catch (Exception e)
-                                                    {
-                                                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageReceived));
-                                                    }
+                                                    await LogEvent(
+                                                              OnTextMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  frame.Payload.ToUTF8String(),
+                                                                  CancellationToken
+                                                              )
+                                                          );
 
                                                     #endregion
 
-                                                    await ProcessWebSocketTextFrame(Timestamp.Now,
-                                                                                    webSocketClientConnection,
-                                                                                    EventTracking_Id.New,
-                                                                                    frame.Payload.ToUTF8String(),
-                                                                                    CancellationToken);
+                                                    await ProcessWebSocketTextFrame(
+                                                              Timestamp.Now,
+                                                              webSocketClientConnection,
+                                                              EventTracking_Id.New,
+                                                              frame.Payload.ToUTF8String(),
+                                                              CancellationToken
+                                                          );
 
-                                                }
                                                 break;
 
                                                 #endregion
 
                                                 #region Binary
 
-                                                case WebSocketFrame.Opcodes.Binary: {
+                                                case WebSocketFrame.Opcodes.Binary:
 
                                                     #region OnBinaryMessageReceived
 
-                                                    try
-                                                    {
-
-                                                        var onBinaryMessageReceived = OnBinaryMessageReceived;
-                                                        if (onBinaryMessageReceived is not null)
-                                                            await onBinaryMessageReceived.Invoke(Timestamp.Now,
-                                                                                                 this,
-                                                                                                 webSocketClientConnection,
-                                                                                                 frame,
-                                                                                                 EventTracking_Id.New,
-                                                                                                 frame.Payload,
-                                                                                                 CancellationToken);
-
-                                                    }
-                                                    catch (Exception e)
-                                                    {
-                                                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageReceived));
-                                                    }
+                                                    await LogEvent(
+                                                              OnBinaryMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  frame.Payload,
+                                                                  CancellationToken
+                                                              )
+                                                          );
 
                                                     #endregion
 
-                                                    await ProcessWebSocketBinaryFrame(Timestamp.Now,
-                                                                                      webSocketClientConnection,
-                                                                                      EventTracking_Id.New,
-                                                                                      frame.Payload,
-                                                                                      CancellationToken);
+                                                    await ProcessWebSocketBinaryFrame(
+                                                              Timestamp.Now,
+                                                              webSocketClientConnection,
+                                                              EventTracking_Id.New,
+                                                              frame.Payload,
+                                                              CancellationToken
+                                                          );
 
-                                                }
                                                 break;
 
                                                 #endregion
 
                                                 #region Ping
 
-                                                case WebSocketFrame.Opcodes.Ping: {
+                                                case WebSocketFrame.Opcodes.Ping:
 
-                                                    DebugX.Log($"{nameof(WebSocketClient)}[{Description}] Ping received: {frame.Payload.ToUTF8String()}");
+                                                    DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping received:   '{frame.Payload.ToUTF8String()}'");
+
+                                                    #region OnPingMessageReceived
+
+                                                    await LogEvent(
+                                                              OnPingMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  frame.Payload,
+                                                                  CancellationToken
+                                                              )
+                                                          );
+
+                                                    #endregion
 
                                                     await SendWebSocketFrame(
                                                               WebSocketFrame.Pong(
@@ -993,17 +1178,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               CancellationToken
                                                           );
 
-                                                }
                                                 break;
 
                                                 #endregion
 
                                                 #region Pong
 
-                                                case WebSocketFrame.Opcodes.Pong: {
-                                                    DebugX.Log($"{nameof(WebSocketClient)}[{Description}] Pong received: {frame.Payload.ToUTF8String()}");
-                                                    }
+                                                case WebSocketFrame.Opcodes.Pong:
+
+                                                    DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong received:   '{frame.Payload.ToUTF8String()}'");
+
+                                                    #region OnPongMessageReceived
+
+                                                    await LogEvent(
+                                                              OnPongMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  frame.Payload,
+                                                                  CancellationToken
+                                                              )
+                                                          );
+
+                                                    #endregion
+
                                                 break;
+
+                                                #endregion
+
+                                                #region Close
+
+                                                case WebSocketFrame.Opcodes.Close:
+
+                                                    #region OnCloseMessage
+
+                                                    await LogEvent(
+                                                              OnCloseMessageReceived,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  webSocketClientConnection,
+                                                                  frame,
+                                                                  EventTracking_Id.New,
+                                                                  frame.GetClosingStatusCode(),
+                                                                  frame.GetClosingReason(),
+                                                                  CancellationToken
+                                                              )
+                                                          );
+
+                                                    #endregion
+
+                                                    await webSocketClientConnection.Close(
+                                                              WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                          );
+
+                                                    break;
 
                                                 #endregion
 
@@ -1027,6 +1259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 var newBuffer = new Byte[(UInt64) buffer.Length - frameLength];
                                                 Array.Copy(buffer, (UInt32) frameLength, newBuffer, 0, newBuffer.Length);
                                                 buffer = newBuffer;
+                                                pos    = (UInt32) buffer.Length;
                                             }
                                             else
                                                 buffer = null;
@@ -1165,9 +1398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
 
-                });
-
-                networkingThread.Start();
+                }, CancellationToken);
 
                 while (waitingForHTTPResponse is null) {
                     Thread.Sleep(10);
@@ -1226,11 +1457,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         pingCounter++;
 
-                        var payload = $"{pingCounter}:{UUIDv7.Generate()}";
-
                         await SendWebSocketFrame(
                                   WebSocketFrame.Ping(
-                                      payload.ToUTF8Bytes(),
+                                      $"{pingCounter}:{Description?.FirstText() ?? RemoteURL.ToString()}:{UUIDv7.Generate()}".ToUTF8Bytes(),
                                       WebSocketFrame.Fin.Final,
                                       WebSocketFrame.MaskStatus.On,
                                       RandomExtensions.RandomBytes(4)
@@ -1238,8 +1467,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   EventTracking_Id.New,
                                   tokenSource.Token
                               );
-
-                        DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}': Ping sent:     '{payload}'!");
 
                     }
 
@@ -1330,7 +1557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send a web socket text frame
         /// </summary>
         /// <param name="Text">The text to send.</param>
-        public Task<SendStatus> SendTextMessage(String             Text,
+        public Task<SentStatus> SendTextMessage(String             Text,
                                                 EventTracking_Id?  EventTrackingId     = null,
                                                 CancellationToken  CancellationToken   = default)
 
@@ -1353,7 +1580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Send a web socket binary frame
         /// </summary>
         /// <param name="Bytes">The array of bytes to send.</param>
-        public Task<SendStatus> SendBinaryMessage(Byte[]             Bytes,
+        public Task<SentStatus> SendBinaryMessage(Byte[]             Bytes,
                                                   EventTracking_Id?  EventTrackingId     = null,
                                                   CancellationToken  CancellationToken   = default)
 
@@ -1372,55 +1599,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region SendWebSocketFrame (WebSocketFrame, ...)
 
-        public async Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+        public async Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                                          EventTracking_Id?  EventTrackingId     = null,
                                                          CancellationToken  CancellationToken   = default)
         {
 
             var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
 
-            var sendStatus       = await webSocketClientConnection.SendWebSocketFrame(WebSocketFrame,
-                                                                                      CancellationToken);
+            var sentStatus       = await webSocketClientConnection.SendWebSocketFrame(
+                                             WebSocketFrame,
+                                             CancellationToken
+                                         );
 
             #region OnTextMessageSent
 
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
             {
 
-                try
-                {
+                //DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Text sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
 
-                    var logger = OnTextMessageSent;
-                    if (logger is not null)
-                    {
-                        try
-                        {
-
-                            await Task.WhenAll(logger.GetInvocationList().
-                                                   OfType<OnWebSocketClientTextMessageDelegate>().
-                                                   Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                 Timestamp.Now,
-                                                                                 this,
-                                                                                 webSocketClientConnection,
-                                                                                 WebSocketFrame,
-                                                                                 eventTrackingId,
-                                                                                 WebSocketFrame.Payload.ToUTF8String(),
-                                                                                 CancellationToken
-                                                                             )).
-                                                   ToArray());
-
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
-                        }
-                    }
-
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnTextMessageSent));
-                }
+                await LogEvent(
+                          OnTextMessageSent,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              webSocketClientConnection,
+                              WebSocketFrame,
+                              eventTrackingId,
+                              WebSocketFrame.Payload.ToUTF8String(),
+                              sentStatus,
+                              CancellationToken
+                          )
+                      );
 
             }
 
@@ -1431,38 +1641,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
             {
 
-                var logger = OnBinaryMessageSent;
-                if (logger is not null)
-                {
-                    try
-                    {
+                //DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Binary sent:     '{WebSocketFrame.Payload.ToHexString()}' => {sentStatus}");
 
-                        await Task.WhenAll(logger.GetInvocationList().
-                                               OfType<OnWebSocketClientBinaryMessageDelegate>().
-                                               Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                             Timestamp.Now,
-                                                                             this,
-                                                                             webSocketClientConnection,
-                                                                             WebSocketFrame,
-                                                                             eventTrackingId,
-                                                                             WebSocketFrame.Payload,
-                                                                             CancellationToken
-                                                                         )).
-                                               ToArray());
+                await LogEvent(
+                          OnBinaryMessageSent,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              webSocketClientConnection,
+                              WebSocketFrame,
+                              eventTrackingId,
+                              WebSocketFrame.Payload,
+                              sentStatus,
+                              CancellationToken
+                          )
+                      );
 
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.Log(e, nameof(WebSocketClient) + "." + nameof(OnBinaryMessageSent));
-                    }
-                }
+            }
+
+            #endregion
+
+            #region OnPingMessageSent
+
+            else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Ping)
+            {
+
+                DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+
+                await LogEvent(
+                          OnPingMessageSent,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              webSocketClientConnection,
+                              WebSocketFrame,
+                              eventTrackingId,
+                              WebSocketFrame.Payload,
+                              sentStatus,
+                              CancellationToken
+                          )
+                      );
+
+            }
+
+            #endregion
+
+            #region OnPongMessageSent
+
+            else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Pong)
+            {
+
+                DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+
+                await LogEvent(
+                          OnPongMessageSent,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              webSocketClientConnection,
+                              WebSocketFrame,
+                              eventTrackingId,
+                              WebSocketFrame.Payload,
+                              sentStatus,
+                              CancellationToken
+                          )
+                      );
+
+            }
+
+            #endregion
+
+            #region OnCloseMessageSent
+
+            else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Close)
+            {
+
+                DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Close sent: '{WebSocketFrame.GetClosingStatusCode()}', '{WebSocketFrame.GetClosingReason() ?? ""}' => {sentStatus}");
+
+                await LogEvent(
+                          OnCloseMessageSent,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              webSocketClientConnection,
+                              WebSocketFrame,
+                              eventTrackingId,
+                              WebSocketFrame.GetClosingStatusCode(),
+                              WebSocketFrame.GetClosingReason(),
+                              sentStatus,
+                              CancellationToken
+                          )
+                      );
 
             }
 
             #endregion
 
 
-            return sendStatus;
+            return sentStatus;
 
         }
 
@@ -1481,6 +1757,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 EventTracking_Id?                 EventTrackingId     = null,
                                 CancellationToken                 CancellationToken   = default)
         {
+
+            try
+            {
+                WebSocketPingTimer.Dispose();
+                MaintenanceTimer.  Dispose();
+            }
+            catch
+            { }
 
             try
             {
@@ -1543,6 +1827,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         }
 
         #endregion
+
+
+        #region (private) LogEvent(Logger, LogHandler, ...)
+
+        private async Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                               Func<TDelegate, Task>                              LogHandler,
+                                               [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
+                                               [CallerMemberName()]                       String  OCPPCommand   = "")
+
+            where TDelegate : Delegate
+
+        {
+            if (Logger is not null)
+            {
+                try
+                {
+
+                    await Task.WhenAll(
+                              Logger.GetInvocationList().
+                                     OfType<TDelegate>().
+                                     Select(LogHandler)
+                          );
+
+                }
+                catch (Exception e)
+                {
+                    await HandleErrors($"WebSocketClient: {OCPPCommand}.{EventName}", e);
+                }
+            }
+        }
+
+        #endregion
+
+        #region (private) HandleErrors(Caller, ExceptionOccured)
+
+        private Task HandleErrors(String     Caller,
+                                  Exception  ExceptionOccured)
+        {
+
+            DebugX.LogException(ExceptionOccured, Caller);
+
+            return Task.CompletedTask;
+
+        }
+
+        #endregion
+
 
         #region Dispose()
 

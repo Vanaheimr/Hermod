@@ -216,15 +216,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (private) Send     (Data,           CancellationToken = default)
+        #region Send     (Data,           CancellationToken = default)
 
         /// <summary>
         /// Send the given array of bytes.
         /// </summary>
         /// <param name="Data">The array of bytes to send.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        private async Task<SendStatus> Send(Byte[]             Data,
-                                            CancellationToken  CancellationToken = default)
+        public async Task<SentStatus> Send(Byte[]             Data,
+                                           CancellationToken  CancellationToken = default)
         {
 
             await socketWriteSemaphore.WaitAsync(CancellationToken);
@@ -260,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
-                return SendStatus.Success;
+                return SentStatus.Success;
 
             }
             catch (Exception e)
@@ -269,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (e.InnerException is SocketException socketException)
                 {
                     if (socketException.SocketErrorCode == SocketError.ConnectionReset)
-                        return SendStatus.FatalError;
+                        return SentStatus.FatalError;
                 }
 
                 //DebugX.LogException(e, "Sending data within web socket connection " + RemoteSocket);
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 socketWriteSemaphore.Release();
             }
 
-            return SendStatus.Error;
+            return SentStatus.Error;
 
         }
 
@@ -288,33 +288,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region SendText           (Text,           CancellationToken = default)
 
-        /// <summary>
-        /// Send the given plain text.
-        /// Do NOT use it to send web socket frames!
-        /// </summary>
-        /// <param name="Text">A text to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendText(String             Text,
-                                         CancellationToken  CancellationToken   = default)
+        ///// <summary>
+        ///// Send the given plain text.
+        ///// Do NOT use it to send web socket frames!
+        ///// </summary>
+        ///// <param name="Text">A text to send.</param>
+        ///// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        //public Task<SentStatus> SendText(String             Text,
+        //                                 CancellationToken  CancellationToken   = default)
 
-            => Send(Text.ToUTF8Bytes(),
-                    CancellationToken);
+        //    => Send(Text.ToUTF8Bytes(),
+        //            CancellationToken);
 
         #endregion
 
         #region SendBinary         (Data,           CancellationToken = default)
 
-        /// <summary>
-        /// Send the given plain array of bytes.
-        /// Do NOT use it to send web socket frames!
-        /// </summary>
-        /// <param name="Data">The array of bytes to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendBinary(Byte[]             Data,
-                                           CancellationToken  CancellationToken   = default)
+        ///// <summary>
+        ///// Send the given plain array of bytes.
+        ///// Do NOT use it to send web socket frames!
+        ///// </summary>
+        ///// <param name="Data">The array of bytes to send.</param>
+        ///// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
+        //public Task<SentStatus> SendBinary(Byte[]             Data,
+        //                                   CancellationToken  CancellationToken   = default)
 
-            => Send(Data,
-                    CancellationToken);
+        //    => Send(Data,
+        //            CancellationToken);
 
         #endregion
 
@@ -325,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="WebSocketFrame">A web socket frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+        public Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                                    CancellationToken  CancellationToken   = default)
 
             => Send(WebSocketFrame.ToByteArray(),

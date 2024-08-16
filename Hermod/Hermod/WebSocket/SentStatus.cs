@@ -18,7 +18,7 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-    public enum SendStatus
+    public enum SentStatus
     {
         Success,
         Error,

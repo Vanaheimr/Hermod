@@ -99,8 +99,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="SendText">A text to send.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        Task<SendStatus> SendText(String             SendText,
-                                  CancellationToken  CancellationToken   = default);
+        //Task<SentStatus> SendText(String             SendText,
+        //                          CancellationToken  CancellationToken   = default);
 
         #endregion
 
@@ -111,8 +111,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="Data">The array of bytes to send.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        Task<SendStatus> SendBinary(Byte[]             Data,
-                                    CancellationToken  CancellationToken   = default);
+        Task<SentStatus> Send(Byte[]             Data,
+                              CancellationToken  CancellationToken   = default);
 
         #endregion
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="WebSocketFrame">A web socket frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+        Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                             CancellationToken  CancellationToken   = default);
 
         #endregion

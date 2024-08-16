@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
 
                 return BitConverter.IsLittleEndian
-                           ? (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16(new[] { Frame.Payload[1], Frame.Payload[0] }, 0)
+                           ? (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16([ Frame.Payload[1], Frame.Payload[0] ], 0)
                            : (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16(Frame.Payload, 0);
 
             }
@@ -127,9 +127,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // 1000-2999: Reserved for definition by the WebSocket specification and IETF
                 // 3000-3999: Available for use by libraries and frameworks
                 // 4000-4999: Available for use by applications
-                return Encoding.UTF8.GetString(Frame.Payload,
-                                               2,
-                                               Frame.Payload.Length - 2);
+                return Encoding.UTF8.GetString(
+                           Frame.Payload,
+                           2,
+                           Frame.Payload.Length - 2
+                       );
 
             }
 
@@ -948,16 +950,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        public JObject ToJSON()
+        #region ToJSON(CustomWebSocketFrameSerializer = null, ...)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketFrameSerializer">A delegate to serialize WebSocketFrames.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketFrame>? CustomWebSocketFrameSerializer = null)
         {
 
             var json = JSONObject.Create(
-                           new JProperty("frame", ToString())
+
+                           new JProperty("opcode",    Opcode.ToString()),
+
+                           new JProperty("payload",   Opcode switch {
+                                                          Opcodes.Continuation  => Payload.ToHexString(),
+                                                          Opcodes.Text          => Payload.ToUTF8String(),
+                                                          Opcodes.Binary        => Payload.ToHexString(),
+                                                          Opcodes.Ping          => Payload.ToUTF8String(),
+                                                          Opcodes.Pong          => Payload.ToUTF8String(),
+                                                          _                     => null // also: Close
+                                                      }),
+                           new JProperty("length",    Payload.Length),
+
+                           Opcode == Opcodes.Close
+                               ? new JProperty("closingStatusCode",  this.GetClosingStatusCode().ToString())
+                               : null,
+
+                           Opcode == Opcodes.Close
+                               ? new JProperty("closingReason",      this.GetClosingReason())
+                               : null,
+
+                           new JProperty("FIN",       FIN.   ToString()),
+
+                           new JProperty("Rsv1",      Rsv1.  ToString()),
+                           new JProperty("Rsv2",      Rsv2.  ToString()),
+                           new JProperty("Rsv3",      Rsv3.  ToString())
+
                        );
 
-            return json;
+            return CustomWebSocketFrameSerializer is not null
+                       ? CustomWebSocketFrameSerializer(this, json)
+                       : json;
 
         }
+
+        #endregion
 
 
         #region (override) ToString()
@@ -968,12 +1006,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public override String ToString()
 
             => Opcode switch {
-                   Opcodes.Continuation  => $"Continuation '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
-                   Opcodes.Text          => $"Text '{Payload.ToUTF8String().SubstringMax(30)}' ({Payload.ToUTF8String().Length})",
-                   Opcodes.Binary        => $"Binary '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Continuation  => $"Continuation '{Payload.ToHexString().SubstringMax(50)}' ({Payload.Length})",
+                   Opcodes.Text          => $"Text '{Payload.ToUTF8String().SubstringMax(50)}' ({Payload.ToUTF8String().Length})",
+                   Opcodes.Binary        => $"Binary '{Payload.ToHexString().SubstringMax(50)}' ({Payload.Length})",
                    Opcodes.Close         => $"Close '{this.GetClosingStatusCode()}' '{this.GetClosingReason()}'",
-                   Opcodes.Ping          => $"Ping '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
-                   Opcodes.Pong          => $"Pong '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Ping          => $"Ping '{Payload.ToUTF8String().SubstringMax(50)}' ({Payload.Length})",
+                   Opcodes.Pong          => $"Pong '{Payload.ToUTF8String().SubstringMax(50)}' ({Payload.Length})",
                    _                     => $"Unknown web socket opcode '{Opcode}'!"
                };
 

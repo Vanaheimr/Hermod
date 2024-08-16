@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage, cancellationToken) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
                 textMessageRequests. Add(requestMessage);
                 return Task.CompletedTask;
             };
@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage, cancellationToken) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
                 textMessageRequests. Add(requestMessage);
                 return Task.CompletedTask;
             };

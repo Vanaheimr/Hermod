@@ -17,10 +17,11 @@
 
 #region Usings
 
+using System.Security.Cryptography.X509Certificates;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -60,106 +61,117 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever the HTTP web socket server started.
         /// </summary>
-        event OnServerStartedDelegate?                OnServerStarted;
+        event OnServerStartedDelegate?                           OnServerStarted;
 
 
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        event OnValidateTCPConnectionDelegate?        OnValidateTCPConnection;
+        event OnValidateTCPConnectionDelegate?                   OnValidateTCPConnection;
 
         /// <summary>
         /// An event sent whenever a new TCP connection was accepted.
         /// </summary>
-        event OnNewTCPConnectionDelegate?             OnNewTCPConnection;
+        event OnNewTCPConnectionDelegate?                        OnNewTCPConnection;
 
         /// <summary>
         /// An event sent whenever a TCP connection was closed.
         /// </summary>
-        event OnTCPConnectionClosedDelegate?          OnTCPConnectionClosed;
+        event OnTCPConnectionClosedDelegate?                     OnTCPConnectionClosed;
 
 
         /// <summary>
         /// An event sent whenever a HTTP request was received.
         /// </summary>
-        event HTTPRequestLogDelegate?                 OnHTTPRequest;
+        event HTTPRequestLogDelegate?                            OnHTTPRequest;
 
         /// <summary>
         /// An event sent whenever the HTTP headers of a new web socket connection
         /// need to be validated or filtered by an upper layer application logic.
         /// </summary>
-        event OnValidateWebSocketConnectionDelegate?  OnValidateWebSocketConnection;
+        event OnValidateWebSocketConnectionDelegate?             OnValidateWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
         /// </summary>
-        event OnNewWebSocketConnectionDelegate?       OnNewWebSocketConnection;
+        event OnNewWebSocketConnectionDelegate?                  OnNewWebSocketConnection;
 
         /// <summary>
         /// An event sent whenever a reponse to a HTTP request was sent.
         /// </summary>
-        event HTTPResponseLogDelegate?                OnHTTPResponse;
+        event HTTPResponseLogDelegate?                           OnHTTPResponse;
 
 
         /// <summary>
         /// An event sent whenever a web socket frame was received.
         /// </summary>
-        event OnWebSocketFrameDelegate?               OnWebSocketFrameReceived;
+        event OnWebSocketFrameDelegate?                          OnWebSocketFrameReceived;
 
         /// <summary>
         /// An event sent whenever a web socket frame was sent.
         /// </summary>
-        event OnWebSocketFrameDelegate?               OnWebSocketFrameSent;
+        event OnWebSocketFrameDelegate?                          OnWebSocketFrameSent;
 
+
+        /// <summary>
+        /// An event sent whenever a text message was sent.
+        /// </summary>
+        event OnWebSocketServerTextMessageSentDelegate?          OnTextMessageSent;
 
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        event OnWebSocketTextMessageDelegate?         OnTextMessageReceived;
+        event OnWebSocketServerTextMessageReceivedDelegate?      OnTextMessageReceived;
+
 
         /// <summary>
-        /// An event sent whenever a web socket frame was sent.
+        /// An event sent whenever a binary message was sent.
         /// </summary>
-        event OnWebSocketTextMessageDelegate?         OnTextMessageSent;
-
+        event OnWebSocketServerBinaryMessageSentDelegate?        OnBinaryMessageSent;
 
         /// <summary>
         /// An event sent whenever a binary message was received.
         /// </summary>
-        event OnWebSocketBinaryMessageDelegate?       OnBinaryMessageReceived;
+        event OnWebSocketServerBinaryMessageReceivedDelegate?    OnBinaryMessageReceived;
 
-        /// <summary>
-        /// An event sent whenever a web socket frame was sent.
-        /// </summary>
-        event OnWebSocketBinaryMessageDelegate?       OnBinaryMessageSent;
-
-
-        /// <summary>
-        /// An event sent whenever a web socket ping frame was received.
-        /// </summary>
-        event OnWebSocketFrameDelegate?               OnPingMessageReceived;
 
         /// <summary>
         /// An event sent whenever a web socket ping frame was sent.
         /// </summary>
-        event OnWebSocketFrameDelegate?               OnPingMessageSent;
+        event OnWebSocketServerPingMessageSentDelegate?          OnPingMessageSent;
+
+        /// <summary>
+        /// An event sent whenever a web socket ping frame was received.
+        /// </summary>
+        event OnWebSocketServerPingMessageReceivedDelegate?      OnPingMessageReceived;
+
+
+        /// <summary>
+        /// An event sent whenever a web socket pong frame was sent.
+        /// </summary>
+        event OnWebSocketServerPongMessageSentDelegate?          OnPongMessageSent;
 
         /// <summary>
         /// An event sent whenever a web socket pong frame was received.
         /// </summary>
-        event OnWebSocketFrameDelegate?               OnPongMessageReceived;
+        event OnWebSocketServerPongMessageReceivedDelegate?      OnPongMessageReceived;
 
+
+        /// <summary>
+        /// An event sent whenever a web socket close frame was sent.
+        /// </summary>
+        event OnWebSocketServerCloseMessageSentDelegate?         OnCloseMessageSent;
 
         /// <summary>
         /// An event sent whenever a web socket close frame was received.
         /// </summary>
-        event OnCloseMessageReceivedDelegate?         OnCloseMessageReceived;
+        event OnWebSocketServerCloseMessageReceivedDelegate?     OnCloseMessageReceived;
 
 
         /// <summary>
         /// An event sent whenever the HTTP web socket server stopped.
         /// </summary>
-        event OnServerStoppedDelegate?                OnServerStopped;
+        event OnServerStoppedDelegate?                           OnServerStopped;
 
         #endregion
 
@@ -205,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="TextMessage">The text message to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the processing.</param>
-        Task<SendStatus> SendTextMessage   (WebSocketServerConnection  Connection,
+        Task<SentStatus> SendTextMessage   (WebSocketServerConnection  Connection,
                                             String                     TextMessage,
                                             EventTracking_Id?          EventTrackingId     = null,
                                             CancellationToken          CancellationToken   = default);
@@ -217,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="BinaryMessage">The binary message to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the processing.</param>
-        Task<SendStatus> SendBinaryMessage (WebSocketServerConnection  Connection,
+        Task<SentStatus> SendBinaryMessage (WebSocketServerConnection  Connection,
                                             Byte[]                     BinaryMessage,
                                             EventTracking_Id?          EventTrackingId     = null,
                                             CancellationToken          CancellationToken   = default);
@@ -229,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="WebSocketFrame">The web socket frame to send.</param>
         /// <param name="EventTrackingId">An event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the processing.</param>
-        Task<SendStatus> SendWebSocketFrame(WebSocketServerConnection  Connection,
+        Task<SentStatus> SendWebSocketFrame(WebSocketServerConnection  Connection,
                                             WebSocketFrame             WebSocketFrame,
                                             EventTracking_Id?          EventTrackingId     = null,
                                             CancellationToken          CancellationToken   = default);
