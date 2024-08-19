@@ -632,21 +632,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        public virtual Task ProcessWebSocketTextFrame  (DateTime                   RequestTimestamp,
-                                                        WebSocketClientConnection  Connection,
-                                                        EventTracking_Id           EventTrackingId,
-                                                        String                     TextMessage,
-                                                        CancellationToken          CancellationToken)
-            => Task.CompletedTask;
-
-        public virtual Task ProcessWebSocketBinaryFrame(DateTime                   RequestTimestamp,
-                                                        WebSocketClientConnection  WebSocketConnection,
-                                                        EventTracking_Id           EventTrackingId,
-                                                        Byte[]                     BinaryMessage,
-                                                        CancellationToken          CancellationToken)
-            => Task.CompletedTask;
-
-
         #region Connect(EventTrackingId = null, RequestTimeout = null, MaxNumberOfRetries = 0)
 
         /// <summary>
@@ -938,22 +923,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             #region Call the optional HTTP request log delegate
 
-                            try
-                            {
-
-                                if (RequestLogDelegate is not null)
-                                    await Task.WhenAll(RequestLogDelegate.GetInvocationList().
-                                                       Cast<ClientRequestLogHandler>().
-                                                       Select(e => e(Timestamp.Now,
-                                                                     this,
-                                                                     httpRequest))).
-                                                       ConfigureAwait(false);
-
-                            }
-                            catch (Exception e)
-                            {
-                                DebugX.Log(e, nameof(HTTPClient) + "." + nameof(RequestLogDelegate));
-                            }
+                            await LogEvent(
+                                      RequestLogDelegate,
+                                      loggingDelegate => loggingDelegate.Invoke(
+                                          Timestamp.Now,
+                                          this,
+                                          httpRequest
+                                      )
+                                  );
 
                             #endregion
 
@@ -989,9 +966,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             var responseData  = buffer.ToUTF8String(pos);
                             var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
-                            httpResponse      = HTTPResponse.Parse(lines.AggregateWith(Environment.NewLine),
-                                                                   Array.Empty<byte>(),
-                                                                   httpRequest);
+                            httpResponse      = HTTPResponse.Parse(
+                                                    lines.AggregateWith(Environment.NewLine),
+                                                    [],
+                                                    httpRequest
+                                                );
 
                             // HTTP/1.1 101 Switching Protocols
                             // Upgrade:                 websocket
@@ -1082,8 +1061,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Text:
 
-                                                    #region OnTextMessageReceived
-
                                                     await LogEvent(
                                                               OnTextMessageReceived,
                                                               loggingDelegate => loggingDelegate.Invoke(
@@ -1097,16 +1074,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               )
                                                           );
 
-                                                    #endregion
-
-                                                    await ProcessWebSocketTextFrame(
-                                                              Timestamp.Now,
-                                                              webSocketClientConnection,
-                                                              EventTracking_Id.New,
-                                                              frame.Payload.ToUTF8String(),
-                                                              CancellationToken
-                                                          );
-
                                                 break;
 
                                                 #endregion
@@ -1114,8 +1081,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 #region Binary
 
                                                 case WebSocketFrame.Opcodes.Binary:
-
-                                                    #region OnBinaryMessageReceived
 
                                                     await LogEvent(
                                                               OnBinaryMessageReceived,
@@ -1128,16 +1093,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                   frame.Payload,
                                                                   CancellationToken
                                                               )
-                                                          );
-
-                                                    #endregion
-
-                                                    await ProcessWebSocketBinaryFrame(
-                                                              Timestamp.Now,
-                                                              webSocketClientConnection,
-                                                              EventTracking_Id.New,
-                                                              frame.Payload,
-                                                              CancellationToken
                                                           );
 
                                                 break;
@@ -1167,18 +1122,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     #endregion
 
-                                                    await SendWebSocketFrame(
-                                                              WebSocketFrame.Pong(
-                                                                  frame.Payload,
-                                                                  WebSocketFrame.Fin.Final,
-                                                                  WebSocketFrame.MaskStatus.On,
-                                                                  RandomExtensions.RandomBytes(4)
-                                                              ),
-                                                              EventTracking_Id.New,
-                                                              CancellationToken
-                                                          );
+                                                    #region Send Pong
 
-                                                break;
+                                                    var sentStatus = await SendWebSocketFrame(
+                                                                               WebSocketFrame.Pong(
+                                                                                   frame.Payload,
+                                                                                   WebSocketFrame.Fin.Final,
+                                                                                   WebSocketFrame.MaskStatus.On,
+                                                                                   RandomExtensions.RandomBytes(4)
+                                                                               ),
+                                                                               EventTracking_Id.New,
+                                                                               CancellationToken
+                                                                           );
+
+                                                    if (sentStatus == SentStatus.Success)
+                                                    { }
+                                                    else if (sentStatus == SentStatus.FatalError)
+                                                    {
+                                                        await webSocketClientConnection.Close(
+                                                                  WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                              );
+                                                    }
+                                                    else
+                                                        DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' sending a CLOSE frame failed!");
+
+                                                    #endregion
+
+                                                    break;
 
                                                 #endregion
 
@@ -1213,8 +1183,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Close:
 
-                                                    #region OnCloseMessage
-
                                                     await LogEvent(
                                                               OnCloseMessageReceived,
                                                               loggingDelegate => loggingDelegate.Invoke(
@@ -1229,8 +1197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               )
                                                           );
 
-                                                    #endregion
-
+                                                    // The close handshake demands that we send a close frame back!
                                                     await webSocketClientConnection.Close(
                                                               WebSocketFrame.ClosingStatusCode.NormalClosure
                                                           );
