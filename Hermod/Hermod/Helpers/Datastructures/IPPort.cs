@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Returns a numeric representation of an IP port.
         /// </summary>
         public UInt16 ToUInt16()
-            =>InternalId;
+            => InternalId;
 
         #endregion
 

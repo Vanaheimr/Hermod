@@ -165,6 +165,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public TimeSpan                                                        WebSocketPingEvery            { get; set; }
 
+
+        public UInt64?                                                         MaxTextMessageSize            { get; }
+
+        public UInt64?                                                         MaxBinaryMessageSize          { get; }
+
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
         /// This is intended for debugging other web socket stacks.

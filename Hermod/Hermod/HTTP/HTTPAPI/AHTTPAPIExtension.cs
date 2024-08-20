@@ -35,12 +35,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     {
 
-        #region Data
-
-
-
-        #endregion
-
         #region Properties
 
         /// <summary>

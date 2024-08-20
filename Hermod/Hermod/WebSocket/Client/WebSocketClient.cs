@@ -40,6 +40,8 @@ using System.Reflection;
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
+    #region Delegates
+
     public delegate Task  OnWebSocketClientFrameSentDelegate             (DateTime                           Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
@@ -147,6 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           String?                            Reason,
                                                                           CancellationToken                  CancellationToken);
 
+    #endregion
 
 
     public interface IWebSocketClient : IHTTPClient
@@ -283,7 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An optional description of this HTTP Web Socket client.
         /// </summary>
-        public I18NString?                                                     Description                               { get; set; }
+        public I18NString                                                      Description                               { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -370,8 +373,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Int32? Available
                     => TCPSocket?.Available;
 
-        public Boolean? Connected
-            => TCPSocket?.Connected;
+        public Boolean Connected
+            => TCPSocket?.Connected ?? false;
 
         [DisallowNull]
         public LingerOption? LingerState
@@ -583,7 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             this.RemoteURL                          = RemoteURL;
             this.VirtualHostname                    = VirtualHostname;
-            this.Description                        = Description;
+            this.Description                        = Description             ?? I18NString.Empty;
             this.RemoteCertificateValidator         = RemoteCertificateValidator;
             this.LocalCertificateSelector           = LocalCertificateSelector;
             this.ClientCert                         = ClientCert;

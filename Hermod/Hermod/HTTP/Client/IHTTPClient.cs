@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An optional description of this CPO client.
         /// </summary>
-        I18NString?                                                Description                   { get; set; }
+        I18NString                                                 Description                   { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.

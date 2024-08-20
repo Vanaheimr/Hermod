@@ -5348,7 +5348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                         ? HTTPStatusCode.Created
                                                                         : HTTPStatusCode.BadRequest;
 
-                                  responseBuilder.Content         = results.ToJSON(addUserResult => JSONProperties.Create(
+                                  responseBuilder.Content         = results.ToJSON(addUserResult => JSONProperties.FilterNulls(
 
                                                                                                         userDetails
                                                                                                             ? new JProperty("user",           addUserResult.Entity!.   ToJSON(true))
