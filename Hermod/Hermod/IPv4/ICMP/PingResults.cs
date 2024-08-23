@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -102,8 +98,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="Timeout">The common timeout of all pings.</param>
         /// <param name="Runtime">The overall runtime of all pings.</param>
         public PingResults(IEnumerable<PingResult>  PingResults,
-                            TimeSpan                 Timeout,
-                            TimeSpan                 Runtime)
+                           TimeSpan                 Timeout,
+                           TimeSpan                 Runtime)
         {
 
             var goodResults       = PingResults.Where(failure => failure.Error == ICMPErrors.Success).ToArray();
