@@ -40,6 +40,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         URL                                                        RemoteURL                     { get; }
 
         /// <summary>
+        /// The IP Address to connect to.
+        /// </summary>
+        IIPAddress?                                                RemoteIPAddress               { get; }
+
+        /// <summary>
         /// An optional HTTP virtual hostname.
         /// </summary>
         HTTPHostname?                                              VirtualHostname               { get; }
@@ -109,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         //int Available { get; }
         //X509Certificate ClientCert { get; }
-        //bool Connected { get; }
+        Boolean Connected { get; }
 
         //LingerOption LingerState { get; set; }
         //LocalCertificateSelectionHandler LocalCertificateSelector { get; }

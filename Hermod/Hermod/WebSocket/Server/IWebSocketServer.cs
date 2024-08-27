@@ -22,6 +22,8 @@ using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Collections.Concurrent;
 
 #endregion
 
@@ -36,6 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Properties
 
+        /// <summary>
+        /// The optional description of this HTTP Web Socket server.
+        /// </summary>
+        I18NString                              Description                     { get; set; }
         Boolean                                 DisableWebSocketPings           { get; set; }
         DNSClient?                              DNSClient                       { get; }
         String                                  HTTPServiceName                 { get; }
@@ -51,8 +57,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         IEnumerable<WebSocketServerConnection>  WebSocketConnections            { get; }
         TimeSpan                                WebSocketPingEvery              { get; set; }
 
+        ConcurrentDictionary<String, String?>   ClientLogins                    { get; }
+        Boolean                                 RequireAuthentication           { get; }
+
         List<X509Certificate2>                  TrustedClientCertificates       { get; }
         List<X509Certificate2>                  TrustedCertificatAuthorities    { get; }
+
+        UInt64?                                 MaxTextMessageSize              { get; }
+
+        UInt64?                                 MaxBinaryMessageSize            { get; }
 
         #endregion
 
@@ -247,6 +260,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                             CancellationToken          CancellationToken   = default);
 
         #endregion
+
+
+
+
+        #region AddOrUpdateHTTPBasicAuth(NetworkingNodeId, Password)
+
+        /// <summary>
+        /// Add the given HTTP Basic Authentication password for the given networking node.
+        /// </summary>
+        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
+        /// <param name="Password">The password of the charging station.</param>
+        HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String NetworkingNodeId,
+                                                         String Password);
+
+        #endregion
+
+        #region RemoveHTTPBasicAuth     (NetworkingNodeId)
+
+        /// <summary>
+        /// Remove the given HTTP Basic Authentication for the given networking node.
+        /// </summary>
+        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
+        Boolean RemoveHTTPBasicAuth(String NetworkingNodeId);
+
+        #endregion
+
 
 
         /// <summary>

@@ -30,6 +30,8 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using Org.BouncyCastle.Asn1.Ocsp;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -109,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public String                                                          HTTPServiceName                 { get; }
 
         /// <summary>
-        /// The optional description of this HTTP Web Socket service.
+        /// The optional description of this HTTP Web Socket server.
         /// </summary>
         public I18NString                                                      Description                     { get; set; }
 
@@ -176,6 +178,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public TimeSpan?                                                       SlowNetworkSimulationDelay    { get; set; }
 
+
+        /// <summary>
+        /// Logins and passwords for HTTP Basic Authentication.
+        /// </summary>
+        public ConcurrentDictionary<String , String?>                          ClientLogins                  { get; } = [];
+
+
+        public Boolean                                                         RequireAuthentication         { get; }
 
         /// <summary>
         /// An optional DNS client to use.
@@ -345,6 +355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 String?                                                         HTTPServiceName              = null,
                                 I18NString?                                                     Description                  = null,
 
+                                Boolean?                                                        RequireAuthentication        = true,
                                 IEnumerable<String>?                                            SecWebSocketProtocols        = null,
                                 Boolean                                                         DisableWebSocketPings        = false,
                                 TimeSpan?                                                       WebSocketPingEvery           = null,
@@ -374,6 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
@@ -434,6 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 String?                                                         HTTPServiceName              = null,
                                 I18NString?                                                     Description                  = null,
 
+                                Boolean?                                                        RequireAuthentication        = true,
                                 IEnumerable<String>?                                            SecWebSocketProtocols        = null,
                                 Boolean                                                         DisableWebSocketPings        = false,
                                 TimeSpan?                                                       WebSocketPingEvery           = null,
@@ -464,6 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.ServerThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
             this.ServerThreadIsBackground    = ServerThreadIsBackground   ?? false;
 
+            this.RequireAuthentication       = RequireAuthentication      ?? true;
             this.SecWebSocketProtocols       = SecWebSocketProtocols is not null
                                                    ? new HashSet<String>(SecWebSocketProtocols)
                                                    : [];
@@ -764,6 +778,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+        #region AddOrUpdateHTTPBasicAuth(NetworkingNodeId, Password)
+
+        /// <summary>
+        /// Add the given HTTP Basic Authentication password for the given networking node.
+        /// </summary>
+        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
+        /// <param name="Password">The password of the charging station.</param>
+        public HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String NetworkingNodeId,
+                                                                String Password)
+        {
+
+            ClientLogins.AddOrUpdate(
+                             NetworkingNodeId,
+                             Password,
+                             (chargingStationId, password) => Password
+                         );
+
+            return HTTPBasicAuthentication.Create(
+                       NetworkingNodeId.ToString(),
+                       Password
+                   );
+
+        }
+
+        #endregion
+
+        #region RemoveHTTPBasicAuth     (NetworkingNodeId)
+
+        /// <summary>
+        /// Remove the given HTTP Basic Authentication for the given networking node.
+        /// </summary>
+        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
+        public Boolean RemoveHTTPBasicAuth(String NetworkingNodeId)
+        {
+
+            if (ClientLogins.ContainsKey(NetworkingNodeId))
+                return ClientLogins.TryRemove(NetworkingNodeId, out _);
+
+            return true;
+
+        }
+
+        #endregion
+
+
+
 
         #region Start()
 
@@ -801,28 +861,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region Send OnServerStarted event
 
-                    var onServerStarted = OnServerStarted;
-                    if (onServerStarted is not null)
-                    {
-                        try
-                        {
-
-                            await Task.WhenAll(onServerStarted.GetInvocationList().
-                                                   OfType <OnServerStartedDelegate>().
-                                                   Select (loggingDelegate => loggingDelegate.Invoke(
-                                                                                  Timestamp.Now,
-                                                                                  this,
-                                                                                  EventTracking_Id.New,
-                                                                                  token
-                                                                              )).
-                                                   ToArray());
-
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
-                        }
-                    }
+                    await LogEvent(
+                              OnServerStarted,
+                              loggingDelegate => loggingDelegate.Invoke(
+                                  Timestamp.Now,
+                                  this,
+                                  EventTracking_Id.New,
+                                  token
+                              )
+                          );
 
                     #endregion
 
@@ -1136,48 +1183,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 if (httpMethod == "GET ")
                                                 {
 
+                                                    #region Parse HTTP request...
+
                                                     var sharedSubprotocols = Array.Empty<String>();
 
-                                                    #region Invalid HTTP request...
+                                                    // GET / HTTP/1.1
+                                                    // Host:                    127.0.0.1:51693
+                                                    // Connection:              Upgrade
+                                                    // Upgrade:                 websocket
+                                                    // Sec-WebSocket-Key:       I7uShTZm0dkbf5TqbL7QGg==
+                                                    // Sec-WebSocket-Protocol:  ocpp2.0.1, ocpp2.1
+                                                    // Sec-WebSocket-Version:   13
+                                                    // Authorization:           Basic Z3c6Z3cyY3NtczFfMTIzNDU2Nzg=
+                                                    // X-OCPP-NetworkingMode:   OverlayNetwork
 
-                                                    // GET /websocket HTTP/1.1
-                                                    // Host:                     example.com:33033
-                                                    // Upgrade:                  websocket
-                                                    // Connection:               Upgrade
-                                                    // Sec-WebSocket-Key:        x3JJHMbDL1EzLkh9GBhXDw==
-                                                    // Sec-WebSocket-Protocol:   ocpp1.6, ocpp1.5
-                                                    // Sec-WebSocket-Version:    13
-                                                    if (!HTTPRequest.TryParse(bytes, out var httpRequest))
-                                                    {
+                                                    // GET / HTTP/1.1
+                                                    // Host:                    127.0.0.1:51535
+                                                    // Connection:              Upgrade
+                                                    // Upgrade:                 websocket
+                                                    // Sec-WebSocket-Key:       UxdM/tiYhE4N7VhSAwX84w==
+                                                    // Sec-WebSocket-Version:   13
+                                                    // Authorization:           Basic Z3c6Z3cyY3NtczJfMTIzNDU2Nzg=
+                                                    // X-OCPP-NetworkingMode:   OverlayNetwork
 
-                                                        httpResponse = new HTTPResponse.Builder() {
-                                                                           HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                                           Server          = HTTPServiceName,
-                                                                           Date            = Timestamp.Now,
-                                                                           Connection      = "close"
-                                                                       }.AsImmutable;
-
-                                                    }
-
-                                                    #endregion
-
-                                                    else
+                                                    if (HTTPRequest.TryParse(bytes, out var httpRequest))
                                                     {
 
                                                         webSocketConnection.HTTPRequest = httpRequest;
 
-                                                        #region OnHTTPRequest
+                                                        #region Log OnHTTPRequest
 
-                                                        var onHTTPRequest = OnHTTPRequest;
-                                                        if (onHTTPRequest is not null)
-                                                        {
-
-                                                            await onHTTPRequest(Timestamp.Now,
-                                                                                this,
-                                                                                httpRequest,
-                                                                                token2);
-
-                                                        }
+                                                        await LogEvent(
+                                                                  OnHTTPRequest,
+                                                                  loggingDelegate => loggingDelegate.Invoke(
+                                                                      Timestamp.Now,
+                                                                      this,
+                                                                      httpRequest,
+                                                                      token2
+                                                                  )
+                                                              );
 
                                                         #endregion
 
@@ -1187,77 +1231,85 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         if (onValidateWebSocketConnection is not null)
                                                         {
 
-                                                            httpResponse = await onValidateWebSocketConnection(Timestamp.Now,
-                                                                                                               this,
-                                                                                                               webSocketConnection,
-                                                                                                               EventTracking_Id.New,
-                                                                                                               token2);
+                                                            var httpResponseTasks = await Task.WhenAll(onValidateWebSocketConnection.GetInvocationList().
+                                                                                               Cast<OnValidateWebSocketConnectionDelegate>().
+                                                                                               Select(e => e(Timestamp.Now,
+                                                                                                             this,
+                                                                                                             webSocketConnection,
+                                                                                                             EventTracking_Id.New,
+                                                                                                             token2))).
+                                                                                               ConfigureAwait(false);
+
+                                                            httpResponse = httpResponseTasks.FirstOrDefault();
 
                                                         }
 
                                                         #endregion
 
-                                                        #region Validate HTTP web socket request
+                                                        #region In case of a successful request
 
-                                                        // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
-                                                        // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
-                                                        // 3. Compute SHA-1 and Base64 hash of the new value
-                                                        // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
-        #pragma warning disable SCS0006 // Weak hashing function.
-                                                        var swk             = webSocketConnection.HTTPRequest?.SecWebSocketKey;
-                                                        var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                                        var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
-                                                        sharedSubprotocols  = SecWebSocketProtocols.
-                                                                                   Intersect(httpRequest.SecWebSocketProtocol).
-                                                                                   OrderByDescending(protocol => protocol).
-                                                                                   ToArray();
-        #pragma warning restore SCS0006 // Weak hashing function.
+                                                        if (httpResponse is null)
+                                                        {
 
+                                                            // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                                                            // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                                                            // 3. Compute SHA-1 and Base64 hash of the new value
+                                                            // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+#pragma warning disable SCS0006 // Weak hashing function.
+                                                            var swk             = webSocketConnection.HTTPRequest?.SecWebSocketKey;
+                                                            var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                                            var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
+                                                            sharedSubprotocols  = SecWebSocketProtocols.
+                                                                                       Intersect(httpRequest.SecWebSocketProtocol).
+                                                                                       OrderByDescending(protocol => protocol).
+                                                                                       ToArray();
+#pragma warning restore SCS0006 // Weak hashing function.
 
-                                                        // HTTP/1.1 101 Switching Protocols
-                                                        // Connection:              Upgrade
-                                                        // Upgrade:                 websocket
-                                                        // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-                                                        // Sec-WebSocket-Protocol:  ocpp1.6
-                                                        // Sec-WebSocket-Version:   13
-                                                        httpResponse ??= new HTTPResponse.Builder(httpRequest) {
-                                                                             HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
-                                                                             Server                = HTTPServiceName,
-                                                                             Connection            = "Upgrade",
-                                                                             Upgrade               = "websocket",
-                                                                             SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
-                                                                             SecWebSocketProtocol  = sharedSubprotocols,
-                                                                             SecWebSocketVersion   = "13"
-                                                                         }.AsImmutable;
+                                                            // HTTP/1.1 101 Switching Protocols
+                                                            // Connection:              Upgrade
+                                                            // Upgrade:                 websocket
+                                                            // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+                                                            // Sec-WebSocket-Protocol:  ocpp1.6
+                                                            // Sec-WebSocket-Version:   13
+                                                            httpResponse        = new HTTPResponse.Builder(httpRequest) {
+                                                                                      HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
+                                                                                      Server                = HTTPServiceName,
+                                                                                      Connection            = "Upgrade",
+                                                                                      Upgrade               = "websocket",
+                                                                                      SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
+                                                                                      SecWebSocketProtocol  = sharedSubprotocols,
+                                                                                      SecWebSocketVersion   = "13"
+                                                                                  }.AsImmutable;
+
+                                                        }
 
                                                         #endregion
 
                                                     }
+
+                                                    httpResponse ??= new HTTPResponse.Builder() {
+                                                                         HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                                                         Server          = HTTPServiceName,
+                                                                         Date            = Timestamp.Now,
+                                                                         Connection      = "close"
+                                                                     }.AsImmutable;
+
+                                                    #endregion
 
                                                     #region Send HTTP response
 
                                                     var success = await webSocketConnection.Send($"{httpResponse.EntirePDU}\r\n\r\n".ToUTF8Bytes());
 
-                                                    if (success == SentStatus.Success)
-                                                    {
-
-                                                        #region OnHTTPResponse
-
-                                                        var onHTTPResponse = OnHTTPResponse;
-                                                        if (onHTTPResponse is not null)
-                                                        {
-
-                                                            await onHTTPResponse(Timestamp.Now,
-                                                                                 this,
-                                                                                 httpRequest,
-                                                                                 httpResponse,
-                                                                                 token2);
-
-                                                        }
-
-                                                        #endregion
-
-                                                    }
+                                                    await LogEvent(
+                                                              OnHTTPResponse,
+                                                              loggingDelegate => loggingDelegate.Invoke(
+                                                                  Timestamp.Now,
+                                                                  this,
+                                                                  httpRequest,
+                                                                  httpResponse,
+                                                                  token2
+                                                              )
+                                                          );
 
                                                     #endregion
 
@@ -1274,29 +1326,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #region Send OnNewWebSocketConnection event
 
-                                                        try
-                                                        {
-
-                                                            var OnNewWebSocketConnectionLocal = OnNewWebSocketConnection;
-                                                            if (OnNewWebSocketConnectionLocal is not null)
-                                                            {
-
-                                                                var responseTask = OnNewWebSocketConnectionLocal(Timestamp.Now,
-                                                                                                                 this,
-                                                                                                                 webSocketConnection,
-                                                                                                                 sharedSubprotocols,
-                                                                                                                 EventTracking_Id.New,
-                                                                                                                 token2);
-
-                                                                responseTask.Wait(TimeSpan.FromSeconds(10));
-
-                                                            }
-
-                                                        }
-                                                        catch (Exception e)
-                                                        {
-                                                            DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnNewWebSocketConnection));
-                                                        }
+                                                        await LogEvent(
+                                                                  OnNewWebSocketConnection,
+                                                                  loggingDelegate => loggingDelegate.Invoke(
+                                                                      Timestamp.Now,
+                                                                      this,
+                                                                      webSocketConnection,
+                                                                      sharedSubprotocols,
+                                                                      EventTracking_Id.New,
+                                                                      token2
+                                                                  )
+                                                              );
 
                                                         #endregion
 
@@ -1550,21 +1590,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                             #region OnTCPConnectionClosed
 
-                                            try
-                                            {
-
-                                                OnTCPConnectionClosed?.Invoke(Timestamp.Now,
-                                                                              this,
-                                                                              webSocketConnection,
-                                                                              EventTracking_Id.New,
-                                                                              "!!!",
-                                                                              token2);
-
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnTCPConnectionClosed));
-                                            }
+                                            await LogEvent(
+                                                      OnTCPConnectionClosed,
+                                                      loggingDelegate => loggingDelegate.Invoke(
+                                                          Timestamp.Now,
+                                                          this,
+                                                          webSocketConnection,
+                                                          EventTracking_Id.New,
+                                                          "closed!",
+                                                          token2
+                                                      )
+                                                  );
 
                                             #endregion
 
@@ -1615,29 +1651,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region Send OnServerStopped event
 
-                    var onServerStopped = OnServerStopped;
-                    if (onServerStopped is not null)
-                    {
-                        try
-                        {
-
-                            await Task.WhenAll(onServerStopped.GetInvocationList().
-                                                   OfType <OnServerStoppedDelegate>().
-                                                   Select (loggingDelegate => loggingDelegate.Invoke(
-                                                                                  Timestamp.Now,
-                                                                                  this,
-                                                                                  EventTracking_Id.New,
-                                                                                  "!!!",
-                                                                                  token
-                                                                              )).
-                                                   ToArray());
-
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
-                        }
-                    }
+                    await LogEvent(
+                              OnServerStopped,
+                              loggingDelegate => loggingDelegate.Invoke(
+                                  Timestamp.Now,
+                                  this,
+                                  EventTracking_Id.New,
+                                  "HTTP Web Socket Server stopped!",
+                                  token
+                              )
+                          );
 
                     #endregion
 

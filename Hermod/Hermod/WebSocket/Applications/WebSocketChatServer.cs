@@ -72,6 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                    String?                                                         HTTPServiceName              = null,
                                    I18NString?                                                     Description                  = null,
 
+                                   Boolean?                                                        RequireAuthentication        = true,
                                    Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
                                    RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator   = null,
                                    LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
@@ -99,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
                    DisableWebSocketPings,
                    WebSocketPingEvery,

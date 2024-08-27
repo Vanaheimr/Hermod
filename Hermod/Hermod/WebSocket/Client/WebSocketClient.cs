@@ -32,8 +32,6 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using System.Runtime.CompilerServices;
-using Org.BouncyCastle.Asn1.Ocsp;
-using System.Reflection;
 
 #endregion
 
@@ -211,6 +209,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         new RemoteTLSServerCertificateValidationHandler<IWebSocketClient>? RemoteCertificateValidator { get; }
+
+
+        IEnumerable<String> SecWebSocketProtocols { get; }
+        Boolean DisableWebSocketPings { get; }
+        TimeSpan WebSocketPingEvery { get; }
+
+        TimeSpan? SlowNetworkSimulationDelay { get; }
 
     }
 
@@ -511,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a HTTP Web Socket CLOSE frame was received.
         /// </summary>
-        public event OnWebSocketClientCloseMessageReceivedDelegate     OnCloseMessageReceived;
+        public event OnWebSocketClientCloseMessageReceivedDelegate?    OnCloseMessageReceived;
 
 
         #region HTTPRequest-/ResponseLog

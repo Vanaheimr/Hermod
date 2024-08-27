@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// Optional cryptographic signatures of the notification message.
         /// </summary>
         [Mandatory]
-        public IEnumerable<Signature>        Signatures      { get; }
+        public IEnumerable<Signature23>      Signatures      { get; }
 
         #endregion
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                    NotificationMessageType       Type,
                                    JObject                       Data,
                                    IEnumerable<Organization_Id>  Owners,
-                                   IEnumerable<Signature>?      Signatures    = null)
+                                   IEnumerable<Signature23>?     Signatures    = null)
 
             : this(NotificationMessage_Id.Random(),
                    Timestamp,
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                    NotificationMessageType       Type,
                                    JObject                       Data,
                                    IEnumerable<Organization_Id>  Owners,
-                                   IEnumerable<Signature>?       Signatures   = null,
+                                   IEnumerable<Signature23>?     Signatures   = null,
 
                                    JObject?                      CustomData   = default,
                                    String?                       DataSource   = default,
@@ -170,8 +170,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             this.Timestamp     = Timestamp;
             this.Type          = Type;
             this.Data          = Data;
-            this.Owners        = Owners == null ? new Organization_Id[0] : Owners;
-            this.Signatures    = Signatures    ?? new Signature[0];
+            this.Owners        = Owners is null ? [] : Owners;
+            this.Signatures    = Signatures    ?? [];
 
         }
 
@@ -710,7 +710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             /// Optional cryptographic signatures of the notification message.
             /// </summary>
             [Mandatory]
-            public IEnumerable<Signature>        Signatures      { get; }
+            public IEnumerable<Signature23>      Signatures      { get; }
 
             #endregion
 
@@ -724,7 +724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                            NotificationMessageType?       Type              = null,
                            JObject?                       Data              = null,
                            IEnumerable<Organization_Id>?  Owners            = null,
-                           IEnumerable<Signature>?        Signatures        = null,
+                           IEnumerable<Signature23>?      Signatures        = null,
 
                            JObject?                       CustomData        = default,
                            String?                        DataSource        = default,
@@ -744,7 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 this.Type          = Type;
                 this.Data          = Data;
                 this.Owners        = Owners     != null ? new HashSet<Organization_Id>(Owners)     : new HashSet<Organization_Id>();
-                this.Signatures    = Signatures != null ? new HashSet<Signature>      (Signatures) : new HashSet<Signature>();
+                this.Signatures    = Signatures != null ? new HashSet<Signature23>    (Signatures) : new HashSet<Signature23>();
 
             }
 

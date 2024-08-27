@@ -19,8 +19,6 @@
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using Newtonsoft.Json.Linq;
-using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -95,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="CancellationToken">A token to cancel the processing.</param>
     public delegate Task                                 HTTPResponseLogDelegate                 (DateTime                           Timestamp,
                                                                                                   IWebSocketServer                   Server,
-                                                                                                  HTTPRequest                        Request,
+                                                                                                  HTTPRequest?                       Request,
                                                                                                   HTTPResponse                       Response,
                                                                                                   CancellationToken                  CancellationToken);
 
@@ -229,6 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          EventTracking_Id                   EventTrackingId,
                                                                                                          String?                            Reason,
                                                                                                          CancellationToken                  CancellationToken);
+
 
     /// <summary>
     /// A delegate called whenever the WebSocket server stopped.

@@ -65,6 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                String?                                                         HTTPServiceName              = null,
                                I18NString?                                                     Description                  = null,
 
+                               Boolean?                                                        RequireAuthentication        = true,
                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
                                Boolean                                                         DisableWebSocketPings        = false,
                                TimeSpan?                                                       WebSocketPingEvery           = null,
@@ -92,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
@@ -133,6 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                String?                                                         HTTPServiceName              = null,
                                I18NString?                                                     Description                  = null,
 
+                               Boolean?                                                        RequireAuthentication        = true,
                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
                                Boolean                                                         DisableWebSocketPings        = false,
                                TimeSpan?                                                       WebSocketPingEvery           = null,
@@ -159,6 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
