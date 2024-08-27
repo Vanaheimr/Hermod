@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An optional description of this HTTP client.
         /// </summary>
-        public I18NString?                                                Description                   { get; set; }
+        public I18NString                                                 Description                   { get; set; }
 
         /// <summary>
         /// Disable any logging.
