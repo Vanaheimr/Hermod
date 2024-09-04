@@ -1495,7 +1495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
                     MaintenanceTimer.Dispose();
                     TCPNetworkStream   = null;
-                    HTTPStream  = null;
+                    HTTPStream         = null;
                 }
                 catch (Exception e)
                 {
@@ -1512,7 +1512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
             }
             else
-                DebugX.LogT("Could not aquire the maintenance tasks lock!");
+                DebugX.LogT($"{nameof(WebSocketClient)} '{(Description.IsNotNullOrEmpty() ? Description.FirstText() : RemoteURL)}': Could not aquire the maintenance tasks lock!");
 
         }
 
