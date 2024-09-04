@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Server">The HTTP web socket server.</param>
     /// <param name="NewConnection">The new HTTP web socket connection.</param>
     /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-    /// <param name="SharedSubprotocols">An enumeration of shared HTTP Web Sockets subprotocols.</param>
+    /// <param name="SharedSubprotocols">An enumeration of shared HTTP WebSockets subprotocols.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
     public delegate Task                                 OnNewWebSocketConnectionDelegate               (DateTime                           Timestamp,
                                                                                                          IWebSocketServer                   Server,
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <summary>
     /// A delegate called whenever the WebSocket server stopped.
     /// </summary>
-    /// <param name="Timestamp">The timestamp when the HTTP Web Socket server stopped.</param>
+    /// <param name="Timestamp">The timestamp when the HTTP WebSocket server stopped.</param>
     /// <param name="Server">The WebSocket server.</param>
     /// <param name="EventTrackingId">The unique event tracking identification.</param>
     /// <param name="Reason">An optional reason for the stop of the server.</param>

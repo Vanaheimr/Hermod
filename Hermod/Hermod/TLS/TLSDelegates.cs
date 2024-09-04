@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     ///// <param name="Sender">An object that contains state information for this validation.</param>
     ///// <param name="Certificate">The certificate used to authenticate the remote party.</param>
     ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
-    ///// <param name="WebSocketServer">The HTTP Web Socket server.</param>
+    ///// <param name="WebSocketServer">The HTTP WebSocket server.</param>
     ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
     //public delegate (Boolean, IEnumerable<String>) RemoteHTTPSClientCertificateValidationHandler(Object              Sender,
     //                                                                                             X509Certificate2?   Certificate,
@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     ///// <param name="Sender">An object that contains state information for this validation.</param>
     ///// <param name="Certificate">The certificate used to authenticate the remote party.</param>
     ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
-    ///// <param name="WebSocketServer">The HTTP Web Socket server.</param>
+    ///// <param name="WebSocketServer">The HTTP WebSocket server.</param>
     ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
     //public delegate (Boolean, IEnumerable<String>) RemoteWebSocketClientCertificateValidationHandler(Object              Sender,
     //                                                                                                 X509Certificate2?   Certificate,

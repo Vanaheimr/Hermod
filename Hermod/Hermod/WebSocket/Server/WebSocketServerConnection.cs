@@ -396,10 +396,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// Close this web socket connection.
-        /// When a status code or reason is given, a HTTP Web Socket close frame will be sent.
+        /// When a status code or reason is given, a HTTP WebSocket close frame will be sent.
         /// </summary>
-        /// <param name="StatusCode">An optional closing status code for the HTTP Web Socket close frame.</param>
-        /// <param name="Reason">An optional closing reason for the HTTP Web Socket close frame.</param>
+        /// <param name="StatusCode">An optional closing status code for the HTTP WebSocket close frame.</param>
+        /// <param name="Reason">An optional closing reason for the HTTP WebSocket close frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
         public async Task Close(ClosingStatusCode? StatusCode          = null,
                                 String?            Reason              = null,
@@ -571,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP Web Socket connections.</param>
+        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP WebSocket connections.</param>
         public JObject ToJSON(CustomJObjectSerializerDelegate<IWebSocketConnection>? CustomWebSocketConnectionSerializer = null)
         {
 
@@ -600,7 +600,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP Web Socket server connections.</param>
+        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP WebSocket server connections.</param>
         public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketServerConnection>? CustomWebSocketServerConnectionSerializer)
         {
 

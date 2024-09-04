@@ -448,7 +448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             => Opcode == Opcodes.Text;
 
         /// <summary>
-        /// The event tracking identification for correlating this HTTP Web Socket frame with other events.</param>
+        /// The event tracking identification for correlating this HTTP WebSocket frame with other events.</param>
         /// </summary>
         public EventTracking_Id  EventTrackingId { get; }
 

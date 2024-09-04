@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Properties
 
             /// <summary>
-            /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
+            /// The optional HTTP sub protocol response, e.g. HTTP WebSocket.
             /// </summary>
             public Object?            SubprotocolResponse    { get; set; }
 

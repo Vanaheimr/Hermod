@@ -204,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -444,7 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -685,7 +685,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -694,7 +694,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -929,7 +929,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -938,7 +938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -1177,7 +1177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -1186,7 +1186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -1465,7 +1465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Thu, 03 Aug 2023 17:09:17 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -1474,7 +1474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response2.Contains("HTTP/1.1 101 Switching Protocols"),   response2);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse2.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse2.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse2.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse2.Upgrade);
 
@@ -1604,7 +1604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                     return Task.FromResult<HTTPResponse?>(
                                new HTTPResponse.Builder(connection.HTTPRequest) {
                                    HTTPStatusCode   = HTTPStatusCode.Unauthorized,
-                                   Server           = "GraphDefined HTTP Web Socket Service v2.0",
+                                   Server           = "GraphDefined HTTP WebSocket Service v2.0",
                                    WWWAuthenticate  = @"Basic realm=""Access to the web sockets server"", charset =""UTF-8""",
                                    Connection       = "Close"
                                }.AsImmutable
@@ -1758,7 +1758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             ClassicAssert.IsTrue  (response2.Contains("HTTP/1.1 401 Unauthorized"),   response2);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",                              httpResponse2.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",                              httpResponse2.Server);
             ClassicAssert.AreEqual("Basic realm=\"Access to the web sockets server\", charset =\"UTF-8\"",   httpResponse2.WWWAuthenticate);
             ClassicAssert.AreEqual("Close",                                                                  httpResponse2.Connection);
 

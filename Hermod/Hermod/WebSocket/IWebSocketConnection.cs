@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// The common interface for all HTTP Web Sockets connections.
+    /// The common interface for all HTTP WebSockets connections.
     /// </summary>
     public interface IWebSocketConnection
     {
@@ -159,10 +159,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// Close this web socket connection.
-        /// When a status code or reason is given, a HTTP Web Socket close frame will be sent.
+        /// When a status code or reason is given, a HTTP WebSocket close frame will be sent.
         /// </summary>
-        /// <param name="StatusCode">An optional closing status code for the HTTP Web Socket close frame.</param>
-        /// <param name="Reason">An optional closing reason for the HTTP Web Socket close frame.</param>
+        /// <param name="StatusCode">An optional closing status code for the HTTP WebSocket close frame.</param>
+        /// <param name="Reason">An optional closing reason for the HTTP WebSocket close frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
         Task Close(ClosingStatusCode? StatusCode          = ClosingStatusCode.NormalClosure,
                    String?            Reason              = null,
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP Web Socket connections.</param>
+        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP WebSocket connections.</param>
         public JObject ToJSON(CustomJObjectSerializerDelegate<IWebSocketConnection>? CustomWebSocketConnectionSerializer = null);
 
         #endregion

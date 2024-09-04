@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
         /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>

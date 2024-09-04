@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
             // HTTP/1.1 101 Switching Protocols
             // Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            // Server:                   GraphDefined HTTP Web Socket Service v2.0
+            // Server:                   GraphDefined HTTP WebSocket Service v2.0
             // Connection:               Upgrade
             // Upgrade:                  websocket
             // Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
             ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTPS.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP WebSocket PING/PONG messages will arrive!
 
             ClassicAssert.AreEqual(2,       messageRequests. Count);
             ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());

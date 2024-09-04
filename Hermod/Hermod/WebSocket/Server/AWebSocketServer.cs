@@ -111,7 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public String                                                          HTTPServiceName                 { get; }
 
         /// <summary>
-        /// The optional description of this HTTP Web Socket server.
+        /// The optional description of this HTTP WebSocket server.
         /// </summary>
         public I18NString                                                      Description                     { get; set; }
 
@@ -327,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="SecWebSocketProtocols"></param>
         /// <param name="DisableWebSocketPings"></param>
@@ -419,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="TCPSocket">The TCP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="SecWebSocketProtocols"></param>
         /// <param name="DisableWebSocketPings"></param>
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         {
 
             this.IPSocket                    = TCPSocket;
-            this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP Web Socket Service v2.0";
+            this.HTTPServiceName             = HTTPServiceName            ?? "GraphDefined HTTP WebSocket Service v2.0";
             this.Description                 = Description                ?? I18NString.Empty;
             this.ServerThreadNameCreator     = ServerThreadNameCreator    ?? (socket => $"AWebSocketServer {socket}");
             this.ServerThreadPrioritySetter  = ServerThreadPrioritySetter ?? (socket => ThreadPriority.AboveNormal);
@@ -1462,7 +1462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 else
                                                                 {
                                                                     sendErrors++;
-                                                                    DebugX.Log($"HTTP Web Socket connection '{webSocketConnection.RemoteSocket}' sending a CLOSE frame failed ({sendErrors})!");
+                                                                    DebugX.Log($"HTTP WebSocket connection '{webSocketConnection.RemoteSocket}' sending a CLOSE frame failed ({sendErrors})!");
                                                                 }
 
                                                                 #endregion
@@ -1639,7 +1639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                     #region Stop TCP listener
 
-                    DebugX.Log($" Stopping HTTP Web Socket server '{Description.FirstText()}' on {IPSocket}");
+                    DebugX.Log($" Stopping HTTP WebSocket server '{Description.FirstText()}' on {IPSocket}");
 
                     tcpListener.Stop();
 
@@ -1657,7 +1657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                   Timestamp.Now,
                                   this,
                                   EventTracking_Id.New,
-                                  "HTTP Web Socket Server stopped!",
+                                  "HTTP WebSocket Server stopped!",
                                   token
                               )
                           );

@@ -198,12 +198,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// An event sent whenever a HTTP Web Socket CLOSE frame was sent.
+        /// An event sent whenever a HTTP WebSocket CLOSE frame was sent.
         /// </summary>
         event OnWebSocketClientCloseMessageSentDelegate?        OnCloseMessageSent;
 
         /// <summary>
-        /// An event sent whenever a HTTP Web Socket CLOSE frame was received.
+        /// An event sent whenever a HTTP WebSocket CLOSE frame was received.
         /// </summary>
         event OnWebSocketClientCloseMessageReceivedDelegate     OnCloseMessageReceived;
 
@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The default HTTP user agent string.
         /// </summary>
-        public const           String  DefaultHTTPUserAgent  = "GraphDefined HTTP Web Socket Client";
+        public const           String  DefaultHTTPUserAgent  = "GraphDefined HTTP WebSocket Client";
 
         /// <summary>
         /// The default remote TCP port to connect to.
@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public HTTPHostname?                                                   VirtualHostname                           { get; }
 
         /// <summary>
-        /// An optional description of this HTTP Web Socket client.
+        /// An optional description of this HTTP WebSocket client.
         /// </summary>
         public I18NString                                                      Description                               { get; set; }
 
@@ -509,12 +509,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// An event sent whenever a HTTP Web Socket CLOSE frame was sent.
+        /// An event sent whenever a HTTP WebSocket CLOSE frame was sent.
         /// </summary>
         public event OnWebSocketClientCloseMessageSentDelegate?        OnCloseMessageSent;
 
         /// <summary>
-        /// An event sent whenever a HTTP Web Socket CLOSE frame was received.
+        /// An event sent whenever a HTTP WebSocket CLOSE frame was received.
         /// </summary>
         public event OnWebSocketClientCloseMessageReceivedDelegate?    OnCloseMessageReceived;
 
@@ -1111,7 +1111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Ping:
 
-                                                    DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping received:   '{frame.Payload.ToUTF8String()}'");
+                                                    DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping received:   '{frame.Payload.ToUTF8String()}'");
 
                                                     #region OnPingMessageReceived
 
@@ -1152,7 +1152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                               );
                                                     }
                                                     else
-                                                        DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' sending a CLOSE frame failed!");
+                                                        DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' sending a CLOSE frame failed!");
 
                                                     #endregion
 
@@ -1164,7 +1164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 case WebSocketFrame.Opcodes.Pong:
 
-                                                    DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong received:   '{frame.Payload.ToUTF8String()}'");
+                                                    DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong received:   '{frame.Payload.ToUTF8String()}'");
 
                                                     #region OnPongMessageReceived
 
@@ -1591,7 +1591,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Text)
             {
 
-                //DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Text sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+                //DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Text sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
 
                 await LogEvent(
                           OnTextMessageSent,
@@ -1616,7 +1616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Binary)
             {
 
-                //DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Binary sent:     '{WebSocketFrame.Payload.ToHexString()}' => {sentStatus}");
+                //DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Binary sent:     '{WebSocketFrame.Payload.ToHexString()}' => {sentStatus}");
 
                 await LogEvent(
                           OnBinaryMessageSent,
@@ -1641,7 +1641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Ping)
             {
 
-                DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+                DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Ping sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
 
                 await LogEvent(
                           OnPingMessageSent,
@@ -1666,7 +1666,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Pong)
             {
 
-                DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
+                DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Pong sent:       '{WebSocketFrame.Payload.ToUTF8String()}' => {sentStatus}");
 
                 await LogEvent(
                           OnPongMessageSent,
@@ -1691,7 +1691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             else if (WebSocketFrame.Opcode == WebSocketFrame.Opcodes.Close)
             {
 
-                DebugX.Log($"HTTP Web Socket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Close sent: '{WebSocketFrame.GetClosingStatusCode()}', '{WebSocketFrame.GetClosingReason() ?? ""}' => {sentStatus}");
+                DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' Close sent: '{WebSocketFrame.GetClosingStatusCode()}', '{WebSocketFrame.GetClosingReason() ?? ""}' => {sentStatus}");
 
                 await LogEvent(
                           OnCloseMessageSent,

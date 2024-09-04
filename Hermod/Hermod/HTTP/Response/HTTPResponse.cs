@@ -510,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Byte                NumberOfRetries        { get; }
 
         /// <summary>
-        /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
+        /// The optional HTTP sub protocol response, e.g. HTTP WebSocket.
         /// </summary>
         public Object?             SubprotocolResponse    { get; }
 
@@ -537,7 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         /// 
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
@@ -622,7 +622,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String              ResponseHeader,
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
@@ -659,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="ResponseBody">The HTTP body of the response.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String              ResponseHeader,
                                          Byte[]              ResponseBody,
                                          HTTPRequest?        Request               = null,
@@ -697,7 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="ResponseBodyStream">The HTTP body of the response as stream of bytes.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String             ResponseHeader,
                                          Stream             ResponseBodyStream,
                                          HTTPRequest?       Request               = null,

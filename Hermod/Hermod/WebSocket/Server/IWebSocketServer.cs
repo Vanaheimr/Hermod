@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// The common interface for all HTTP Web Socket servers.
+    /// The common interface for all HTTP WebSocket servers.
     /// </summary>
     public interface IWebSocketServer
     {
@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Properties
 
         /// <summary>
-        /// The optional description of this HTTP Web Socket server.
+        /// The optional description of this HTTP WebSocket server.
         /// </summary>
         I18NString                              Description                     { get; set; }
         Boolean                                 DisableWebSocketPings           { get; set; }

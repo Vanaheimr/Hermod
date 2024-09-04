@@ -42,12 +42,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         https,
 
         /// <summary>
-        /// Web Sockets
+        /// WebSockets
         /// </summary>
         ws,
 
         /// <summary>
-        /// Web Sockets Secure
+        /// WebSockets Secure
         /// </summary>
         wss,
 
