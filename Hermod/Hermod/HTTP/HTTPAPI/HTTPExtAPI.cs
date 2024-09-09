@@ -13069,7 +13069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static ECPrivateKeyParameters ParsePrivateKeyBase64(ECDomainParameters  EllipticCurveSpec,
                                                                    String              PrivateKeyBase64)
 
-            => new (new BigInteger(PrivateKeyBase64.FromBase64()),
+            => new (new BigInteger(PrivateKeyBase64.FromBASE64()),
                     EllipticCurveSpec);
 
         #endregion
@@ -13110,7 +13110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               String         PublicKeyHEX)
 
             => new ("ECDSA",
-                    ECParameters.Curve.DecodePoint(PublicKeyHEX.HexStringToByteArray()),
+                    ECParameters.Curve.DecodePoint(PublicKeyHEX.FromHEX()),
                     new ECDomainParameters(
                         ECParameters.Curve,
                         ECParameters.G,
@@ -13128,7 +13128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               String              PublicKeyHEX)
 
             => new ("ECDSA",
-                    EllipticCurveSpec.Curve.DecodePoint(PublicKeyHEX.HexStringToByteArray()),
+                    EllipticCurveSpec.Curve.DecodePoint(PublicKeyHEX.FromHEX()),
                     EllipticCurveSpec);
 
         #endregion
@@ -13139,7 +13139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  String         PublicKeyBase64)
 
             => new ("ECDSA",
-                    ECParameters.Curve.DecodePoint(PublicKeyBase64.FromBase64()),
+                    ECParameters.Curve.DecodePoint(PublicKeyBase64.FromBASE64()),
                     new ECDomainParameters(
                         ECParameters.Curve,
                         ECParameters.G,
@@ -13156,7 +13156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  String              PublicKeyBase64)
 
             => new ("ECDSA",
-                    EllipticCurveSpec.Curve.DecodePoint(PublicKeyBase64.FromBase64()),
+                    EllipticCurveSpec.Curve.DecodePoint(PublicKeyBase64.FromBASE64()),
                     EllipticCurveSpec);
 
         #endregion
@@ -13216,8 +13216,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         continue;
                     }
 
-                    var publicKey  = signatureJSON["publicKey"]?.Value<String>()?.FromBase64();
-                    var signature  = signatureJSON["signature"]?.Value<String>()?.FromBase64();
+                    var publicKey  = signatureJSON["publicKey"]?.Value<String>()?.FromBASE64();
+                    var signature  = signatureJSON["signature"]?.Value<String>()?.FromBASE64();
 
                     if (plainText is null     ||
                         publicKey is null     ||

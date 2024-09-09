@@ -1122,7 +1122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("publicKeyRing",
                                              "GPG/PGP public key ring",
-                                             txt => OpenPGP.ReadPublicKeyRing(txt.HexStringToByteArray()),
+                                             txt => OpenPGP.ReadPublicKeyRing(txt.FromHEX()),
                                              out PgpPublicKeyRing? PublicKeyRing,
                                              out ErrorResponse))
                 {
@@ -1136,7 +1136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("secretKeyRing",
                                              "GPG/PGP secret key ring",
-                                             txt => OpenPGP.ReadSecretKeyRing(txt.HexStringToByteArray()),
+                                             txt => OpenPGP.ReadSecretKeyRing(txt.FromHEX()),
                                              out PgpSecretKeyRing? SecretKeyRing,
                                              out ErrorResponse))
                 {
