@@ -164,6 +164,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
         }
 
+        public String?                  Login                         { get; internal set; }
+
         public X509Certificate2?        ClientCertificate             { get; private set; }
 
         #endregion

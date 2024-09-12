@@ -1209,6 +1209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     if (HTTPRequest.TryParse(bytes, out var httpRequest))
                                                     {
 
+                                                        webSocketConnection.Login       = webSocketConnection.RemoteSocket.ToString();
                                                         webSocketConnection.HTTPRequest = httpRequest;
 
                                                         #region Log OnHTTPRequest
@@ -1250,6 +1251,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         if (httpResponse is null)
                                                         {
+
+                                                            if (webSocketConnection.HTTPRequest.Authorization is HTTPBasicAuthentication basicAuthentication)
+                                                                webSocketConnection.Login = basicAuthentication.Username;
 
                                                             // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
                                                             // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
