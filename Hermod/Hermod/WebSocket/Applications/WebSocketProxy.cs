@@ -45,17 +45,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Properties
 
         /// <summary>
-        /// The URL of the upstream HTTP web socket server.
+        /// The URL of the upstream HTTP WebSocket server.
         /// </summary>
         public URL? UpstreamServerURL { get; }
 
         /// <summary>
-        /// Whether to connect to the HTTP web socket server automatically.
+        /// Whether to connect to the HTTP WebSocket server automatically.
         /// </summary>
         public Boolean AutoConnect { get; }
 
         /// <summary>
-        /// The HTTP response of the upstream HTTP web socket server.
+        /// The HTTP response of the upstream HTTP WebSocket server.
         /// </summary>
         public HTTPResponse? UpstreamHTTPResponse { get; private set; }
 
@@ -66,10 +66,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketProxy(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
-        /// <param name="UpstreamServerURL">An URL of the upstream HTTP web socket server.</param>
-        /// <param name="AutoConnect">Whether to connect to the HTTP web socket server automatically.</param>
+        /// <param name="UpstreamServerURL">An URL of the upstream HTTP WebSocket server.</param>
+        /// <param name="AutoConnect">Whether to connect to the HTTP WebSocket server automatically.</param>
         /// 
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public WebSocketProxy(URL                                                             UpstreamServerURL,
                               Boolean                                                         AutoConnect                  = true,
 

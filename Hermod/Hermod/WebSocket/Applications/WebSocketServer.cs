@@ -37,12 +37,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        public event OnWebSocketTextMessage2Delegate?    OnTextMessage;
+        public event OnWebSocketServerTextMessageDelegate?    OnTextMessage;
 
         /// <summary>
         /// An event sent whenever a binary message was received.
         /// </summary>
-        public event OnWebSocketBinaryMessage2Delegate?  OnBinaryMessage;
+        public event OnWebSocketServerBinaryMessageDelegate?  OnBinaryMessage;
 
         #endregion
 
@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public WebSocketServer(IIPAddress?                                                     IPAddress                    = null,
                                IPPort?                                                         HTTPPort                     = null,
                                String?                                                         HTTPServiceName              = null,
@@ -123,14 +123,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
         /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public WebSocketServer(IPSocket                                                        IPSocket,
                                String?                                                         HTTPServiceName              = null,
                                I18NString?                                                     Description                  = null,
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   EventTrackingId, CancellationToken)
 
         /// <summary>
-        /// The default HTTP web socket text message processor.
+        /// The default HTTP WebSocket text message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
 
                     responses = await Task.WhenAll(onTextMessage.GetInvocationList().
-                                                       OfType<OnWebSocketTextMessage2Delegate>().
+                                                       OfType<OnWebSocketServerTextMessageDelegate>().
                                                        Select(loggingDelegate => loggingDelegate.Invoke(
                                                                                      RequestTimestamp,
                                                                                      this,
@@ -227,8 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      RequestTimestamp,
                                                                                      TextMessage,
                                                                                      CancellationToken
-                                                                                 )).
-                                                       ToArray());
+                                                                                 )));
 
                 }
                 catch (Exception e)
@@ -259,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region ProcessBinaryMessage(RequestTimestamp, Connection, BinaryMessage, EventTrackingId, CancellationToken)
 
         /// <summary>
-        /// The default HTTP web socket binary message processor.
+        /// The default HTTP WebSocket binary message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -282,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
 
                     responses = await Task.WhenAll(onBinaryMessage.GetInvocationList().
-                                                       OfType<OnWebSocketBinaryMessage2Delegate>().
+                                                       OfType<OnWebSocketServerBinaryMessageDelegate>().
                                                        Select(loggingDelegate => loggingDelegate.Invoke(
                                                                                      RequestTimestamp,
                                                                                      this,
@@ -291,8 +290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      RequestTimestamp,
                                                                                      BinaryMessage,
                                                                                      CancellationToken
-                                                                                 )).
-                                                       ToArray());
+                                                                                 )));
 
                 }
                 catch (Exception e)

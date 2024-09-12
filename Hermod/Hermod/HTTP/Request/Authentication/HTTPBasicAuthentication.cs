@@ -17,8 +17,8 @@
 
 #region Usings
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -38,8 +38,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private static readonly Char[] splitter1 = new[] { ' ' };
-        private static readonly Char[] splitter2 = new[] { ':' };
+        private static readonly Char[] splitter1 = [ ' ' ];
+        private static readonly Char[] splitter2 = [ ':' ];
 
         #endregion
 

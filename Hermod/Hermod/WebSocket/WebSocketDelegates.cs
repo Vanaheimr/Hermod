@@ -98,11 +98,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   CancellationToken                  CancellationToken);
 
     /// <summary>
-    /// A delegate for logging new HTTP web socket connections.
+    /// A delegate for logging new HTTP WebSocket connections.
     /// </summary>
     /// <param name="Timestamp">The logging timestamp.</param>
-    /// <param name="Server">The HTTP web socket server.</param>
-    /// <param name="NewConnection">The new HTTP web socket connection.</param>
+    /// <param name="Server">The HTTP WebSocket server.</param>
+    /// <param name="NewConnection">The new HTTP WebSocket connection.</param>
     /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
     /// <param name="SharedSubprotocols">An enumeration of shared HTTP WebSockets subprotocols.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>

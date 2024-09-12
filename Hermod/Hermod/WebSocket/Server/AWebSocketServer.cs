@@ -30,34 +30,14 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using Org.BouncyCastle.Asn1.Ocsp;
-using Newtonsoft.Json.Linq;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
-
-    public delegate Task<WebSocketTextMessageResponse>    OnWebSocketTextMessage2Delegate  (DateTime                     Timestamp,
-                                                                                            AWebSocketServer             Server,
-                                                                                            WebSocketServerConnection    Connection,
-                                                                                            EventTracking_Id             EventTrackingId,
-                                                                                            DateTime                     RequestTimestamp,
-                                                                                            String                       TextMessage,
-                                                                                            CancellationToken            CancellationToken);
-
-    public delegate Task<WebSocketBinaryMessageResponse>  OnWebSocketBinaryMessage2Delegate(DateTime                     Timestamp,
-                                                                                            AWebSocketServer             Server,
-                                                                                            WebSocketServerConnection    Connection,
-                                                                                            EventTracking_Id             EventTrackingId,
-                                                                                            DateTime                     RequestTimestamp,
-                                                                                            Byte[]                       BinaryMessage,
-                                                                                            CancellationToken            CancellationToken);
-
-
     /// <summary>
-    /// A HTTP web socket server.
+    /// A HTTP WebSocket server.
     /// </summary>
     public abstract class AWebSocketServer : IWebSocketServer
     {
@@ -81,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Properties
 
         /// <summary>
-        /// Return an enumeration of all currently connected HTTP web socket connections.
+        /// Return an enumeration of all currently connected HTTP WebSocket connections.
         /// </summary>
         public IEnumerable<WebSocketServerConnection>  WebSocketConnections
         {
@@ -182,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Logins and passwords for HTTP Basic Authentication.
         /// </summary>
-        public ConcurrentDictionary<String , String?>                          ClientLogins                  { get; } = [];
+        public ConcurrentDictionary<String , SecurePassword>                   ClientLogins                  { get; } = [];
 
 
         public Boolean                                                         RequireAuthentication         { get; }
@@ -197,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Events
 
         /// <summary>
-        /// An event sent whenever the HTTP web socket server started.
+        /// An event sent whenever the HTTP WebSocket server started.
         /// </summary>
         public event OnServerStartedDelegate?                           OnServerStarted;
 
@@ -311,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// An event sent whenever the HTTP web socket server stopped.
+        /// An event sent whenever the HTTP WebSocket server stopped.
         /// </summary>
         public event OnServerStoppedDelegate?                           OnServerStopped;
 
@@ -322,7 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="TCPPort">An optional TCP port to listen on. Default: HTTP.</param>
@@ -349,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="MaxClientConnections"></param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public AWebSocketServer(IIPAddress?                                                     IPAddress                    = null,
                                 IPPort?                                                         TCPPort                      = null,
                                 String?                                                         HTTPServiceName              = null,
@@ -415,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
         /// <param name="TCPSocket">The TCP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
@@ -441,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="MaxClientConnections"></param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public AWebSocketServer(IPSocket                                                        TCPSocket,
                                 String?                                                         HTTPServiceName              = null,
                                 I18NString?                                                     Description                  = null,
@@ -508,7 +488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendTextMessage   (Connection, TextMessage,    ...)
+        #region SendTextMessage    (Connection, TextMessage,    ...)
 
         /// <summary>
         /// Send a text web socket frame.
@@ -531,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendBinaryMessage (Connection, BinaryMessage,  ...)
+        #region SendBinaryMessage  (Connection, BinaryMessage,  ...)
 
         /// <summary>
         /// Send a binary web socket frame.
@@ -554,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region SendWebSocketFrame(Connection, WebSocketFrame, ...)
+        #region SendWebSocketFrame (Connection, WebSocketFrame, ...)
 
         /// <summary>
         /// Send a web socket frame.
@@ -760,17 +740,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-
-        #region RemoveConnection  (Connection)
+        #region RemoveConnection   (Connection)
 
         /// <summary>
         /// Remove the given web socket connection.
         /// </summary>
-        /// <param name="Connection">A HTTP web socket connection.</param>
+        /// <param name="Connection">A HTTP WebSocket connection.</param>
         public Boolean RemoveConnection(WebSocketServerConnection Connection)
         {
 
-            DebugX.Log(nameof(AWebSocketServer), " Removing HTTP web socket connection with " + Connection.RemoteSocket);
+            DebugX.Log(nameof(AWebSocketServer), " Removing HTTP WebSocket connection with " + Connection.RemoteSocket);
 
             return webSocketConnections.Remove(Connection.RemoteSocket, out _);
 
@@ -778,25 +757,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region AddOrUpdateHTTPBasicAuth(NetworkingNodeId, Password)
+
+        #region AddOrUpdateHTTPBasicAuth(Username, Password)
 
         /// <summary>
-        /// Add the given HTTP Basic Authentication password for the given networking node.
+        /// Add the given HTTP Basic Authentication password for the given username.
         /// </summary>
-        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
+        /// <param name="Username">The unique identification of the username.</param>
         /// <param name="Password">The password of the charging station.</param>
-        public HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String NetworkingNodeId,
+        public HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String Username,
                                                                 String Password)
         {
 
             ClientLogins.AddOrUpdate(
-                             NetworkingNodeId,
-                             Password,
-                             (chargingStationId, password) => Password
+                             Username,
+                             SecurePassword.Parse(Password),
+                             (chargingStationId, password) => SecurePassword.Parse(Password)
                          );
 
             return HTTPBasicAuthentication.Create(
-                       NetworkingNodeId.ToString(),
+                       Username,
                        Password
                    );
 
@@ -804,17 +784,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region RemoveHTTPBasicAuth     (NetworkingNodeId)
+        #region RemoveHTTPBasicAuth     (Username)
 
         /// <summary>
-        /// Remove the given HTTP Basic Authentication for the given networking node.
+        /// Remove the given HTTP Basic Authentication for the given username.
         /// </summary>
-        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
-        public Boolean RemoveHTTPBasicAuth(String NetworkingNodeId)
+        /// <param name="Username">The unique identification of the username.</param>
+        public Boolean RemoveHTTPBasicAuth(String Username)
         {
 
-            if (ClientLogins.ContainsKey(NetworkingNodeId))
-                return ClientLogins.TryRemove(NetworkingNodeId, out _);
+            if (ClientLogins.ContainsKey(Username))
+                return ClientLogins.TryRemove(Username, out _);
 
             return true;
 
@@ -824,11 +804,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
 
-
         #region Start()
 
         /// <summary>
-        /// Start the HTTP web socket listener thread.
+        /// Start the HTTP WebSocket listener thread.
         /// </summary>
         public void Start()
         {
@@ -1685,7 +1664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Shutdown(Message = null, Wait = true)
 
         /// <summary>
-        /// Shutdown the HTTP web socket listener thread.
+        /// Shutdown the HTTP WebSocket listener thread.
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
@@ -1714,7 +1693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region (virtual) ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   ...)
 
         /// <summary>
-        /// The default HTTP web socket text message processor.
+        /// The default HTTP WebSocket text message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -1743,7 +1722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region (virtual) ProcessBinaryMessage(RequestTimestamp, Connection, BinaryMessage, ...)
 
         /// <summary>
-        /// The default HTTP web socket binary message processor.
+        /// The default HTTP WebSocket binary message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>

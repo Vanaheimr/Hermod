@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 {
 
     /// <summary>
-    /// HTTP web socket tests.
+    /// HTTP WebSocket tests.
     /// </summary>
     [TestFixture]
     public class WebSocketTests

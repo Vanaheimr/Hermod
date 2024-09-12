@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var runTime2 = Timestamp.Now - startTimestamp;
 
-            ClassicAssert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP web socket closing exceptions!");
+            ClassicAssert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP WebSocket closing exceptions!");
 
         }
 

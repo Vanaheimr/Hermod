@@ -174,14 +174,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Custom data
 
         /// <summary>
-        /// Add custom data to this HTTP web socket client connection.
+        /// Add custom data to this HTTP WebSocket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A value.</param>
         Boolean TryAddCustomData(String Key, Object? Value);
 
         /// <summary>
-        /// Add custom data to this HTTP web socket client connection.
+        /// Add custom data to this HTTP WebSocket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A new value.</param>
@@ -191,19 +191,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                  Object? ComparisonValue);
 
         /// <summary>
-        /// Checks whether the given data key is present within this HTTP web socket client connection.
+        /// Checks whether the given data key is present within this HTTP WebSocket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         Boolean HasCustomData(String Key);
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         Object? TryGetCustomData(String Key);
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
         /// </summary>
         /// <typeparam name="T">The type of the stored value.</typeparam>
         /// <param name="Key">A key.</param>
@@ -211,14 +211,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             where T : struct;
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">The requested value.</param>
         Boolean TryGetCustomData(String Key, out Object? Value);
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket client connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket client connection.
         /// </summary>
         /// <typeparam name="T">The type of the stored value.</typeparam>
         /// <param name="Key">A key.</param>
