@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         IPPort                                        IPPort                          { get; }
         IPSocket                                      IPSocket                        { get; }
         Boolean                                       IsRunning                       { get; }
-        HashSet<String>                               SecWebSocketProtocols           { get; }
+        IEnumerable<String>                           SecWebSocketProtocols           { get; }
         Boolean                                       ServerThreadIsBackground        { get; }
         ServerThreadNameCreatorDelegate               ServerThreadNameCreator         { get; }
         ServerThreadPriorityDelegate                  ServerThreadPrioritySetter      { get; }
