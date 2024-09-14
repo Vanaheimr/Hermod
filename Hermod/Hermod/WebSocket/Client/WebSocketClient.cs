@@ -69,25 +69,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The default maintenance interval.
         /// </summary>
-        public           readonly TimeSpan                 DefaultMaintenanceEvery     = TimeSpan.FromSeconds(1);
-        private          readonly Timer                    MaintenanceTimer;
+        public           readonly TimeSpan                    DefaultMaintenanceEvery     = TimeSpan.FromSeconds(1);
+        private          readonly Timer                       MaintenanceTimer;
 
-        protected static readonly SemaphoreSlim            MaintenanceSemaphore        = new(1, 1);
+        protected static readonly SemaphoreSlim               MaintenanceSemaphore        = new(1, 1);
 
-        public           readonly TimeSpan                 DefaultWebSocketPingEvery   = TimeSpan.FromSeconds(30);
+        public           readonly TimeSpan                    DefaultWebSocketPingEvery   = TimeSpan.FromSeconds(30);
 
-        private          readonly Timer                    WebSocketPingTimer;
+        private          readonly Timer                       WebSocketPingTimer;
 
-        protected static readonly TimeSpan                 SemaphoreSlimTimeout        = TimeSpan.FromSeconds(5);
+        protected static readonly TimeSpan                    SemaphoreSlimTimeout        = TimeSpan.FromSeconds(5);
 
-        private const             String                   LogfileName                 = "WebSocketClient.log";
+        private const             String                      LogfileName                 = "WebSocketClient.log";
 
-        private readonly          CancellationTokenSource  networkingCancellationTokenSource;
-        private readonly          CancellationToken        networkingCancellationToken;
-        private                   Task                     networkingThread;
+        private                   Task?                       networkingTask;
+        private readonly          CancellationTokenSource     networkingCancellationTokenSource;
+        private readonly          CancellationToken           networkingCancellationToken;
 
-
-        protected WebSocketClientConnection webSocketClientConnection;
+        protected                 WebSocketClientConnection?  webSocketClientConnection;
 
         #endregion
 
@@ -282,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public String?                              ClientCloseMessage                   { get; private set; }
 
-        public ECPrivateKeyParameters               AuthKey                              { get; }
+        public ECPrivateKeyParameters?              AuthKey                              { get; }
 
         #endregion
 
@@ -464,6 +463,238 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        #region (private) OpenTCPConnection(RequestTimeout = null)
+
+        private async Task OpenTCPConnection(TimeSpan? RequestTimeout = null)
+        {
+
+            Boolean restart2;
+
+            if (!RequestTimeout.HasValue)
+                RequestTimeout = TimeSpan.FromSeconds(60);
+
+            do
+            {
+
+                restart2 = false;
+
+                #region Setup TCP socket
+
+                if (TCPSocket is null)
+                {
+
+                    System.Net.IPEndPoint? remoteIPEndPoint = null;
+
+                    if (RemoteIPAddress is null)
+                    {
+
+                        if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
+                            RemoteIPAddress = IPv4Address.Localhost;
+
+                        else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
+                            RemoteIPAddress = IPv6Address.Localhost;
+
+                        else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
+                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
+
+                        else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
+                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
+
+                        #region DNS lookup...
+
+                        if (RemoteIPAddress is null &&
+                            DNSClient       is not null)
+                        {
+
+                            var IPv4AddressLookupTask  = DNSClient.
+                                                             Query<A>(RemoteURL.Hostname.Name).
+                                                             ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
+
+                            var IPv6AddressLookupTask  = DNSClient.
+                                                             Query<AAAA>(RemoteURL.Hostname.Name).
+                                                             ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+
+                            await Task.WhenAll(IPv4AddressLookupTask,
+                                               IPv6AddressLookupTask).
+                                       ConfigureAwait(false);
+
+
+                            if (IPv4AddressLookupTask.Result.Any())
+                                RemoteIPAddress = IPv4AddressLookupTask.Result.First();
+
+                            else if (IPv6AddressLookupTask.Result.Any())
+                                RemoteIPAddress = IPv6AddressLookupTask.Result.First();
+
+
+                            if (RemoteIPAddress is null || RemoteIPAddress.GetBytes() is null)
+                                throw new Exception("DNS lookup failed!");
+
+                        }
+
+                        #endregion
+
+                        if (RemoteIPAddress is null || RemoteIPAddress.GetBytes() is null)
+                            throw new Exception("RemoteIPAddress failed!");
+
+                    }
+
+                    remoteIPEndPoint  = new System.Net.IPEndPoint(
+                                                new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                                (RemoteURL.Port ?? (RemoteURL.Protocol == URLProtocols.https
+                                                                        ? IPPort.HTTPS
+                                                                        : IPPort.HTTP)).ToInt32()
+                                            );
+
+                    if (RemoteIPAddress.IsIPv4)
+                        TCPSocket = new Socket(AddressFamily.InterNetwork,
+                                               SocketType.Stream,
+                                               ProtocolType.Tcp);
+
+                    else if (RemoteIPAddress.IsIPv6)
+                        TCPSocket = new Socket(AddressFamily.InterNetworkV6,
+                                               SocketType.Stream,
+                                               ProtocolType.Tcp);
+
+                    if (TCPSocket is not null) {
+                        TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                        TCPSocket.Connect(remoteIPEndPoint);
+                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+                    }
+
+                }
+
+                TCPNetworkStream = TCPSocket is not null
+                                       ? new MyNetworkStream(TCPSocket, true) {
+                                             ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+                                         }
+                                       : null;
+
+                #endregion
+
+                #region Create (Crypto-)Stream
+
+                if (RemoteCertificateValidator is null &&
+                   (RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https))
+                {
+                    RemoteCertificateValidator = (sender, certificate, chain, server, sslPolicyErrors) => {
+                        return (true, Array.Empty<String>());
+                    };
+                }
+
+                if (RemoteURL.Protocol == URLProtocols.https &&
+                    TCPNetworkStream           is not null   &&
+                    RemoteCertificateValidator is not null)
+                {
+
+                    if (TLSStream is null)
+                    {
+
+                        var remoteCertificateValidatorErrors = new List<String>();
+
+                        TLSStream = new SslStream(
+                                        innerStream:                         TCPNetworkStream,
+                                        leaveInnerStreamOpen:                false,
+                                        userCertificateValidationCallback:  (sender,
+                                                                             certificate,
+                                                                             chain,
+                                                                             policyErrors) => {
+
+                                                                                 var check = RemoteCertificateValidator(
+                                                                                                 sender,
+                                                                                                 certificate is not null
+                                                                                                     ? new X509Certificate2(certificate)
+                                                                                                     : null,
+                                                                                                 chain,
+                                                                                                 null,
+                                                                                                 policyErrors
+                                                                                             );
+
+                                                                                 if (check.Item2.Any())
+                                                                                     remoteCertificateValidatorErrors.AddRange(check.Item2);
+
+                                                                                 return check.Item1;
+
+                                                                             },
+                                        userCertificateSelectionCallback:    LocalCertificateSelector is null
+                                                                                 ? null
+                                                                                 : (sender,
+                                                                                    targetHost,
+                                                                                    localCertificates,
+                                                                                    remoteCertificate,
+                                                                                    acceptableIssuers) => LocalCertificateSelector(
+                                                                                                              sender,
+                                                                                                              targetHost,
+                                                                                                              localCertificates.
+                                                                                                                  Cast<X509Certificate>().
+                                                                                                                  Select(certificate => new X509Certificate2(certificate)),
+                                                                                                              remoteCertificate is not null
+                                                                                                                  ? new X509Certificate2(remoteCertificate)
+                                                                                                                  : null,
+                                                                                                              acceptableIssuers
+                                                                                                          ),
+                                        encryptionPolicy:                    EncryptionPolicy.RequireEncryption
+                                    )
+                        {
+
+                            ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
+
+                        };
+
+                        HTTPStream = TLSStream;
+
+                        try
+                        {
+
+                            await TLSStream.AuthenticateAsClientAsync(
+                                      RemoteURL.Hostname.Name,
+                                      ClientCert is not null
+                                          ? new X509CertificateCollection(new X509Certificate[] { ClientCert })
+                                          : null,
+                                      SslProtocols.Tls12 | SslProtocols.Tls13,
+                                      false
+                                  );
+
+                        }
+                        catch (Exception)
+                        {
+
+                            //timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
+
+                            //foreach (var error in remoteCertificateValidatorErrors)
+                            //    timings.AddError(error);
+
+                            TCPSocket  = null;
+                            restart2    = true;
+
+                        }
+
+                    }
+
+                }
+
+                else
+                {
+                    TLSStream   = null;
+                    HTTPStream  = TCPNetworkStream;
+                }
+
+                if (HTTPStream is not null)
+                    HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
+
+                #endregion
+
+            }
+            while (restart2);
+
+            this.LocalPort = (IPSocket.FromIPEndPoint(TCPNetworkStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
+
+        }
+
+        #endregion
+
+        #region (private) SendHTTPRequest(HTTPRequestBuilder, HTTPAuthorization, CancellationToken = default)
+
         private async Task<Tuple<HTTPRequest, String>>
 
             SendHTTPRequest(Action<HTTPRequest.Builder>?  HTTPRequestBuilder   = null,
@@ -524,6 +755,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        #endregion
+
+        #region (private) WaitForHTTPResponse(HTTPRequest, CancellationToken = default)
+
         private async Task<HTTPResponse> WaitForHTTPResponse(HTTPRequest        HTTPRequest,
                                                              CancellationToken  CancellationToken = default)
         {
@@ -567,6 +802,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         }
 
+        #endregion
 
 
         #region Connect(EventTrackingId = null, RequestTimeout = null, MaxNumberOfRetries = 0)
@@ -590,418 +826,142 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             HTTPResponse? waitingForHTTPResponse = null;
 
-            if (networkingThread is null)
-            {
+            if (networkingTask is not null)
+                return Task.FromResult(
+                           new Tuple<WebSocketClientConnection, HTTPResponse>(
+                               webSocketClientConnection,
+                               waitingForHTTPResponse
+                           )
+                       );
 
-                networkingThread = Task.Run(async () => {
+            networkingTask = Task.Run(async () => {
 
-                    do
+                do
+                {
+
+                    HTTPRequest?  httpRequest   = null;
+                    HTTPResponse? httpResponse  = null;
+
+                    try
                     {
 
-                        HTTPRequest?  httpRequest   = null;
-                        HTTPResponse? httpResponse  = null;
+                        await OpenTCPConnection(RequestTimeout);
 
-                        if (!RequestTimeout.HasValue)
-                            RequestTimeout = TimeSpan.FromMinutes(10);
+                        var responseTuple     = await SendHTTPRequest(
+                                                            HTTPRequestBuilder,
+                                                            HTTPAuthentication,
+                                                            CancellationToken
+                                                        );
 
-                        try
+                        httpRequest           = responseTuple.Item1;
+                        var expectedWSAccept  = responseTuple.Item2;
+
+                        httpResponse          = await WaitForHTTPResponse(httpRequest, CancellationToken);
+
+                        #region Unauthorized? Maybe a "WWW-Authenticate Challenge"?
+
+                        if (httpResponse.HTTPStatusCode == HTTPStatusCode.Unauthorized)
                         {
 
-                            #region Data
+                            // WWW-Authenticate: Basic     realm     = "Restricted Area"
 
-                            var HTTPHeaderBytes  = Array.Empty<Byte>();
-                            var HTTPBodyBytes    = Array.Empty<Byte>();
+                            // WWW-Authenticate: Digest    realm     = "example.com",
+                            //                             qop       = "auth",
+                            //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+                            //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
 
-                            #endregion
-
-                            #region Create TCP connection (possibly also do DNS lookups)
-
-                            Boolean restart;
-
-                            do
+                            // WWW-Authenticate: Challenge realm     = "charging.cloud",
+                            //                             keyId     = "94g84hg...",
+                            //                             hash      = "sha256",
+                            //                             algorithm = "ECDSA",
+                            //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+                            //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
+                            if (httpResponse.WWWAuthenticate.Method == "Challenge" &&
+                                AuthKey is not null)
                             {
 
-                                restart = false;
+                                var keyId       = httpResponse.WWWAuthenticate.GetParameter("keyId");
+                                var hash        = httpResponse.WWWAuthenticate.GetParameter("hash");
+                                var algorithm   = httpResponse.WWWAuthenticate.GetParameter("algorithm");
+                                var nonce       = httpResponse.WWWAuthenticate.GetParameter("nonce");
+                                var opaque      = httpResponse.WWWAuthenticate.GetParameter("opaque");
 
-                                #region Setup TCP socket
+                                var plainText   = $"{nonce}{opaque}";
 
-                                if (TCPSocket is null)
-                                {
+                                var hashValue   = hash switch {
+                                                        "sha512" => SHA512.HashData(plainText.ToUTF8Bytes()),
+                                                        "sha384" => SHA384.HashData(plainText.ToUTF8Bytes()),
+                                                        "sha256" => SHA256.HashData(plainText.ToUTF8Bytes()),
+                                                        _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
+                                                    };
 
-                                    System.Net.IPEndPoint? remoteIPEndPoint = null;
+                                var blockSize   = hash switch {
+                                                        "sha512" => 64,
+                                                        "sha384" => 48,
+                                                        "sha256" => 48,
+                                                        _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
+                                                    };
 
-                                    if (RemoteIPAddress is null)
-                                    {
+                                var signer      = algorithm switch {
+                                                        "sha256" => SignerUtilities.GetSigner("NONEwithECDSA"),
+                                                        _        => throw new Exception($"Unknown algorithm '{algorithm}' in WWW-Authenticate challenge!")
+                                                    };
 
-                                        if      (IPAddress.IsIPv4Localhost(RemoteURL.Hostname))
-                                            RemoteIPAddress = IPv4Address.Localhost;
+                                signer.Init(true, AuthKey);
+                                signer.BlockUpdate(hashValue, 0, blockSize);
+                                var signature   = signer.GenerateSignature().ToBase64();
 
-                                        else if (IPAddress.IsIPv6Localhost(RemoteURL.Hostname))
-                                            RemoteIPAddress = IPv6Address.Localhost;
-
-                                        else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
-
-                                        else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
-
-                                        #region DNS lookup...
-
-                                        if (RemoteIPAddress is null &&
-                                            DNSClient       is not null)
-                                        {
-
-                                            var IPv4AddressLookupTask  = DNSClient.
-                                                                             Query<A>(RemoteURL.Hostname.Name).
-                                                                             ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
-
-                                            var IPv6AddressLookupTask  = DNSClient.
-                                                                             Query<AAAA>(RemoteURL.Hostname.Name).
-                                                                             ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
-
-                                            await Task.WhenAll(IPv4AddressLookupTask,
-                                                               IPv6AddressLookupTask).
-                                                       ConfigureAwait(false);
-
-
-                                            if (IPv4AddressLookupTask.Result.Any())
-                                                RemoteIPAddress = IPv4AddressLookupTask.Result.First();
-
-                                            else if (IPv6AddressLookupTask.Result.Any())
-                                                RemoteIPAddress = IPv6AddressLookupTask.Result.First();
-
-
-                                            if (RemoteIPAddress is null || RemoteIPAddress.GetBytes() is null)
-                                                throw new Exception("DNS lookup failed!");
-
-                                        }
-
-                                        #endregion
-
-                                    }
-
-                                    remoteIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                                 RemoteURL.Port.Value.ToInt32());
-
-                                    if (RemoteIPAddress.IsIPv4)
-                                        TCPSocket = new Socket(AddressFamily.InterNetwork,
-                                                               SocketType.Stream,
-                                                               ProtocolType.Tcp);
-
-                                    else if (RemoteIPAddress.IsIPv6)
-                                        TCPSocket = new Socket(AddressFamily.InterNetworkV6,
-                                                               SocketType.Stream,
-                                                               ProtocolType.Tcp);
-
-                                    if (TCPSocket is not null) {
-                                        TCPSocket.SendTimeout    = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                                        TCPSocket.Connect(remoteIPEndPoint);
-                                        TCPSocket.ReceiveTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-                                    }
-
-                                }
-
-                                TCPNetworkStream = TCPSocket is not null
-                                                ? new MyNetworkStream(TCPSocket, true) {
-                                                      ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-                                                  }
-                                                : null;
-
-                                #endregion
-
-                                #region Create (Crypto-)Stream
-
-                                if (RemoteCertificateValidator is null &&
-                                   (RemoteURL.Protocol == URLProtocols.wss || RemoteURL.Protocol == URLProtocols.https))
-                                {
-                                    RemoteCertificateValidator = (sender, certificate, chain, server, sslPolicyErrors) => {
-                                        return (true, Array.Empty<String>());
-                                    };
-                                }
-
-                                if (RemoteURL.Protocol == URLProtocols.https &&
-                                    TCPNetworkStream           is not null   &&
-                                    RemoteCertificateValidator is not null)
-                                {
-
-                                    if (TLSStream is null)
-                                    {
-
-                                        var remoteCertificateValidatorErrors = new List<String>();
-
-                                        TLSStream = new SslStream(
-                                                        innerStream:                         TCPNetworkStream,
-                                                        leaveInnerStreamOpen:                false,
-                                                        userCertificateValidationCallback:  (sender,
-                                                                                             certificate,
-                                                                                             chain,
-                                                                                             policyErrors) => {
-
-                                                                                                 var check = RemoteCertificateValidator(
-                                                                                                                 sender,
-                                                                                                                 certificate is not null
-                                                                                                                     ? new X509Certificate2(certificate)
-                                                                                                                     : null,
-                                                                                                                 chain,
-                                                                                                                 null,
-                                                                                                                 policyErrors
-                                                                                                             );
-
-                                                                                                 if (check.Item2.Any())
-                                                                                                     remoteCertificateValidatorErrors.AddRange(check.Item2);
-
-                                                                                                 return check.Item1;
-
-                                                                                             },
-                                                        userCertificateSelectionCallback:    LocalCertificateSelector is null
-                                                                                                 ? null
-                                                                                                 : (sender,
-                                                                                                    targetHost,
-                                                                                                    localCertificates,
-                                                                                                    remoteCertificate,
-                                                                                                    acceptableIssuers) => LocalCertificateSelector(
-                                                                                                                              sender,
-                                                                                                                              targetHost,
-                                                                                                                              localCertificates.
-                                                                                                                                  Cast<X509Certificate>().
-                                                                                                                                  Select(certificate => new X509Certificate2(certificate)),
-                                                                                                                              remoteCertificate is not null
-                                                                                                                                  ? new X509Certificate2(remoteCertificate)
-                                                                                                                                  : null,
-                                                                                                                              acceptableIssuers
-                                                                                                                          ),
-                                                        encryptionPolicy:                    EncryptionPolicy.RequireEncryption
-                                                    )
-                                        {
-
-                                            ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds
-
-                                        };
-
-                                        HTTPStream = TLSStream;
-
-                                        try
-                                        {
-
-                                            await TLSStream.AuthenticateAsClientAsync(RemoteURL.Hostname.Name,
-                                                                                      ClientCert is not null
-                                                                                          ? new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                                                                                          : null,
-                                                                                      SslProtocols.Tls12 | SslProtocols.Tls13,
-                                                                                      false);
-
-                                        }
-                                        catch (Exception e)
-                                        {
-
-                                            //timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
-
-                                            //foreach (var error in remoteCertificateValidatorErrors)
-                                            //    timings.AddError(error);
-
-                                            TCPSocket  = null;
-                                            restart    = true;
-
-                                        }
-
-                                    }
-
-                                }
-
-                                else
-                                {
-                                    TLSStream   = null;
-                                    HTTPStream  = TCPNetworkStream;
-                                }
-
-                                HTTPStream.ReadTimeout = (Int32) RequestTimeout.Value.TotalMilliseconds;
-
-                                #endregion
+                                //ToDo: Reconnect as the http server might have closed the connection!
+                                //ToDo: 2. Request
+                                //ToDo: 2. Response processing
 
                             }
-                            while (restart);
 
-                            this.LocalPort = (IPSocket.FromIPEndPoint(TCPNetworkStream?.Socket.LocalEndPoint) ?? IPSocket.Zero).Port;
+                        }
 
-                            #endregion
+                        #endregion
 
-                            #region Send Request
+                        #region Post auth...
 
-                            var responseTuple = await SendHTTPRequest(
-                                                          HTTPRequestBuilder,
-                                                          HTTPAuthentication,
-                                                          CancellationToken
-                                                      );
+                        // HTTP/1.1 101 Switching Protocols
+                        // Upgrade:                 websocket
+                        // Connection:              Upgrade
+                        // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+                        // Sec-WebSocket-Protocol:  ocpp1.6
 
-                            httpRequest           = responseTuple.Item1;
-                            var expectedWSAccept  = responseTuple.Item2;
+                        // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                        // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                        // 3. Compute SHA-1 and Base64 hash of the new value
+                        // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+                        //var swk             = WSConnection.GetHTTPHeader("Sec-WebSocket-Key");
+                        //var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                        //var swkaSha1        = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
+                        //var swkaSha1Base64  = Convert.ToBase64String(swkaSha1);
 
-                            //// GET /webServices/ocpp/CP3211 HTTP/1.1
-                            //// Host:                    some.server.com:33033
-                            //// Connection:              Upgrade
-                            //// Upgrade:                 websocket
-                            //// Sec-WebSocket-Key:       x3JJHMbDL1EzLkh9GBhXDw==
-                            //// Sec-WebSocket-Protocol:  ocpp2.1, ocpp2.0.1
-                            //// Sec-WebSocket-Version:   13
+                        if (101 != httpResponse.HTTPStatusCode.Code) {
+                            ClientCloseMessage  = $"Invalid HTTP StatusCode response: 101 != {httpResponse.HTTPStatusCode.Code}!";
+                            networkingCancellationTokenSource.Cancel();
+                        }
 
-                            //var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
-                            //var expectedWSAccept    = SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
+                        else if (expectedWSAccept != httpResponse.SecWebSocketAccept) {
+                            ClientCloseMessage  = $"Invalid HTTP Sec-WebSocket-Accept response: {expectedWSAccept} != {httpResponse.SecWebSocketAccept}!";
+                            networkingCancellationTokenSource.Cancel();
+                        }
 
-                            //var httpRequestBuilder  = new HTTPRequest.Builder {
-                            //                              Path                  = RemoteURL.Path,
-                            //                              Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
-                            //                              Connection            = "Upgrade",
-                            //                              Upgrade               = "websocket",
-                            //                              SecWebSocketKey       = swkaSHA1Base64,
-                            //                              SecWebSocketProtocol  = SecWebSocketProtocols,
-                            //                              SecWebSocketVersion   = "13",
-                            //                              Authorization         = HTTPAuthentication
-                            //                          };
+                        waitingForHTTPResponse = httpResponse;
 
-                            //HTTPRequestBuilder?.Invoke(httpRequestBuilder);
+                        #endregion
 
-                            //httpRequest             = httpRequestBuilder.AsImmutable;
 
-                            //#region Call the optional HTTP request log delegate
+                        #region Receive WebSocket frames...
 
-                            //await LogEvent(
-                            //          RequestLogDelegate,
-                            //          loggingDelegate => loggingDelegate.Invoke(
-                            //              Timestamp.Now,
-                            //              this,
-                            //              httpRequest
-                            //          )
-                            //      );
+                        var buffer  = new Byte[16 * 1024];
+                        var pos     = 0U;
 
-                            //#endregion
-
-                            //await HTTPStream.WriteAsync((httpRequest.EntirePDU + "\r\n\r\n").ToUTF8Bytes(), CancellationToken);
-                            //await HTTPStream.FlushAsync(CancellationToken);
-
-                            #endregion
-
-                            #region Wait for HTTP response
-
-                            httpResponse = await WaitForHTTPResponse(httpRequest, CancellationToken);
-
-                            //var buffer  = new Byte[16 * 1024];
-                            //var pos     = 0U;
-
-                            //do
-                            //{
-
-                            //    pos += (UInt32) HTTPStream.Read(buffer, (Int32) pos, 2048);
-
-                            //    if (swX.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                            //        throw new HTTPTimeoutException(swX.Elapsed);
-
-                            //    Thread.Sleep(1);
-
-                            //} while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
-
-                            //var responseData  = buffer.ToUTF8String(pos);
-                            //var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
-                            //httpResponse      = HTTPResponse.Parse(
-                            //                        lines.AggregateWith(Environment.NewLine),
-                            //                        [],
-                            //                        httpRequest
-                            //                    );
-
-                            #region Unauthorized?
-
-                            if (httpResponse.HTTPStatusCode == HTTPStatusCode.Unauthorized)
-                            {
-
-                                // WWW-Authenticate: Basic     realm     = "Restricted Area"
-
-                                // WWW-Authenticate: Digest    realm     = "example.com",
-                                //                             qop       = "auth",
-                                //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
-                                //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
-
-                                // WWW-Authenticate: Challenge realm     = "charging.cloud",
-                                //                             keyId     = "94g84hg...",
-                                //                             hash      = "sha256",
-                                //                             algorithm = "ECDSA",
-                                //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
-                                //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
-                                if (httpResponse.WWWAuthenticate.Method == "Challenge" &&
-                                    AuthKey is not null)
-                                {
-
-                                    var keyId       = httpResponse.WWWAuthenticate.GetParameter("keyId");
-                                    var hash        = httpResponse.WWWAuthenticate.GetParameter("hash");
-                                    var algorithm   = httpResponse.WWWAuthenticate.GetParameter("algorithm");
-                                    var nonce       = httpResponse.WWWAuthenticate.GetParameter("nonce");
-                                    var opaque      = httpResponse.WWWAuthenticate.GetParameter("opaque");
-
-                                    var plainText   = $"{nonce}{opaque}";
-
-                                    var hashValue   = hash switch {
-                                                          "sha512" => SHA512.HashData(plainText.ToUTF8Bytes()),
-                                                          "sha384" => SHA384.HashData(plainText.ToUTF8Bytes()),
-                                                          "sha256" => SHA256.HashData(plainText.ToUTF8Bytes()),
-                                                          _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
-                                                      };
-
-                                    var blockSize   = hash switch {
-                                                          "sha512" => 64,
-                                                          "sha384" => 48,
-                                                          "sha256" => 48,
-                                                          _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
-                                                      };
-
-                                    var signer      = algorithm switch {
-                                                          "sha256" => SignerUtilities.GetSigner("NONEwithECDSA"),
-                                                          _        => throw new Exception($"Unknown algorithm '{algorithm}' in WWW-Authenticate challenge!")
-                                                      };
-
-                                    signer.Init(true, AuthKey);
-                                    signer.BlockUpdate(hashValue, 0, blockSize);
-                                    var signature   = signer.GenerateSignature().ToBase64();
-
-                                    //ToDo: Reconnect as the http server might have closed the connection!
-                                    //ToDo: 2. Request
-                                    //ToDo: 2. Response processing
-
-                                }
-
-                            }
-
-                            #endregion
-
-                            // HTTP/1.1 101 Switching Protocols
-                            // Upgrade:                 websocket
-                            // Connection:              Upgrade
-                            // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-                            // Sec-WebSocket-Protocol:  ocpp1.6
-
-                            // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
-                            // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
-                            // 3. Compute SHA-1 and Base64 hash of the new value
-                            // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
-                            //var swk             = WSConnection.GetHTTPHeader("Sec-WebSocket-Key");
-                            //var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                            //var swkaSha1        = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
-                            //var swkaSha1Base64  = Convert.ToBase64String(swkaSha1);
-
-                            if (101 != httpResponse.HTTPStatusCode.Code) {
-                                ClientCloseMessage  = $"Invalid HTTP StatusCode response: 101 != {httpResponse.HTTPStatusCode.Code}!";
-                                networkingCancellationTokenSource.Cancel();
-                            }
-
-                            else if (expectedWSAccept != httpResponse.SecWebSocketAccept) {
-                                ClientCloseMessage  = $"Invalid HTTP Sec-WebSocket-Accept response: {expectedWSAccept} != {httpResponse.SecWebSocketAccept}!";
-                                networkingCancellationTokenSource.Cancel();
-                            }
-
-                            waitingForHTTPResponse = httpResponse;
-
-                            #endregion
-
-                            var buffer  = new Byte[16 * 1024];
-                            var pos     = 0U;
+                        if (TCPSocket        is not null &&
+                            TCPNetworkStream is not null &&
+                            HTTPStream       is not null)
+                        {
 
                             webSocketClientConnection = new WebSocketClientConnection(
                                                             this,
@@ -1063,17 +1023,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 case WebSocketFrame.Opcodes.Text:
 
                                                     await LogEvent(
-                                                              OnTextMessageReceived,
-                                                              loggingDelegate => loggingDelegate.Invoke(
-                                                                  Timestamp.Now,
-                                                                  this,
-                                                                  webSocketClientConnection,
-                                                                  frame,
-                                                                  EventTracking_Id.New,
-                                                                  frame.Payload.ToUTF8String(),
-                                                                  CancellationToken
-                                                              )
-                                                          );
+                                                                OnTextMessageReceived,
+                                                                loggingDelegate => loggingDelegate.Invoke(
+                                                                    Timestamp.Now,
+                                                                    this,
+                                                                    webSocketClientConnection,
+                                                                    frame,
+                                                                    EventTracking_Id.New,
+                                                                    frame.Payload.ToUTF8String(),
+                                                                    CancellationToken
+                                                                )
+                                                            );
 
                                                 break;
 
@@ -1084,17 +1044,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 case WebSocketFrame.Opcodes.Binary:
 
                                                     await LogEvent(
-                                                              OnBinaryMessageReceived,
-                                                              loggingDelegate => loggingDelegate.Invoke(
-                                                                  Timestamp.Now,
-                                                                  this,
-                                                                  webSocketClientConnection,
-                                                                  frame,
-                                                                  EventTracking_Id.New,
-                                                                  frame.Payload,
-                                                                  CancellationToken
-                                                              )
-                                                          );
+                                                                OnBinaryMessageReceived,
+                                                                loggingDelegate => loggingDelegate.Invoke(
+                                                                    Timestamp.Now,
+                                                                    this,
+                                                                    webSocketClientConnection,
+                                                                    frame,
+                                                                    EventTracking_Id.New,
+                                                                    frame.Payload,
+                                                                    CancellationToken
+                                                                )
+                                                            );
 
                                                 break;
 
@@ -1109,40 +1069,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     #region OnPingMessageReceived
 
                                                     await LogEvent(
-                                                              OnPingMessageReceived,
-                                                              loggingDelegate => loggingDelegate.Invoke(
-                                                                  Timestamp.Now,
-                                                                  this,
-                                                                  webSocketClientConnection,
-                                                                  frame,
-                                                                  EventTracking_Id.New,
-                                                                  frame.Payload,
-                                                                  CancellationToken
-                                                              )
-                                                          );
+                                                                OnPingMessageReceived,
+                                                                loggingDelegate => loggingDelegate.Invoke(
+                                                                    Timestamp.Now,
+                                                                    this,
+                                                                    webSocketClientConnection,
+                                                                    frame,
+                                                                    EventTracking_Id.New,
+                                                                    frame.Payload,
+                                                                    CancellationToken
+                                                                )
+                                                            );
 
                                                     #endregion
 
                                                     #region Send Pong
 
                                                     var sentStatus = await SendWebSocketFrame(
-                                                                               WebSocketFrame.Pong(
-                                                                                   frame.Payload,
-                                                                                   WebSocketFrame.Fin.Final,
-                                                                                   WebSocketFrame.MaskStatus.On,
-                                                                                   RandomExtensions.RandomBytes(4)
-                                                                               ),
-                                                                               EventTracking_Id.New,
-                                                                               CancellationToken
-                                                                           );
+                                                                                WebSocketFrame.Pong(
+                                                                                    frame.Payload,
+                                                                                    WebSocketFrame.Fin.Final,
+                                                                                    WebSocketFrame.MaskStatus.On,
+                                                                                    RandomExtensions.RandomBytes(4)
+                                                                                ),
+                                                                                EventTracking_Id.New,
+                                                                                CancellationToken
+                                                                            );
 
                                                     if (sentStatus == SentStatus.Success)
                                                     { }
                                                     else if (sentStatus == SentStatus.FatalError)
                                                     {
                                                         await webSocketClientConnection.Close(
-                                                                  WebSocketFrame.ClosingStatusCode.ProtocolError
-                                                              );
+                                                                    WebSocketFrame.ClosingStatusCode.ProtocolError
+                                                                );
                                                     }
                                                     else
                                                         DebugX.Log($"HTTP WebSocket Client '{Description?.FirstText() ?? RemoteURL.ToString()}' sending a CLOSE frame failed!");
@@ -1162,17 +1122,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     #region OnPongMessageReceived
 
                                                     await LogEvent(
-                                                              OnPongMessageReceived,
-                                                              loggingDelegate => loggingDelegate.Invoke(
-                                                                  Timestamp.Now,
-                                                                  this,
-                                                                  webSocketClientConnection,
-                                                                  frame,
-                                                                  EventTracking_Id.New,
-                                                                  frame.Payload,
-                                                                  CancellationToken
-                                                              )
-                                                          );
+                                                                OnPongMessageReceived,
+                                                                loggingDelegate => loggingDelegate.Invoke(
+                                                                    Timestamp.Now,
+                                                                    this,
+                                                                    webSocketClientConnection,
+                                                                    frame,
+                                                                    EventTracking_Id.New,
+                                                                    frame.Payload,
+                                                                    CancellationToken
+                                                                )
+                                                            );
 
                                                     #endregion
 
@@ -1185,23 +1145,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                 case WebSocketFrame.Opcodes.Close:
 
                                                     await LogEvent(
-                                                              OnCloseMessageReceived,
-                                                              loggingDelegate => loggingDelegate.Invoke(
-                                                                  Timestamp.Now,
-                                                                  this,
-                                                                  webSocketClientConnection,
-                                                                  frame,
-                                                                  EventTracking_Id.New,
-                                                                  frame.GetClosingStatusCode(),
-                                                                  frame.GetClosingReason(),
-                                                                  CancellationToken
-                                                              )
-                                                          );
+                                                                OnCloseMessageReceived,
+                                                                loggingDelegate => loggingDelegate.Invoke(
+                                                                    Timestamp.Now,
+                                                                    this,
+                                                                    webSocketClientConnection,
+                                                                    frame,
+                                                                    EventTracking_Id.New,
+                                                                    frame.GetClosingStatusCode(),
+                                                                    frame.GetClosingReason(),
+                                                                    CancellationToken
+                                                                )
+                                                            );
 
                                                     // The close handshake demands that we send a close frame back!
                                                     await webSocketClientConnection.Close(
-                                                              WebSocketFrame.ClosingStatusCode.NormalClosure
-                                                          );
+                                                                WebSocketFrame.ClosingStatusCode.NormalClosure
+                                                            );
 
                                                     break;
 
@@ -1243,135 +1203,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             }
                             while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
 
-
-                            #region Close connection if requested!
-
-                            if (httpResponse.Connection is null    ||
-                                httpResponse.Connection == "close" ||
-                                ClientCloseMessage is not null)
-                            {
-
-                                if (TLSStream is not null)
-                                {
-                                    TLSStream.Close();
-                                    TLSStream = null;
-                                }
-
-                                if (TCPSocket is not null)
-                                {
-                                    TCPSocket.Close();
-                                    //TCPClient.Dispose();
-                                    TCPSocket = null;
-                                }
-
-                                HTTPStream = null;
-
-                            }
-
-                            #endregion
-
-                        }
-
-                        #region Catch...
-
-                        catch (HTTPTimeoutException hte)
-                        {
-
-                            #region Create a HTTP response for the exception...
-
-                            httpResponse = new HTTPResponse.Builder(httpRequest) {
-                                               HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
-                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                               Content         = JSONObject.Create(
-                                                                     new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
-                                                                     new JProperty("message",     hte.Message),
-                                                                     new JProperty("stackTrace",  hte.StackTrace)
-                                                                 ).ToUTF8Bytes()
-                                           };
-
-                            #endregion
-
-                            if (TLSStream is not null)
-                            {
-                                TLSStream.Close();
-                                TLSStream = null;
-                            }
-
-                            if (TCPSocket is not null)
-                            {
-                                TCPSocket.Close();
-                                //TCPClient.Dispose();
-                                TCPSocket = null;
-                            }
-
-                        }
-                        catch (Exception e)
-                        {
-
-                            #region Create a HTTP response for the exception...
-
-                            while (e.InnerException is not null)
-                                e = e.InnerException;
-
-                            httpResponse = new HTTPResponse.Builder(httpRequest) {
-                                               HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                               Content         = JSONObject.Create(
-                                                                     new JProperty("message",     e.Message),
-                                                                     new JProperty("stackTrace",  e.StackTrace)
-                                                                 ).ToUTF8Bytes()
-                                           };
-
-                            #endregion
-
-                            if (TLSStream is not null)
-                            {
-                                TLSStream.Close();
-                                TLSStream = null;
-                            }
-
-                            if (TCPSocket is not null)
-                            {
-                                TCPSocket.Close();
-                                //TCPClient.Dispose();
-                                TCPSocket = null;
-                            }
-
                         }
 
                         #endregion
 
-                        #region Call the optional HTTP response log delegate
 
-                        try
+                        #region Close connection if requested!
+
+                        if (httpResponse.Connection is null    ||
+                            httpResponse.Connection == "close" ||
+                            ClientCloseMessage is not null)
                         {
 
-                            if (ResponseLogDelegate is not null)
-                                await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
-                                                   Cast<ClientResponseLogHandler>().
-                                                   Select(e => e(Timestamp.Now,
-                                                                 this,
-                                                                 httpRequest,
-                                                                 httpResponse))).
-                                                   ConfigureAwait(false);
+                            if (TLSStream is not null)
+                            {
+                                TLSStream.Close();
+                                TLSStream = null;
+                            }
 
-                        }
-                        catch (Exception e2)
-                        {
-                            DebugX.Log(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                            if (TCPSocket is not null)
+                            {
+                                TCPSocket.Close();
+                                //TCPClient.Dispose();
+                                TCPSocket = null;
+                            }
+
+                            HTTPStream = null;
+
                         }
 
                         #endregion
 
                     }
-                    while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
 
-                }, CancellationToken);
+                    #region Catch...
 
-                while (waitingForHTTPResponse is null) {
-                    Thread.Sleep(10);
+                    catch (HTTPTimeoutException hte)
+                    {
+
+                        #region Create a HTTP response for the exception...
+
+                        httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                            HTTPStatusCode  = HTTPStatusCode.RequestTimeout,
+                                            ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                            Content         = JSONObject.Create(
+                                                                    new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
+                                                                    new JProperty("message",     hte.Message),
+                                                                    new JProperty("stackTrace",  hte.StackTrace)
+                                                                ).ToUTF8Bytes()
+                                        };
+
+                        #endregion
+
+                        if (TLSStream is not null)
+                        {
+                            TLSStream.Close();
+                            TLSStream = null;
+                        }
+
+                        if (TCPSocket is not null)
+                        {
+                            TCPSocket.Close();
+                            //TCPClient.Dispose();
+                            TCPSocket = null;
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+
+                        #region Create a HTTP response for the exception...
+
+                        while (e.InnerException is not null)
+                            e = e.InnerException;
+
+                        httpResponse = new HTTPResponse.Builder(httpRequest) {
+                                            HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                            ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                            Content         = JSONObject.Create(
+                                                                    new JProperty("message",     e.Message),
+                                                                    new JProperty("stackTrace",  e.StackTrace)
+                                                                ).ToUTF8Bytes()
+                                        };
+
+                        #endregion
+
+                        if (TLSStream is not null)
+                        {
+                            TLSStream.Close();
+                            TLSStream = null;
+                        }
+
+                        if (TCPSocket is not null)
+                        {
+                            TCPSocket.Close();
+                            //TCPClient.Dispose();
+                            TCPSocket = null;
+                        }
+
+                    }
+
+                    #endregion
+
+                    #region Call the optional HTTP response log delegate
+
+                    try
+                    {
+
+                        if (ResponseLogDelegate is not null)
+                            await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
+                                                Cast<ClientResponseLogHandler>().
+                                                Select(e => e(Timestamp.Now,
+                                                                this,
+                                                                httpRequest,
+                                                                httpResponse))).
+                                                ConfigureAwait(false);
+
+                    }
+                    catch (Exception e2)
+                    {
+                        DebugX.Log(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                    }
+
+                    #endregion
+
                 }
+                while (!networkingCancellationToken.IsCancellationRequested && ClientCloseMessage is null);
 
+            }, CancellationToken);
+
+            while (waitingForHTTPResponse is null) {
+                Thread.Sleep(10);
             }
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder() {
@@ -1519,58 +1481,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendTextMessage    (Text,           ...)
-
-        /// <summary>
-        /// Send a web socket text frame
-        /// </summary>
-        /// <param name="Text">The text to send.</param>
-        public Task<SentStatus> SendTextMessage(String             Text,
-                                                EventTracking_Id?  EventTrackingId     = null,
-                                                CancellationToken  CancellationToken   = default)
-
-            => SendWebSocketFrame(
-                   WebSocketFrame.Text(
-                       Text,
-                       WebSocketFrame.Fin.Final,
-                       WebSocketFrame.MaskStatus.On,
-                       RandomExtensions.RandomBytes(4)
-                   ),
-                   EventTrackingId,
-                   CancellationToken
-               );
-
-        #endregion
-
-        #region SendBinaryMessage  (Bytes,          ...)
-
-        /// <summary>
-        /// Send a web socket binary frame
-        /// </summary>
-        /// <param name="Bytes">The array of bytes to send.</param>
-        public Task<SentStatus> SendBinaryMessage(Byte[]             Bytes,
-                                                  EventTracking_Id?  EventTrackingId     = null,
-                                                  CancellationToken  CancellationToken   = default)
-
-            => SendWebSocketFrame(
-                   WebSocketFrame.Binary(
-                       Bytes,
-                       WebSocketFrame.Fin.Final,
-                       WebSocketFrame.MaskStatus.On,
-                       RandomExtensions.RandomBytes(4)
-                   ),
-                   EventTrackingId,
-                   CancellationToken
-               );
-
-        #endregion
-
         #region SendWebSocketFrame (WebSocketFrame, ...)
 
         public async Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                                          EventTracking_Id?  EventTrackingId     = null,
                                                          CancellationToken  CancellationToken   = default)
         {
+
+            if (webSocketClientConnection is null)
+                return SentStatus.FatalError;
 
             var eventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
 
@@ -1709,6 +1628,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             return sentStatus;
 
         }
+
+        #endregion
+
+        #region SendTextMessage    (Text,           ...)
+
+        /// <summary>
+        /// Send a web socket text frame
+        /// </summary>
+        /// <param name="Text">The text to send.</param>
+        public Task<SentStatus> SendTextMessage(String             Text,
+                                                EventTracking_Id?  EventTrackingId     = null,
+                                                CancellationToken  CancellationToken   = default)
+
+            => SendWebSocketFrame(
+                   WebSocketFrame.Text(
+                       Text,
+                       WebSocketFrame.Fin.Final,
+                       WebSocketFrame.MaskStatus.On,
+                       RandomExtensions.RandomBytes(4)
+                   ),
+                   EventTrackingId,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region SendBinaryMessage  (Bytes,          ...)
+
+        /// <summary>
+        /// Send a web socket binary frame
+        /// </summary>
+        /// <param name="Bytes">The array of bytes to send.</param>
+        public Task<SentStatus> SendBinaryMessage(Byte[]             Bytes,
+                                                  EventTracking_Id?  EventTrackingId     = null,
+                                                  CancellationToken  CancellationToken   = default)
+
+            => SendWebSocketFrame(
+                   WebSocketFrame.Binary(
+                       Bytes,
+                       WebSocketFrame.Fin.Final,
+                       WebSocketFrame.MaskStatus.On,
+                       RandomExtensions.RandomBytes(4)
+                   ),
+                   EventTrackingId,
+                   CancellationToken
+               );
 
         #endregion
 

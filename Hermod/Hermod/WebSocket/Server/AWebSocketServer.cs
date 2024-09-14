@@ -137,7 +137,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The supported secondary web socket protocols.
         /// </summary>
-        public IEnumerable<String>                                             SecWebSocketProtocols         { get; }
+        public IEnumerable<String>                                             SecWebSocketProtocols
+            => secWebSocketProtocols;
 
         /// <summary>
         /// Disable web socket pings.
