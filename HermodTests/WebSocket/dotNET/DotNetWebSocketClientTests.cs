@@ -539,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return;
             }
 
-            webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
+            webSocketServer.AddSecWebSocketProtocol("ocpp1.6");
 
             var validatedTCP            = new List<String>();
             var newTCPConnection        = new List<String>();
@@ -781,8 +781,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return;
             }
 
-            webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
-            webSocketServer.SecWebSocketProtocols.Add("ocpp2.0");
+            webSocketServer.AddSecWebSocketProtocol("ocpp1.6");
+            webSocketServer.AddSecWebSocketProtocol("ocpp2.0");
 
             var validatedTCP            = new List<String>();
             var newTCPConnection        = new List<String>();

@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new HTTP Token Authentication based on the given username and password.
+        /// Create a new HTTP Basic Authentication based on the given username and password.
         /// </summary>
         /// <param name="Username">A username.</param>
         /// <param name="Password">A password.</param>
@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Create   (Text)
+        #region (static) Create   (Username, Password)
 
         /// <summary>
         /// Create a HTTP Basic Authentication based on the given username and password.
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate(Text)
+        #region (static) TryCreate(Username, Password)
 
         /// <summary>
         /// Try to create a HTTP Basic Authentication based on the given username and password.
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate(Text, out BasicAuthentication)
+        #region (static) TryCreate(Username, Password, out BasicAuthentication)
 
         /// <summary>
         /// Try to create a HTTP Basic Authentication based on the given username and password.
@@ -205,7 +205,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
         /// <param name="BasicAuthentication">The parsed HTTP Basic Authentication header.</param>
-        public static Boolean TryParseHeader(String Text, out HTTPBasicAuthentication? BasicAuthentication)
+        public static Boolean TryParseHeader(String                                            Text,
+                                             [NotNullWhen(true)] out HTTPBasicAuthentication?  BasicAuthentication)
         {
 
             BasicAuthentication = null;
@@ -218,19 +219,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var splitted = Text.Split(splitter1, StringSplitOptions.RemoveEmptyEntries);
 
             if (splitted.Length == 2 &&
-                String.Equals(splitted[0], "basic", StringComparison.OrdinalIgnoreCase))
+                String.Equals(splitted[0], "Basic", StringComparison.OrdinalIgnoreCase))
             {
 
                 var credentials  = Encoding.UTF8.GetString(Convert.FromBase64String(splitted[1])).
                                                  Split    (splitter2, 2);
 
                 if (credentials.Length == 2)
+                {
+
                     BasicAuthentication = new HTTPBasicAuthentication(
                                               credentials[0],
                                               credentials[1]
                                           );
 
-                return true;
+                    return true;
+
+                }
 
             }
 
@@ -375,7 +380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPBasicAuthentication is null)
-                throw new ArgumentNullException(nameof(Object),
+                throw new ArgumentNullException(nameof(HTTPBasicAuthentication),
                                                 "The given object HTTP Basic Authentication must not be null!");
 
             var c = String.Compare(Username,
@@ -451,7 +456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => $"Basic {Username}:{Password}";
+            => $"Basic '{Username}':'{Password}'";
 
         #endregion
 

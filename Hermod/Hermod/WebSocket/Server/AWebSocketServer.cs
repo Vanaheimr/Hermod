@@ -31,7 +31,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
-#endregion
+#endregion[
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
@@ -44,13 +44,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #region Data
 
-        private readonly  ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>  webSocketConnections;
+        private readonly  List<String>                                                              secWebSocketProtocols      = [];
+
+        private readonly  ConcurrentDictionary<IPSocket, WeakReference<WebSocketServerConnection>>  webSocketConnections       = [];
 
         private           Thread?                                                                   listenerThread;
 
         private readonly  CancellationTokenSource                                                   cancellationTokenSource;
 
-        private volatile  Boolean                                                                   isRunning = false;
+        private volatile  Boolean                                                                   isRunning                  = false;
 
         public readonly   TimeSpan                                                                  DefaultWebSocketPingEvery  = TimeSpan.FromSeconds(30);
 
@@ -163,6 +165,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// Logins and passwords for HTTP Basic Authentication.
         /// </summary>
         public ConcurrentDictionary<String , SecurePassword>                   ClientLogins                  { get; } = [];
+
+        /// <summary>
+        /// Logins and TOTP config (shared secrets, ...) for HTTP TOTP Authentication.
+        /// </summary>
+        public ConcurrentDictionary<String , TOTPConfig>                       ClientTOTPConfig              { get; } = [];
 
 
         public Boolean                                                         RequireAuthentication         { get; }
@@ -458,8 +465,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.ServerThreadIsBackground    = ServerThreadIsBackground   ?? false;
 
             this.RequireAuthentication       = RequireAuthentication      ?? true;
-            this.SecWebSocketProtocols       = SecWebSocketProtocols is not null
-                                                   ? new HashSet<String>(SecWebSocketProtocols)
+            this.secWebSocketProtocols       = SecWebSocketProtocols is not null
+                                                   ? new List<String>(SecWebSocketProtocols)
                                                    : [];
 
             this.DisableWebSocketPings       = DisableWebSocketPings;
@@ -802,6 +809,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        public void AddSecWebSocketProtocol(String Protocol)
+        {
+            secWebSocketProtocols.Add(Protocol);
+        }
 
 
         #region Start()

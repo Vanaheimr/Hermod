@@ -27,24 +27,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (authorizationString is not null)
             {
 
-                if (HTTPBasicAuthentication.TryParseHeader(authorizationString, out var basicAuthentication) &&
-                    basicAuthentication is not null)
+                if (HTTPBasicAuthentication.TryParseHeader(authorizationString, out var basicAuthentication))
                 {
                     HTTPAuthentication = basicAuthentication;
                     return true;
                 }
 
-                if (HTTPTokenAuthentication.TryParseHTTPHeader(authorizationString, out var tokenAuthentication) &&
-                    tokenAuthentication is not null)
+                if (HTTPBearerAuthentication.TryParse(authorizationString, out var bearerAuthentication))
+                {
+                    HTTPAuthentication = bearerAuthentication;
+                    return true;
+                }
+
+                if (HTTPTokenAuthentication.TryParseHTTPHeader(authorizationString, out var tokenAuthentication))
                 {
                     HTTPAuthentication = tokenAuthentication;
                     return true;
                 }
 
-                if (HTTPBearerAuthentication.TryParse(authorizationString, out var bearerAuthentication) &&
-                    bearerAuthentication is not null)
+                if (HTTPTOTPAuthentication.TryParseHeader(authorizationString, out var totpAuthentication))
                 {
-                    HTTPAuthentication = bearerAuthentication;
+                    HTTPAuthentication = totpAuthentication;
                     return true;
                 }
 
