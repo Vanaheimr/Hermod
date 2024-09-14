@@ -20,12 +20,16 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Net.Security;
+using System.Security.Cryptography;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 
 using Newtonsoft.Json.Linq;
+
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Parameters;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
@@ -278,6 +282,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         public String?                              ClientCloseMessage                   { get; private set; }
 
+        public ECPrivateKeyParameters               AuthKey                              { get; }
+
         #endregion
 
         #region Events
@@ -458,6 +464,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
+        private async Task<Tuple<HTTPRequest, String>>
+
+            SendHTTPRequest(Action<HTTPRequest.Builder>?  HTTPRequestBuilder   = null,
+                            IHTTPAuthentication?          HTTPAuthorization    = null,
+                            CancellationToken             CancellationToken    = default)
+
+        {
+
+            // GET /webServices/ocpp/CP3211 HTTP/1.1
+            // Host:                    some.server.com:33033
+            // Connection:              Upgrade
+            // Upgrade:                 websocket
+            // Sec-WebSocket-Key:       x3JJHMbDL1EzLkh9GBhXDw==
+            // Sec-WebSocket-Protocol:  ocpp2.1, ocpp2.0.1
+            // Sec-WebSocket-Version:   13
+
+            var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
+            var expectedWSAccept    = SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
+
+            var httpRequestBuilder  = new HTTPRequest.Builder {
+                                          Path                  = RemoteURL.Path,
+                                          Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
+                                          Connection            = "Upgrade",
+                                          Upgrade               = "websocket",
+                                          SecWebSocketKey       = swkaSHA1Base64,
+                                          SecWebSocketProtocol  = SecWebSocketProtocols,
+                                          SecWebSocketVersion   = "13",
+                                          Authorization         = HTTPAuthorization
+                                      };
+
+            HTTPRequestBuilder?.Invoke(httpRequestBuilder);
+
+            var httpRequest = httpRequestBuilder.AsImmutable;
+
+            #region Call the optional HTTP request log delegate
+
+            await LogEvent(
+                      RequestLogDelegate,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          Timestamp.Now,
+                          this,
+                          httpRequest
+                      )
+                  );
+
+            #endregion
+
+            if (HTTPStream is not null)
+            {
+                await HTTPStream.WriteAsync((httpRequest.EntirePDU + "\r\n\r\n").ToUTF8Bytes(), CancellationToken);
+                await HTTPStream.FlushAsync(CancellationToken);
+            }
+
+            return new Tuple<HTTPRequest, String>(
+                           httpRequest,
+                           expectedWSAccept
+                       );
+
+        }
+
+        private async Task<HTTPResponse> WaitForHTTPResponse(HTTPRequest        HTTPRequest,
+                                                             CancellationToken  CancellationToken = default)
+        {
+
+            if (HTTPStream is null || TCPNetworkStream is null)
+                return HTTPResponse.BadRequest(
+                           HTTPRequest
+                       );
+
+            var buffer  = new Byte[16 * 1024];
+            var pos     = 0U;
+            var sw      = Stopwatch.StartNew();
+
+            do
+            {
+
+                pos += (UInt32) await HTTPStream.ReadAsync(
+                                          buffer,
+                                          (Int32) pos,
+                                          2048,
+                                          CancellationToken
+                                      );
+
+                if (sw.Elapsed >= (HTTPRequest.Timeout ?? TimeSpan.FromSeconds(5)))
+                    throw new HTTPTimeoutException(sw.Elapsed);
+
+                Thread.Sleep(1);
+
+            } while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
+
+            var responseData  = buffer.ToUTF8String(pos);
+            var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
+            var httpResponse  = HTTPResponse.Parse(
+                                    lines.AggregateWith(Environment.NewLine),
+                                    [],
+                                    HTTPRequest,
+                                    CancellationToken: CancellationToken
+                                );
+
+            return httpResponse;
+
+        }
+
+
+
         #region Connect(EventTrackingId = null, RequestTimeout = null, MaxNumberOfRetries = 0)
 
         /// <summary>
@@ -500,7 +611,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             var HTTPHeaderBytes  = Array.Empty<Byte>();
                             var HTTPBodyBytes    = Array.Empty<Byte>();
-                            var sw               = new Stopwatch();
 
                             #endregion
 
@@ -572,9 +682,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                     remoteIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
                                                                                  RemoteURL.Port.Value.ToInt32());
-
-                                    sw.Start();
-
 
                                     if (RemoteIPAddress.IsIPv4)
                                         TCPSocket = new Socket(AddressFamily.InterNetwork,
@@ -721,82 +828,148 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             #region Send Request
 
-                            // GET /webServices/ocpp/CP3211 HTTP/1.1
-                            // Host:                    some.server.com:33033
-                            // Connection:              Upgrade
-                            // Upgrade:                 websocket
-                            // Sec-WebSocket-Key:       x3JJHMbDL1EzLkh9GBhXDw==
-                            // Sec-WebSocket-Protocol:  ocpp2.1, ocpp2.0.1
-                            // Sec-WebSocket-Version:   13
+                            var responseTuple = await SendHTTPRequest(
+                                                          HTTPRequestBuilder,
+                                                          HTTPAuthentication,
+                                                          CancellationToken
+                                                      );
 
-                            var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
-                            var expectedWSAccept    = System.Security.Cryptography.SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
+                            httpRequest           = responseTuple.Item1;
+                            var expectedWSAccept  = responseTuple.Item2;
 
-                            var httpRequestBuilder  = new HTTPRequest.Builder {
-                                                          Path                  = RemoteURL.Path,
-                                                          Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
-                                                          Connection            = "Upgrade",
-                                                          Upgrade               = "websocket",
-                                                          SecWebSocketKey       = swkaSHA1Base64,
-                                                          SecWebSocketProtocol  = SecWebSocketProtocols,
-                                                          SecWebSocketVersion   = "13",
-                                                          Authorization         = HTTPAuthentication
-                                                      };
+                            //// GET /webServices/ocpp/CP3211 HTTP/1.1
+                            //// Host:                    some.server.com:33033
+                            //// Connection:              Upgrade
+                            //// Upgrade:                 websocket
+                            //// Sec-WebSocket-Key:       x3JJHMbDL1EzLkh9GBhXDw==
+                            //// Sec-WebSocket-Protocol:  ocpp2.1, ocpp2.0.1
+                            //// Sec-WebSocket-Version:   13
 
-                            HTTPRequestBuilder?.Invoke(httpRequestBuilder);
+                            //var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
+                            //var expectedWSAccept    = SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
 
-                            httpRequest             = httpRequestBuilder.AsImmutable;
+                            //var httpRequestBuilder  = new HTTPRequest.Builder {
+                            //                              Path                  = RemoteURL.Path,
+                            //                              Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
+                            //                              Connection            = "Upgrade",
+                            //                              Upgrade               = "websocket",
+                            //                              SecWebSocketKey       = swkaSHA1Base64,
+                            //                              SecWebSocketProtocol  = SecWebSocketProtocols,
+                            //                              SecWebSocketVersion   = "13",
+                            //                              Authorization         = HTTPAuthentication
+                            //                          };
 
-                            #region Call the optional HTTP request log delegate
+                            //HTTPRequestBuilder?.Invoke(httpRequestBuilder);
 
-                            await LogEvent(
-                                      RequestLogDelegate,
-                                      loggingDelegate => loggingDelegate.Invoke(
-                                          Timestamp.Now,
-                                          this,
-                                          httpRequest
-                                      )
-                                  );
+                            //httpRequest             = httpRequestBuilder.AsImmutable;
 
-                            #endregion
+                            //#region Call the optional HTTP request log delegate
 
-                            HTTPStream.Write((httpRequest.EntirePDU + "\r\n\r\n").ToUTF8Bytes());
+                            //await LogEvent(
+                            //          RequestLogDelegate,
+                            //          loggingDelegate => loggingDelegate.Invoke(
+                            //              Timestamp.Now,
+                            //              this,
+                            //              httpRequest
+                            //          )
+                            //      );
 
-                            HTTPStream.Flush();
+                            //#endregion
 
-                            //File.AppendAllText(LogfileName,
-                            //                   String.Concat("Timestamp: ",         Timestamp.Now.ToIso8601(),                                                Environment.NewLine,
-                            //                                 "ChargeBoxId: ",       ChargeBoxIdentity.ToString(),                                             Environment.NewLine,
-                            //                                 "HTTP request: ",      Environment.NewLine,                                                      Environment.NewLine,
-                            //                                 httpRequest.EntirePDU,                                                                           Environment.NewLine,
-                            //                                 "--------------------------------------------------------------------------------------------",  Environment.NewLine));
+                            //await HTTPStream.WriteAsync((httpRequest.EntirePDU + "\r\n\r\n").ToUTF8Bytes(), CancellationToken);
+                            //await HTTPStream.FlushAsync(CancellationToken);
 
                             #endregion
 
                             #region Wait for HTTP response
 
-                            var buffer  = new Byte[16 * 1024];
-                            var pos     = 0U;
+                            httpResponse = await WaitForHTTPResponse(httpRequest, CancellationToken);
 
-                            do
+                            //var buffer  = new Byte[16 * 1024];
+                            //var pos     = 0U;
+
+                            //do
+                            //{
+
+                            //    pos += (UInt32) HTTPStream.Read(buffer, (Int32) pos, 2048);
+
+                            //    if (swX.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
+                            //        throw new HTTPTimeoutException(swX.Elapsed);
+
+                            //    Thread.Sleep(1);
+
+                            //} while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
+
+                            //var responseData  = buffer.ToUTF8String(pos);
+                            //var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
+                            //httpResponse      = HTTPResponse.Parse(
+                            //                        lines.AggregateWith(Environment.NewLine),
+                            //                        [],
+                            //                        httpRequest
+                            //                    );
+
+                            #region Unauthorized?
+
+                            if (httpResponse.HTTPStatusCode == HTTPStatusCode.Unauthorized)
                             {
 
-                                pos += (UInt32) HTTPStream.Read(buffer, (Int32) pos, 2048);
+                                // WWW-Authenticate: Basic     realm     = "Restricted Area"
 
-                                if (sw.ElapsedMilliseconds >= RequestTimeout.Value.TotalMilliseconds)
-                                    throw new HTTPTimeoutException(sw.Elapsed);
+                                // WWW-Authenticate: Digest    realm     = "example.com",
+                                //                             qop       = "auth",
+                                //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+                                //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
 
-                                Thread.Sleep(1);
+                                // WWW-Authenticate: Challenge realm     = "charging.cloud",
+                                //                             keyId     = "94g84hg...",
+                                //                             hash      = "sha256",
+                                //                             algorithm = "ECDSA",
+                                //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+                                //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
+                                if (httpResponse.WWWAuthenticate.Method == "Challenge" &&
+                                    AuthKey is not null)
+                                {
 
-                            } while (TCPNetworkStream.DataAvailable && pos < buffer.Length - 2048);
+                                    var keyId       = httpResponse.WWWAuthenticate.GetParameter("keyId");
+                                    var hash        = httpResponse.WWWAuthenticate.GetParameter("hash");
+                                    var algorithm   = httpResponse.WWWAuthenticate.GetParameter("algorithm");
+                                    var nonce       = httpResponse.WWWAuthenticate.GetParameter("nonce");
+                                    var opaque      = httpResponse.WWWAuthenticate.GetParameter("opaque");
 
-                            var responseData  = buffer.ToUTF8String(pos);
-                            var lines         = responseData.Split('\n').Select(line => line?.Trim()).TakeWhile(line => line.IsNotNullOrEmpty()).ToArray();
-                            httpResponse      = HTTPResponse.Parse(
-                                                    lines.AggregateWith(Environment.NewLine),
-                                                    [],
-                                                    httpRequest
-                                                );
+                                    var plainText   = $"{nonce}{opaque}";
+
+                                    var hashValue   = hash switch {
+                                                          "sha512" => SHA512.HashData(plainText.ToUTF8Bytes()),
+                                                          "sha384" => SHA384.HashData(plainText.ToUTF8Bytes()),
+                                                          "sha256" => SHA256.HashData(plainText.ToUTF8Bytes()),
+                                                          _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
+                                                      };
+
+                                    var blockSize   = hash switch {
+                                                          "sha512" => 64,
+                                                          "sha384" => 48,
+                                                          "sha256" => 48,
+                                                          _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
+                                                      };
+
+                                    var signer      = algorithm switch {
+                                                          "sha256" => SignerUtilities.GetSigner("NONEwithECDSA"),
+                                                          _        => throw new Exception($"Unknown algorithm '{algorithm}' in WWW-Authenticate challenge!")
+                                                      };
+
+                                    signer.Init(true, AuthKey);
+                                    signer.BlockUpdate(hashValue, 0, blockSize);
+                                    var signature   = signer.GenerateSignature().ToBase64();
+
+                                    //ToDo: Reconnect as the http server might have closed the connection!
+                                    //ToDo: 2. Request
+                                    //ToDo: 2. Response processing
+
+                                }
+
+                            }
+
+                            #endregion
 
                             // HTTP/1.1 101 Switching Protocols
                             // Upgrade:                 websocket
@@ -827,6 +1000,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                             #endregion
 
+                            var buffer  = new Byte[16 * 1024];
+                            var pos     = 0U;
 
                             webSocketClientConnection = new WebSocketClientConnection(
                                                             this,

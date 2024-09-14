@@ -467,17 +467,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// contain a comma-separated list of authentication parameters. 
         /// </summary>
         /// <example>
-        /// WWW-Authenticate: Basic realm="Access to the web sockets server",
-        ///                   charset="UTF-8",
-        ///                   Digest realm="Access to the web sockets server",
-        ///                   domain="/",
-        ///                   nonce="n9ivb628MTAuMTY4LjEuODQ=",
-        ///                   algorithm=MD5,
-        ///                   qop="auth"
+        /// WWW-Authenticate: Basic  realm      = "Access to the WebSockets server",
+        ///                          charset    = "UTF-8"
+        ///
+        /// WWW-Authenticate: Digest realm      = "Access to the WebSockets server",
+        ///                          domain     = "/",
+        ///                          nonce      = "n9ivb628MTAuMTY4LjEuODQ=",
+        ///                          algorithm  = MD5,
+        ///                          qop        = "auth"
         /// </example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPResponseHeaderField<String> WWWAuthenticate = new ("WWW-Authenticate",
-                                                                                      RequestPathSemantic.EndToEnd);
+        public static readonly HTTPResponseHeaderField<WWWAuthenticate> WWWAuthenticate = new ("WWW-Authenticate",
+                                                                                               RequestPathSemantic.EndToEnd,
+                                                                                               StringParser: HTTP.WWWAuthenticate.TryParse);
 
         #endregion
 

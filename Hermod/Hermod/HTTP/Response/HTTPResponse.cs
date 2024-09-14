@@ -22,7 +22,6 @@ using System.Collections.Concurrent;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
@@ -162,11 +161,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                Content         = new JObject(new JProperty("@context",    Context),
-                                              new JProperty("description", "Missing \"" + ParameterName + "\" JSON property!")).ToString().ToUTF8Bytes()
-            };
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                       Content         = JSONObject.Create(
+                                             new JProperty("@context",     Context),
+                                             new JProperty("description",  $"Missing '{ParameterName}' JSON property!")
+                                         ).ToUTF8Bytes()
+                   };
 
         }
 
@@ -174,12 +175,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                Content         = new JObject(new JProperty("@context",    Context),
-                                              new JProperty("value",       Value),
-                                              new JProperty("description", "Invalid \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
-            };
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                       Content         = JSONObject.Create(
+                                             new JProperty("@context",     Context),
+                                             new JProperty("value",        Value),
+                                             new JProperty("description",  $"Invalid '{ParameterName}' property value!")
+                                         ).ToUTF8Bytes()
+                   };
 
         }
 
@@ -187,12 +190,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.NotFound,
-                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                Content         = new JObject(new JProperty("@context",    Context),
-                                              new JProperty("value",       Value),
-                                              new JProperty("description", "Unknown \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
-            };
+                       HTTPStatusCode  = HTTPStatusCode.NotFound,
+                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                       Content         = JSONObject.Create(
+                                             new JProperty("@context",     Context),
+                                             new JProperty("value",        Value),
+                                             new JProperty("description",  $"Unknown '{ParameterName}' property value!")
+                                         ).ToUTF8Bytes()
+                   };
 
         }
 
@@ -222,15 +227,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static String CreateLogEntry(this HTTPResponse Response)
 
-            => String.Concat(HTTPResponse.RequestMarker,                                                                        Environment.NewLine,
-                             Response.HTTPRequest.HTTPSource.ToString(), " -> ", Response.HTTPRequest.RemoteSocket.ToString(),  Environment.NewLine,
-                             Response.HTTPRequest.Timestamp.ToIso8601(),                                                        Environment.NewLine,
-                             Response.HTTPRequest.EventTrackingId,                                                              Environment.NewLine,
-                             Response.HTTPRequest.EntirePDU,                                                                    Environment.NewLine,
-                             HTTPResponse.ResponseMarker,                                                                       Environment.NewLine,
-                             Response.Timestamp.ToIso8601(),                                                                    Environment.NewLine,
-                             Response.EntirePDU,                                                                                Environment.NewLine,
-                             HTTPResponse.EndMarker,                                                                            Environment.NewLine);
+            => String.Concat(
+                   HTTPResponse.RequestMarker,                                                                        Environment.NewLine,
+                   Response.HTTPRequest.HTTPSource.ToString(), " -> ", Response.HTTPRequest.RemoteSocket.ToString(),  Environment.NewLine,
+                   Response.HTTPRequest.Timestamp.ToIso8601(),                                                        Environment.NewLine,
+                   Response.HTTPRequest.EventTrackingId,                                                              Environment.NewLine,
+                   Response.HTTPRequest.EntirePDU,                                                                    Environment.NewLine,
+                   HTTPResponse.ResponseMarker,                                                                       Environment.NewLine,
+                   Response.Timestamp.ToIso8601(),                                                                    Environment.NewLine,
+                   Response.EntirePDU,                                                                                Environment.NewLine,
+                   HTTPResponse.EndMarker,                                                                            Environment.NewLine
+               );
 
         #endregion
 
@@ -268,10 +275,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        public const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        public const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-        public const String EndMarker       = "======================================================================================";
-        private const String Value = "_";
+        public  const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        public  const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+        public  const String EndMarker       = "======================================================================================";
+        private const String Value           = "_";
 
         #endregion
 
@@ -417,9 +424,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///                   algorithm=MD5,
         ///                   qop="auth"
         /// </summary>
-        public String WWWAuthenticate
+        public WWWAuthenticate WWWAuthenticate
 
-            => GetHeaderFields<String>(HTTPResponseHeaderField.WWWAuthenticate);
+            => GetHeaderFields<WWWAuthenticate>(HTTPResponseHeaderField.WWWAuthenticate);
 
         #endregion
 
