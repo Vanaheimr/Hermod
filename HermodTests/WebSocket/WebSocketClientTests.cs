@@ -505,7 +505,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return;
             }
 
-            webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
+            webSocketServer.AddSecWebSocketProtocol("ocpp1.6");
 
             var validatedTCP            = new List<String>();
             var newTCPConnection        = new List<String>();
@@ -710,7 +710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return;
             }
 
-            webSocketServer.SecWebSocketProtocols.Add("ocpp1.6");
+            webSocketServer.AddSecWebSocketProtocol("ocpp1.6");
 
             var validatedTCP            = new List<String>();
             var newTCPConnection        = new List<String>();
@@ -1161,7 +1161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                     return Task.FromResult<HTTPResponse?>(
                                new HTTPResponse.Builder(connection.HTTPRequest) {
                                    HTTPStatusCode   = HTTPStatusCode.Unauthorized,
-                                   WWWAuthenticate  = @"Basic realm=""Access to the web sockets server"", charset =""UTF-8""",
+                                   WWWAuthenticate  = WWWAuthenticate.Basic("Access to the WebSocket server"),
                                    Connection       = "Close"
                                }.AsImmutable
                            );
@@ -1382,7 +1382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                                new HTTPResponse.Builder(connection.HTTPRequest) {
                                    HTTPStatusCode   = HTTPStatusCode.Unauthorized,
                                    Server           = "GraphDefined HTTP WebSocket Service v2.0",
-                                   WWWAuthenticate  = @"Basic realm=""Access to the web sockets server"", charset =""UTF-8""",
+                                   WWWAuthenticate  = WWWAuthenticate.Basic("Access to the WebSocket server"),
                                    Connection       = "Close"
                                }.AsImmutable
                            );

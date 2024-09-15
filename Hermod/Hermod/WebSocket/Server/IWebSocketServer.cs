@@ -17,18 +17,40 @@
 
 #region Usings
 
+using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Collections.Concurrent;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
+
+    #region Delegates
+
+
+    public delegate Task<WebSocketTextMessageResponse>    OnWebSocketServerTextMessageDelegate  (DateTime                     Timestamp,
+                                                                                                 AWebSocketServer             Server,
+                                                                                                 WebSocketServerConnection    Connection,
+                                                                                                 EventTracking_Id             EventTrackingId,
+                                                                                                 DateTime                     RequestTimestamp,
+                                                                                                 String                       TextMessage,
+                                                                                                 CancellationToken            CancellationToken);
+
+    public delegate Task<WebSocketBinaryMessageResponse>  OnWebSocketServerBinaryMessageDelegate(DateTime                     Timestamp,
+                                                                                                 AWebSocketServer             Server,
+                                                                                                 WebSocketServerConnection    Connection,
+                                                                                                 EventTracking_Id             EventTrackingId,
+                                                                                                 DateTime                     RequestTimestamp,
+                                                                                                 Byte[]                       BinaryMessage,
+                                                                                                 CancellationToken            CancellationToken);
+
+    #endregion
+
 
     /// <summary>
     /// The common interface for all HTTP WebSocket servers.
@@ -41,38 +63,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The optional description of this HTTP WebSocket server.
         /// </summary>
-        I18NString                              Description                     { get; set; }
-        Boolean                                 DisableWebSocketPings           { get; set; }
-        DNSClient?                              DNSClient                       { get; }
-        String                                  HTTPServiceName                 { get; }
-        IIPAddress                              IPAddress                       { get; }
-        IPPort                                  IPPort                          { get; }
-        IPSocket                                IPSocket                        { get; }
-        Boolean                                 IsRunning                       { get; }
-        HashSet<String>                         SecWebSocketProtocols           { get; }
-        Boolean                                 ServerThreadIsBackground        { get; }
-        ServerThreadNameCreatorDelegate         ServerThreadNameCreator         { get; }
-        ServerThreadPriorityDelegate            ServerThreadPrioritySetter      { get; }
-        TimeSpan?                               SlowNetworkSimulationDelay      { get; set; }
-        IEnumerable<WebSocketServerConnection>  WebSocketConnections            { get; }
-        TimeSpan                                WebSocketPingEvery              { get; set; }
+        I18NString                                    Description                     { get; set; }
+        Boolean                                       DisableWebSocketPings           { get; set; }
+        DNSClient?                                    DNSClient                       { get; }
+        String                                        HTTPServiceName                 { get; }
+        IIPAddress                                    IPAddress                       { get; }
+        IPPort                                        IPPort                          { get; }
+        IPSocket                                      IPSocket                        { get; }
+        Boolean                                       IsRunning                       { get; }
+        IEnumerable<String>                           SecWebSocketProtocols           { get; }
+        Boolean                                       ServerThreadIsBackground        { get; }
+        ServerThreadNameCreatorDelegate               ServerThreadNameCreator         { get; }
+        ServerThreadPriorityDelegate                  ServerThreadPrioritySetter      { get; }
+        TimeSpan?                                     SlowNetworkSimulationDelay      { get; set; }
+        IEnumerable<WebSocketServerConnection>        WebSocketConnections            { get; }
+        TimeSpan                                      WebSocketPingEvery              { get; set; }
 
-        ConcurrentDictionary<String, String?>   ClientLogins                    { get; }
-        Boolean                                 RequireAuthentication           { get; }
+        ConcurrentDictionary<String, SecurePassword>  ClientLogins                    { get; }
+        Boolean                                       RequireAuthentication           { get; }
 
-        List<X509Certificate2>                  TrustedClientCertificates       { get; }
-        List<X509Certificate2>                  TrustedCertificatAuthorities    { get; }
+        List<X509Certificate2>                        TrustedClientCertificates       { get; }
+        List<X509Certificate2>                        TrustedCertificatAuthorities    { get; }
 
-        UInt64?                                 MaxTextMessageSize              { get; }
+        UInt64?                                       MaxTextMessageSize              { get; }
 
-        UInt64?                                 MaxBinaryMessageSize            { get; }
+        UInt64?                                       MaxBinaryMessageSize            { get; }
 
         #endregion
 
         #region Events
 
         /// <summary>
-        /// An event sent whenever the HTTP web socket server started.
+        /// An event sent whenever the HTTP WebSocket server started.
         /// </summary>
         event OnServerStartedDelegate?                           OnServerStarted;
 
@@ -182,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
         /// <summary>
-        /// An event sent whenever the HTTP web socket server stopped.
+        /// An event sent whenever the HTTP WebSocket server stopped.
         /// </summary>
         event OnServerStoppedDelegate?                           OnServerStopped;
 
@@ -192,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Process(Text/Binary)Message
 
         /// <summary>
-        /// The default HTTP web socket text message processor.
+        /// The default HTTP WebSocket text message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -206,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                    CancellationToken          CancellationToken);
 
         /// <summary>
-        /// The default HTTP web socket binary message processor.
+        /// The default HTTP WebSocket binary message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -261,47 +283,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-
-
-
-        #region AddOrUpdateHTTPBasicAuth(NetworkingNodeId, Password)
-
-        /// <summary>
-        /// Add the given HTTP Basic Authentication password for the given networking node.
-        /// </summary>
-        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
-        /// <param name="Password">The password of the charging station.</param>
-        HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String NetworkingNodeId,
-                                                         String Password);
-
-        #endregion
-
-        #region RemoveHTTPBasicAuth     (NetworkingNodeId)
-
-        /// <summary>
-        /// Remove the given HTTP Basic Authentication for the given networking node.
-        /// </summary>
-        /// <param name="NetworkingNodeId">The unique identification of the networking node.</param>
-        Boolean RemoveHTTPBasicAuth(String NetworkingNodeId);
-
-        #endregion
-
-
+        #region RemoveConnection  (Connection)
 
         /// <summary>
         /// Remove the given web socket connection.
         /// </summary>
-        /// <param name="Connection">A HTTP web socket connection.</param>
+        /// <param name="Connection">A HTTP WebSocket connection.</param>
         Boolean RemoveConnection(WebSocketServerConnection Connection);
+
+        #endregion
+
+
+        #region AddOrUpdateHTTPBasicAuth(Username, Password)
+
+        /// <summary>
+        /// Add the given HTTP Basic Authentication password for the given username.
+        /// </summary>
+        /// <param name="Username">The unique identification of the username.</param>
+        /// <param name="Password">The password of the charging station.</param>
+        HTTPBasicAuthentication AddOrUpdateHTTPBasicAuth(String Username,
+                                                         String Password);
+
+        #endregion
+
+        #region RemoveHTTPBasicAuth     (Username)
+
+        /// <summary>
+        /// Remove the given HTTP Basic Authentication for the given username.
+        /// </summary>
+        /// <param name="Username">The unique identification of the username.</param>
+        Boolean RemoveHTTPBasicAuth(String Username);
+
+        #endregion
+
 
 
         /// <summary>
-        /// Start the HTTP web socket listener thread.
+        /// Start the HTTP WebSocket listener thread.
         /// </summary>
         void Start();
 
         /// <summary>
-        /// Shutdown the HTTP web socket listener thread.
+        /// Shutdown the HTTP WebSocket listener thread.
         /// </summary>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>

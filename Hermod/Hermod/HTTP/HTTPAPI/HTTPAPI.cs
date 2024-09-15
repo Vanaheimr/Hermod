@@ -1277,8 +1277,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            if (AutoStart && HTTPServer.Start())
-                DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
+            if (AutoStart)
+                HTTPServer.Start();
+
+            //if (AutoStart && HTTPServer.Start())
+            //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
 
         }
 
@@ -1381,9 +1384,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             // Link HTTP events...
-            HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
-            HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
-            HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
+            HTTPServer.RequestLog   += RequestLog. WhenAll;
+            HTTPServer.ResponseLog  += ResponseLog.WhenAll;
+            HTTPServer.ErrorLog     += ErrorLog.   WhenAll;
 
 
             // Setup Maintenance Task
@@ -1470,8 +1473,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            if (AutoStart == true && HTTPServer.Start())
-                DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
+            if (AutoStart)
+                HTTPServer.Start();
+
+            //if (AutoStart == true && HTTPServer.Start())
+            //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
 
         }
 

@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// WWW-Authenticate
             /// </summary>
-            public String WWWAuthenticate
+            public WWWAuthenticate WWWAuthenticate
             {
 
                 get

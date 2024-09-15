@@ -607,9 +607,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region IPPorts
 
+        /// <summary>
+        /// All attached IP ports.
+        /// </summary>
         public IEnumerable<IPPort> IPPorts
 
-            => tcpServers.Select(server => server.Port);
+            => tcpServers.Select(tcpServer => tcpServer.Port);
+
+        #endregion
+
+        #region IPSockets
+
+        /// <summary>
+        /// All attached IP sockets.
+        /// </summary>
+        public IEnumerable<IPSocket> IPSockets
+
+            => tcpServers.Select(tcpServer => tcpServer.IPSocket);
 
         #endregion
 

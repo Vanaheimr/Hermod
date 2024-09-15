@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// A HTTP web socket binary message response.
+    /// A HTTP WebSocket binary message response.
     /// </summary>
     /// <param name="RequestTimestamp">The request timestamp.</param>
     /// <param name="RequestMessage">The request message.</param>

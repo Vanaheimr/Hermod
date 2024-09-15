@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -111,7 +112,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A token.</param>
         /// <param name="BearerAuthentication">The new HTTP Bearer Authentication.</param>
-        public static Boolean TryParse(String Text, out HTTPBearerAuthentication? BearerAuthentication)
+        public static Boolean TryParse(String                                             Text,
+                                       [NotNullWhen(true)] out HTTPBearerAuthentication?  BearerAuthentication)
         {
 
             BearerAuthentication = null;
@@ -340,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPBearerAuthentication is null)
-                throw new ArgumentNullException(nameof(Object),
+                throw new ArgumentNullException(nameof(HTTPBearerAuthentication),
                                                 "The given object HTTP Bearer Authentication must not be null!");
 
             return String.Compare(Token,

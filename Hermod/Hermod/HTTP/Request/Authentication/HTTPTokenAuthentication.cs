@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -182,7 +183,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
         /// <param name="TokenAuthentication">The parsed HTTP Token Authentication header.</param>
-        public static Boolean TryParseHTTPHeader(String Text, out HTTPTokenAuthentication? TokenAuthentication)
+        public static Boolean TryParseHTTPHeader(String                                            Text,
+                                                 [NotNullWhen(true)] out HTTPTokenAuthentication?  TokenAuthentication)
         {
 
             TokenAuthentication = null;
@@ -348,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPTokenAuthentication is null)
-                throw new ArgumentNullException(nameof(Object),
+                throw new ArgumentNullException(nameof(HTTPTokenAuthentication),
                                                 "The given object HTTP Token Authentication must not be null!");
 
             return String.Compare(Token,

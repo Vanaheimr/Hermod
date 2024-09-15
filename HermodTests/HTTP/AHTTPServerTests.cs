@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                     AccessControlAllowHeaders  = [ "Authorization" ],
                                                                     ContentType                = HTTPContentType.Text.PLAIN,
                                                                     Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
-                                                                    WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                                    WWWAuthenticate            = WWWAuthenticate.Basic("Access to the staging site"),
                                                                     Connection                 = "close"
                                                                 }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                   AsImmutable
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = [ "GET" ],
                                                             AccessControlAllowHeaders  = [ "Authorization" ],
-                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
+                                                            WWWAuthenticate            = WWWAuthenticate.Basic("Access to the staging site"),
                                                             Connection                 = "close"
                                                         }.AsImmutable
                                                     );
