@@ -872,7 +872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         #region Accept new TCP connection
 
                         // Wait for a new/pending client connection
-                        while (!token.IsCancellationRequested && !tcpListener.Pending())
+                        //while (!token.IsCancellationRequested && !tcpListener.Pending())
                             Thread.Sleep(5);
 
                         if (token.IsCancellationRequested)
@@ -1273,7 +1273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                       Connection            = "Upgrade",
                                                                                       Upgrade               = "websocket",
                                                                                       SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
-                                                                                      SecWebSocketProtocol  = sharedSubprotocols,
+                                                                                      SecWebSocketProtocol  = [ sharedSubprotocols.First() ],
                                                                                       SecWebSocketVersion   = "13"
                                                                                   }.AsImmutable;
 

@@ -1332,7 +1332,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             }, CancellationToken);
 
-            while (waitingForHTTPResponse is null) {
+            var ts = Timestamp.Now;
+
+            while (waitingForHTTPResponse is null && ts + TimeSpan.FromSeconds(5) > Timestamp.Now) {
                 Thread.Sleep(10);
             }
 
