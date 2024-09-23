@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Server          = HTTPServer.DefaultServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "no-cache",
-                               Connection      = "close",
+                               Connection      = ConnectionType.Close,
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Content         = ("Incoming http connection from '" + Request.HTTPSource + "'" +
                                                    Environment.NewLine + Environment.NewLine +
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                    Server           = DefaultServerName,
         //                                    Date             = Timestamp.Now,
         //                                    CacheControl     = "no-cache",
-        //                                    Connection       = "close",
+        //                                    Connection       = ConnectionType.Close,
         //                                }.AsImmutable
 
         //                              : new HTTPResponse.Builder(httpRequest) {
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                                    new JProperty("message", e.Message)
         //                                                ).ToUTF8Bytes(),
         //                              CacheControl    = "no-cache",
-        //                              Connection      = "close",
+        //                              Connection      = ConnectionType.Close,
         //                          }.AsImmutable
         //                      );
 
@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             Server           = DefaultServerName,
                                             Date             = Timestamp.Now,
                                             CacheControl     = "no-cache",
-                                            Connection       = "close",
+                                            Connection       = ConnectionType.Close,
                                         }.AsImmutable
 
                                       : new HTTPResponse.Builder(httpRequest) {
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   TimeSpan.FromMinutes(15),
                                                                   500
                                                               ),
-                                            Connection      = "Keep-Alive",
+                                            Connection      = ConnectionType.KeepAlive,
                                         }.AsImmutable
 
                               );
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             new JProperty("message", e.Message)
                                                         ).ToUTF8Bytes(),
                                       CacheControl    = "no-cache",
-                                      Connection      = "close",
+                                      Connection      = ConnectionType.Close,
                                   }.AsImmutable
                               );
 
@@ -964,7 +964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      ContentType     = ResponseContentType,
                                                      ContentStream   = fileStream,
                                                      CacheControl    = CacheControl,
-                                                     Connection      = "close",
+                                                     Connection      = ConnectionType.Close,
                                                  };
 
                                              else
@@ -1012,7 +1012,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          ContentType    = ResponseContentType,
                                                          ContentStream  = errorStream,
                                                          CacheControl   = "no-cache",
-                                                         Connection     = "close",
+                                                         Connection     = ConnectionType.Close,
                                                      };
 
                                                  #endregion
@@ -1025,7 +1025,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = Timestamp.Now,
                                                          CacheControl    = "no-cache",
-                                                         Connection      = "close",
+                                                         Connection      = ConnectionType.Close,
                                                      };
 
                                                  #endregion
@@ -1130,7 +1130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       ContentType     = ResponseContentType,
                                                                       ContentStream   = fileStream,
                                                                       CacheControl    = CacheControl,
-                                                                      Connection      = "close",
+                                                                      Connection      = ConnectionType.Close,
                                                                   }.AsImmutable
                                                               )
 
@@ -1140,7 +1140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       Server          = HTTPServer.DefaultServerName,
                                                                       Date            = Timestamp.Now,
                                                                       CacheControl    = "no-cache",
-                                                                      Connection      = "close",
+                                                                      Connection      = ConnectionType.Close,
                                                                   }.AsImmutable
                                                               );
 
@@ -1153,7 +1153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 Server          = HTTPServer.DefaultServerName,
                                                                 Date            = Timestamp.Now,
                                                                 CacheControl    = "no-cache",
-                                                                Connection      = "close",
+                                                                Connection      = ConnectionType.Close,
                                                             }.AsImmutable
                                                         );
 
@@ -1170,7 +1170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 ContentType     = HTTPContentType.Text.PLAIN,
                                                                 Content         = e.Message.ToUTF8Bytes(),
                                                                 CacheControl    = "no-cache",
-                                                                Connection      = "close",
+                                                                Connection      = ConnectionType.Close,
                                                             }.AsImmutable
                                                         );
 

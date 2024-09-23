@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The http content types accepted by the client.
             /// </summary>
-            public AcceptTypes? Accept
+            public AcceptTypes?  Accept
             {
 
                 get
@@ -199,7 +199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 set
                 {
-                    SetHeaderField(HTTPRequestHeaderField.Authorization, value);
+                    if (value is not null)
+                        SetHeaderField(HTTPRequestHeaderField.Authorization, value);
                 }
 
             }
@@ -690,12 +691,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
-            #region HTTPRequestBuilder(Client = null)
+            #region HTTPRequestBuilder(Client = null, CancellationToken = default)
 
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(AHTTPClient? Client = null)
+            /// <param name="CancellationToken">An optional cancellation token.</param>
+            public Builder(AHTTPClient?       Client              = null,
+                           CancellationToken  CancellationToken   = default)
+
+                : base(CancellationToken)
+
             {
 
                 this.httpClient       = Client;
@@ -703,7 +709,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
                 this.Path             = HTTPPath.Parse("/");
-                this.QueryString      = QueryString.New;
+                this.QueryString      = QueryString.Empty;
                 SetHeaderField(HTTPRequestHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
                 this.ProtocolVersion  = new HTTPVersion(1, 1);
@@ -718,6 +724,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new HTTP request.
             /// </summary>
             public Builder(HTTPRequest Request)
+
+                : base(Request.CancellationToken)
+
             {
 
                 this.HTTPServer       = Request.HTTPServer;
@@ -884,7 +893,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP connection header field.
             /// </summary>
             /// <param name="Connection">A connection.</param>
-            public Builder SetConnection(String Connection)
+            public Builder SetConnection(ConnectionType Connection)
             {
                 this.Connection = Connection;
                 return this;

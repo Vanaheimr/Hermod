@@ -75,9 +75,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         Boolean                                                    PreferIPv4                    { get; }
 
         /// <summary>
+        /// An optional HTTP content type.
+        /// </summary>
+        HTTPContentType?                                           ContentType                   { get; }
+
+        /// <summary>
+        /// Optional HTTP accept types.
+        /// </summary>
+        AcceptTypes?                                               Accept                        { get; }
+
+        /// <summary>
+        /// The optional HTTP authentication to use.
+        /// </summary>
+        IHTTPAuthentication?                                       Authentication                { get; }
+
+        /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
         String                                                     HTTPUserAgent                 { get; }
+
+        /// <summary>
+        /// The optional HTTP connection type.
+        /// </summary>
+        ConnectionType?                                            Connection                    { get; }
 
         /// <summary>
         /// The timeout for HTTP requests.

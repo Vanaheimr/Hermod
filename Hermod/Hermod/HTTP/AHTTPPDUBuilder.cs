@@ -213,6 +213,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
         }
 
+
+        /// <summary>
+        /// The cancellation token.
+        /// </summary>
+        public CancellationToken  CancellationToken    { get; }
+
         #endregion
 
         #region General header fields
@@ -238,12 +244,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Connection
 
-        public String? Connection
+        public ConnectionType? Connection
         {
 
             get
             {
-                return GetHeaderField(HTTPHeaderField.Connection);
+                return GetHeaderField<ConnectionType>(HTTPHeaderField.Connection);
             }
 
             set
@@ -742,9 +748,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP header builder.
         /// </summary>
-        public AHTTPPDUBuilder()
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public AHTTPPDUBuilder(CancellationToken CancellationToken = default)
         {
-            headerFields = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+
+            this.headerFields       = new Dictionary<String, Object?>(StringComparer.OrdinalIgnoreCase);
+            this.CancellationToken  = CancellationToken;
+
         }
 
         #endregion

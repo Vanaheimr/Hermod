@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                                                    AggregateWith(", ")
                                                                            ).AggregateWith(Environment.NewLine + Environment.NewLine)
                                                                 ).ToUTF8Bytes(),
-                                              Connection = "close"
+                                              Connection = ConnectionType.Close
 
                                           }.AsImmutable);
 

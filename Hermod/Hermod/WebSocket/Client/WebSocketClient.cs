@@ -145,9 +145,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean                                                         PreferIPv4                                { get; }
 
         /// <summary>
+        /// An optional HTTP content type.
+        /// </summary>
+        public HTTPContentType?                                                ContentType                               { get; }
+
+        /// <summary>
+        /// The optional HTTP accept header.
+        /// </summary>
+        public AcceptTypes?                                                    Accept                                    { get; }
+
+        /// <summary>
+        /// The optional HTTP authentication to use.
+        /// </summary>
+        public IHTTPAuthentication?                                            Authentication                            { get; }
+
+        /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
         public String                                                          HTTPUserAgent                             { get; }
+
+        /// <summary>
+        /// The optional HTTP connection type.
+        /// </summary>
+        public ConnectionType?                                                 Connection                                { get; }
 
         /// <summary>
         /// The timeout for upstream requests.
@@ -243,10 +263,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     TCPSocket.Ttl = value;
             }
         }
-
-
-        public IHTTPAuthentication?                 HTTPAuthentication                   { get; }
-
 
         /// <summary>
         /// Disable all maintenance tasks.
@@ -421,7 +437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
             this.TLSProtocol                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
-            this.HTTPAuthentication                 = HTTPAuthentication;
+            this.Authentication                     = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);
             this.TransmissionRetryDelay             = TransmissionRetryDelay  ?? (retryCount => TimeSpan.FromSeconds(5));
             this.MaxNumberOfRetries                 = MaxNumberOfRetries      ?? 3;
@@ -717,7 +733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var httpRequestBuilder  = new HTTPRequest.Builder {
                                           Path                  = RemoteURL.Path,
                                           Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
-                                          Connection            = "Upgrade",
+                                          Connection            = ConnectionType.Upgrade,
                                           Upgrade               = "websocket",
                                           SecWebSocketKey       = swkaSHA1Base64,
                                           SecWebSocketProtocol  = SecWebSocketProtocols,
@@ -848,10 +864,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         await OpenTCPConnection(RequestTimeout);
 
                         var responseTuple     = await SendHTTPRequest(
-                                                            HTTPRequestBuilder,
-                                                            HTTPAuthentication,
-                                                            CancellationToken
-                                                        );
+                                                          HTTPRequestBuilder,
+                                                          Authentication,
+                                                          CancellationToken
+                                                      );
 
                         httpRequest           = responseTuple.Item1;
                         var expectedWSAccept  = responseTuple.Item2;
@@ -1210,8 +1226,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                         #region Close connection if requested!
 
-                        if (httpResponse.Connection is null    ||
-                            httpResponse.Connection == "close" ||
+                        if (httpResponse.Connection is null                 ||
+                            httpResponse.Connection == ConnectionType.Close ||
                             ClientCloseMessage is not null)
                         {
 

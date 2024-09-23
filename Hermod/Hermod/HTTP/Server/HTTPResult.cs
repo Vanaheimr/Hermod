@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Date            = Timestamp.Now,
                 HTTPStatusCode  = StatusCode,
                 CacheControl    = "no-cache",
-                Connection      = "close",
+                Connection      = ConnectionType.Close,
                 ContentType     = ContentType,
                 Content         = Content.ToUTF8Bytes()
             };

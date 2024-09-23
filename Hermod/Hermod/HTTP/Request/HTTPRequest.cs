@@ -1244,7 +1244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
                 QueryString = QueryString.Parse(parsedURL[1]);
             else
-                QueryString = QueryString.New;
+                QueryString = QueryString.Empty;
 
             #endregion
 

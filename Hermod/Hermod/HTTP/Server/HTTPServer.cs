@@ -1517,7 +1517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                           new JProperty("description", "HTTP response is null!")
                                                                                       ).ToUTF8Bytes(),
                                                                     CacheControl    = "private",
-                                                                    Connection      = "close"
+                                                                    Connection      = ConnectionType.Close
                                                                 };
 
                                                 ServerClose = true;
@@ -1540,7 +1540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                       new JProperty("stacktrace",  exception.StackTrace)
                                                                                   ).ToUTF8Bytes(),
                                                                 CacheControl    = "private",
-                                                                Connection      = "close"
+                                                                Connection      = ConnectionType.Close
                                                             };
 
                                             ServerClose = true;
@@ -1601,7 +1601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         {
 
                                             ServerClose = httpResponse.Connection is not null &&
-                                                          String.Equals(httpResponse.Connection, "close", StringComparison.OrdinalIgnoreCase);
+                                                          httpResponse.Connection == ConnectionType.Close;
 
                                         }
                                         catch (Exception e)
@@ -2756,7 +2756,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  new JProperty("source",       e.TargetSite?.Module.Name),
                                                                  new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
                                                              ).ToUTF8Bytes(),
-                                           Connection      = "close"
+                                           Connection      = ConnectionType.Close
                                        };
 
                     }
@@ -2771,7 +2771,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("request",       Request.FirstPDULine),
                                                              new JProperty("description",  "HTTP request handler must not be null!")
                                                          ).ToUTF8Bytes(),
-                                     Connection      = "close"
+                                     Connection      = ConnectionType.Close
                                  };
 
                 #endregion
@@ -2822,7 +2822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Date            = Timestamp.Now,
                                    ContentType     = HTTPContentType.Text.PLAIN,
                                    Content         = errorResponse.ToUTF8Bytes(),
-                                   Connection      = "close"
+                                   Connection      = ConnectionType.Close
                                };
 
              httpResponse ??= new HTTPResponse.Builder(Request) {
@@ -2833,7 +2833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           new JProperty("request",      Request.FirstPDULine),
                                                           new JProperty("description",  errorResponse)
                                                       ).ToUTF8Bytes(),
-                                  Connection      = "close"
+                                  Connection      = ConnectionType.Close
                               };
 
 
@@ -3032,7 +3032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Server                    = HTTPServer.DefaultHTTPServerName,
                                    ContentType               = HTTPContentType.Text.EVENTSTREAM,
                                    CacheControl              = "no-cache",
-                                   Connection                = "keep-alive",
+                                   Connection                = ConnectionType.KeepAlive,
                                    AccessControlAllowOrigin  = "*",
                                    KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
                                    Content                   = httpEvents.ToUTF8Bytes()

@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var x = new HTTPResponse.Builder(HTTPRequest) {
                 HTTPStatusCode  = StatusCode,
                 CacheControl    = "no-cache",
-                Connection      = "close",
+                Connection      = ConnectionType.Close,
                 Content         = Content.ToUTF8Bytes()
             };
 

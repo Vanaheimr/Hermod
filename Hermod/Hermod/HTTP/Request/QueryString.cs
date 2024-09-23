@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return a new empty query string.
         /// </summary>
-        public static QueryString New
+        public static QueryString Empty
 
             => new ();
 
