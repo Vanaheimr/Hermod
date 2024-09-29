@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.AsImmutable));
 
             #endregion

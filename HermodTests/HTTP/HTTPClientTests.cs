@@ -108,8 +108,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
             var httpResponse  = await httpClient.GET(HTTPPath.Root,
-                                                     requestbuilder => {
-                                                         requestbuilder.Host = HTTPHostname.Localhost;
+                                                     RequestBuilder: requestBuilder => {
+                                                         requestBuilder.Host = HTTPHostname.Localhost;
                                                      }).
                                                  ConfigureAwait(false);
 
@@ -316,8 +316,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var randomString  = RandomExtensions.RandomString(50);
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
-            var httpResponse  = await httpClient.POST(HTTPPath.Root + "mirror" + ("queryString?q=" + randomString)).
-                                                 ConfigureAwait(false);
+            var httpResponse  = await httpClient.POST(
+                                          HTTPPath.Root + "mirror" + ("queryString?q=" + randomString),
+                                          null,
+                                          null
+                                      ).ConfigureAwait(false);
 
 
 
@@ -371,12 +374,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var randomString  = RandomExtensions.RandomString(50);
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
-            var httpResponse  = await httpClient.POST(HTTPPath.Root + "mirror" + "httpBody",
-                                                      request => {
-                                                          request.ContentType  = HTTPContentType.Text.PLAIN;
-                                                          request.Content      = randomString.ToUTF8Bytes();
-                                                      }).
-                                                 ConfigureAwait(false);
+            var httpResponse  = await httpClient.POST(
+                                          HTTPPath.Root + "mirror" + "httpBody",
+                                          randomString.ToUTF8Bytes(),
+                                          HTTPContentType.Text.PLAIN
+                                      ).ConfigureAwait(false);
 
 
 
@@ -432,12 +434,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
             var randomString  = RandomExtensions.RandomString(50);
             var httpClient    = new HTTPClient(URL.Parse($"http://127.0.0.1:{HTTPPort}"));
-            var httpResponse  = await httpClient.MIRROR(HTTPPath.Root + "mirror" + "httpBody",
-                                                        request => {
-                                                            request.ContentType  = HTTPContentType.Text.PLAIN;
-                                                            request.Content      = randomString.ToUTF8Bytes();
-                                                        }).
-                                                 ConfigureAwait(false);
+            var httpResponse  = await httpClient.MIRROR(
+                                          HTTPPath.Root + "mirror" + "httpBody",
+                                          randomString.ToUTF8Bytes(),
+                                          HTTPContentType.Text.PLAIN
+                                      ).ConfigureAwait(false);
 
 
 

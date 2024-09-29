@@ -60,12 +60,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Concurrent
 
             for (var i = 0; i < 100; i++)
             {
-                httpRequests.Add(new HTTPClient(URL.Parse("http://127.0.0.1:82")).
-                                            POST(HTTPPath.Root + "mirror" + "httpBody",
-                                                request => {
-                                                    request.ContentType  = HTTPContentType.Text.PLAIN;
-                                                    request.Content      = i.ToString().ToUTF8Bytes();//.PadLeft(4, '0').ToUTF8Bytes();
-                                                }));
+                httpRequests.Add(
+                    new HTTPClient(
+                        URL.Parse("http://127.0.0.1:82")
+                    ).
+                    POST(
+                        HTTPPath.Root + "mirror" + "httpBody",
+                        i.ToString().ToUTF8Bytes(),//.PadLeft(4, '0').ToUTF8Bytes();
+                        HTTPContentType.Text.PLAIN
+                    )
+                );
             }
 
             var responeses      = await Task.WhenAll(httpRequests.ToArray());

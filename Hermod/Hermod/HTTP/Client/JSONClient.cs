@@ -47,8 +47,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="ContentType">An optional HTTP content type.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Connection">An optional connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -63,8 +66,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                           X509Certificate?                                           ClientCert                   = null,
                           SslProtocols?                                              TLSProtocol                  = null,
-                          String                                                     HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPContentType?                                           ContentType                  = null,
+                          AcceptTypes?                                               Accept                       = null,
                           IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                          String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
+                          ConnectionType?                                            Connection                   = null,
                           TimeSpan?                                                  RequestTimeout               = null,
                           TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
                           UInt16?                                                    MaxNumberOfRetries           = DefaultMaxNumberOfRetries,
@@ -80,8 +86,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.JSON
                    LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   HTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,

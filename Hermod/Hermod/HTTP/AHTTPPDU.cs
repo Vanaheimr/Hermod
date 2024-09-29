@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Connection
         /// </summary>
-        public String? Connection
+        public ConnectionType? Connection
 
             => GetHeaderField(HTTPHeaderField.Connection);
 

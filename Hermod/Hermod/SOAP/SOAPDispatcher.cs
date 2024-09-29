@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
                     ContentType     = HTTPContentType.Text.PLAIN,
                     Content         = "Invalid SOAP/XML processing!".ToUTF8Bytes(),
-                    Connection      = "close"
+                    Connection      = ConnectionType.Close
                 };
 
             }
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
                 ContentType     = HTTPContentType.Text.PLAIN,
                 Content         = "Unknown SOAP/XML!".ToUTF8Bytes(),
-                Connection      = "close"
+                Connection      = ConnectionType.Close
             };
 
         }
@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                        Select(dispatch => " - " + dispatch.Description).
                                        AggregateWith(Environment.NewLine)
                                   ).ToUTF8Bytes(),
-                Connection      = "close"
+                Connection      = ConnectionType.Close
 
             }.AsImmutable);
 

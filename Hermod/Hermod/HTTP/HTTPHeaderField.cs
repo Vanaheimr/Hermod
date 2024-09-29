@@ -358,9 +358,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Connection: close</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField<String> Connection = new ("Connection",
-                                                                         HeaderFieldType.General,
-                                                                         RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField<ConnectionType> Connection = new ("Connection",
+                                                                                 HeaderFieldType.General,
+                                                                                 RequestPathSemantic.EndToEnd);
 
         #endregion
 

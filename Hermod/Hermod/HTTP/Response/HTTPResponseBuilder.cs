@@ -650,7 +650,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP connection.
             /// </summary>
             /// <param name="Connection">A connection.</param>
-            public Builder SetConnection(String Connection)
+            public Builder SetConnection(ConnectionType Connection)
             {
                 this.Connection = Connection;
                 return this;
@@ -890,7 +890,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                };
 
                 if (CloseConnection ?? true)
-                    response.Connection = "close";
+                    response.Connection = ConnectionType.Close;
 
                 Configurator?.Invoke(response);
 
@@ -914,7 +914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                };
 
                 if (CloseConnection ?? true)
-                    response.Connection = "close";
+                    response.Connection = ConnectionType.Close;
 
                 return Configurator is not null
                            ? Configurator(response)

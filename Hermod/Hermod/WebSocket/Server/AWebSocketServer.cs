@@ -872,7 +872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         #region Accept new TCP connection
 
                         // Wait for a new/pending client connection
-                        while (!token.IsCancellationRequested && !tcpListener.Pending())
+                        //while (!token.IsCancellationRequested && !tcpListener.Pending())
                             Thread.Sleep(5);
 
                         if (token.IsCancellationRequested)
@@ -1270,10 +1270,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                             httpResponse        = new HTTPResponse.Builder(httpRequest) {
                                                                                       HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
                                                                                       Server                = HTTPServiceName,
-                                                                                      Connection            = "Upgrade",
+                                                                                      Connection            = ConnectionType.Upgrade,
                                                                                       Upgrade               = "websocket",
                                                                                       SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
-                                                                                      SecWebSocketProtocol  = sharedSubprotocols,
+                                                                                      SecWebSocketProtocol  = [ sharedSubprotocols.First() ],
                                                                                       SecWebSocketVersion   = "13"
                                                                                   }.AsImmutable;
 
@@ -1287,7 +1287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                          HTTPStatusCode  = HTTPStatusCode.BadRequest,
                                                                          Server          = HTTPServiceName,
                                                                          Date            = Timestamp.Now,
-                                                                         Connection      = "close"
+                                                                         Connection      = ConnectionType.Close
                                                                      }.AsImmutable;
 
                                                     #endregion
@@ -1310,7 +1310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     #endregion
 
                                                     if (success != SentStatus.Success ||
-                                                        httpResponse.Connection == "close")
+                                                        httpResponse.Connection == ConnectionType.Close)
                                                     {
                                                         await webSocketConnection.Close(
                                                                   WebSocketFrame.ClosingStatusCode.ProtocolError
