@@ -360,7 +360,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
         public static readonly HTTPHeaderField<ConnectionType> Connection = new ("Connection",
                                                                                  HeaderFieldType.General,
-                                                                                 RequestPathSemantic.EndToEnd);
+                                                                                 RequestPathSemantic.EndToEnd,
+                                                                                 MultipleValuesAsList:   false,
+                                                                                 StringParser:           ConnectionType.TryParse,
+                                                                                 ValueSerializer:        ct => ct.ToString());
 
         #endregion
 
