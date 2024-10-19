@@ -447,7 +447,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
             unchecked
@@ -466,7 +465,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Returns a text representation of this object.
         /// </summary>
-        /// <returns>A string representation of this object.</returns>
         public override String ToString()
 
             => $"{IPAddress}:{Port}";
