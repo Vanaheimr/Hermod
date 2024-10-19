@@ -1140,7 +1140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #endregion
 
-                                                        Thread.Sleep(5);
+                                                        await Task.Delay(5);
 
                                                     };
 
