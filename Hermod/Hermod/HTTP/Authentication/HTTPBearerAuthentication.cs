@@ -17,8 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
 using System.Diagnostics.CodeAnalysis;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -174,7 +175,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Bearer Authentication header.</param>
         /// <param name="BearerAuthentication">The parsed HTTP Bearer Authentication header.</param>
-        public static Boolean TryParseHTTPHeader(String Text, out HTTPBearerAuthentication? BearerAuthentication)
+        public static Boolean TryParseHTTPHeader(String                                             Text,
+                                                 [NotNullWhen(true)] out HTTPBearerAuthentication?  BearerAuthentication)
         {
 
             BearerAuthentication = null;
