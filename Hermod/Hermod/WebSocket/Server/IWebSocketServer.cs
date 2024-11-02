@@ -80,14 +80,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         TimeSpan                                      WebSocketPingEvery              { get; set; }
 
         ConcurrentDictionary<String, SecurePassword>  ClientLogins                    { get; }
-        Boolean                                       RequireAuthentication           { get; }
+        Boolean                                       RequireAuthentication           { get; set; }
 
         List<X509Certificate2>                        TrustedClientCertificates       { get; }
         List<X509Certificate2>                        TrustedCertificatAuthorities    { get; }
 
-        UInt64?                                       MaxTextMessageSize              { get; }
+        UInt64?                                       MaxTextMessageSize              { get; set; }
 
-        UInt64?                                       MaxBinaryMessageSize            { get; }
+        UInt64?                                       MaxBinaryMessageSize            { get; set; }
 
         #endregion
 

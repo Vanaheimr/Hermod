@@ -36,9 +36,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Metadata
 
         /// <summary>
-        /// The creation timestamp.
+        /// The connection creation timestamp.
         /// </summary>
-        DateTime                 Created                       { get; }
+        DateTime                 ConnectedSince                { get; }
+
+        /// <summary>
+        /// Whether the connection is still assumed to be alive.
+        /// </summary>
+        Boolean                  IsAlive                       { get; set; }
+
+        /// <summary>
+        /// The number of messages received.
+        /// </summary>
+        UInt64                   InCount                       { get; }
+
+        /// <summary>
+        /// The number of messages sent.
+        /// </summary>
+        UInt64                   OutCount                      { get; }
+
+        /// <summary>
+        /// The last time data was sent.
+        /// </summary>
+        DateTime?                LastSentTimestamp             { get; set; }
+
+        /// <summary>
+        /// The last time data was received.
+        /// </summary>
+        DateTime?                LastReceivedTimestamp         { get; set; }
 
         /// <summary>
         /// The optional HTTP request of this web socket connection. Can also be attached later.
@@ -92,19 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region SendText           (SendText,       CancellationToken = default)
-
-        /// <summary>
-        /// Send the given text.
-        /// </summary>
-        /// <param name="SendText">A text to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        //Task<SentStatus> SendText(String             SendText,
-        //                          CancellationToken  CancellationToken   = default);
-
-        #endregion
-
-        #region SendBinary         (Data,           CancellationToken = default)
+        #region Send               (Data,           CancellationToken = default)
 
         /// <summary>
         /// Send the given array of bytes.
@@ -128,6 +141,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
+
+        #region IncInCount()
+
+        /// <summary>
+        /// Increment the number of messages received.
+        /// </summary>
+        void IncInCount();
+
+        #endregion
 
         #region Read(Buffer, Offset, Count)
 

@@ -53,16 +53,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
+        private           UInt64                                 inCount;
+        private           UInt64                                 outCount;
+
         #endregion
 
         #region Properties
 
         /// <summary>
+        /// The cancellation token source for closing this connection.
+        /// </summary>
+        public CancellationTokenSource  CancellationTokenSource       { get; }
+
+        /// <summary>
         /// The creation timestamp.
         /// </summary>
-        public DateTime                 Created                       { get; }
+        public DateTime                 ConnectedSince                { get; }
 
-        public CancellationTokenSource  CancellationTokenSource       { get; }
+        /// <summary>
+        /// Whether the connection is still assumed to be alive.
+        /// </summary>
+        public Boolean                  IsAlive                       { get; set; } = true;
+
+        /// <summary>
+        /// The number of messages received.
+        /// </summary>
+        public UInt64                   InCount
+            => inCount;
+
+        /// <summary>
+        /// The number of messages sent.
+        /// </summary>
+        public UInt64                   OutCount
+            => outCount;
+
+        /// <summary>
+        /// The last time data was sent.
+        /// </summary>
+        public DateTime?                LastSentTimestamp             { get; set; }
+
+        /// <summary>
+        /// The last time data was received.
+        /// </summary>
+        public DateTime?                LastReceivedTimestamp         { get; set; }
 
         /// <summary>
         /// The HTTP WebSocket client.
@@ -182,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                          TimeSpan?                                    SlowNetworkSimulationDelay   = null)
         {
 
-            this.Created                     = Timestamp.Now;
+            this.ConnectedSince                     = Timestamp.Now;
             this.CancellationTokenSource     = new CancellationTokenSource();
             this.WebSocketClient             = WebSocketClient;
             this.tcpSocket                   = TCPSocket;
@@ -287,12 +320,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
         public Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                                    CancellationToken  CancellationToken   = default)
+        {
 
-            => Send(WebSocketFrame.ToByteArray(),
-                    CancellationToken);
+            Interlocked.Increment(ref outCount);
+            LastSentTimestamp = Timestamp.Now;
+
+            return Send(WebSocketFrame.ToByteArray(),
+                        CancellationToken);
+
+        }
 
         #endregion
 
+
+
+        #region IncInCount()
+
+        /// <summary>
+        /// Increment the number of messages received.
+        /// </summary>
+        public void IncInCount()
+        {
+            Interlocked.Increment(ref inCount);
+        }
+
+        #endregion
 
         #region Read(Buffer, Offset, Count)
 

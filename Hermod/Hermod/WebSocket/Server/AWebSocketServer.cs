@@ -151,9 +151,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TimeSpan                                                        WebSocketPingEvery            { get; set; }
 
 
-        public UInt64?                                                         MaxTextMessageSize            { get; }
+        public UInt64?                                                         MaxTextMessageSize            { get; set; }
 
-        public UInt64?                                                         MaxBinaryMessageSize          { get; }
+        public UInt64?                                                         MaxBinaryMessageSize          { get; set; }
 
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public ConcurrentDictionary<String , TOTPConfig>                       ClientTOTPConfig              { get; } = [];
 
 
-        public Boolean                                                         RequireAuthentication         { get; }
+        public Boolean                                                         RequireAuthentication         { get; set; }
 
         /// <summary>
         /// An optional DNS client to use.
@@ -1358,6 +1358,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     {
 
                                                         var now = Timestamp.Now;
+                                                        webSocketConnection.LastReceivedTimestamp = now;
+                                                        webSocketConnection.IncInCount();
 
                                                         #region OnWebSocketFrameReceived
 
