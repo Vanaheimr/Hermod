@@ -18,8 +18,10 @@
 #region Usings
 
 using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 using static org.GraphDefined.Vanaheimr.Hermod.WebSocket.WebSocketFrame;
 
 #endregion
@@ -36,24 +38,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Metadata
 
         /// <summary>
+        /// The optional HTTP request of this web socket connection. Can also be attached later.
+        /// </summary>
+        HTTPRequest?             HTTPRequest                   { get; }
+
+        /// <summary>
+        /// The optional HTTP response of this web socket connection. Can also be attached later.
+        /// </summary>
+        HTTPResponse?            HTTPResponse                  { get; }
+
+        /// <summary>
         /// The connection creation timestamp.
         /// </summary>
         DateTime                 ConnectedSince                { get; }
-
-        /// <summary>
-        /// Whether the connection is still assumed to be alive.
-        /// </summary>
-        Boolean                  IsAlive                       { get; set; }
-
-        /// <summary>
-        /// The number of messages received.
-        /// </summary>
-        UInt64                   InCount                       { get; }
-
-        /// <summary>
-        /// The number of messages sent.
-        /// </summary>
-        UInt64                   OutCount                      { get; }
 
         /// <summary>
         /// The last time data was sent.
@@ -66,14 +63,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         DateTime?                LastReceivedTimestamp         { get; set; }
 
         /// <summary>
-        /// The optional HTTP request of this web socket connection. Can also be attached later.
+        /// Whether the connection is still assumed to be alive.
         /// </summary>
-        HTTPRequest?             HTTPRequest                   { get; }
+        Boolean                  IsAlive                       { get; set; }
+
 
         /// <summary>
-        /// The optional HTTP response of this web socket connection. Can also be attached later.
+        /// The number of WebSocket messages received.
         /// </summary>
-        HTTPResponse?            HTTPResponse                  { get; }
+        UInt64                   MessagesReceivedCounter       { get; }
+
+        /// <summary>
+        /// The number of WebSocket messages sent.
+        /// </summary>
+        UInt64                   MessagesSentCounter           { get; }
+
+        /// <summary>
+        /// The number of WebSocket frames received.
+        /// </summary>
+        UInt64                   FramesReceivedCounter         { get; }
+
+        /// <summary>
+        /// The number of WebSocket frames sent.
+        /// </summary>
+        UInt64                   FramesSentCounter             { get; }
+
+        UInt64?                  MaxTextMessageSizeIn          { get; set; }
+        UInt64?                  MaxTextMessageSizeOut         { get; set; }
+        UInt64?                  MaxTextFragmentLengthIn       { get; set; }
+        UInt64?                  MaxTextFragmentLengthOut      { get; set; }
+
+        UInt64?                  MaxBinaryMessageSizeIn        { get; set; }
+        UInt64?                  MaxBinaryMessageSizeOut       { get; set; }
+        UInt64?                  MaxBinaryFragmentLengthIn     { get; set; }
+        UInt64?                  MaxBinaryFragmentLengthOut    { get; set; }
+
 
         /// <summary>
         /// For debugging reasons data can be send really really slow...
@@ -142,12 +166,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region IncInCount()
+        #region IncMessagesReceivedCounter()
 
         /// <summary>
-        /// Increment the number of messages received.
+        /// Increment the number of WebSocket messages received.
         /// </summary>
-        void IncInCount();
+        void IncMessagesReceivedCounter();
+
+        #endregion
+
+        #region IncFramesReceivedCounter()
+
+        /// <summary>
+        /// Increment the number of WebSocket frames received.
+        /// </summary>
+        void IncFramesReceivedCounter();
 
         #endregion
 

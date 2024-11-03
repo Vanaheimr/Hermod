@@ -53,49 +53,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
-        private           UInt64                                 inCount;
-        private           UInt64                                 outCount;
+        private           UInt64                                 messagesReceivedCounter;
+        private           UInt64                                 messagesSentCounter;
+        private           UInt64                                 framesReceivedCounter;
+        private           UInt64                                 framesSentCounter;
 
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// The cancellation token source for closing this connection.
-        /// </summary>
-        public CancellationTokenSource  CancellationTokenSource       { get; }
-
-        /// <summary>
-        /// The creation timestamp.
-        /// </summary>
-        public DateTime                 ConnectedSince                { get; }
-
-        /// <summary>
-        /// Whether the connection is still assumed to be alive.
-        /// </summary>
-        public Boolean                  IsAlive                       { get; set; } = true;
-
-        /// <summary>
-        /// The number of messages received.
-        /// </summary>
-        public UInt64                   InCount
-            => inCount;
-
-        /// <summary>
-        /// The number of messages sent.
-        /// </summary>
-        public UInt64                   OutCount
-            => outCount;
-
-        /// <summary>
-        /// The last time data was sent.
-        /// </summary>
-        public DateTime?                LastSentTimestamp             { get; set; }
-
-        /// <summary>
-        /// The last time data was received.
-        /// </summary>
-        public DateTime?                LastReceivedTimestamp         { get; set; }
 
         /// <summary>
         /// The HTTP WebSocket client.
@@ -123,9 +88,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public HTTPResponse?            HTTPResponse                  { get; internal set; }
 
         /// <summary>
+        /// The creation timestamp.
+        /// </summary>
+        public DateTime                 ConnectedSince                { get; }
+
+        /// <summary>
+        /// The last time data was sent.
+        /// </summary>
+        public DateTime?                LastSentTimestamp             { get; set; }
+
+        /// <summary>
+        /// The last time data was received.
+        /// </summary>
+        public DateTime?                LastReceivedTimestamp         { get; set; }
+
+        /// <summary>
+        /// Whether the connection is still assumed to be alive.
+        /// </summary>
+        public Boolean                  IsAlive                       { get; set; } = true;
+
+
+        /// <summary>
+        /// The number of WebSocket messages received.
+        /// </summary>
+        public UInt64                   MessagesReceivedCounter
+            => messagesReceivedCounter;
+
+        /// <summary>
+        /// The number of WebSocket messages sent.
+        /// </summary>
+        public UInt64                   MessagesSentCounter
+            => messagesSentCounter;
+
+        /// <summary>
+        /// The number of WebSocket frames received.
+        /// </summary>
+        public UInt64                   FramesReceivedCounter
+            => framesReceivedCounter;
+
+        /// <summary>
+        /// The number of WebSocket frames sent.
+        /// </summary>
+        public UInt64                   FramesSentCounter
+            => framesSentCounter;
+
+        public UInt64?                  MaxTextMessageSizeIn          { get; set; }
+        public UInt64?                  MaxTextMessageSizeOut         { get; set; }
+        public UInt64?                  MaxTextFragmentLengthIn       { get; set; }
+        public UInt64?                  MaxTextFragmentLengthOut      { get; set; }
+
+        public UInt64?                  MaxBinaryMessageSizeIn        { get; set; }
+        public UInt64?                  MaxBinaryMessageSizeOut       { get; set; }
+        public UInt64?                  MaxBinaryFragmentLengthIn     { get; set; }
+        public UInt64?                  MaxBinaryFragmentLengthOut    { get; set; }
+
+
+        /// <summary>
         /// For debugging reasons data can be send really really slow...
         /// </summary>
         public TimeSpan?                SlowNetworkSimulationDelay    { get; }
+
 
         /// <summary>
         /// The amount of time a read operation blocks waiting for data.
@@ -192,6 +214,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
             }
         }
+
+        /// <summary>
+        /// The cancellation token source for closing this connection.
+        /// </summary>
+        public CancellationTokenSource  CancellationTokenSource       { get; }
 
         #endregion
 
@@ -322,7 +349,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                    CancellationToken  CancellationToken   = default)
         {
 
-            Interlocked.Increment(ref outCount);
+            if (WebSocketFrame.IsFinal)
+                Interlocked.Increment(ref messagesSentCounter);
+
+            Interlocked.Increment(ref framesSentCounter);
             LastSentTimestamp = Timestamp.Now;
 
             return Send(WebSocketFrame.ToByteArray(),
@@ -334,14 +364,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
 
-        #region IncInCount()
+        #region IncMessagesReceivedCounter()
 
         /// <summary>
-        /// Increment the number of messages received.
+        /// Increment the number of WebSocket messages received.
         /// </summary>
-        public void IncInCount()
+        public void IncMessagesReceivedCounter()
         {
-            Interlocked.Increment(ref inCount);
+            Interlocked.Increment(ref messagesReceivedCounter);
+        }
+
+        #endregion
+
+        #region IncFramesReceivedCounter()
+
+        /// <summary>
+        /// Increment the number of WebSocket frames received.
+        /// </summary>
+        public void IncFramesReceivedCounter()
+        {
+            Interlocked.Increment(ref framesReceivedCounter);
         }
 
         #endregion

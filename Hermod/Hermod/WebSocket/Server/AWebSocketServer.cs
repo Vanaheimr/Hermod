@@ -151,9 +151,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public TimeSpan                                                        WebSocketPingEvery            { get; set; }
 
 
-        public UInt64?                                                         MaxTextMessageSize            { get; set; }
+        public UInt64?                                                         MaxTextMessageSizeIn          { get; set; }
+        public UInt64?                                                         MaxTextMessageSizeOut         { get; set; }
+        public UInt64?                                                         MaxTextFragmentLengthIn       { get; set; }
+        public UInt64?                                                         MaxTextFragmentLengthOut      { get; set; }
 
-        public UInt64?                                                         MaxBinaryMessageSize          { get; set; }
+        public UInt64?                                                         MaxBinaryMessageSizeIn        { get; set; }
+        public UInt64?                                                         MaxBinaryMessageSizeOut       { get; set; }
+        public UInt64?                                                         MaxBinaryFragmentLengthIn     { get; set; }
+        public UInt64?                                                         MaxBinaryFragmentLengthOut    { get; set; }
+
 
         /// <summary>
         /// An additional delay between sending each byte to the networking stack.
@@ -1294,6 +1301,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                     #region Send HTTP response
 
+                                                    webSocketConnection.HTTPResponse = httpResponse;
+
                                                     var success = await webSocketConnection.Send($"{httpResponse.EntirePDU}\r\n\r\n".ToUTF8Bytes());
 
                                                     await LogEvent(
@@ -1359,7 +1368,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         var now = Timestamp.Now;
                                                         webSocketConnection.LastReceivedTimestamp = now;
-                                                        webSocketConnection.IncInCount();
+                                                        webSocketConnection.IncFramesReceivedCounter();
+
+                                                        if (frame.IsFinal)
+                                                            webSocketConnection.IncMessagesReceivedCounter();
 
                                                         #region OnWebSocketFrameReceived
 
@@ -1614,13 +1626,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 },
                                 new WebSocketServerConnection(
-                                    this,
-                                    newTCPConnection,
-                                    sslStream,
-                                    sslStream?.RemoteCertificate is not null
-                                        ? new X509Certificate2(sslStream.RemoteCertificate)
-                                        : null,
-                                    SlowNetworkSimulationDelay: SlowNetworkSimulationDelay
+
+                                    WebSocketServer:              this,
+                                    TcpClient:                    newTCPConnection,
+                                    TLSStream:                    sslStream,
+                                    ClientCertificate:            sslStream?.RemoteCertificate is not null
+                                                                      ? new X509Certificate2(sslStream.RemoteCertificate)
+                                                                      : null,
+
+                                    HTTPRequest:                  null,
+                                    HTTPResponse:                 null,
+
+                                    MaxTextMessageSizeIn:         MaxTextMessageSizeIn,
+                                    MaxTextMessageSizeOut:        MaxTextMessageSizeOut,
+                                    MaxTextFragmentLengthIn:      MaxTextFragmentLengthIn,
+                                    MaxTextFragmentLengthOut:     MaxTextFragmentLengthOut,
+
+                                    MaxBinaryMessageSizeIn:       MaxBinaryMessageSizeIn,
+                                    MaxBinaryMessageSizeOut:      MaxBinaryMessageSizeOut,
+                                    MaxBinaryFragmentLengthIn:    MaxBinaryFragmentLengthIn,
+                                    MaxBinaryFragmentLengthOut:   MaxBinaryFragmentLengthOut,
+
+                                    SlowNetworkSimulationDelay:   SlowNetworkSimulationDelay
+
                                 ),
                                 token);
 

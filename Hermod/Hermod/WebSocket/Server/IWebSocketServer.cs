@@ -22,8 +22,8 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -85,9 +85,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         List<X509Certificate2>                        TrustedClientCertificates       { get; }
         List<X509Certificate2>                        TrustedCertificatAuthorities    { get; }
 
-        UInt64?                                       MaxTextMessageSize              { get; set; }
+        UInt64?                                       MaxTextMessageSizeIn            { get; set; }
+        UInt64?                                       MaxTextMessageSizeOut           { get; set; }
+        UInt64?                                       MaxTextFragmentLengthIn         { get; set; }
+        UInt64?                                       MaxTextFragmentLengthOut        { get; set; }
 
-        UInt64?                                       MaxBinaryMessageSize            { get; set; }
+        UInt64?                                       MaxBinaryMessageSizeIn          { get; set; }
+        UInt64?                                       MaxBinaryMessageSizeOut         { get; set; }
+        UInt64?                                       MaxBinaryFragmentLengthIn       { get; set; }
+        UInt64?                                       MaxBinaryFragmentLengthOut      { get; set; }
 
         #endregion
 
