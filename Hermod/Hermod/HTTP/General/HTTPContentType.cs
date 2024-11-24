@@ -356,6 +356,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public static HTTPContentType OCTETSTREAM            { get; }
                 = Register("application", "octet-stream",               "utf-8", null, null);
 
+            public static HTTPContentType JavaScript             { get; }
+                = Register("application", "javascript",                 "utf-8", null, null);
+            public static HTTPContentType TypeScript             { get; }
+                = Register("application", "typescript",                 "utf-8", null, null);
+
         }
 
         public static class Image
