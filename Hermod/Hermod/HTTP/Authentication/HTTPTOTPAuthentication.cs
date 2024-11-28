@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Create   (Username, TOTP)
+        #region (static) Create    (Username, TOTP)
 
         /// <summary>
         /// Create a HTTP TOTP Authentication based on the given username and time-based one-time password.
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate(Username, TOTP)
+        #region (static) TryCreate (Username, TOTP)
 
         /// <summary>
         /// Try to create a HTTP TOTP Authentication based on the given username and time-based one-time password.
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate(Username, TOTP, out TOTPAuthentication)
+        #region (static) TryCreate (Username, TOTP, out TOTPAuthentication)
 
         /// <summary>
         /// Try to create a HTTP TOTP Authentication based on the given username and time-based one-time password.
@@ -161,16 +161,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) ParseHeader   (Text)
+        #region (static) ParseHTTPHeader    (Text)
 
         /// <summary>
         /// Parse the given text as a HTTP TOTP Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP TOTP Authentication header.</param>
-        public static HTTPTOTPAuthentication ParseHeader(String Text)
+        public static HTTPTOTPAuthentication ParseHTTPHeader(String Text)
         {
 
-            if (TryParseHeader(Text, out var httpTOTPAuthentication))
+            if (TryParseHTTPHeader(Text, out var httpTOTPAuthentication))
                 return httpTOTPAuthentication!;
 
             throw new ArgumentException("The given text representation of a HTTP TOTP Authentication header is invalid!", nameof(Text));
@@ -179,16 +179,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParseHeader(Text)
+        #region (static) TryParseHTTPHeader (Text)
 
         /// <summary>
         /// Try to parse the given text as a HTTP TOTP Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP TOTP Authentication header.</param>
-        public static HTTPTOTPAuthentication? TryParseHeader(String Text)
+        public static HTTPTOTPAuthentication? TryParseHTTPHeader(String Text)
         {
 
-            if (TryParseHeader(Text, out var httpTOTPAuthentication))
+            if (TryParseHTTPHeader(Text, out var httpTOTPAuthentication))
                 return httpTOTPAuthentication;
 
             return null;
@@ -197,15 +197,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParseHeader(Text, out TOTPAuthentication)
+        #region (static) TryParseHTTPHeader (Text, out TOTPAuthentication)
 
         /// <summary>
         /// Try to parse the given text as a HTTP TOTP Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP TOTP Authentication header.</param>
         /// <param name="TOTPAuthentication">The parsed HTTP TOTP Authentication header.</param>
-        public static Boolean TryParseHeader(String                                           Text,
-                                             [NotNullWhen(true)] out HTTPTOTPAuthentication?  TOTPAuthentication)
+        public static Boolean TryParseHTTPHeader(String                                           Text,
+                                                 [NotNullWhen(true)] out HTTPTOTPAuthentication?  TOTPAuthentication)
         {
 
             TOTPAuthentication = null;

@@ -82,7 +82,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Create   (Username, Password)
+        #region (static) Create    (Username, Password)
 
         /// <summary>
         /// Create a HTTP Basic Authentication based on the given username and password.
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate(Username, Password)
+        #region (static) TryCreate (Username, Password)
 
         /// <summary>
         /// Try to create a HTTP Basic Authentication based on the given username and password.
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryCreate(Username, Password, out BasicAuthentication)
+        #region (static) TryCreate (Username, Password, out BasicAuthentication)
 
         /// <summary>
         /// Try to create a HTTP Basic Authentication based on the given username and password.
@@ -162,16 +162,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) ParseHeader   (Text)
+        #region (static) ParseHTTPHeader    (Text)
 
         /// <summary>
         /// Parse the given text as a HTTP Basic Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
-        public static HTTPBasicAuthentication ParseHeader(String Text)
+        public static HTTPBasicAuthentication ParseHTTPHeader(String Text)
         {
 
-            if (TryParseHeader(Text, out var httpBasicAuthentication))
+            if (TryParseHTTPHeader(Text, out var httpBasicAuthentication))
                 return httpBasicAuthentication!;
 
             throw new ArgumentException("The given text representation of a HTTP Basic Authentication header is invalid!", nameof(Text));
@@ -180,16 +180,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParseHeader(Text)
+        #region (static) TryParseHTTPHeader (Text)
 
         /// <summary>
         /// Try to parse the given text as a HTTP Basic Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
-        public static HTTPBasicAuthentication? TryParseHeader(String Text)
+        public static HTTPBasicAuthentication? TryParseHTTPHeader(String Text)
         {
 
-            if (TryParseHeader(Text, out var httpBasicAuthentication))
+            if (TryParseHTTPHeader(Text, out var httpBasicAuthentication))
                 return httpBasicAuthentication;
 
             return null;
@@ -198,15 +198,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParseHeader(Text, out BasicAuthentication)
+        #region (static) TryParseHTTPHeader (Text, out BasicAuthentication)
 
         /// <summary>
         /// Try to parse the given text as a HTTP Basic Authentication header.
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Basic Authentication header.</param>
         /// <param name="BasicAuthentication">The parsed HTTP Basic Authentication header.</param>
-        public static Boolean TryParseHeader(String                                            Text,
-                                             [NotNullWhen(true)] out HTTPBasicAuthentication?  BasicAuthentication)
+        public static Boolean TryParseHTTPHeader(String                                            Text,
+                                                 [NotNullWhen(true)] out HTTPBasicAuthentication?  BasicAuthentication)
         {
 
             BasicAuthentication = null;

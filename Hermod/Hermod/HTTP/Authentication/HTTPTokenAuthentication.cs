@@ -17,8 +17,8 @@
 
 #region Usings
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         // All Unicode code points from U+0021 to U+007E
         private static readonly Regex   tokenRegExpr  = new (@"^[A-Za-z0-9!""#$%&'()\*\+,\-\./:;<=>\?@\[\]\\^_`{}\|~]*$");
 
-        private static readonly Char[]  splitter      = new[] { ' ' };
+        private static readonly Char[]  splitter      = [ ' ' ];
 
         #endregion
 

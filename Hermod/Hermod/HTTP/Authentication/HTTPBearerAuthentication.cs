@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly static Char[] splitter = new[] { ' ' };
+        private readonly static Char[] splitter = [ ' ' ];
 
         #endregion
 
