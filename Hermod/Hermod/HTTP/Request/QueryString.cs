@@ -107,6 +107,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static readonly Char[]                                      EqualsSign           = ['='];
         private static readonly Char[]                                      CommaSign            = [','];
 
+        private const           String                                      exclamationMark      = "!";
+
         #endregion
 
         #region Constructor(s)
@@ -509,8 +511,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 value is not null)
             {
 
-                return item => value.StartsWith("!", StringComparison.Ordinal)
-                                   ? !FilterDelegate(item, value.Substring(1))
+                return item => value.StartsWith(exclamationMark, StringComparison.Ordinal)
+                                   ? !FilterDelegate(item, value[1..])
                                    :  FilterDelegate(item, value);
 
             }

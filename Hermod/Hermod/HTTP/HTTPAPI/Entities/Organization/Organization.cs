@@ -1093,11 +1093,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse GeoLocation      [optional]
 
-                if (JSONObject.ParseOptionalStruct("geoLocation",
-                                                   "geo location",
-                                                   GeoCoordinate.TryParseJSON,
-                                                   out GeoCoordinate? GeoLocation,
-                                                   out ErrorResponse))
+                if (JSONObject.ParseOptionalJSON("geoLocation",
+                                                 "geo location",
+                                                 GeoCoordinate.TryParse,
+                                                 out GeoCoordinate? GeoLocation,
+                                                 out ErrorResponse))
                 {
 
                     if (ErrorResponse is not null)
@@ -1155,17 +1155,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                Organization = new Organization(OrganizationIdBody ?? OrganizationIdURL.Value,
+                Organization = new Organization(
 
-                                                Name,
-                                                Description,
-                                                Website,
-                                                EMail,
-                                                Telephone,
-                                                Address,
-                                                GeoLocation,
-                                                _ => Tags,
-                                                IsDisabled ?? false);
+                                   OrganizationIdBody ?? OrganizationIdURL.Value,
+
+                                   Name,
+                                   Description,
+                                   Website,
+                                   EMail,
+                                   Telephone,
+                                   Address,
+                                   GeoLocation,
+                                   _ => Tags,
+                                   IsDisabled ?? false
+
+                               );
 
                                           //      CustomData,
                                           //      AttachedFiles,

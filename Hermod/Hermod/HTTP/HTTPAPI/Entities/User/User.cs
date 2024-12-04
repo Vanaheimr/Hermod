@@ -1231,11 +1231,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse GeoLocation      [optional]
 
-                if (JSONObject.ParseOptionalStruct("geoLocation",
-                                                   "Geo location",
-                                                   GeoCoordinate.TryParseJSON,
-                                                   out GeoCoordinate? GeoLocation,
-                                                   out ErrorResponse))
+                if (JSONObject.ParseOptionalJSON("geoLocation",
+                                                 "Geo location",
+                                                 GeoCoordinate.TryParse,
+                                                 out GeoCoordinate? GeoLocation,
+                                                 out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
                         return false;
