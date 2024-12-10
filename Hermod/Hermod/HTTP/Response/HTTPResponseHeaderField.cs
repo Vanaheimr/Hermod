@@ -516,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Access-Control-Allow-Origin
 
         /// <summary>
-        /// Access-Control-Allow-Origin.
+        /// Access-Control-Allow-Origin
         /// </summary>
         /// <example>Access-Control-Allow-Origin: *</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
@@ -528,7 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Access-Control-Allow-Methods
 
         /// <summary>
-        /// Access-Control-Allow-Methods.
+        /// Access-Control-Allow-Methods
         /// </summary>
         /// <example>Access-Control-Allow-Methods: GET, PUT, POST, DELETE</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Access-Control-Allow-Headers
 
         /// <summary>
-        /// Access-Control-Allow-Headers.
+        /// Access-Control-Allow-Headers
         /// </summary>
         /// <example>Access-Control-Allow-Headers: Content-Type</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
@@ -550,6 +550,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                              RequestPathSemantic.EndToEnd,
                                                                                                              MultipleValuesAsList:  true,
                                                                                                              StringParser:          StringParsers.NullableHashSetOfStrings);
+
+        #endregion
+
+        #region Access-Control-Expose-Headers
+
+        /// <summary>
+        /// Access-Control-Expose-Headers
+        /// </summary>
+        /// <example>Access-Control-Expose-Headers: Content-Type</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
+        public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlExposeHeaders = new("Access-Control-Expose-Headers",
+                                                                                                             RequestPathSemantic.EndToEnd,
+                                                                                                             MultipleValuesAsList: true,
+                                                                                                             StringParser: StringParsers.NullableHashSetOfStrings);
 
         #endregion
 

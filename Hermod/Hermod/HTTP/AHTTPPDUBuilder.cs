@@ -649,6 +649,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Access-Control-Expose-Headers
+
+        /// <summary>
+        /// Access-Control-Expose-Headers
+        /// </summary>
+        public IEnumerable<String> AccessControlExposeHeaders
+        {
+
+            get
+            {
+                return GetHeaderFields(HTTPResponseHeaderField.AccessControlExposeHeaders, []);
+            }
+
+            set
+            {
+                SetHeaderField(HTTPResponseHeaderField.AccessControlExposeHeaders, value);
+            }
+
+        }
+
+        #endregion
+
         #region Access-Control-Max-Age
 
         /// <summary>
