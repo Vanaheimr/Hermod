@@ -560,10 +560,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Access-Control-Expose-Headers: Content-Type</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
-        public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlExposeHeaders = new("Access-Control-Expose-Headers",
-                                                                                                             RequestPathSemantic.EndToEnd,
-                                                                                                             MultipleValuesAsList: true,
-                                                                                                             StringParser: StringParsers.NullableHashSetOfStrings);
+        public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlExposeHeaders = new ("Access-Control-Expose-Headers",
+                                                                                                              RequestPathSemantic.EndToEnd,
+                                                                                                              MultipleValuesAsList: true,
+                                                                                                              StringParser: StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
