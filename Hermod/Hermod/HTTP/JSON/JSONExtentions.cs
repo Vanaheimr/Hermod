@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     String               PropertyName,
                                                     String               PropertyDescription,
                                                     String               DefaultServerName,
-                                                    TryJObjectParser2<T>  TryParser,
+                                                    TryJObjectParser2a<T>  TryParser,
                                                     out T?               Value,
                                                     HTTPRequest          HTTPRequest,
                                                     out HTTPResponse     HTTPResponse)
