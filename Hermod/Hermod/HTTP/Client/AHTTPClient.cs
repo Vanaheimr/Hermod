@@ -26,6 +26,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using Org.BouncyCastle.Tls;
 
 #endregion
 
@@ -188,6 +189,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The virtual HTTP hostname to connect to.
         /// </summary>
         public HTTPHostname?                                              VirtualHostname               { get; }
+
+        /// <summary>
+        /// The Remote X.509 certifcate.
+        /// </summary>
+        public X509Certificate2?                                          RemoteCertificate             { get; private set; }
+
+        /// <summary>
+        /// The Remote X.509 certifcate chain.
+        /// </summary>
+        public X509Chain?                                                 RemoteCertificateChain        { get; private set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -996,18 +1007,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             RemotePort      is not null)
                         {
 
-                            remoteIPEndPoint = new System.Net.IPEndPoint(new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
-                                                                         RemotePort.Value.ToInt32());
+                            remoteIPEndPoint = new System.Net.IPEndPoint(
+                                                   new System.Net.IPAddress(RemoteIPAddress.GetBytes()),
+                                                   RemotePort.Value.ToInt32()
+                                               );
 
                             if (RemoteIPAddress.IsIPv4)
-                                tcpSocket = new Socket(AddressFamily.InterNetwork,
-                                                       SocketType.Stream,
-                                                       ProtocolType.Tcp);
+                                tcpSocket = new Socket(
+                                                AddressFamily.InterNetwork,
+                                                SocketType.Stream,
+                                                ProtocolType.Tcp
+                                            );
 
                             if (RemoteIPAddress.IsIPv6)
-                                tcpSocket = new Socket(AddressFamily.InterNetworkV6,
-                                                       SocketType.Stream,
-                                                       ProtocolType.Tcp);
+                                tcpSocket = new Socket(
+                                                AddressFamily.InterNetworkV6,
+                                                SocketType.Stream,
+                                                ProtocolType.Tcp
+                                            );
 
                             if (tcpSocket is not null)
                             {
@@ -1070,15 +1087,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                  chain,
                                                                                  policyErrors) => {
 
-                                                                                     var check = RemoteCertificateValidator(
-                                                                                                     sender,
-                                                                                                     certificate is not null
-                                                                                                         ? new X509Certificate2(certificate)
-                                                                                                         : null,
-                                                                                                     chain,
-                                                                                                     null,
-                                                                                                     policyErrors
-                                                                                                 );
+                                                                                     RemoteCertificate       = certificate is not null
+                                                                                                                   ? new X509Certificate2(certificate)
+                                                                                                                   : null;
+
+                                                                                     RemoteCertificateChain  = chain;
+
+                                                                                     var check               = RemoteCertificateValidator(
+                                                                                                                   sender,
+                                                                                                                   RemoteCertificate,
+                                                                                                                   RemoteCertificateChain,
+                                                                                                                   this,
+                                                                                                                   policyErrors
+                                                                                                               );
 
                                                                                      if (check.Item2.Any())
                                                                                          remoteCertificateValidatorErrors.AddRange(check.Item2);
@@ -1093,15 +1114,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                         targetHost,
                                                                                         localCertificates,
                                                                                         remoteCertificate,
-                                                                                        acceptableIssuers) => LocalCertificateSelector(sender,
-                                                                                                                                        targetHost,
-                                                                                                                                        localCertificates.
-                                                                                                                                            Cast<X509Certificate>().
-                                                                                                                                            Select(certificate => new X509Certificate2(certificate)),
-                                                                                                                                        remoteCertificate is not null
-                                                                                                                                            ? new X509Certificate2(remoteCertificate)
-                                                                                                                                            : null,
-                                                                                                                                        acceptableIssuers),
+                                                                                        acceptableIssuers) => LocalCertificateSelector(
+                                                                                                                  sender,
+                                                                                                                  targetHost,
+                                                                                                                  localCertificates.
+                                                                                                                      Cast<X509Certificate>().
+                                                                                                                      Select(certificate => new X509Certificate2(certificate)),
+                                                                                                                  remoteCertificate is not null
+                                                                                                                      ? new X509Certificate2(remoteCertificate)
+                                                                                                                      : null,
+                                                                                                                  acceptableIssuers
+                                                                                                              ),
                                             encryptionPolicy:                    EncryptionPolicy.RequireEncryption
                                         )
                             {
