@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => new (
                    Id.         Clone,
                    Description.Clone(),
-                   URLs.Select(url => url.Clone).ToArray()
+                   URLs.Select(url => url.Clone()).ToArray()
                );
 
         #endregion

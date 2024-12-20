@@ -17,14 +17,11 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Diagnostics;
-
 using Org.BouncyCastle.Bcpg.OpenPgp;
 
-using org.GraphDefined.Vanaheimr.Illias;
 using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion

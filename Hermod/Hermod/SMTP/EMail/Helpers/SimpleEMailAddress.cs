@@ -211,6 +211,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
+        #region Clone()
+
+        /// <summary>
+        /// Clone this simple e-mail address.
+        /// </summary>
+        public SimpleEMailAddress Clone()
+
+            => new (
+                   User.  CloneString(),
+                   Domain.CloneString()
+               );
+
+        #endregion
+
 
         #region Operator overloading
 
