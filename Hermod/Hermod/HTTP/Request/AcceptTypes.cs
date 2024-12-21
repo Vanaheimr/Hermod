@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private        readonly Lock              acceptTypesLock;
+        private        readonly Lock              acceptTypesLock = new();
 
         private        readonly List<AcceptType>  acceptedTypes;
 
