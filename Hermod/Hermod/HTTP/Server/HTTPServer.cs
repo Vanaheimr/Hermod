@@ -350,10 +350,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPPorts  (params Ports)
 
-        public IHTTPServer AttachTCPPorts(params IPPort[] Ports)
+        public async Task<IHTTPServer> AttachTCPPorts(params IPPort[] Ports)
         {
 
-            httpServer.AttachTCPPorts(Ports);
+            await httpServer.AttachTCPPorts(Ports);
 
             return this;
 
@@ -363,10 +363,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPSockets(params Sockets)
 
-        public IHTTPServer AttachTCPSockets(params IPSocket[] Sockets)
+        public async Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            httpServer.AttachTCPSockets(Sockets);
+            await httpServer.AttachTCPSockets(Sockets);
 
             return this;
 
@@ -376,10 +376,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DetachTCPPorts  (params Sockets)
 
-        public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
+        public async Task<IHTTPServer> DetachTCPPorts(params IPPort[] Ports)
         {
 
-            httpServer.DetachTCPPorts(Ports);
+            await httpServer.DetachTCPPorts(Ports);
 
             return this;
 
@@ -916,36 +916,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Start()
+        #region Start(EventTrackingId = null)
 
-        public Boolean Start()
+        public Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
 
-            => httpServer.Start();
-
-        #endregion
-
-        #region Start(Delay, InBackground = true)
-
-        public Boolean Start(TimeSpan  Delay,
-                             Boolean   InBackground = true)
-
-            => httpServer.Start(Delay,
-                                InBackground);
+            => httpServer.Start(EventTrackingId);
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Start(Delay, EventTrackingId = null, InBackground = true)
 
-        public Boolean Shutdown(String?  Message   = null,
-                                Boolean  Wait      = true)
-        {
+        public Task<Boolean> Start(TimeSpan           Delay,
+                                   EventTracking_Id?  EventTrackingId   = null,
+                                   Boolean            InBackground      = true)
 
-            httpServer.Shutdown(Message,
-                                Wait);
+            => httpServer.Start(
+                   Delay,
+                   EventTrackingId,
+                   InBackground
+               );
 
-            return true;
+        #endregion
 
-        }
+        #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
+
+        public Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                      String?            Message           = null,
+                                      Boolean            Wait              = true)
+
+            => httpServer.Shutdown(
+                   EventTrackingId,
+                   Message,
+                   Wait
+               );
 
         #endregion
 
@@ -1178,7 +1181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            : IPPort.HTTPS));
 
             if (AutoStart)
-                Start();
+                Start(EventTracking_Id.New).Wait();
 
         }
 
@@ -1189,7 +1192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPPort   (TCPPort)
 
-        public IHTTPServer AttachTCPPort(IPPort TCPPort)
+        public Task<IHTTPServer> AttachTCPPort(IPPort TCPPort)
 
             => AttachTCPPorts(TCPPort);
 
@@ -1197,10 +1200,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPPorts  (params TCPPorts)
 
-        public IHTTPServer AttachTCPPorts(params IPPort[] TCPPorts)
+        public async Task<IHTTPServer> AttachTCPPorts(params IPPort[] TCPPorts)
         {
 
-            AttachTCPPorts(tcpServer => tcpServer.SendTo(this), TCPPorts);
+            await AttachTCPPorts(tcpServer => tcpServer.SendTo(this), TCPPorts);
 
             return this;
 
@@ -1210,7 +1213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPSocket (Socket)
 
-        public IHTTPServer AttachTCPSocket(IPSocket Socket)
+        public Task<IHTTPServer> AttachTCPSocket(IPSocket Socket)
 
             => AttachTCPSockets(Socket);
 
@@ -1218,10 +1221,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPSockets(params Sockets)
 
-        public IHTTPServer AttachTCPSockets(params IPSocket[] Sockets)
+        public async Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            AttachTCPSockets(tcpServer => tcpServer.SendTo(this), Sockets);
+            await AttachTCPSockets(
+                      tcpServer => tcpServer.SendTo(this),
+                      Sockets
+                  );
 
             return this;
 
@@ -1232,7 +1238,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DetachTCPPort (TCPPort)
 
-        public IHTTPServer DetachTCPPort(IPPort TCPPort)
+        public Task<IHTTPServer> DetachTCPPort(IPPort TCPPort)
 
             => DetachTCPPorts(TCPPort);
 
@@ -1240,15 +1246,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DetachTCPPorts(params Sockets)
 
-        public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
+        public async Task<IHTTPServer> DetachTCPPorts(params IPPort[] Ports)
         {
 
-            DetachTCPPorts(tcpServer => {
-                               tcpServer.OnNotification     -= ProcessArrow;
-                               tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
-                               tcpServer.OnCompleted        -= ProcessCompleted;
-                           },
-                           Ports);
+            await DetachTCPPorts(
+                      tcpServer => {
+                          tcpServer.OnNotification     -= ProcessArrow;
+                          tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
+                          tcpServer.OnCompleted        -= ProcessCompleted;
+                      },
+                      Ports
+                  );
 
             return this;
 
@@ -1314,9 +1322,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessArrow(TCPConnection)
+        #region ProcessArrow(EventTracking, TCPConnection)
 
-        public void ProcessArrow(TCPConnection TCPConnection)
+        public void ProcessArrow(EventTracking_Id  EventTracking,
+                                 TCPConnection     TCPConnection)
         {
 
             if (TCPConnection is null)
@@ -1762,11 +1771,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+        #region ProcessExceptionOccured(Sender, Timestamp, EventTracking, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object     Sender,
-                                            DateTime   Timestamp,
-                                            Exception  ExceptionMessage)
+        public void ProcessExceptionOccured(Object            Sender,
+                                            DateTime          Timestamp,
+                                            EventTracking_Id  EventTracking,
+                                            Exception         ExceptionMessage)
         {
 
             //var OnExceptionOccuredLocal = OnExceptionOccured;
@@ -1779,11 +1789,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessCompleted(Sender, Timestamp, Message = null)
+        #region ProcessCompleted(Sender, Timestamp, EventTracking, Message = null)
 
-        public void ProcessCompleted(Object    Sender,
-                                     DateTime  Timestamp,
-                                     String?   Message   = null)
+        public void ProcessCompleted(Object            Sender,
+                                     DateTime          Timestamp,
+                                     EventTracking_Id  EventTracking,
+                                     String?           Message   = null)
         {
 
             //var OnCompletedLocal = OnCompleted;

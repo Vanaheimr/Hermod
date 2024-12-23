@@ -837,14 +837,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Close(ClosedBy = ConnectionClosedBy.Server)
+        #region Close(ClosedBy = ConnectionClosedBy.Server, EventTrackingId = null)
 
         /// <summary>
         /// Close this TCP connection.
         /// </summary>
         /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
-        public void Close(ConnectionClosedBy ClosedBy = ConnectionClosedBy.Server)
+        public void Close(ConnectionClosedBy  ClosedBy          = ConnectionClosedBy.Server,
+                          EventTracking_Id?   EventTrackingId   = null)
         {
+
             if (!isClosed)
             {
 
@@ -882,10 +884,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 TCPClient?.Close();
 
-                TCPServer.SendConnectionClosed(Timestamp.Now,
-                                               RemoteSocket,
-                                               ConnectionId,
-                                               ClosedBy);
+                TCPServer.SendConnectionClosed(
+                    Timestamp.Now,
+                    EventTrackingId ?? EventTracking_Id.New,
+                    RemoteSocket,
+                    ConnectionId,
+                    ClosedBy
+                );
 
                 isClosed = true;
 

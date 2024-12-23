@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
     /// <summary>
     /// The common interface of all SOAP servers.
     /// </summary>
-    public interface ISOAPServer
+    public interface ISOAPServer : IServerStartStop
     {
 
         IEnumerable<IPPort>  IPPorts       { get; }
@@ -37,12 +37,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         DNSClient            DNSClient     { get; }
         HTTPServerLogger?    HTTPLogger    { get; set; }
-
-
-        void Start();
-
-        Task Shutdown(String?  Message   = null,
-                      Boolean  Wait      = true);
 
     }
 

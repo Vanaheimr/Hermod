@@ -973,7 +973,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP API.
     /// </summary>
-    public class HTTPAPI : AHTTPAPIBase
+    public class HTTPAPI : AHTTPAPIBase,
+                           IServerStartStop
     {
 
         #region Data
@@ -1278,7 +1279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (AutoStart)
-                HTTPServer.Start();
+                HTTPServer.Start(EventTracking_Id.New).Wait();
 
             //if (AutoStart && HTTPServer.Start())
             //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
@@ -1474,7 +1475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             if (AutoStart)
-                HTTPServer.Start();
+                HTTPServer.Start(EventTracking_Id.New).Wait();
 
             //if (AutoStart == true && HTTPServer.Start())
             //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
@@ -2019,66 +2020,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Start   (EventTrackingId = null)
+        #region Start    (EventTrackingId = null)
 
         /// <summary>
         /// Start this HTTP API.
         /// </summary>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public virtual Boolean Start(EventTracking_Id? EventTrackingId = null)
+        public async virtual Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
         {
 
-            lock (HTTPServer)
-            {
+            var result = await HTTPServer.Start(
+                                   EventTrackingId ?? EventTracking_Id.New
+                               );
 
-                if (!HTTPServer.IsStarted)
-                    return HTTPServer.Start();
+            //SendStarted(this, CurrentTimestamp);
 
-                return true;
-
-                //SendStarted(this, CurrentTimestamp);
-
-            }
+            return result;
 
         }
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true, EventTrackingId = null)
+        #region Start    (Delay, EventTrackingId = null, InBackground = true)
+
+        /// <summary>
+        /// Start the server after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public async virtual Task<Boolean> Start(TimeSpan           Delay,
+                                                 EventTracking_Id?  EventTrackingId   = null,
+                                                 Boolean            InBackground      = true)
+        {
+
+            var result = await HTTPServer.Start(
+                                   Delay,
+                                   EventTrackingId ?? EventTracking_Id.New,
+                                   InBackground
+                               );
+
+            //SendStarted(this, CurrentTimestamp);
+
+            return result;
+
+        }
+
+        #endregion
+
+        #region Shutdown (EventTrackingId = null, Message = null, Wait = true)
 
         /// <summary>
         /// Shutdown this HTTP API.
         /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Whether to wait for the shutdown to complete.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public virtual Boolean Shutdown(String?            Message           = null,
-                                        Boolean            Wait              = true,
-                                        EventTracking_Id?  EventTrackingId   = null)
+        public async virtual Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                                    String?            Message           = null,
+                                                    Boolean            Wait              = true)
         {
-            lock (HTTPServer)
-            {
 
-                if (HTTPServer.IsStarted)
-                    return HTTPServer.Shutdown(Message, Wait);
+            var result = await HTTPServer.Shutdown(
+                                   EventTrackingId ?? EventTracking_Id.New,
+                                   Message,
+                                   Wait
+                               );
 
-                return true;
+            //SendShutdown(this, CurrentTimestamp);
 
-            }
+            return result;
+
         }
 
         #endregion
+
 
         #region Dispose()
 
         public virtual void Dispose()
         {
-
-            lock (HTTPServer)
-            {
-                HTTPServer.Dispose();
-            }
-
+            HTTPServer.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         #endregion

@@ -17,12 +17,10 @@
 
 #region Usings
 
-using System;
 using System.Net;
 using System.Net.Sockets;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
@@ -40,14 +38,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region Data
 
-        private readonly Socket     MulticastSocket;
-        private readonly IPEndPoint IPEndPoint;
+        private readonly Socket      multicastSocket;
+        private readonly IPEndPoint  ipEndPoint;
 
         #endregion
 
         #region Properties
-
-        #region HopCount
 
         /// <summary>
         /// The IPv6 hop-count or IPv4 time-to-live field
@@ -58,13 +54,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             get
             {
-                return (Byte) this.MulticastSocket.GetSocketOption(SocketOptionLevel.IP,
+                return (Byte) this.multicastSocket.GetSocketOption(SocketOptionLevel.IP,
                                                                    SocketOptionName.MulticastTimeToLive);
             }
 
             set
             {
-                this.MulticastSocket.SetSocketOption(SocketOptionLevel.IP,
+                this.multicastSocket.SetSocketOption(SocketOptionLevel.IP,
                                                      SocketOptionName.MulticastTimeToLive,
                                                      value);
             }
@@ -73,11 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #endregion
 
-        #endregion
-
         #region Constructor(s)
-
-        #region UDPMulticastSenderArrow(MulticastAddress, IPPort, HopCount = 255)
 
         /// <summary>
         /// The UDPMulticastSenderArrow sends the incoming message
@@ -86,14 +78,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="MulticastAddress">The multicast address to join.</param>
         /// <param name="IPPort">The outgoing IP port to use.</param>
         /// <param name="HopCount">The IPv6 hop-count or IPv4 time-to-live field of the outgoing IP multicast packets.</param>
-        public UDPMulticastSenderArrow(String MulticastAddress, IPPort IPPort, Byte HopCount = 255)
+        public UDPMulticastSenderArrow(IIPAddress  MulticastAddress,
+                                       IPPort      IPPort,
+                                       Byte        HopCount = 255)
         {
-            this.MulticastSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            this.IPEndPoint      = new IPEndPoint(System.Net.IPAddress.Parse(MulticastAddress), IPPort.ToInt32());
-            this.HopCount        = HopCount;
-        }
 
-        #endregion
+            this.multicastSocket  = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            this.ipEndPoint       = new IPEndPoint(System.Net.IPAddress.Parse(MulticastAddress.ToString()), IPPort.ToInt32());
+            this.HopCount         = HopCount;
+
+        }
 
         #endregion
 
@@ -105,9 +99,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// and delivery to the subscribers.
         /// </summary>
         /// <param name="MessageIn">The message.</param>
-        public override void ProcessArrow(TIn MessageIn)
+        public override void ProcessArrow(EventTracking_Id  EventTrackingId,
+                                          TIn               MessageIn)
         {
-            var sent = MulticastSocket.SendTo(MessageIn.ToString().ToUTF8Bytes(), IPEndPoint);
+            if (MessageIn is not null)
+            {
+
+                var data = MessageIn.ToString().ToUTF8Bytes();
+                var sent = multicastSocket.SendTo(data, ipEndPoint);
+
+                //if (data.Length != sent)
+                    //OnExceptionOccured?.Invoke(this, new Exception("Not all data was sent!"));
+
+            }
         }
 
         #endregion
@@ -120,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// </summary>
         public void Close()
         {
-            MulticastSocket.Close();
+            multicastSocket.Close();
         }
 
         #endregion

@@ -283,13 +283,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region AttachTCPPorts(params Ports)
 
-        public SMTPServer AttachTCPPorts(params IPPort[] Ports)
+        public async Task<SMTPServer> AttachTCPPorts(params IPPort[] Ports)
         {
 
-            base.AttachTCPPorts(_TCPServer => {
-                _TCPServer.OnNewConnection += ProcessTCPServerOnNewConnection;
-                _TCPServer.SendTo(_SMTPConnection);
-            }, Ports);
+            await base.AttachTCPPorts(
+                      tcpServer => {
+                          tcpServer.OnNewConnection += ProcessTCPServerOnNewConnection;
+                          tcpServer.SendTo(_SMTPConnection);
+                      },
+                      Ports
+                  );
 
             return this;
 
@@ -299,26 +302,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region AttachTCPSocket(Socket)
 
-        public SMTPServer AttachTCPSocket(IPSocket Socket)
-        {
+        public Task<SMTPServer> AttachTCPSocket(IPSocket Socket)
 
-            this.AttachTCPSockets(Socket);
-
-            return this;
-
-        }
+            => AttachTCPSockets(Socket);
 
         #endregion
 
         #region AttachTCPSockets(params Sockets)
 
-        public SMTPServer AttachTCPSockets(params IPSocket[] Sockets)
+        public async Task<SMTPServer> AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            base.AttachTCPSockets(_TCPServer => {
-                _TCPServer.OnNewConnection += ProcessTCPServerOnNewConnection;
-                _TCPServer.SendTo(_SMTPConnection);
-            }, Sockets);
+            await base.AttachTCPSockets(
+                      tcpServer => {
+                          tcpServer.OnNewConnection += ProcessTCPServerOnNewConnection;
+                          tcpServer.SendTo(_SMTPConnection);
+                      },
+                      Sockets
+                  );
 
             return this;
 
@@ -329,28 +330,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region DetachTCPPort(Port)
 
-        public SMTPServer DetachTCPPort(IPPort Port)
-        {
+        public Task<SMTPServer> DetachTCPPort(IPPort Port)
 
-            DetachTCPPorts(Port);
-
-            return this;
-
-        }
+            => DetachTCPPorts(Port);
 
         #endregion
 
         #region DetachTCPPorts(params Sockets)
 
-        public SMTPServer DetachTCPPorts(params IPPort[] Ports)
+        public async Task<SMTPServer> DetachTCPPorts(params IPPort[] Ports)
         {
 
-            base.DetachTCPPorts(_TCPServer => {
-                                    _TCPServer.OnNotification      -= _SMTPConnection.ProcessArrow;
-                                    _TCPServer.OnExceptionOccured  -= _SMTPConnection.ProcessExceptionOccured;
-                                    _TCPServer.OnCompleted         -= _SMTPConnection.ProcessCompleted;
-                                },
-                                Ports);
+            await base.DetachTCPPorts(
+                      tcpServer => {
+                          tcpServer.OnNotification      -= _SMTPConnection.ProcessArrow;
+                          tcpServer.OnExceptionOccured  -= _SMTPConnection.ProcessExceptionOccured;
+                          tcpServer.OnCompleted         -= _SMTPConnection.ProcessCompleted;
+                      },
+                      Ports
+                  );
 
             return this;
 
@@ -361,11 +359,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         // Events
 
-        private void ProcessTCPServerOnNewConnection(TCPServer      TCPServer,
-                                                     DateTime       Timestamp,
-                                                     IPSocket       RemoteSocket,
-                                                     String         ConnectionId,
-                                                     TCPConnection  TCPConnection)
+        private void ProcessTCPServerOnNewConnection(TCPServer         TCPServer,
+                                                     DateTime          Timestamp,
+                                                     EventTracking_Id  EventTrackingId,
+                                                     IPSocket          RemoteSocket,
+                                                     String            ConnectionId,
+                                                     TCPConnection     TCPConnection)
         {
             OnNewConnection?.Invoke(this, Timestamp, RemoteSocket, TCPConnection);
         }
@@ -392,9 +391,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
-        private void ProcessNotification(EMailEnvelop MailEnvelop)
+        private void ProcessNotification(EventTracking_Id EventTrackingId, EMailEnvelop MailEnvelop)
         {
-            OnNotification?.Invoke(this, MailEnvelop);
+            OnNotification?.Invoke(EventTrackingId, this, MailEnvelop);
         }
 
 

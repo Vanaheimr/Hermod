@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The default TCP service banner.
         /// </summary>
-        public  const            String                                         __DefaultServiceBanner          = "Vanaheimr Hermod TCP Server v0.9";
+        public  const            String                                         __DefaultServiceBanner          = "Vanaheimr Hermod TCP Server v0.10";
 
         /// <summary>
         /// The default server thread name.
@@ -181,34 +181,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever the TCP servers instance was started.
         /// </summary>
-        public event StartedEventHandler?                           OnStarted;
+        public event StartedEventHandler?                        OnStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// If this event closes the TCP connection the OnNotification event will never be fired!
         /// Therefore you can use this event for filtering connection initiation requests.
         /// </summary>
-        public event NewConnectionHandler?                          OnNewConnection;
+        public event NewConnectionHandler?                       OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NotificationEventHandler<TCPConnection>?       OnNotification;
+        public event NotificationEventHandler<TCPConnection>?    OnNotification;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler?                  OnExceptionOccured;
+        public event ExceptionOccuredEventHandler?               OnExceptionOccured;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedHandler?                       OnConnectionClosed;
+        public event ConnectionClosedHandler?                    OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.
         /// </summary>
-        public event CompletedEventHandler?                         OnCompleted;
+        public event CompletedEventHandler?                      OnCompleted;
 
         #endregion
 
@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Initialize the TCP server using the given parameters.
         /// </summary>
-        /// <param name="IIPAddress">The listening IP address(es)</param>
+        /// <param name="IPAddress">The listening IP address(es)</param>
         /// <param name="Port">The listening port</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
@@ -302,7 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IIPAddress                                               IIPAddress,
+        public TCPServer(IIPAddress                                               IPAddress,
                          IPPort                                                   Port,
                          String?                                                  ServiceName                  = null,
                          String?                                                  ServiceBanner                = null,
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         {
 
             // TCP Socket
-            this.IPAddress                   = IIPAddress;
+            this.IPAddress                   = IPAddress;
             this.Port                        = Port;
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
             this.ClientCertificateValidator  = ClientCertificateValidator;
@@ -484,12 +484,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         // Therefore you can use this event for filtering connection initiation requests.
                                         OnNewConnection?.Invoke(newTCPConnection.TCPServer,
                                                                 newTCPConnection.ServerTimestamp,
+                                                                EventTracking_Id.New,
                                                                 newTCPConnection.RemoteSocket,
                                                                 newTCPConnection.ConnectionId,
                                                                 newTCPConnection);
 
                                         if (!newTCPConnection.IsClosed)
-                                            OnNotification?.Invoke(newTCPConnection);
+                                            OnNotification?.Invoke(
+                                                EventTracking_Id.New,
+                                                newTCPConnection
+                                            );
 
                                     }
                                     catch (Exception e)
@@ -498,9 +502,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         while (e.InnerException is not null)
                                             e = e.InnerException;
 
-                                        OnExceptionOccured?.Invoke(this,
-                                                                   Timestamp.Now,
-                                                                   e);
+                                        OnExceptionOccured?.Invoke(
+                                            this,
+                                            Timestamp.Now,
+                                            EventTracking_Id.New,
+                                            e
+                                        );
 
                                         DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] Connection exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
 
@@ -546,7 +553,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     var OnExceptionLocal = OnExceptionOccured;
                     if (OnExceptionLocal is not null)
-                        OnExceptionLocal(this, Timestamp.Now, e);
+                        OnExceptionLocal(
+                            this,
+                            Timestamp.Now,
+                            EventTracking_Id.New,
+                            e
+                        );
 
                 }
 
@@ -649,27 +661,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Send a "new connection" event.
         /// </summary>
         /// <param name="ServerTimestamp">The timestamp of the request.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="RemoteSocket">The remote socket that was closed.</param>
         /// <param name="ConnectionId">The internal connection identification.</param>
         /// <param name="TCPConnection">The connection itself.</param>
-        protected internal void SendNewConnection(DateTime       ServerTimestamp,
-                                                  IPSocket       RemoteSocket,
-                                                  String         ConnectionId,
-                                                  TCPConnection  TCPConnection)
+        protected internal void SendNewConnection(DateTime          ServerTimestamp,
+                                                  EventTracking_Id  EventTrackingId,
+                                                  IPSocket          RemoteSocket,
+                                                  String            ConnectionId,
+                                                  TCPConnection     TCPConnection)
         {
 
             try
             {
 
-                OnNewConnection?.Invoke(this,
-                                        ServerTimestamp,
-                                        RemoteSocket,
-                                        ConnectionId,
-                                        TCPConnection);
+                OnNewConnection?.Invoke(
+                    this,
+                    ServerTimestamp,
+                    EventTrackingId,
+                    RemoteSocket,
+                    ConnectionId,
+                    TCPConnection
+                );
 
             }
-            catch
-            { }
+            catch (Exception e)
+            {
+                DebugX.LogException(e);
+            }
 
         }
 
@@ -681,10 +700,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// Send a "connection closed" event.
         /// </summary>
         /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="RemoteSocket">The remote socket that was closed.</param>
         /// <param name="ConnectionId">The internal connection identification.</param>
         /// <param name="ClosedBy">Whether it was closed by us or by the client.</param>
         protected internal void SendConnectionClosed(DateTime            ServerTimestamp,
+                                                     EventTracking_Id    EventTrackingId,
                                                      IPSocket            RemoteSocket,
                                                      String              ConnectionId,
                                                      ConnectionClosedBy  ClosedBy)
@@ -693,59 +714,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             try
             {
 
-                OnConnectionClosed?.Invoke(this,
-                                           ServerTimestamp,
-                                           RemoteSocket,
-                                           ConnectionId,
-                                           ClosedBy);
+                OnConnectionClosed?.Invoke(
+                    this,
+                    ServerTimestamp,
+                    EventTrackingId,
+                    RemoteSocket,
+                    ConnectionId,
+                    ClosedBy
+                );
 
             }
-            catch
-            { }
+            catch (Exception e)
+            {
+                DebugX.LogException(e);
+            }
 
         }
 
         #endregion
 
 
-        #region Start()
+        #region Start(EventTrackingId = null)
 
         /// <summary>
-        /// Start the TCPServer thread
+        /// Start the TCP receiver.
         /// </summary>
-        public Boolean Start()
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public async Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
 
-            => Start(__DefaultMaxClientConnections);
+            => await Start(
+                         __DefaultMaxClientConnections,
+                         EventTrackingId ?? EventTracking_Id.New
+                     );
 
         #endregion
 
-        #region Start(Delay, InBackground = true)
+        #region Start(Delay, EventTrackingId = null, InBackground = true)
 
         /// <summary>
         /// Start the TCP receiver after a little delay.
         /// </summary>
         /// <param name="Delay">The delay.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public Boolean Start(TimeSpan  Delay,
-                             Boolean   InBackground  = true)
+        public async Task<Boolean> Start(TimeSpan           Delay,
+                                         EventTracking_Id?  EventTrackingId   = null,
+                                         Boolean            InBackground      = true)
         {
 
             if (!InBackground)
             {
-                Thread.Sleep(Delay);
-                return Start();
+                await Task.Delay(Delay);
+                return await Start(EventTrackingId ?? EventTracking_Id.New);
             }
 
             else
             {
-                Task.Factory.StartNew(() => {
+
+                await Task.Factory.StartNew(async () => {
 
                     Thread.Sleep(Delay);
-                    Start();
+                    await Start(EventTrackingId ?? EventTracking_Id.New);
 
                 }, cancellationTokenSource.Token,
                    TaskCreationOptions.AttachedToParent,
                    TaskScheduler.Default);
+
             }
 
             return true;
@@ -754,17 +788,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region Start(MaxClientConnections)
+        #region Start(MaxClientConnections, EventTrackingId = null)
 
         /// <summary>
         /// Start the TCPServer thread
         /// </summary>
-        public Boolean Start(UInt32 MaxClientConnections)
+        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public async Task<Boolean> Start(UInt32             MaxClientConnections,
+                                         EventTracking_Id?  EventTrackingId   = null)
         {
 
             // volatile!
             if (isRunning)
                 return false;
+
+            EventTrackingId ??= EventTracking_Id.New;
 
             if (MaxClientConnections != __DefaultMaxClientConnections)
                 this.MaxClientConnections = MaxClientConnections;
@@ -781,7 +820,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                 Port
                             );
 
-                DebugX.LogT($"Started '{ServiceName}' on TCP port {Port}");
+                DebugX.LogT($"Started '{ServiceName}' on TCP port {Port} ({EventTrackingId})...");
 
             }
             catch (Exception e)
@@ -811,9 +850,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // Wait until socket has opened (volatile!)
             while (!isRunning)
-                Thread.Sleep(10);
+                await Task.Delay(10);
 
-            OnStarted?.Invoke(this, Timestamp.Now);
+            OnStarted?.Invoke(
+                this,
+                Timestamp.Now,
+                EventTrackingId
+            );
 
             return true;
 
@@ -822,29 +865,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
 
         /// <summary>
         /// Shutdown the TCP listener.
         /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
         /// <param name="Message">An optional shutdown message.</param>
-        public Boolean Shutdown(String?  Message   = null,
-                                Boolean  Wait      = true)
+        public async Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                            String?            Message           = null,
+                                            Boolean            Wait              = true)
         {
 
             cancellationTokenSource.Cancel();
 
-            if (tcpListener is not null)
-                tcpListener.Stop();
+            while (!tcpConnections.IsEmpty)
+                await Task.Delay(10);
+
+            tcpListener?.Stop();
 
             if (Wait) {
                 while (isRunning) {
-                    Thread.Sleep(10);
+                    await Task.Delay(10);
                 }
             }
 
-            OnCompleted?.Invoke(this, Timestamp.Now, Message ?? "");
+            OnCompleted?.Invoke(
+                this,
+                Timestamp.Now,
+                EventTrackingId ?? EventTracking_Id.New,
+                Message ?? ""
+            );
 
             return true;
 
@@ -854,21 +906,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region StopAndWait()
 
+        ///// <summary>
+        ///// Stop the TCPServer and wait until all connections are closed.
+        ///// </summary>
+        //public async Task<Boolean> StopAndWait()
+        //{
+
+        //    cancellationTokenSource.Cancel();
+
+        //    while (!tcpConnections.IsEmpty)
+        //        Thread.Sleep(10);
+
+        //    tcpListener?.Stop();
+
+        //    return true;
+
+        //}
+
+        #endregion
+
+
+        #region (override) ToString()
+
         /// <summary>
-        /// Stop the TCPServer and wait until all connections are closed.
+        /// Return a text representation of this object.
         /// </summary>
-        public Boolean StopAndWait()
+        public override String ToString()
         {
 
-            cancellationTokenSource.Cancel();
+            var type              = this.GetType();
+            var genericArguments  = type.GetGenericArguments();
+            var typeName          = (genericArguments.Length > 0) ? type.Name.Remove(type.Name.Length - 2) : type.Name;
+            var genericType       = (genericArguments.Length > 0) ? "<" + genericArguments[0].Name + ">"   : String.Empty;
+            var running           = (IsRunning)                   ? " (running)"                           : String.Empty;
 
-            while (!tcpConnections.IsEmpty)
-                Thread.Sleep(10);
-
-            if (tcpListener is not null)
-                tcpListener.Stop();
-
-            return true;
+            return $"{ServiceName} [{typeName}{genericType}] on {IPSocket}, {running}";
 
         }
 
@@ -880,34 +952,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void Dispose()
         {
 
-            StopAndWait();
+            //StopAndWait();
 
-            if (tcpListener != null)
-                tcpListener.Stop();
+            //tcpListener?.Stop();
 
-        }
-
-        #endregion
-
-        #region (override) ToString()
-
-        /// <summary>
-        /// Return a text representation of this object.
-        /// </summary>
-        public override String ToString()
-        {
-
-            var _Type              = this.GetType();
-            var _GenericArguments  = _Type.GetGenericArguments();
-            var _TypeName          = (_GenericArguments.Length > 0) ? _Type.Name.Remove(_Type.Name.Length - 2) : _Type.Name;
-            var _GenericType       = (_GenericArguments.Length > 0) ? "<" + _GenericArguments[0].Name + ">"    : String.Empty;
-            var _Running           = (IsRunning)                    ? " (running)"                             : String.Empty;
-
-            return String.Concat(ServiceName, " [", _TypeName, _GenericType, "] on ", IPSocket.ToString(), _Running);
+            GC.SuppressFinalize(this);
 
         }
 
         #endregion
+
 
     }
 

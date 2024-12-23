@@ -22,8 +22,8 @@ using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
 #endregion
 
@@ -33,7 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <summary>
     /// An abstract TCP service allowing to attach multiple TCP servers on different IP sockets.
     /// </summary>
-    public abstract class ATCPServers : IEnumerable<TCPServer>
+    public abstract class ATCPServers : IEnumerable<TCPServer>,
+                                        IDisposable
     {
 
         #region Data
@@ -42,6 +43,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// The internal list of TCP servers.
         /// </summary>
         protected readonly List<TCPServer> tcpServers;
+
+        private readonly SemaphoreSlim semaphoreSlim = new (1, 1);
 
         #endregion
 
@@ -458,7 +461,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.DNSClient                   = DNSClient                  ?? new DNSClient();
 
             if (AutoStart)
-                Start();
+                Start(EventTracking_Id.New).Wait();
 
         }
 
@@ -469,48 +472,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) AttachTCPPorts  (Action, params Ports)
 
-        protected void AttachTCPPorts(Action<TCPServer>  Action,
-                                      params IPPort[]    Ports)
+        protected async Task AttachTCPPorts(Action<TCPServer>  Action,
+                                            params IPPort[]    Ports)
         {
 
-            lock (tcpServers)
+            await semaphoreSlim.WaitAsync();
+
+            try
             {
 
                 foreach (var port in Ports)
                 {
 
-                    var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
-                                                                       port,
-                                                                       ServiceName,
-                                                                       ServiceBanner,
+                    var tcpServer = tcpServers.AddAndReturnElement(
+                                        new TCPServer(
+                                            port,
+                                            ServiceName,
+                                            ServiceBanner,
 
-                                                                       ServerCertificateSelector,
-                                                                       ClientCertificateValidator,
-                                                                       LocalCertificateSelector,
-                                                                       AllowedTLSProtocols,
-                                                                       ClientCertificateRequired,
-                                                                       CheckCertificateRevocation,
+                                            ServerCertificateSelector,
+                                            ClientCertificateValidator,
+                                            LocalCertificateSelector,
+                                            AllowedTLSProtocols,
+                                            ClientCertificateRequired,
+                                            CheckCertificateRevocation,
 
-                                                                       serverThreadNameCreator,
-                                                                       serverThreadPrioritySetter,
-                                                                       serverThreadIsBackground,
-                                                                       connectionIdBuilder,
-                                                                       connectionTimeout,
-                                                                       maxClientConnections,
+                                            serverThreadNameCreator,
+                                            serverThreadPrioritySetter,
+                                            serverThreadIsBackground,
+                                            connectionIdBuilder,
+                                            connectionTimeout,
+                                            maxClientConnections,
 
-                                                                       false)
-                                                                   );
+                                            false
+                                        )
+                                    );
 
-                    tcpServer.OnStarted          += (sender, timestamp, message) => SendTCPSocketAttached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnStarted          += (sender, timestamp, eventTrackingId, message) => SendTCPSocketAttached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
                     tcpServer.OnNewConnection    += SendNewConnection;
                     tcpServer.OnConnectionClosed += SendConnectionClosed;
-                    tcpServer.OnCompleted        += (sender, timestamp, message) => SendTCPSocketDetached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnCompleted        += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
                     tcpServer.OnExceptionOccured += SendExceptionOccured;
 
                     Action(tcpServer);
 
                 }
 
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
 
         }
@@ -519,11 +530,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) AttachTCPSockets(Action, params Sockets)
 
-        protected void AttachTCPSockets(Action<TCPServer>  Action,
-                                        params IPSocket[]  Sockets)
+        protected async Task AttachTCPSockets(Action<TCPServer>  Action,
+                                              params IPSocket[]  Sockets)
         {
 
-            lock (tcpServers)
+            await semaphoreSlim.WaitAsync();
+
+            try
             {
 
                 foreach (var socket in Sockets)
@@ -551,19 +564,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                        false)
                                                                    );
 
-                    tcpServer.OnStarted          += (sender, timestamp, message) => SendTCPSocketAttached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnStarted          += (sender, timestamp, eventTrackingId, message) => SendTCPSocketAttached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
                     tcpServer.OnNewConnection    += SendNewConnection;
                     tcpServer.OnConnectionClosed += SendConnectionClosed;
-                    tcpServer.OnCompleted        += (sender, timestamp, message) => SendTCPSocketDetached(timestamp, tcpServer.IPSocket, message);
+                    tcpServer.OnCompleted        += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
                     tcpServer.OnExceptionOccured += SendExceptionOccured;
 
                     Action(tcpServer);
 
-                    SendTCPSocketAttached(Timestamp.Now,
-                                          tcpServer.IPSocket);
+                    SendTCPSocketAttached(
+                        Timestamp.Now,
+                        EventTracking_Id.New,
+                        tcpServer.IPSocket
+                    );
 
                 }
 
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
 
         }
@@ -572,11 +592,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) DetachTCPPorts  (Action, params Ports)
 
-        protected void DetachTCPPorts(Action<TCPServer>  Action,
-                                      params IPPort[]    Ports)
+        protected async Task DetachTCPPorts(Action<TCPServer>  Action,
+                                            params IPPort[]    Ports)
         {
 
-            lock (tcpServers)
+            await semaphoreSlim.WaitAsync();
+
+            try
             {
 
                 foreach (var Port in Ports)
@@ -600,10 +622,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 }
 
             }
+            finally
+            {
+                semaphoreSlim.Release();
+            }
 
         }
 
         #endregion
+
 
         #region IPPorts
 
@@ -643,116 +670,144 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         // Send events...
 
-        #region (protected) SendStarted         (Sender, Timestamp, Message = null)
+        #region (protected) SendStarted           (Sender, Timestamp, EventTrackingId = null, Message = null)
 
-        protected void SendStarted(Object    Sender,
-                                   DateTime  Timestamp,
-                                   String?   Message   = null)
+        protected void SendStarted(Object             Sender,
+                                   DateTime           Timestamp,
+                                   EventTracking_Id?  EventTrackingId   = null,
+                                   String?            Message           = null)
         {
 
-            OnStarted?.Invoke(Sender,
-                              Timestamp,
-                              Message);
+            OnStarted?.Invoke(
+                Sender,
+                Timestamp,
+                EventTrackingId ?? EventTracking_Id.New,
+                Message
+            );
 
         }
 
         #endregion
 
-        #region (protected) SendTCPSocketAttached(Timestamp, TCPSocket, Message = null)
+        #region (protected) SendTCPSocketAttached (Timestamp, EventTrackingId, TCPSocket, Message = null)
 
-        protected void SendTCPSocketAttached(DateTime  Timestamp,
-                                             IPSocket  TCPSocket,
-                                             String?   Message   = null)
+        protected void SendTCPSocketAttached(DateTime          Timestamp,
+                                             EventTracking_Id  EventTrackingId,
+                                             IPSocket          TCPSocket,
+                                             String?           Message   = null)
         {
 
-            OnTCPSocketAttached?.Invoke(this,
-                                        Timestamp,
-                                        TCPSocket,
-                                        Message);
+            OnTCPSocketAttached?.Invoke(
+                this,
+                Timestamp,
+                EventTrackingId,
+                TCPSocket,
+                Message
+            );
 
         }
 
         #endregion
 
-        #region (protected) SendNewConnection(TCPServer, Timestamp, RemoteSocket, ConnectionId, TCPConnection)
+        #region (protected) SendNewConnection     (TCPServer, Timestamp, EventTrackingId, RemoteSocket, ConnectionId, TCPConnection)
 
-        protected void SendNewConnection(TCPServer      TCPServer,
-                                         DateTime       Timestamp,
-                                         IPSocket       RemoteSocket,
-                                         String         ConnectionId,
-                                         TCPConnection  TCPConnection)
+        protected void SendNewConnection(TCPServer         TCPServer,
+                                         DateTime          Timestamp,
+                                         EventTracking_Id  EventTrackingId,
+                                         IPSocket          RemoteSocket,
+                                         String            ConnectionId,
+                                         TCPConnection     TCPConnection)
         {
 
-            OnNewConnection?.Invoke(TCPServer,
-                                    Timestamp,
-                                    RemoteSocket,
-                                    ConnectionId,
-                                    TCPConnection);
+            OnNewConnection?.Invoke(
+                TCPServer,
+                Timestamp,
+                EventTrackingId,
+                RemoteSocket,
+                ConnectionId,
+                TCPConnection
+            );
 
         }
 
         #endregion
 
-        #region (protected) SendConnectionClosed(TCPServer, ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
+        #region (protected) SendConnectionClosed  (TCPServer, Timestamp, EventTrackingId, RemoteSocket, ConnectionId, ClosedBy)
 
         protected void SendConnectionClosed(TCPServer           TCPServer,
-                                            DateTime            ServerTimestamp,
+                                            DateTime            Timestamp,
+                                            EventTracking_Id    EventTrackingId,
                                             IPSocket            RemoteSocket,
                                             String              ConnectionId,
                                             ConnectionClosedBy  ClosedBy)
         {
 
-            OnConnectionClosed?.Invoke(TCPServer,
-                                       ServerTimestamp,
-                                       RemoteSocket,
-                                       ConnectionId,
-                                       ClosedBy);
+            OnConnectionClosed?.Invoke(
+                TCPServer,
+                Timestamp,
+                EventTrackingId,
+                RemoteSocket,
+                ConnectionId,
+                ClosedBy
+            );
 
         }
 
         #endregion
 
-        #region (protected) SendTCPSocketDetached(Timestamp, TCPSocket, Message = null)
+        #region (protected) SendTCPSocketDetached (Timestamp, EventTrackingId, TCPSocket, Message = null)
 
-        protected void SendTCPSocketDetached(DateTime  Timestamp,
-                                             IPSocket  TCPSocket,
-                                             String?   Message   = null)
+        protected void SendTCPSocketDetached(DateTime          Timestamp,
+                                             EventTracking_Id  EventTrackingId,
+                                             IPSocket          TCPSocket,
+                                             String?           Message   = null)
         {
 
-            OnTCPSocketDetached?.Invoke(this,
-                                        Timestamp,
-                                        TCPSocket,
-                                        Message);
+            OnTCPSocketDetached?.Invoke(
+                this,
+                Timestamp,
+                EventTrackingId,
+                TCPSocket,
+                Message
+            );
 
         }
 
         #endregion
 
-        #region (protected) SendCompleted(Sender, Timestamp, Message = null)
+        #region (protected) SendCompleted         (Sender, EventTrackingId, Timestamp, Message = null)
 
-        protected void SendCompleted(Object    Sender,
-                                     DateTime  Timestamp,
-                                     String?   Message   = null)
+        protected void SendCompleted(Object            Sender,
+                                     DateTime          Timestamp,
+                                     EventTracking_Id  EventTrackingId,
+                                     String?           Message   = null)
         {
 
-            OnCompleted?.Invoke(Sender,
-                                Timestamp,
-                                Message);
+            OnCompleted?.Invoke(
+                Sender,
+                Timestamp,
+                EventTrackingId,
+                Message
+            );
 
         }
 
         #endregion
 
-        #region (protected) SendExceptionOccured(Sender, Timestamp, Exception)
+        #region (protected) SendExceptionOccured  (Sender, Timestamp, EventTrackingId, Exception)
 
-        protected void SendExceptionOccured(Object     Sender,
-                                            DateTime   Timestamp,
-                                            Exception  Exception)
+        protected void SendExceptionOccured(Object            Sender,
+                                            DateTime          Timestamp,
+                                            EventTracking_Id  EventTrackingId,
+                                            Exception         Exception)
         {
 
-            OnExceptionOccured?.Invoke(Sender,
-                                       Timestamp,
-                                       Exception);
+            OnExceptionOccured?.Invoke(
+                Sender,
+                Timestamp,
+                EventTrackingId,
+                Exception
+            );
 
         }
 
@@ -762,16 +817,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         // Start/stop the TCP servers...
 
-        #region Start()
+        #region Start(EventTrackingId = null)
 
-        public Boolean Start()
+        /// <summary>
+        /// Start the TCP servers.
+        /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public async Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
         {
 
-            lock (tcpServers)
+            await semaphoreSlim.WaitAsync();
+
+            try
             {
 
                 foreach (var tcpServer in tcpServers)
-                    tcpServer.Start();
+                    await tcpServer.Start(EventTrackingId);
 
                 isStarted = true;
 
@@ -780,50 +841,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 return true;
 
             }
-
-        }
-
-        #endregion
-
-        #region Start(Delay, InBackground = true)
-
-        public Boolean Start(TimeSpan Delay, Boolean InBackground = true)
-        {
-
-            lock (tcpServers)
+            finally
             {
-
-                foreach (var TCPServer in tcpServers)
-                    TCPServer.Start(Delay, InBackground);
-
-                SendStarted(this, Timestamp.Now);
-
-                return true;
-
+                semaphoreSlim.Release();
             }
 
         }
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Start(Delay, EventTrackingId = null, InBackground = true)
 
-        public virtual Boolean Shutdown(String?  Message   = null,
-                                        Boolean  Wait      = true)
+        public async Task<Boolean> Start(TimeSpan           Delay,
+                                         EventTracking_Id?  EventTrackingId   = null,
+                                         Boolean            InBackground      = true)
         {
 
-            lock (tcpServers)
+            await semaphoreSlim.WaitAsync();
+
+            try
             {
 
-                foreach (var tcpServer in tcpServers)
-                    tcpServer.Shutdown(Message, Wait);
+                EventTrackingId ??= EventTracking_Id.New;
 
-                SendCompleted(this,
-                              Timestamp.Now,
-                              Message);
+                foreach (var TCPServer in tcpServers)
+                    await TCPServer.Start(
+                              Delay,
+                              EventTrackingId,
+                              InBackground
+                          );
+
+                SendStarted(this, Timestamp.Now);
 
                 return true;
 
+            }
+            finally
+            {
+                semaphoreSlim.Release();
+            }
+
+        }
+
+        #endregion
+
+        #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
+
+        public virtual async Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                                    String?            Message           = null,
+                                                    Boolean            Wait              = true)
+        {
+
+            await semaphoreSlim.WaitAsync();
+
+            try
+            {
+
+                EventTrackingId ??= EventTracking_Id.New;
+
+                foreach (var tcpServer in tcpServers)
+                    await tcpServer.Shutdown(
+                              EventTrackingId,
+                              Message,
+                              Wait
+                          );
+
+                SendCompleted(
+                    this,
+                    Timestamp.Now,
+                    EventTracking_Id.New,
+                    Message
+                );
+
+                return true;
+
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
 
         }
@@ -836,10 +931,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public void Dispose()
         {
 
-            lock (tcpServers)
+            semaphoreSlim.Wait();
+
+            try
             {
+
                 foreach (var tcpServer in tcpServers)
                     tcpServer.Dispose();
+
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
 
         }

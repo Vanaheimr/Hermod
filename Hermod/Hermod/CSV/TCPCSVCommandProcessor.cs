@@ -23,6 +23,7 @@ using System.Text;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -39,24 +40,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Properties
 
-        #region ServiceBanner
-
         public String ServiceBanner { get; set; }
-
-        #endregion
 
         #endregion
 
         #region Events
 
-        public event StartedEventHandler                                                    OnStarted;
+        public event StartedEventHandler?                                                    OnStarted;
 
-        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>>  OnNotification;
+        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>>?  OnNotification;
 
-        public event CompletedEventHandler                                                  OnCompleted;
+        public event CompletedEventHandler?                                                  OnCompleted;
 
 
-        public event ExceptionOccuredEventHandler                                           OnExceptionOccured;
+        public event ExceptionOccuredEventHandler?                                           OnExceptionOccured;
 
         #endregion
 
@@ -73,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         public String ProcessBoomerang(TCPConnection TCPConnection, DateTime Timestamp, String[] CSVArray)
         {
 
-            var _StringBuilder  = new StringBuilder();
+            var stringBuilder  = new StringBuilder();
 
             if (CSVArray.Length == 1)
             {
@@ -92,37 +89,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                         case "exit":
                         case "quit":
                         case "logout":
-                            _StringBuilder.AppendLine("Bye!");
+                            stringBuilder.AppendLine("Bye!");
                             TCPConnection.Close(ConnectionClosedBy.Client);
                             break;
 
                         case "noop":
-                            _StringBuilder.AppendLine("OK");
+                            stringBuilder.AppendLine("OK");
                             break;
 
                         case "gettime":
-                            _StringBuilder.AppendLine(Illias.Timestamp.Now.ToString("o"));
+                            stringBuilder.AppendLine(Illias.Timestamp.Now.ToString("o"));
                             break;
 
                         case "getconnectionid":
-                            _StringBuilder.AppendLine(TCPConnection.ConnectionId);
+                            stringBuilder.AppendLine(TCPConnection.ConnectionId);
                             break;
 
                         case "help":
-                            _StringBuilder.AppendLine("bye              Close the TCP connection");
-                            _StringBuilder.AppendLine("exit             Close the TCP connection");
-                            _StringBuilder.AppendLine("quit             Close the TCP connection");
-                            _StringBuilder.AppendLine("logout           Close the TCP connection");
-                            _StringBuilder.AppendLine("noop             Do nothing, but keep the TCP connection alive");
-                            _StringBuilder.AppendLine("GetTime          Get the current server time");
-                            _StringBuilder.AppendLine("GetConnectionId  Get the identification of this TCP connection");
-                            _StringBuilder.AppendLine("SetTimeout       Set the timeout for this TCP connection [milliseconds]");
-                            _StringBuilder.AppendLine("help             Get help");
-                            _StringBuilder.AppendLine();
+                            stringBuilder.AppendLine("bye              Close the TCP connection");
+                            stringBuilder.AppendLine("exit             Close the TCP connection");
+                            stringBuilder.AppendLine("quit             Close the TCP connection");
+                            stringBuilder.AppendLine("logout           Close the TCP connection");
+                            stringBuilder.AppendLine("noop             Do nothing, but keep the TCP connection alive");
+                            stringBuilder.AppendLine("GetTime          Get the current server time");
+                            stringBuilder.AppendLine("GetConnectionId  Get the identification of this TCP connection");
+                            stringBuilder.AppendLine("SetTimeout       Set the timeout for this TCP connection [milliseconds]");
+                            stringBuilder.AppendLine("help             Get help");
+                            stringBuilder.AppendLine();
                             break;
 
                         default:
-                            _StringBuilder.AppendLine("Command Error!");
+                            stringBuilder.AppendLine("Command Error!");
                             break;
 
                     }
@@ -148,21 +145,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                 var UInt32Value = 0U;
                                 if (UInt32.TryParse(Parameter[1].Trim(), out UInt32Value))
                                 {
-                                    _StringBuilder.AppendLine("SetTimeout=" + UInt32Value + "ms");
+                                    stringBuilder.AppendLine("SetTimeout=" + UInt32Value + "ms");
                                 }
                                 else
-                                    _StringBuilder.AppendLine("Command Error!");
+                                    stringBuilder.AppendLine("Command Error!");
                                 break;
 
                             default:
-                                _StringBuilder.AppendLine("Command Error!");
+                                stringBuilder.AppendLine("Command Error!");
                                 break;
 
                         }
 
                     }
                     else
-                        _StringBuilder.AppendLine("Command Error!");
+                        stringBuilder.AppendLine("Command Error!");
 
                 }
 
@@ -173,54 +170,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             else
             {
 
-                var OnNotificationLocal = OnNotification;
-                if (OnNotificationLocal != null)
+                var onNotification = OnNotification;
+                if (onNotification is not null)
                 {
 
-                    var Result = OnNotificationLocal(TCPConnection.ConnectionId,
-                                                     Timestamp,
-                                                     CSVArray);
+                    var result = onNotification(TCPConnection.ConnectionId,
+                                                Timestamp,
+                                                CSVArray);
 
-                    if (Result.ClientClose)
+                    if (result.ClientClose)
                         TCPConnection.Close(ConnectionClosedBy.Server);
 
-                    return Result.Value;
+                    return result.Value;
 
                 }
 
             }
 
-            return _StringBuilder.ToString();
+            return stringBuilder.ToString();
 
         }
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+        #region ProcessExceptionOccured(Sender, Timestamp, EventTracking, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object     Sender,
-                                            DateTime   Timestamp,
-                                            Exception  ExceptionMessage)
+        public void ProcessExceptionOccured(Object            Sender,
+                                            DateTime          Timestamp,
+                                            EventTracking_Id  EventTracking,
+                                            Exception         ExceptionMessage)
         {
 
-            OnExceptionOccured?.Invoke(Sender,
-                                       Timestamp,
-                                       ExceptionMessage);
+            OnExceptionOccured?.Invoke(
+                Sender,
+                Timestamp,
+                EventTracking,
+                ExceptionMessage
+            );
 
         }
 
         #endregion
 
-        #region ProcessCompleted(Sender, Timestamp, Message = null)
+        #region ProcessCompleted(Sender, Timestamp, EventTracking, Message = null)
 
-        public void ProcessCompleted(Object    Sender,
-                                     DateTime  Timestamp,
-                                     String    Message = null)
+        public void ProcessCompleted(Object            Sender,
+                                     DateTime          Timestamp,
+                                     EventTracking_Id  EventTracking,
+                                     String?           Message = null)
         {
 
-            OnCompleted?.Invoke(Sender,
-                                Timestamp,
-                                Message);
+            OnCompleted?.Invoke(
+                Sender,
+                Timestamp,
+                EventTracking,
+                Message
+            );
 
         }
 

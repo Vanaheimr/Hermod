@@ -20,7 +20,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 
@@ -389,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -399,12 +399,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
 
                 if (SocketErrorCode != SocketError.Success)
-                    ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
+                    ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
 
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -417,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// Send the given message to the predefined remote host.
         /// </summary>
         /// <param name="Message">The message to send.</param>
-        void IArrowReceiver<T>.ProcessArrow(T Message)
+        void IArrowReceiver<T>.ProcessArrow(EventTracking_Id EventTrackingId, T Message)
         {
             this.Send(Message);
         }
@@ -433,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         public void Send(UDPPacket<T> UDPPacket)
         {
 
-            Byte[] UDPPacketData = null;
+            Byte[]? UDPPacketData = null;
 
             try
             {
@@ -441,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -455,7 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Illias.Timestamp.Now, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -468,7 +468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// Send the given UDP packet to the remote host specified within the UDP packet.
         /// </summary>
         /// <param name="UDPPacket">The UDP packet to send.</param>
-        void IArrowReceiver<UDPPacket<T>>.ProcessArrow(UDPPacket<T> UDPPacket)
+        void IArrowReceiver<UDPPacket<T>>.ProcessArrow(EventTracking_Id EventTrackingId, UDPPacket<T> UDPPacket)
         {
             Send(UDPPacket);
         }
@@ -484,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="ExceptionMessage">The exception leading to this error.</param>
-        public virtual void ProcessExceptionOccured(dynamic Sender, DateTime Timestamp, Exception ExceptionMessage)
+        public virtual void ProcessExceptionOccured(dynamic Sender, DateTime Timestamp, EventTracking_Id EventTrackingId, Exception ExceptionMessage)
         {
             // Error handling should better be part of the application logic!
             // Overwrite this method to signal the error, e.g. by sending a nice UDP packet.
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Sender">The sender of this completed message.</param>
         /// <param name="Timestamp">The timestamp of the shutdown.</param>
         /// <param name="Message">An optional completion message.</param>
-        public void ProcessCompleted(dynamic Sender, DateTime Timestamp, String Message = null)
+        public void ProcessCompleted(dynamic Sender, DateTime Timestamp, EventTracking_Id EventTrackingId, String? Message = null)
         {
             Close();
         }
