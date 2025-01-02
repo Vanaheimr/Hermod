@@ -29,12 +29,11 @@ using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Utilities;
 
 using BCx509 = Org.BouncyCastle.X509;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using Org.BouncyCastle.Utilities;
-using Microsoft.AspNetCore.Mvc.Routing;
 
 #endregion
 
@@ -187,10 +186,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
 
             var keyPairGenerator = new RsaKeyPairGenerator();
 
-            keyPairGenerator.Init(new KeyGenerationParameters(
-                                      new SecureRandom(),
-                                      NumberOfBits
-                                  ));
+            keyPairGenerator.Init(
+                new KeyGenerationParameters(
+                    new SecureRandom(),
+                    NumberOfBits
+                )
+            );
 
             return keyPairGenerator.GenerateKeyPair();
 
@@ -204,15 +205,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
         /// Generate a new ECC key pair.
         /// </summary>
         /// <param name="ECCName">The optional ECC curve to use.</param>
-        public static AsymmetricCipherKeyPair GenerateECKeyPair(String ECCName = "secp256r1")
+        public static AsymmetricCipherKeyPair GenerateECCKeyPair(String ECCName = "secp256r1")
         {
 
             var keyPairGenerator = new ECKeyPairGenerator();
 
-            keyPairGenerator.Init(new ECKeyGenerationParameters(
-                                      Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetOid(ECCName),
-                                      new SecureRandom()
-                                  ));
+            keyPairGenerator.Init(
+                new ECKeyGenerationParameters(
+                    Org.BouncyCastle.Asn1.Sec.SecNamedCurves.GetOid(ECCName),
+                    new SecureRandom()
+                )
+            );
 
             return keyPairGenerator.GenerateKeyPair();
 
