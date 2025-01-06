@@ -30,7 +30,6 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Services;
-using System.Runtime.CompilerServices;
 
 #endregion
 
@@ -1028,22 +1027,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const           String           DefaultHTTPServerName   = "GraphDefined Hermod HTTP Server v1.0";
+        public  const           String                                                      DefaultHTTPServerName    = "GraphDefined Hermod HTTP Server v1.0";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public  const           String           DefaultHTTPServiceName  = "GraphDefined Hermod HTTP Service v1.0";
+        public  const           String                                                      DefaultHTTPServiceName   = "GraphDefined Hermod HTTP Service v1.0";
 
         /// <summary>
         /// The default HTTP server TCP port.
         /// </summary>
-        public static readonly  IPPort           DefaultHTTPServerPort   = IPPort.HTTP;
+        public static readonly  IPPort                                                      DefaultHTTPServerPort    = IPPort.HTTP;
+
+        private const           UInt32                                                      ReadTimeout              = 180000U;
 
         private readonly        ConcurrentDictionary<HTTPHostname,       HostnameNode>      hostnameNodes;
         private readonly        ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources;
-
-        private const    UInt32 ReadTimeout           = 180000U;
 
         #endregion
 
@@ -3081,15 +3080,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
         {
 
-            lock (eventSources)
-            {
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                return httpEventSource;
 
-                if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
-                    return httpEventSource;
-
-                return null;
-
-            }
+            return null;
 
         }
 
@@ -3101,15 +3095,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
         {
 
-            lock (eventSources)
-            {
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                return httpEventSource as IHTTPEventSource<TData>;
 
-                if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
-                    return httpEventSource as IHTTPEventSource<TData>;
-
-                return null;
-
-            }
+            return null;
 
         }
 
@@ -3124,8 +3113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventSource">The event source.</param>
         public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
 
-            => eventSources.TryGetValue(EventSourceIdentification,
-                                        out EventSource);
+            => eventSources.TryGetValue(EventSourceIdentification, out EventSource);
 
 
         /// <summary>
@@ -3136,10 +3124,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
         {
 
-            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource))
+            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource) &&
+                eventSource is IHTTPEventSource<TData> eventSourceTData)
             {
-                EventSource = eventSource as IHTTPEventSource<TData>;
-                return EventSource is not null;
+                EventSource = eventSourceTData;
+                return true;
             }
 
             EventSource = null;
