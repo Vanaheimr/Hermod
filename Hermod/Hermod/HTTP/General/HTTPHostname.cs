@@ -304,15 +304,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
-        /// Clone this object.
+        /// Clone this HTTP hostname.
         /// </summary>
-        public HTTPHostname Clone
+        public HTTPHostname Clone()
 
-            => new (new String(Name.ToCharArray()),
-                    Port);
+            => new (
+                   Name.CloneString(),
+                   Port
+               );
 
         #endregion
 

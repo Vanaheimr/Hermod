@@ -178,14 +178,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this API key identification.
         /// </summary>
         public APIKey_Id Clone
 
-            => new (new String(InternalId?.ToCharArray()));
+            => new (
+                   InternalId.CloneString()
+               );
 
         #endregion
 

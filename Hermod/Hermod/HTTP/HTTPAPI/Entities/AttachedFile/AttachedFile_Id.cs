@@ -155,15 +155,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this attached file identification.
         /// </summary>
-        public AttachedFile_Id Clone
+        public AttachedFile_Id Clone()
 
-            => new AttachedFile_Id(
-                   new String(InternalId?.ToCharArray())
+            => new (
+                   InternalId.CloneString()
                );
 
         #endregion

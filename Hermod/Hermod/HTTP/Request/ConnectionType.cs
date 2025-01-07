@@ -165,15 +165,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this connection type.
         /// </summary>
-        public ConnectionType Clone
+        public ConnectionType Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

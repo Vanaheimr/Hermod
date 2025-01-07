@@ -181,16 +181,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this security token identification.
         /// </summary>
-
-        public SecurityToken_Id Clone
+        public SecurityToken_Id Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

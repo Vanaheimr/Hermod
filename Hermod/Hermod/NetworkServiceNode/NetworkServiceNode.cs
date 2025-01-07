@@ -185,14 +185,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         //ToDo: Add ADataStores!?!
 
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this network service node.
         /// </summary>
-        public NetworkServiceNode Clone
+        public NetworkServiceNode Clone()
 
-            => new (Id.Clone);
+            => new (
+                   Id.Clone()
+               );
 
         #endregion
 

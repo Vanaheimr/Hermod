@@ -336,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public OpenSourceLicense Clone()
 
             => new (
-                   Id.         Clone,
+                   Id.         Clone(),
                    Description.Clone(),
                    URLs.Select(url => url.Clone()).ToArray()
                );

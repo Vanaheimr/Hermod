@@ -149,15 +149,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this notification identification.
         /// </summary>
-        public NotificationMessageType Clone
+        public NotificationMessageType Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

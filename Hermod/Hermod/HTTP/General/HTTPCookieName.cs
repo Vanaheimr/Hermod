@@ -163,15 +163,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this HTTP cookie name.
         /// </summary>
-        public HTTPCookieName Clone
+        public HTTPCookieName Clone()
 
             => new (
-                   new String(InternalName?.ToCharArray())
+                   InternalName.CloneString()
                );
 
         #endregion

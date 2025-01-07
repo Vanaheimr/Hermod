@@ -216,12 +216,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this secure password.
         /// </summary>
-        public SecurePassword Clone
+        public SecurePassword Clone()
 
             => new (Value);
 

@@ -215,12 +215,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this HTTP Location.
         /// </summary>
-        public Location Clone
+        public Location Clone()
 
             => URL.HasValue
                    ? new (URL.  Value)

@@ -169,12 +169,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
-        /// Clone this object.
+        /// Clone this HTTP path.
         /// </summary>
-        public HTTPPath Clone
+        public HTTPPath Clone()
 
             => new (InternalId);
 

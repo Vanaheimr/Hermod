@@ -178,15 +178,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this notification group identification.
         /// </summary>
-        public NotificationGroup_Id Clone
+        public NotificationGroup_Id Clone()
 
-            => new NotificationGroup_Id(
-                   new String(InternalId?.ToCharArray())
+            => new (
+                   InternalId.CloneString()
                );
 
         #endregion

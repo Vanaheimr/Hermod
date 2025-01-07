@@ -1452,7 +1452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NewUserId">An optional new user identification.</param>
         public User Clone(User_Id? NewUserId = null)
 
-            => new (NewUserId ?? Id.Clone,
+            => new (NewUserId ?? Id.Clone(),
                     Name,
                     EMail.Address,
                     Description.Clone(),
@@ -1767,7 +1767,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NewUserId">An optional new user identification.</param>
         public Builder ToBuilder(User_Id? NewUserId = null)
 
-            => new (NewUserId ?? Id.Clone,
+            => new (NewUserId ?? Id.Clone(),
                     EMail.Address,
                     Name,
                     Description,

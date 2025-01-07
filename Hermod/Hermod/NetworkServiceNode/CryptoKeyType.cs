@@ -172,15 +172,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this crypto key type.
         /// </summary>
-        public CryptoKeyType Clone
+        public CryptoKeyType Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

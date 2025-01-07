@@ -153,15 +153,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this organization group identification.
         /// </summary>
-        public OrganizationGroup_Id Clone
+        public OrganizationGroup_Id Clone()
 
-            => new OrganizationGroup_Id(
-                   new String(InternalId?.ToCharArray())
+            => new (
+                   InternalId.CloneString()
                );
 
         #endregion

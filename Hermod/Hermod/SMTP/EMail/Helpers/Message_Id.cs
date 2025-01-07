@@ -300,16 +300,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this e-mail message identification.
         /// </summary>
-        public Message_Id Clone
+        public Message_Id Clone()
 
-            => new Message_Id(
-                   new String(RandomPart.ToCharArray()),
-                   new String(DomainPart.ToCharArray())
+            => new (
+                   RandomPart.CloneString(),
+                   DomainPart.CloneString()
                );
 
         #endregion

@@ -162,15 +162,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this data license identification.
         /// </summary>
-        public OpenDataLicense_Id Clone
+        public OpenDataLicense_Id Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

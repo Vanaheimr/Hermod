@@ -26,6 +26,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
+    /// Extension methods for URL protocols.
+    /// </summary>
+    public static class URLProtocolsExtensions
+    {
+
+        /// <summary>
+        /// Return a string representation of the given URL protocol.
+        /// </summary>
+        /// <param name="URLProtocol">An URL protocol.</param>
+        public static String AsString(this URLProtocols URLProtocol)
+
+            => URLProtocol switch {
+                   URLProtocols.http     => "http://",
+                   URLProtocols.https    => "https://",
+                   URLProtocols.ws       => "ws://",
+                   URLProtocols.wss      => "wss://",
+                   URLProtocols.modbus   => "modbus://",
+                   URLProtocols.smodbus  => "smodbus://",
+                   _                     => "https://",
+               };
+
+    }
+
+
+    /// <summary>
     /// Well-known protocols.
     /// </summary>
     public enum URLProtocols
@@ -190,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Parse   (Text)
+        #region (static) Parse     (Text)
 
         /// <summary>
         /// Parse the given string as an uniform resource location.
@@ -209,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text)
+        #region (static) TryParse  (Text)
 
         /// <summary>
         /// Try to parse the given text as an uniform resource location.
@@ -227,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text, out URL)
+        #region (static) TryParse  (Text, out URL)
 
         /// <summary>
         /// Try to parse the given text as an uniform resource location.
@@ -386,6 +411,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region (static) Concat    (Texts)
+
+        /// <summary>
+        /// Parse the given string fragments as an uniform resource location.
+        /// </summary>
+        /// <param name="Texts">An enumeration of fragments of a text representation of an uniform resource location.</param>
+        public static URL Concat(params IEnumerable<Object?> Texts)
+        {
+
+            if (TryConcat(Texts, out var url))
+                return url;
+
+            throw new ArgumentException("The given fragments of a text representation of an uniform resource location is invalid: " + Texts.AggregateWith("|"),
+                                        nameof(Texts));
+
+        }
+
+        #endregion
+
+        #region (static) TryConcat (Texts)
+
+        /// <summary>
+        /// Try to parse the given string fragments as an uniform resource location.
+        /// </summary>
+        /// <param name="Texts">An enumeration of fragments of a text representation of an uniform resource location.</param>
+        public static URL? TryConcat(params IEnumerable<Object?> Texts)
+        {
+
+            if (TryConcat(Texts, out var url))
+                return url;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (static) TryConcat (Texts, out URL)
+
+        /// <summary>
+        /// Try to parse the given string fragments as an uniform resource location.
+        /// </summary>
+        /// <param name="Texts">An enumeration of fragments of a text representation of an uniform resource location.</param>
+        /// <param name="URL">The parsed uniform resource location.</param>
+        public static Boolean TryConcat(IEnumerable<Object?> Texts, out URL URL)
+
+            => TryParse(String.Concat(Texts), out URL);
+
+        #endregion
+
+
         #region Clone()
 
         /// <summary>
@@ -394,11 +471,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public URL Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray()),
+                   InternalId.CloneString(),
                    Protocol,
-                   Hostname.Clone,
-                   Port?.   Clone,
-                   Path.    Clone
+                   Hostname.  Clone(),
+                   Port?.     Clone(),
+                   Path.      Clone()
                );
 
         #endregion

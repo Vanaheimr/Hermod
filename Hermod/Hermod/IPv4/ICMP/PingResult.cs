@@ -63,15 +63,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         #endregion
 
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this ping result.
         /// </summary>
-        public PingResult Clone
+        public PingResult Clone()
 
-            => new PingResult(Runtime,
-                                Error);
+            => new (
+                   Runtime,
+                   Error
+               );
 
         #endregion
 

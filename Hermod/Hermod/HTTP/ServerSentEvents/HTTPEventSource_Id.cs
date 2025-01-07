@@ -147,12 +147,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this HTTP Event Source identification.
         /// </summary>
-        public HTTPEventSource_Id Clone
+        public HTTPEventSource_Id Clone()
 
             => new (
                    InternalId.CloneString()

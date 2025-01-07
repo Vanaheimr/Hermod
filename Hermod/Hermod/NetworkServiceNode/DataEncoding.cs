@@ -172,15 +172,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this data encoding.
         /// </summary>
-        public DataEncoding Clone
+        public DataEncoding Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

@@ -52,9 +52,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique identification of an organization.
     /// </summary>
-    public struct Organization_Id : IId,
-                                    IEquatable<Organization_Id>,
-                                    IComparable<Organization_Id>
+    public readonly struct Organization_Id : IId,
+                                             IEquatable<Organization_Id>,
+                                             IComparable<Organization_Id>
     {
 
         #region Data
@@ -180,15 +180,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this organization identification.
         /// </summary>
         public Organization_Id Clone
 
-            => new Organization_Id(
-                   new String(InternalId?.ToCharArray())
+            => new (
+                   InternalId.CloneString()
                );
 
         #endregion

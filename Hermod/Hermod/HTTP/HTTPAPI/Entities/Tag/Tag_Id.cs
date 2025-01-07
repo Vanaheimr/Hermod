@@ -29,9 +29,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique identification of a tag.
     /// </summary>
-    public struct Tag_Id : IId,
-                           IEquatable<Tag_Id>,
-                           IComparable<Tag_Id>
+    public readonly struct Tag_Id : IId,
+                                    IEquatable<Tag_Id>,
+                                    IComparable<Tag_Id>
     {
 
         #region Data
@@ -162,16 +162,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone a tag identification.
         /// </summary>
-
         public Tag_Id Clone
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

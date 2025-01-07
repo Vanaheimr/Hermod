@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this crypto signature type.
@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public CryptoSignatureType Clone
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

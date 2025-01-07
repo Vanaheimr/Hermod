@@ -162,13 +162,16 @@
 
 //        #endregion
 
-//        #region Clone
+//        #region Clone()
 
 //        /// <summary>
 //        /// Clone this notification identification.
 //        /// </summary>
-//        public NotificationMessageGroupId Clone
-//            => new NotificationMessageGroupId(new String(InternalId?.ToCharArray()));
+//        public NotificationMessageGroupId Clone()
+//
+//            => new (
+//                   InternalId.CloneString()
+//               );
 
 //        #endregion
 

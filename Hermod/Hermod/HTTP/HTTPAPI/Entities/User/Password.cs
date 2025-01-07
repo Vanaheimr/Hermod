@@ -365,15 +365,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone a password.
         /// </summary>
         public Password Clone
 
-            => new Password(Salt,
-                            InternalPassword.Copy());
+            => new (
+                   Salt,
+                   InternalPassword.Copy()
+               );
 
         #endregion
 

@@ -332,7 +332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public OpenDataLicense Clone()
 
             => new (
-                   Id.         Clone,
+                   Id.         Clone(),
                    Description.Clone(),
                    URLs.Select(url => url.Clone()).ToArray()
                );
