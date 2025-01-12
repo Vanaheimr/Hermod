@@ -568,8 +568,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="MaxNumberOfRetries">An optional maximum number of transmission retries for HTTP request.</param>
         /// <param name="InternalBufferSize">An optional size of the internal HTTP client buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
-        /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="DisableLogging">Whether to disable all logging.</param>
+        /// <param name="HTTPLogger">An optional delegate to log HTTP(S) requests and responses.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         protected AHTTPClient(URL                                                        RemoteURL,
                               HTTPHostname?                                              VirtualHostname              = null,
