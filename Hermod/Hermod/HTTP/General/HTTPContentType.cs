@@ -40,14 +40,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="CharSet">The char set of the HTTP content type.</param>
     /// <param name="FileExtensions">Well-known file extensions using this HTTP content type.</param>
     [DebuggerDisplay("{DebugView}")]
-    public sealed class HTTPContentType(String           MediaMainType,
-                                        String           MediaSubType,
-                                        String?          CharSet,
-                                        String?          Action,
-                                        String?          MIMEBoundary,
-                                        params String[]  FileExtensions) : IEquatable<HTTPContentType>,
-                                                                           IComparable<HTTPContentType>,
-                                                                           IComparable
+    public sealed class HTTPContentType(String                      MediaMainType,
+                                        String                      MediaSubType,
+                                        String?                     CharSet,
+                                        String?                     Action,
+                                        String?                     MIMEBoundary,
+                                        params IEnumerable<String>  FileExtensions) : IEquatable<HTTPContentType>,
+                                                                                      IComparable<HTTPContentType>,
+                                                                                      IComparable
     {
 
         #region Data
@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static readonly  Dictionary<String, HTTPContentType>    lookup                = [];
         private static readonly  Dictionary<String, HTTPContentType[]>  fileExtensionLookup   = [];
 
-        private        readonly  String[]                               fileExtensions        = FileExtensions ?? [];
+        private        readonly  IEnumerable<String>                    fileExtensions        = FileExtensions ?? [];
 
         #endregion
 
@@ -287,6 +287,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return [ DefaultValueFactory() ];
 
         }
+
+        #endregion
+
+
+        #region Clone()
+
+        /// <summary>
+        /// Clone this HTTP content type.
+        /// </summary>
+        public HTTPContentType Clone()
+
+                => new (
+                       MediaMainType.CloneString(),
+                       MediaSubType. CloneString(),
+                       CharSet?.     CloneString(),
+                       Action?.      CloneString(),
+                       MIMEBoundary?.CloneString(),
+                       fileExtensions.Select(fileExtension => fileExtension.CloneString())
+                   );
 
         #endregion
 
@@ -596,7 +615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    ToString(),
 
-                   fileExtensions.Length > 0
+                   fileExtensions.Any()
                        ? $", file extensions: {fileExtensions.Aggregate((a, b) => a + ", " + b)}"
                        : ""
 

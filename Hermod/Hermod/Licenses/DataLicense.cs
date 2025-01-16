@@ -43,11 +43,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Take">The optional number of Open Data licenses to return.</param>
         /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
         /// <param name="CustomDataLicenseSerializer">A delegate to serialize custom data license JSON elements.</param>
-        public static JArray ToJSON(this IEnumerable<OpenDataLicense>                  OpenDataLicense,
+        public static JArray ToJSON(this IEnumerable<DataLicense>                  OpenDataLicense,
                                     UInt64?                                            Skip                          = null,
                                     UInt64?                                            Take                          = null,
                                     Boolean                                            Embedded                      = false,
-                                    CustomJObjectSerializerDelegate<OpenDataLicense>?  CustomDataLicenseSerializer   = null)
+                                    CustomJObjectSerializerDelegate<DataLicense>?  CustomDataLicenseSerializer   = null)
 
             => OpenDataLicense is null || !OpenDataLicense.Any()
 
@@ -68,8 +68,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// An Open Data license.
     /// </summary>
-    public class OpenDataLicense : IEquatable<OpenDataLicense>,
-                                   IComparable<OpenDataLicense>,
+    public class DataLicense : IEquatable<DataLicense>,
+                                   IComparable<DataLicense>,
                                    IComparable
     {
 
@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Id">The unique identification of the Open Data license.</param>
         /// <param name="URLs">Optional URLs for more information on the Open Data license.</param>
-        public OpenDataLicense(OpenDataLicense_Id  Id,
+        public DataLicense(OpenDataLicense_Id  Id,
                                params URL[]        URLs)
 
             : this(Id,
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Id">The unique identification of the Open Data license.</param>
         /// <param name="Description">The description of the Open Data license.</param>
         /// <param name="URLs">Optional URLs for more information on the Open Data license.</param>
-        public OpenDataLicense(OpenDataLicense_Id  Id,
+        public DataLicense(OpenDataLicense_Id  Id,
                                I18NString          Description,
                                params URL[]        URLs)
         {
@@ -161,8 +161,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="JSON">The JSON to parse.</param>
         /// <param name="CustomOpenDataLicenseParser">An optional delegate to parse custom Open Data license JSON objects.</param>
-        public static OpenDataLicense Parse(JObject                                        JSON,
-                                            CustomJObjectParserDelegate<OpenDataLicense>?  CustomOpenDataLicenseParser   = null)
+        public static DataLicense Parse(JObject                                        JSON,
+                                            CustomJObjectParserDelegate<DataLicense>?  CustomOpenDataLicenseParser   = null)
         {
 
             if (TryParse(JSON,
@@ -191,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense">The parsed Open Data license.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
         public static Boolean TryParse(JObject               JSON,
-                                       out OpenDataLicense?  OpenDataLicense,
+                                       out DataLicense?  OpenDataLicense,
                                        out String?           ErrorResponse)
 
             => TryParse(JSON,
@@ -208,9 +208,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ErrorResponse">An optional error response.</param>
         /// <param name="CustomOpenDataLicenseParser">An optional delegate to parse custom Open Data license JSON objects.</param>
         public static Boolean TryParse(JObject                                        JSON,
-                                       out OpenDataLicense?                           OpenDataLicense,
+                                       out DataLicense?                           OpenDataLicense,
                                        out String?                                    ErrorResponse,
-                                       CustomJObjectParserDelegate<OpenDataLicense>?  CustomOpenDataLicenseParser   = null)
+                                       CustomJObjectParserDelegate<DataLicense>?  CustomOpenDataLicenseParser   = null)
         {
 
             try
@@ -267,7 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 #endregion
 
 
-                OpenDataLicense = new OpenDataLicense(Id,
+                OpenDataLicense = new DataLicense(Id,
                                                       Description ?? I18NString.Empty,
                                                       URLs.ToArray());
 
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Embedded">Whether this data structure is embedded into another data structure.</param>
         /// <param name="CustomDataLicenseSerializer">A delegate to serialize custom data license JSON elements.</param>
         public JObject ToJSON(Boolean                                            Embedded                      = false,
-                              CustomJObjectSerializerDelegate<OpenDataLicense>?  CustomDataLicenseSerializer   = null)
+                              CustomJObjectSerializerDelegate<DataLicense>?  CustomDataLicenseSerializer   = null)
         {
 
             var json = JSONObject.Create(
@@ -329,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Clone this object.
         /// </summary>
-        public OpenDataLicense Clone()
+        public DataLicense Clone()
 
             => new (
                    Id.         Clone(),
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// No license, ask the data source for more details.
         /// </summary>
-        public static readonly OpenDataLicense None                              = new (OpenDataLicense_Id.Parse("None"),
+        public static readonly DataLicense None                              = new (OpenDataLicense_Id.Parse("None"),
                                                                                         I18NString.Create("None"));
 
 
@@ -354,14 +354,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Open Data Commons: Public Domain Dedication and License (PDDL)
         /// </summary>
-        public static readonly OpenDataLicense PublicDomainDedicationAndLicense  = new (OpenDataLicense_Id.Parse("PDDL"),
+        public static readonly DataLicense PublicDomainDedicationAndLicense  = new (OpenDataLicense_Id.Parse("PDDL"),
                                                                                         I18NString.Create("Open Data Commons: Public Domain Dedication and License"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/pddl/"));
 
         /// <summary>
         /// Open Data Commons: Attribution License (ODC-By)
         /// </summary>
-        public static readonly OpenDataLicense AttributionLicense                = new (OpenDataLicense_Id.Parse("ODC-By"),
+        public static readonly DataLicense AttributionLicense                = new (OpenDataLicense_Id.Parse("ODC-By"),
                                                                                         I18NString.Create("Open Data Commons: Attribution License"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/by/"));
 
@@ -369,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Open Data Commons: Open Data Commons Open Database License (ODbL)
         /// Attribution and Share-Alike for Data/Databases
         /// </summary>
-        public static readonly OpenDataLicense OpenDatabaseLicense               = new (OpenDataLicense_Id.Parse("ODbL"),
+        public static readonly DataLicense OpenDatabaseLicense               = new (OpenDataLicense_Id.Parse("ODbL"),
                                                                                         I18NString.Create("Open Data Commons: Open Data Commons Open Database License"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/odbl/"),
                                                                                         URL.Parse("http://opendatacommons.org/licenses/odbl/summary/"),
@@ -383,21 +383,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Datenlizenz Deutschland – Namensnennung – Version 2.0
         /// </summary>
-        public static readonly OpenDataLicense DatenlizenzDeutschland_BY_2       = new (OpenDataLicense_Id.Parse("dl-de/by-2-0"),
+        public static readonly DataLicense DatenlizenzDeutschland_BY_2       = new (OpenDataLicense_Id.Parse("dl-de/by-2-0"),
                                                                                         I18NString.Create(Languages.de, "Datenlizenz Deutschland – Namensnennung – Version 2.0"),
                                                                                         URL.Parse("https://www.govdata.de/dl-de/by-2-0"));
 
         /// <summary>
         /// Datenlizenz Deutschland – Namensnennung – Version 2.0
         /// </summary>
-        public static readonly OpenDataLicense DatenlizenzDeutschland_Zero_2     = new (OpenDataLicense_Id.Parse("dl-de/zero-2-0"),
+        public static readonly DataLicense DatenlizenzDeutschland_Zero_2     = new (OpenDataLicense_Id.Parse("dl-de/zero-2-0"),
                                                                                         I18NString.Create(Languages.de, "Datenlizenz Deutschland – Namensnennung – Version 2.0"),
                                                                                         URL.Parse("https://www.govdata.de/dl-de/zero-2-0"));
 
         /// <summary>
         /// GeoLizenz V1.3 – Open
         /// </summary>
-        public static readonly OpenDataLicense GeoLizenz_OpenData_1_3_1          = new (OpenDataLicense_Id.Parse("GeoLizenz_V1.3"),
+        public static readonly DataLicense GeoLizenz_OpenData_1_3_1          = new (OpenDataLicense_Id.Parse("GeoLizenz_V1.3"),
                                                                                         I18NString.Create(Languages.de, "GeoLizenz V1.3 – Open"),
                                                                                         URL.Parse("https://www.geolizenz.org/index/page.php?p=GL/opendata"),
                                                                                         URL.Parse("https://www.geolizenz.org/modules/geolizenz/docs/1.3.1/GeoLizenz_V1.3_Open_050615_V1.pdf"),
@@ -411,7 +411,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Creative Commons Attribution 4.0 International (CC BY 4.0)
         /// </summary>
-        public static readonly OpenDataLicense CreativeCommons_BY_4              = new (OpenDataLicense_Id.Parse("CC BY 4.0"),
+        public static readonly DataLicense CreativeCommons_BY_4              = new (OpenDataLicense_Id.Parse("CC BY 4.0"),
                                                                                         I18NString.Create("Creative Commons Attribution 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by/4.0/legalcode"));
@@ -419,7 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
         /// </summary>
-        public static readonly OpenDataLicense CreativeCommons_BY_SA_4           = new (OpenDataLicense_Id.Parse("CC BY-SA 4.0"),
+        public static readonly DataLicense CreativeCommons_BY_SA_4           = new (OpenDataLicense_Id.Parse("CC BY-SA 4.0"),
                                                                                         I18NString.Create("Creative Commons Attribution-ShareAlike 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-sa/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-sa/4.0/legalcode"));
@@ -427,7 +427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Creative Commons Attribution-NoDerivs 4.0 International (CC BY-ND 4.0)
         /// </summary>
-        public static readonly OpenDataLicense CreativeCommons_BY_ND_4           = new (OpenDataLicense_Id.Parse("CC BY-ND 4.0"),
+        public static readonly DataLicense CreativeCommons_BY_ND_4           = new (OpenDataLicense_Id.Parse("CC BY-ND 4.0"),
                                                                                         I18NString.Create("Creative Commons Attribution-NoDerivs 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nd/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nd/4.0/legalcode"));
@@ -435,7 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
         /// </summary>
-        public static readonly OpenDataLicense CreativeCommons_BY_NC_4           = new (OpenDataLicense_Id.Parse("CC BY-NC 4.0"),
+        public static readonly DataLicense CreativeCommons_BY_NC_4           = new (OpenDataLicense_Id.Parse("CC BY-NC 4.0"),
                                                                                         I18NString.Create("Creative Commons Attribution-NonCommercial 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc/4.0/legalcode"));
@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
         /// </summary>
-        public static readonly OpenDataLicense CreativeCommons_BY_NC_SA_4        = new (OpenDataLicense_Id.Parse("CC BY-NC-SA 4.0"),
+        public static readonly DataLicense CreativeCommons_BY_NC_SA_4        = new (OpenDataLicense_Id.Parse("CC BY-NC-SA 4.0"),
                                                                                         I18NString.Create("Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-sa/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-sa/4.0/legalcode"));
@@ -451,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International (CC BY-NC-ND 4.0)
         /// </summary>
-        public static readonly OpenDataLicense CreativeCommons_BY_NC_ND_4        = new (OpenDataLicense_Id.Parse("CC BY-NC-ND 4.0"),
+        public static readonly DataLicense CreativeCommons_BY_NC_ND_4        = new (OpenDataLicense_Id.Parse("CC BY-NC-ND 4.0"),
                                                                                         I18NString.Create("Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-nd/4.0/"),
                                                                                         URL.Parse("http://creativecommons.org/licenses/by-nc-nd/4.0/legalcode"));
@@ -469,8 +469,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense1">An Open Data license.</param>
         /// <param name="OpenDataLicense2">Another Open Data license.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (OpenDataLicense OpenDataLicense1,
-                                           OpenDataLicense OpenDataLicense2)
+        public static Boolean operator == (DataLicense OpenDataLicense1,
+                                           DataLicense OpenDataLicense2)
 
             => OpenDataLicense1.Equals(OpenDataLicense2);
 
@@ -484,8 +484,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense1">An Open Data license.</param>
         /// <param name="OpenDataLicense2">Another Open Data license.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (OpenDataLicense OpenDataLicense1,
-                                           OpenDataLicense OpenDataLicense2)
+        public static Boolean operator != (DataLicense OpenDataLicense1,
+                                           DataLicense OpenDataLicense2)
 
             => !(OpenDataLicense1 == OpenDataLicense2);
 
@@ -499,8 +499,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense1">An Open Data license.</param>
         /// <param name="OpenDataLicense2">Another Open Data license.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (OpenDataLicense OpenDataLicense1,
-                                          OpenDataLicense OpenDataLicense2)
+        public static Boolean operator < (DataLicense OpenDataLicense1,
+                                          DataLicense OpenDataLicense2)
 
             => OpenDataLicense1.CompareTo(OpenDataLicense2) < 0;
 
@@ -514,8 +514,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense1">An Open Data license.</param>
         /// <param name="OpenDataLicense2">Another Open Data license.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (OpenDataLicense OpenDataLicense1,
-                                           OpenDataLicense OpenDataLicense2)
+        public static Boolean operator <= (DataLicense OpenDataLicense1,
+                                           DataLicense OpenDataLicense2)
 
             => OpenDataLicense1.CompareTo(OpenDataLicense2) <= 0;
 
@@ -529,8 +529,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense1">An Open Data license.</param>
         /// <param name="OpenDataLicense2">Another Open Data license.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (OpenDataLicense OpenDataLicense1,
-                                          OpenDataLicense OpenDataLicense2)
+        public static Boolean operator > (DataLicense OpenDataLicense1,
+                                          DataLicense OpenDataLicense2)
 
             => OpenDataLicense1.CompareTo(OpenDataLicense2) > 0;
 
@@ -544,8 +544,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="OpenDataLicense1">An Open Data license.</param>
         /// <param name="OpenDataLicense2">Another Open Data license.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (OpenDataLicense OpenDataLicense1,
-                                           OpenDataLicense OpenDataLicense2)
+        public static Boolean operator >= (DataLicense OpenDataLicense1,
+                                           DataLicense OpenDataLicense2)
 
             => OpenDataLicense1.CompareTo(OpenDataLicense2) >= 0;
 
@@ -563,7 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An Open Data license to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
-            => Object is OpenDataLicense openDataLicense
+            => Object is DataLicense openDataLicense
                    ? CompareTo(openDataLicense)
                    : throw new ArgumentException("The given object is not an Open Data license!",
                                                  nameof(Object));
@@ -576,7 +576,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Compares two Open Data licenses.
         /// </summary>
         /// <param name="OpenDataLicense">An Open Data license to compare with.</param>
-        public Int32 CompareTo(OpenDataLicense? OpenDataLicense)
+        public Int32 CompareTo(DataLicense? OpenDataLicense)
 
             => OpenDataLicense is not null
                    ? Id.CompareTo(OpenDataLicense.Id)
@@ -597,7 +597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Object">An Open Data license to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is OpenDataLicense openDataLicense &&
+            => Object is DataLicense openDataLicense &&
                    Equals(openDataLicense);
 
         #endregion
@@ -608,7 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Compares two Open Data licenses for equality.
         /// </summary>
         /// <param name="OpenDataLicense">An Open Data license to compare with.</param>
-        public Boolean Equals(OpenDataLicense? OpenDataLicense)
+        public Boolean Equals(DataLicense? OpenDataLicense)
 
             => OpenDataLicense is not null &&
 

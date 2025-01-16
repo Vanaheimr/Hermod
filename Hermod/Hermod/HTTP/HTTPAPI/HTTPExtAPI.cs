@@ -2309,12 +2309,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Reflect data licenses
 
-            foreach (var dataLicense in typeof(OpenDataLicense).GetFields(System.Reflection.BindingFlags.Public |
+            foreach (var dataLicense in typeof(DataLicense).GetFields(System.Reflection.BindingFlags.Public |
                                                                       System.Reflection.BindingFlags.Static).
-                                                            Where (fieldinfo => fieldinfo.ReflectedType == typeof(OpenDataLicense) &&
-                                                                                fieldinfo.FieldType     == typeof(OpenDataLicense)).
-                                                            Select(fieldinfo => fieldinfo.GetValue(OpenDataLicense.None)).
-                                                            Cast<OpenDataLicense>())
+                                                            Where (fieldinfo => fieldinfo.ReflectedType == typeof(DataLicense) &&
+                                                                                fieldinfo.FieldType     == typeof(DataLicense)).
+                                                            Select(fieldinfo => fieldinfo.GetValue(DataLicense.None)).
+                                                            Cast<DataLicense>())
             {
 
                 dataLicenses.TryAdd(dataLicense.Id,
@@ -2540,12 +2540,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Reflect data licenses
 
-            foreach (var dataLicense in typeof(OpenDataLicense).GetFields(System.Reflection.BindingFlags.Public |
+            foreach (var dataLicense in typeof(DataLicense).GetFields(System.Reflection.BindingFlags.Public |
                                                                       System.Reflection.BindingFlags.Static).
-                                                            Where (fieldinfo => fieldinfo.ReflectedType == typeof(OpenDataLicense) &&
-                                                                                fieldinfo.FieldType     == typeof(OpenDataLicense)).
-                                                            Select(fieldinfo => fieldinfo.GetValue(OpenDataLicense.None)).
-                                                            Cast<OpenDataLicense>())
+                                                            Where (fieldinfo => fieldinfo.ReflectedType == typeof(DataLicense) &&
+                                                                                fieldinfo.FieldType     == typeof(DataLicense)).
+                                                            Select(fieldinfo => fieldinfo.GetValue(DataLicense.None)).
+                                                            Cast<DataLicense>())
             {
 
                 dataLicenses.TryAdd(dataLicense.Id,
@@ -29651,12 +29651,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all data licenses.
         /// </summary>
-        protected internal readonly ConcurrentDictionary<OpenDataLicense_Id, OpenDataLicense> dataLicenses = new ();
+        protected internal readonly ConcurrentDictionary<OpenDataLicense_Id, DataLicense> dataLicenses = new ();
 
         /// <summary>
         /// Return an enumeration of all data licenses.
         /// </summary>
-        public IEnumerable<OpenDataLicense> DataLicenses
+        public IEnumerable<DataLicense> DataLicenses
             => dataLicenses.Values;
 
         #endregion
@@ -29670,7 +29670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The unique identification of the data license.</param>
         /// <param name="Description">The description of the data license.</param>
         /// <param name="URLs">Optional URLs for more information on the data license.</param>
-        public OpenDataLicense CreateDataLicense(OpenDataLicense_Id  Id,
+        public DataLicense CreateDataLicense(OpenDataLicense_Id  Id,
                                                  I18NString          Description,
                                                  params URL[]        URLs)
         {
@@ -29682,7 +29682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("The given data license already exists!", nameof(Id));
 
 
-                var DataLicense = new OpenDataLicense(Id,
+                var DataLicense = new DataLicense(Id,
                                                       Description,
                                                       URLs);
 
@@ -29707,7 +29707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The unique identification of the data license.</param>
         /// <param name="Description">The description of the data license.</param>
         /// <param name="URLs">Optional URLs for more information on the data license.</param>
-        public OpenDataLicense CreateDataLicenseIfNotExists(OpenDataLicense_Id  Id,
+        public DataLicense CreateDataLicenseIfNotExists(OpenDataLicense_Id  Id,
                                                             I18NString          Description,
                                                             params URL[]        URLs)
         {
@@ -29735,7 +29735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get the data license having the given unique identification.
         /// </summary>
         /// <param name="DataLicenseId">The unique identification of the data license.</param>
-        public OpenDataLicense? GetDataLicense(OpenDataLicense_Id  DataLicenseId)
+        public DataLicense? GetDataLicense(OpenDataLicense_Id  DataLicenseId)
         {
             lock (dataLicenses)
             {
@@ -29758,7 +29758,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataLicenseId">The unique identification of the data license.</param>
         /// <param name="DataLicense">The data license.</param>
         public Boolean TryGetDataLicense(OpenDataLicense_Id    DataLicenseId,
-                                         out OpenDataLicense?  DataLicense)
+                                         out DataLicense?  DataLicense)
         {
             lock (dataLicenses)
             {
