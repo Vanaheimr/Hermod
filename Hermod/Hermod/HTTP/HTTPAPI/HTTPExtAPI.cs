@@ -29651,7 +29651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An enumeration of all data licenses.
         /// </summary>
-        protected internal readonly ConcurrentDictionary<OpenDataLicense_Id, DataLicense> dataLicenses = new ();
+        protected internal readonly ConcurrentDictionary<DataLicense_Id, DataLicense> dataLicenses = new ();
 
         /// <summary>
         /// Return an enumeration of all data licenses.
@@ -29670,7 +29670,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The unique identification of the data license.</param>
         /// <param name="Description">The description of the data license.</param>
         /// <param name="URLs">Optional URLs for more information on the data license.</param>
-        public DataLicense CreateDataLicense(OpenDataLicense_Id  Id,
+        public DataLicense CreateDataLicense(DataLicense_Id  Id,
                                                  I18NString          Description,
                                                  params URL[]        URLs)
         {
@@ -29707,7 +29707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The unique identification of the data license.</param>
         /// <param name="Description">The description of the data license.</param>
         /// <param name="URLs">Optional URLs for more information on the data license.</param>
-        public DataLicense CreateDataLicenseIfNotExists(OpenDataLicense_Id  Id,
+        public DataLicense CreateDataLicenseIfNotExists(DataLicense_Id  Id,
                                                             I18NString          Description,
                                                             params URL[]        URLs)
         {
@@ -29735,7 +29735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Get the data license having the given unique identification.
         /// </summary>
         /// <param name="DataLicenseId">The unique identification of the data license.</param>
-        public DataLicense? GetDataLicense(OpenDataLicense_Id  DataLicenseId)
+        public DataLicense? GetDataLicense(DataLicense_Id  DataLicenseId)
         {
             lock (dataLicenses)
             {
@@ -29757,7 +29757,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="DataLicenseId">The unique identification of the data license.</param>
         /// <param name="DataLicense">The data license.</param>
-        public Boolean TryGetDataLicense(OpenDataLicense_Id    DataLicenseId,
+        public Boolean TryGetDataLicense(DataLicense_Id    DataLicenseId,
                                          out DataLicense?  DataLicense)
         {
             lock (dataLicenses)
