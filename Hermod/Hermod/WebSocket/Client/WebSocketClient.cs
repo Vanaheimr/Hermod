@@ -840,6 +840,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         {
 
+            RequestTimeout ??= this.RequestTimeout;
+
             HTTPResponse? waitingForHTTPResponse = null;
 
             if (networkingTask is not null)
@@ -892,7 +894,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             //                             algorithm = "ECDSA",
                             //                             nonce     = "dcd98b7102dd2f0e8b11d0f600bfb0c093",
                             //                             opaque    = "5ccc069c403ebaf9f0171e9517f40e41"
-                            if (httpResponse.WWWAuthenticate.Method == "Challenge" &&
+                            if (httpResponse.WWWAuthenticate?.Method == "Challenge" &&
                                 AuthKey is not null)
                             {
 
@@ -905,23 +907,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 var plainText   = $"{nonce}{opaque}";
 
                                 var hashValue   = hash switch {
-                                                        "sha512" => SHA512.HashData(plainText.ToUTF8Bytes()),
-                                                        "sha384" => SHA384.HashData(plainText.ToUTF8Bytes()),
-                                                        "sha256" => SHA256.HashData(plainText.ToUTF8Bytes()),
-                                                        _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
-                                                    };
+                                                      "sha512" => SHA512.HashData(plainText.ToUTF8Bytes()),
+                                                      "sha384" => SHA384.HashData(plainText.ToUTF8Bytes()),
+                                                      "sha256" => SHA256.HashData(plainText.ToUTF8Bytes()),
+                                                      _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
+                                                  };
 
                                 var blockSize   = hash switch {
-                                                        "sha512" => 64,
-                                                        "sha384" => 48,
-                                                        "sha256" => 48,
-                                                        _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
-                                                    };
+                                                      "sha512" => 64,
+                                                      "sha384" => 48,
+                                                      "sha256" => 48,
+                                                      _        => throw new Exception($"Unknown hash method '{hash}' in WWW-Authenticate challenge!")
+                                                  };
 
                                 var signer      = algorithm switch {
-                                                        "sha256" => SignerUtilities.GetSigner("NONEwithECDSA"),
-                                                        _        => throw new Exception($"Unknown algorithm '{algorithm}' in WWW-Authenticate challenge!")
-                                                    };
+                                                      "sha256" => SignerUtilities.GetSigner("NONEwithECDSA"),
+                                                      _        => throw new Exception($"Unknown algorithm '{algorithm}' in WWW-Authenticate challenge!")
+                                                  };
 
                                 signer.Init(true, AuthKey);
                                 signer.BlockUpdate(hashValue, 0, blockSize);
@@ -1350,12 +1352,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var ts = Timestamp.Now;
 
-            while (waitingForHTTPResponse is null && ts + TimeSpan.FromSeconds(5) > Timestamp.Now) {
+            while (waitingForHTTPResponse is null && ts + RequestTimeout > Timestamp.Now) {
                 Thread.Sleep(10);
             }
 
             waitingForHTTPResponse ??= new HTTPResponse.Builder() {
-                                           HTTPStatusCode = HTTPStatusCode.BadRequest
+                                           HTTPStatusCode = HTTPStatusCode.BadRequest,
+                                           Content        = $"Timeout of {RequestTimeout.Value.TotalSeconds} seconds reached!!!".ToUTF8Bytes()
                                        };
 
             return Task.FromResult(

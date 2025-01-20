@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                          TimeSpan?                                    SlowNetworkSimulationDelay   = null)
         {
 
-            this.ConnectedSince                     = Timestamp.Now;
+            this.ConnectedSince              = Timestamp.Now;
             this.CancellationTokenSource     = new CancellationTokenSource();
             this.WebSocketClient             = WebSocketClient;
             this.tcpSocket                   = TCPSocket;
@@ -258,8 +258,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
                 foreach (var customData in CustomData)
                 {
-                    this.customData.TryAdd(customData.Key,
-                                           customData.Value);
+                    this.customData.TryAdd(
+                        customData.Key,
+                        customData.Value
+                    );
                 }
             }
 
