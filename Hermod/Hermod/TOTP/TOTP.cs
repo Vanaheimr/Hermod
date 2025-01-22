@@ -20,6 +20,9 @@
 using System.Text;
 using System.Security.Cryptography;
 
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
@@ -327,44 +330,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="MaxCost">The maximum cost to be charged.</param>
         /// <param name="ChargingProfile">The charging profile.</param>
         /// <param name="EndTime">The end time of the charging process.</param>
-        /// <param name="ChargingSpeed">The charging speed.</param>
+        /// <param name="MaxPower">The charging speed.</param>
         /// <param name="UILanguage">The user interface language.</param>
         /// <param name="Currency">The currency.</param>
         /// <param name="Signature">The digital signature for the URL.</param>
-        private static String ProcessURLTemplate(String   URLTemplate,
-                                                 String   TOTP,
-                                                 String?  Version           = null,
-                                                 String?  EVSEId            = null,
-                                                 String?  ConnectorId       = null,
-                                                 String?  EVRoamingEVSEId   = null,
-                                                 String?  MaxEnergy         = null,
-                                                 String?  MaxTime           = null,
-                                                 String?  MaxSoC            = null,
-                                                 String?  TariffId          = null,
-                                                 String?  MaxCost           = null,
-                                                 String?  ChargingProfile   = null,
-                                                 String?  EndTime           = null,
-                                                 String?  ChargingSpeed     = null,
-                                                 String?  UILanguage        = null,
-                                                 String?  Currency          = null,
-                                                 String?  Signature         = null)
+        private static String ProcessURLTemplate(URL          URLTemplate,
+                                                 String       TOTP,
+                                                 String?      Version           = null,
+                                                 String?      EVSEId            = null,
+                                                 String?      ConnectorId       = null,
+                                                 String?      EVRoamingEVSEId   = null,
+                                                 Watt?        MaxPower          = null,
+                                                 WattHour?    MaxEnergy         = null,
+                                                 TimeSpan?    MaxTime           = null,
+                                                 Percentage?  MaxSoC            = null,
+                                                 String?      MaxCost           = null,
+                                                 String?      TariffId          = null,
+                                                 String?      ChargingProfile   = null,
+                                                 String?      EndTime           = null,
+                                                 String?      UILanguage        = null,
+                                                 String?      Currency          = null,
+                                                 String?      Signature         = null)
 
-            => URLTemplate.Replace("{TOTP}",             TOTP).
-                           Replace("{version}",          Version         ?? "").
-                           Replace("{evseId}",           EVSEId          ?? "").
-                           Replace("{ConnectorId}",      ConnectorId     ?? "").
-                           Replace("{EVRoamingEVSEId}",  EVRoamingEVSEId ?? "").
-                           Replace("{maxEnergy}",        MaxEnergy       ?? "").
-                           Replace("{maxTime}",          MaxTime         ?? "").
-                           Replace("{maxSoC}",           MaxSoC          ?? "").
-                           Replace("{tariffId}",         TariffId        ?? "").
-                           Replace("{maxCost}",          MaxCost         ?? "").
-                           Replace("{chargingProfile}",  ChargingProfile ?? "").
-                           Replace("{endTime}",          EndTime         ?? "").
-                           Replace("{chargingSpeed}",    ChargingSpeed   ?? "").
-                           Replace("{uiLanguage}",       UILanguage      ?? "").
-                           Replace("{currency}",         Currency        ?? "").
-                           Replace("{signature}",        Signature       ?? "");
+            => URLTemplate.ToString().
+                           Replace("{TOTP}",             TOTP).
+                           Replace("{version}",          Version                            ?? "").
+                           Replace("{evseId}",           EVSEId                             ?? "").
+                           Replace("{connectorId}",      ConnectorId                        ?? "").
+                           Replace("{evRoamingEVSEId}",  EVRoamingEVSEId                    ?? "").
+                           Replace("{maxPower}",         MaxPower?. kW.          ToString() ?? "").
+                           Replace("{maxEnergy}",        MaxEnergy?.kWh.         ToString() ?? "").
+                           Replace("{maxTime}",          MaxTime?.  TotalMinutes.ToString() ?? "").
+                           Replace("{maxSoC}",           MaxSoC?.   Value.       ToString() ?? "").
+                           Replace("{maxCost}",          MaxCost                            ?? "").
+                           Replace("{tariffId}",         TariffId                           ?? "").
+                           Replace("{chargingProfile}",  ChargingProfile                    ?? "").
+                           Replace("{endTime}",          EndTime                            ?? "").
+                           Replace("{uiLanguage}",       UILanguage                         ?? "").
+                           Replace("{currency}",         Currency                           ?? "").
+                           Replace("{signature}",        Signature                          ?? "");
 
         #endregion
 
@@ -382,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURL(String           URLTemplate,
+            GenerateURL(URL              URLTemplate,
                         String           SharedSecret,
                         TimeSpan?        ValidityTime   = null,
                         UInt32?          TOTPLength     = 12,
@@ -427,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURLs(String           URLTemplate,
+            GenerateURLs(URL              URLTemplate,
                          String           SharedSecret,
                          TimeSpan?        ValidityTime   = null,
                          UInt32?          TOTPLength     = 12,
@@ -475,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        DateTimeOffset  EndTime)
 
             GenerateURL(DateTime   Timestamp,
-                        String     URLTemplate,
+                        URL        URLTemplate,
                         String     SharedSecret,
                         TimeSpan?  ValidityTime   = null,
                         UInt32?    TOTPLength     = 12,
@@ -520,7 +524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        DateTimeOffset  EndTime)
 
             GenerateURLs(DateTime   Timestamp,
-                         String     URLTemplate,
+                         URL        URLTemplate,
                          String     SharedSecret,
                          TimeSpan?  ValidityTime   = null,
                          UInt32?    TOTPLength     = 12,
@@ -551,6 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
+
 
     }
 
