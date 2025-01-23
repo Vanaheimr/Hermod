@@ -296,10 +296,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<AttachedFile>?  AttachedFiles   = null,
 
                            String?                     DataSource      = null,
+                           DateTime?                   Created         = null,
                            DateTime?                   LastChange      = null)
 
                 : base(Id,
                        JSONLDContext,
+                       Created,
                        LastChange,
                        null,
                        CustomData,

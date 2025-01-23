@@ -137,7 +137,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Add(HTTPContentType, Quality = 1)
 
-        public void Add(HTTPContentType HTTPContentType, Double Quality = 1)
+        public void Add(HTTPContentType  HTTPContentType,
+                        Double           Quality   = 1)
         {
 
             if (HTTPContentType is null)
@@ -145,7 +146,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             lock (acceptTypesLock)
             {
-                acceptedTypes.Add(new AcceptType(HTTPContentType, Quality));
+                acceptedTypes.Add(
+                    new AcceptType(
+                        HTTPContentType,
+                        Quality
+                    )
+                );
             }
 
         }

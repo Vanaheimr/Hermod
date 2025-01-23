@@ -1804,14 +1804,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<Organization2OrganizationEdge>?  Organization2OrganizationInEdges    = null,
                            IEnumerable<Organization2OrganizationEdge>?  Organization2OrganizationOutEdges   = null,
 
-                           JObject?                                     CustomData                          = default,
-                           IEnumerable<AttachedFile>?                   AttachedFiles                       = default,
-                           JSONLDContext?                               JSONLDContext                       = default,
-                           String?                                      DataSource                          = default,
-                           DateTime?                                    LastChange                          = default)
+                           JObject?                                     CustomData                          = null,
+                           IEnumerable<AttachedFile>?                   AttachedFiles                       = null,
+                           JSONLDContext?                               JSONLDContext                       = null,
+                           String?                                      DataSource                          = null,
+                           DateTime?                                    Created                             = null,
+                           DateTime?                                    LastChange                          = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
+                       Created,
                        LastChange,
                        null,
                        CustomData,

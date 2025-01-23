@@ -94,12 +94,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The http content types accepted by the client.
             /// </summary>
-            public AcceptTypes?  Accept
+            public AcceptTypes Accept
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPRequestHeaderField.Accept);
+                    return GetHeaderField(HTTPRequestHeaderField.Accept) ?? [];
                 }
 
                 set

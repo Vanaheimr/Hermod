@@ -726,12 +726,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                            IEnumerable<Organization_Id>?  Owners            = null,
                            IEnumerable<Signature23>?      Signatures        = null,
 
-                           JObject?                       CustomData        = default,
-                           String?                        DataSource        = default,
-                           DateTime?                      LastChange        = default)
+                           JObject?                       CustomData        = null,
+                           String?                        DataSource        = null,
+                           DateTime?                      Created           = null,
+                           DateTime?                      LastChange        = null)
 
                 : base(Id ?? NotificationMessage_Id.Random(),
                        DefaultJSONLDContext,
+                       Created,
                        LastChange,
                        null,
                        CustomData,
@@ -742,7 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 this.Timestamp     = Timestamp;
                 this.Type          = Type;
-                this.Data          = Data;
+                this.Data          = Data ?? [];
                 this.Owners        = Owners     != null ? new HashSet<Organization_Id>(Owners)     : new HashSet<Organization_Id>();
                 this.Signatures    = Signatures != null ? new HashSet<Signature23>    (Signatures) : new HashSet<Signature23>();
 
