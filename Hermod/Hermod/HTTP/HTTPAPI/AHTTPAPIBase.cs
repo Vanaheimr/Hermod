@@ -22,7 +22,6 @@ using System.Reflection;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using System;
 
 #endregion
 
@@ -189,8 +188,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var resourceStream = GetResourceStream(ResourceName,
-                                                       ResourceAssemblies);
+                var resourceStream = GetResourceStream(
+                                         ResourceName,
+                                         ResourceAssemblies
+                                     );
 
                 if (resourceStream is not null)
                 {

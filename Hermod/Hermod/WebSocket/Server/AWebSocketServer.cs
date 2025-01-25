@@ -30,7 +30,6 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using Newtonsoft.Json.Linq;
 
 #endregion[
 
@@ -1051,16 +1050,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     try
                                                     {
 
-                                                        await Task.WhenAll(onNewTCPConnection.GetInvocationList().
-                                                                               OfType<OnNewTCPConnectionDelegate>().
-                                                                               Select(loggingDelegate => loggingDelegate.Invoke(
-                                                                                                              Timestamp.Now,
-                                                                                                              this,
-                                                                                                              webSocketConnection,
-                                                                                                              EventTracking_Id.New,
-                                                                                                              token2
-                                                                                                          )).
-                                                                               ToArray());
+                                                        await Task.WhenAll(
+                                                                  onNewTCPConnection.GetInvocationList().
+                                                                      OfType<OnNewTCPConnectionDelegate>().
+                                                                      Select(loggingDelegate => loggingDelegate.Invoke(
+                                                                                                     Timestamp.Now,
+                                                                                                     this,
+                                                                                                     webSocketConnection,
+                                                                                                     EventTracking_Id.New,
+                                                                                                     token2
+                                                                                                 ))
+                                                              );
 
                                                     }
                                                     catch (Exception e)
