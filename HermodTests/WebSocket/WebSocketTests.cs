@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
                 newWebSocketConnection  = true;
                 return Task.CompletedTask;
             };
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
                 newWebSocketConnection  = true;
                 return Task.CompletedTask;
             };

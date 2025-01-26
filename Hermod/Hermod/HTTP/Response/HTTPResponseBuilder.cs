@@ -462,6 +462,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region SecWebSocketProtocol
+
+            public String? SecWebSocketProtocol
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Response);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Response, value);
+                }
+
+            }
+
+            #endregion
+
             #endregion
 
             #region Constructor(s)

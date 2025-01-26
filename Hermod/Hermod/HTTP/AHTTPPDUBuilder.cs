@@ -521,25 +521,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region SecWebSocketProtocol
-
-        public IEnumerable<String> SecWebSocketProtocol
-        {
-
-            get
-            {
-                return GetHeaderFields(HTTPHeaderField.SecWebSocketProtocol, []);
-            }
-
-            set
-            {
-                SetHeaderField(HTTPHeaderField.SecWebSocketProtocol, value);
-            }
-
-        }
-
-        #endregion
-
         #region SecWebSocketVersion
 
         public String? SecWebSocketVersion

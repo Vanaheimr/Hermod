@@ -1060,6 +1060,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Sec-WebSocket-Protocol
+
+        /// <summary>
+        /// Sec-WebSocket-Protocol
+        /// </summary>
+        public IEnumerable<String> SecWebSocketProtocol
+
+            => GetHeaderFields(HTTPHeaderField.SecWebSocketProtocol_Request) ?? [];
+
+        #endregion
+
         #endregion
 
         #region Non-standard request header fields

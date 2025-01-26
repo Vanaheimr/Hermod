@@ -299,8 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RequestPathSemantic   = RequestPathSemantic;
             this.MultipleValuesAsList  = MultipleValuesAsList;
 
-            definedHTTPHeaderFields.TryAdd(this.Name,
-                                           this);
+            definedHTTPHeaderFields.TryAdd(this.Name, this);
 
         }
 
@@ -774,13 +773,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Sec-WebSocket-Protocol
 
         /// <summary>
-        /// Sec-Web-SocketProtocol.
+        /// Sec-Web-SocketProtocol within a HTTP request.
         /// </summary>
-        public static readonly HTTPHeaderField<IEnumerable<String>> SecWebSocketProtocol = new ("Sec-WebSocket-Protocol",
-                                                                                                HeaderFieldType.General,
-                                                                                                RequestPathSemantic.EndToEnd,
-                                                                                                MultipleValuesAsList:  true,
-                                                                                                StringParser:          StringParsers.NullableListOfStrings);
+        public static readonly HTTPHeaderField<IEnumerable<String>> SecWebSocketProtocol_Request = new ("Sec-WebSocket-Protocol",
+                                                                                                        HeaderFieldType.General,
+                                                                                                        RequestPathSemantic.EndToEnd,
+                                                                                                        MultipleValuesAsList:  true,
+                                                                                                        StringParser:          StringParsers.NullableListOfStrings);
+
+        /// <summary>
+        /// Sec-Web-SocketProtocol within a HTTP response.
+        /// </summary>
+        public static readonly HTTPHeaderField<String> SecWebSocketProtocol_Response = new ("Sec-WebSocket-Protocol",
+                                                                                            HeaderFieldType.General,
+                                                                                            RequestPathSemantic.EndToEnd);
 
         #endregion
 

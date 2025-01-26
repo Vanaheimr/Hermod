@@ -83,6 +83,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
+    public delegate String?                              SubprotocolSelectorDelegate             (IWebSocketServer                   Server,
+                                                                                                  WebSocketServerConnection          Connection,
+                                                                                                  IEnumerable<String>                SubProtocols);
+
+
     /// <summary>
     /// A delegate for logging the initial WebSocket HTTP response.
     /// </summary>
@@ -104,12 +109,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Server">The HTTP WebSocket server.</param>
     /// <param name="NewConnection">The new HTTP WebSocket connection.</param>
     /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-    /// <param name="SharedSubprotocols">An enumeration of shared HTTP WebSockets subprotocols.</param>
+    /// <param name="SharedSubprotocols">An enumeration of shared HTTP WebSocket subprotocols.</param>
+    /// <param name="SelectedSubprotocol">The selected HTTP WebSocket subprotocol.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
     public delegate Task                                 OnNewWebSocketConnectionDelegate               (DateTime                           Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          NewConnection,
                                                                                                          IEnumerable<String>                SharedSubprotocols,
+                                                                                                         String?                            SelectedSubprotocol,
                                                                                                          EventTracking_Id                   EventTrackingId,
                                                                                                          CancellationToken                  CancellationToken);
 

@@ -67,6 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                Boolean?                                                        RequireAuthentication        = true,
                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                               SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                Boolean                                                         DisableWebSocketPings        = false,
                                TimeSpan?                                                       WebSocketPingEvery           = null,
                                TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -95,6 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -137,6 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                Boolean?                                                        RequireAuthentication        = true,
                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                               SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                Boolean                                                         DisableWebSocketPings        = false,
                                TimeSpan?                                                       WebSocketPingEvery           = null,
                                TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -164,6 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,

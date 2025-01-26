@@ -74,6 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                    Boolean?                                                        RequireAuthentication        = true,
                                    Func<X509Certificate2>?                                         ServerCertificateSelector    = null,
+                                   SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                    RemoteTLSClientCertificateValidationHandler<IWebSocketServer>?  ClientCertificateValidator   = null,
                                    LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
                                    SslProtocols?                                                   AllowedTLSProtocols          = null,
@@ -102,6 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -130,6 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                webSocketServerConnection,
                                                eventTrackingId,
                                                sharedSubprotocols,
+                                               selectedSubprotocol,
                                                cancellationToken) => {
 
                 connections.TryAdd(webSocketServerConnection.RemoteSocket.ToString(),

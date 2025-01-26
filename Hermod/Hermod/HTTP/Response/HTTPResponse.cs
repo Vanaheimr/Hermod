@@ -455,6 +455,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Sec-WebSocket-Protocol
+
+        /// <summary>
+        /// Sec-WebSocket-Protocol
+        /// </summary>
+        public String? SecWebSocketProtocol
+
+            => GetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Response);
+
+        #endregion
+
 
         // CORS
 

@@ -227,11 +227,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// An event sent whenever a HTTP request was received.
         /// </summary>
         public event HTTPRequestLogDelegate?                            OnHTTPRequest;
+
         /// <summary>
         /// An event sent whenever the HTTP headers of a new web socket connection
         /// need to be validated or filtered by an upper layer application logic.
         /// </summary>
         public event OnValidateWebSocketConnectionDelegate?             OnValidateWebSocketConnection;
+
+        /// <summary>
+        /// An event sent whenever the client sent a list of supported subprotocols
+        /// and the server should select one of them.
+        /// </summary>
+        public       SubprotocolSelectorDelegate?                       SubprotocolSelector;
 
         /// <summary>
         /// An event sent whenever the HTTP connection switched successfully to web socket.
@@ -357,6 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 Boolean?                                                        RequireAuthentication        = true,
                                 IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                                SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                 Boolean                                                         DisableWebSocketPings        = false,
                                 TimeSpan?                                                       WebSocketPingEvery           = null,
                                 TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -387,6 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                    RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -448,6 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                 Boolean?                                                        RequireAuthentication        = true,
                                 IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                                SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                 Boolean                                                         DisableWebSocketPings        = false,
                                 TimeSpan?                                                       WebSocketPingEvery           = null,
                                 TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -481,6 +491,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.secWebSocketProtocols       = SecWebSocketProtocols is not null
                                                    ? new HashSet<String>(SecWebSocketProtocols)
                                                    : [];
+            this.SubprotocolSelector         = SubprotocolSelector;
 
             this.DisableWebSocketPings       = DisableWebSocketPings;
             this.WebSocketPingEvery          = WebSocketPingEvery ?? DefaultWebSocketPingEvery;
@@ -1194,7 +1205,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         #region Parse HTTP request...
 
-                                                        var sharedSubprotocols = Array.Empty<String>();
+                                                        var sharedSubprotocols   = Enumerable.Empty<String>();
+                                                        var selectedSubprotocol  = String.Empty;
 
                                                         // GET / HTTP/1.1
                                                         // Host:                    127.0.0.1:51693
@@ -1269,30 +1281,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                 // 3. Compute SHA-1 and Base64 hash of the new value
                                                                 // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
     #pragma warning disable SCS0006 // Weak hashing function.
-                                                                var swk             = webSocketConnection.HTTPRequest?.SecWebSocketKey;
-                                                                var swka            = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                                                                var swkaSHA1        = System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka));
-                                                                sharedSubprotocols  = SecWebSocketProtocols.
-                                                                                           Intersect(httpRequest.SecWebSocketProtocol).
-                                                                                           OrderByDescending(protocol => protocol).
-                                                                                           ToArray();
+                                                                var swk              = webSocketConnection.HTTPRequest?.SecWebSocketKey;
+                                                                var swka             = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                                                                var swkaSHA1BASE64   = Convert.ToBase64String(System.Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes(swka)));
     #pragma warning restore SCS0006 // Weak hashing function.
+
+                                                                sharedSubprotocols   = httpRequest.SecWebSocketProtocol.Where(protocol => SecWebSocketProtocols.Contains(protocol));
+                                                                selectedSubprotocol  = SubprotocolSelector?.Invoke(this, webSocketConnection, sharedSubprotocols) ??
+                                                                                           httpRequest.SecWebSocketProtocol.FirstOrDefault(protocol => SecWebSocketProtocols.Contains(protocol));
+
 
                                                                 // HTTP/1.1 101 Switching Protocols
                                                                 // Connection:              Upgrade
                                                                 // Upgrade:                 websocket
                                                                 // Sec-WebSocket-Accept:    s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-                                                                // Sec-WebSocket-Protocol:  ocpp1.6
+                                                                // Sec-WebSocket-Protocol:  ocpp2.1
                                                                 // Sec-WebSocket-Version:   13
-                                                                httpResponse        = new HTTPResponse.Builder(httpRequest) {
-                                                                                          HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
-                                                                                          Server                = HTTPServiceName,
-                                                                                          Connection            = ConnectionType.Upgrade,
-                                                                                          Upgrade               = "websocket",
-                                                                                          SecWebSocketAccept    = Convert.ToBase64String(swkaSHA1),
-                                                                                          SecWebSocketProtocol  = [ sharedSubprotocols.First() ],
-                                                                                          SecWebSocketVersion   = "13"
-                                                                                      }.AsImmutable;
+                                                                httpResponse         = new HTTPResponse.Builder(httpRequest) {
+                                                                                           HTTPStatusCode        = HTTPStatusCode.SwitchingProtocols,
+                                                                                           Server                = HTTPServiceName,
+                                                                                           Connection            = ConnectionType.Upgrade,
+                                                                                           Upgrade               = "websocket",
+                                                                                           SecWebSocketAccept    = swkaSHA1BASE64,
+                                                                                           SecWebSocketProtocol  = selectedSubprotocol,
+                                                                                           SecWebSocketVersion   = "13"
+                                                                                       }.AsImmutable;
 
                                                             }
 
@@ -1348,6 +1361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           this,
                                                                           webSocketConnection,
                                                                           sharedSubprotocols,
+                                                                          selectedSubprotocol,
                                                                           EventTracking_Id.New,
                                                                           token2
                                                                       )
