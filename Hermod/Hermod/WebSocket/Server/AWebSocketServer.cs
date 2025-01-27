@@ -26,15 +26,133 @@ using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
-#endregion[
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
+
+    /// <summary>
+    /// Extentions methods for HTTP WebSocket servers.
+    /// </summary>
+    public static class AWebSocketServerExtentions
+    {
+
+        #region BroadcastTextMessage   (this WebSocketServer, Message,                    EventTrackingId = null, CancellationToken = default)
+
+        public static Task BroadcastTextMessage(this WebSocketServer  WebSocketServer,
+                                                String                Message,
+                                                EventTracking_Id?     EventTrackingId     = null,
+                                                CancellationToken     CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendTextMessage(
+                                                    connection,
+                                                    Message,
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+        #endregion
+
+        #region BroadcastJSONMessage   (this WebSocketServer, Message, Formatting = None, EventTrackingId = null, CancellationToken = default)
+
+        public static Task BroadcastJSONMessage(this WebSocketServer        WebSocketServer,
+                                                JObject                     Message,
+                                                Newtonsoft.Json.Formatting  Formatting          = Newtonsoft.Json.Formatting.None,
+                                                EventTracking_Id?           EventTrackingId     = null,
+                                                CancellationToken           CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendTextMessage(
+                                                    connection,
+                                                    Message.ToString(Formatting),
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+
+        public static Task BroadcastJSONMessage(this WebSocketServer        WebSocketServer,
+                                                JArray                      Message,
+                                                Newtonsoft.Json.Formatting  Formatting          = Newtonsoft.Json.Formatting.None,
+                                                EventTracking_Id?           EventTrackingId     = null,
+                                                CancellationToken           CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendTextMessage(
+                                                    connection,
+                                                    Message.ToString(Formatting),
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+        #endregion
+
+        #region BroadcastBinaryMessage (this WebSocketServer, Message,                    EventTrackingId = null, CancellationToken = default)
+
+        public static Task BroadcastBinaryMessage(this WebSocketServer  WebSocketServer,
+                                                  Byte[]                Message,
+                                                  EventTracking_Id?     EventTrackingId     = null,
+                                                  CancellationToken     CancellationToken   = default)
+        {
+
+            if (WebSocketServer is null)
+                return Task.CompletedTask;
+
+            var connections = WebSocketServer.WebSocketConnections.ToArray();
+
+            return Task.WhenAll(
+                       connections.
+                           Select(connection => WebSocketServer.SendBinaryMessage(
+                                                    connection,
+                                                    Message,
+                                                    EventTrackingId,
+                                                    CancellationToken
+                                                ))
+                   );
+
+        }
+
+        #endregion
+
+    }
+
 
     /// <summary>
     /// A HTTP WebSocket server.

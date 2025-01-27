@@ -16,14 +16,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -39,13 +31,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     }
 
-    public interface IHTTPEventSource<T> : IHTTPEventSource, IEnumerable<HTTPEvent<T>>
+    public interface IHTTPEventSource<T> : IHTTPEventSource,
+                                           IEnumerable<HTTPEvent<T>>
     {
 
-        Task SubmitEvent(                                     T Data);
-        Task SubmitEvent(String SubEvent,                     T Data);
-        Task SubmitEvent(                 DateTime Timestamp, T Data);
-        Task SubmitEvent(String SubEvent, DateTime Timestamp, T Data);
+        Task SubmitEvent(                                     T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(String SubEvent,                     T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(                 DateTime Timestamp, T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(String SubEvent, DateTime Timestamp, T Data, CancellationToken CancellationToken = default);
 
 
         /// <summary>
@@ -60,8 +53,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The earlierst timestamp of the events.</param>
         IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTime Timestamp);
 
-
-        String ToString();
 
     }
 
