@@ -19,33 +19,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
     /// <summary>
-    /// The NTP Extension Field.
+    /// The NTS-KE Response.
     /// </summary>
-    /// <param name="Type">The 16-Bit Field Type.</param>
-    /// <param name="Length">The overall length of the extension field in octets (including the 4-byte header).</param>
-    /// <param name="Value">The data within the extension field (excluding the 4-byte header).</param>
-    public class NTPExtensionField(UInt16  Type,
-                                   UInt16  Length,
-                                   Byte[]? Value)
+    /// <param name="NTSKERecords">The enumeration of NTS-KE records.</param>
+    /// <param name="C2SKey">The TLS client-to-server Key.</param>
+    public class NTSKE_Response(IEnumerable<NTSKE_Record>  NTSKERecords,
+                                Byte[]                     C2SKey)
     {
 
         #region Properties
 
         /// <summary>
-        /// The 16-Bit Field Type
-        /// (z.B. 0x0104 = Unique Identifier, 0x0204 = NTS Cookie, 0x0404 = NTS Authenticator and Encrypted).
+        /// The enumeration of NTS-KE records.
         /// </summary>
-        public UInt16   Type      { get; } = Type;
+        public IEnumerable<NTSKE_Record>  NTSKERecords    { get; } = NTSKERecords;
 
         /// <summary>
-        /// The overall length of the extension field in octets (including the 4-byte header).
+        /// The TLS client-to-server Key.
         /// </summary>
-        public UInt16   Length    { get; } = Length;
+        public Byte[]                     C2SKey          { get; } = C2SKey;
 
         /// <summary>
-        /// The data within the extension field (excluding the 4-byte header).
+        /// The NTS-KE cookies.
         /// </summary>
-        public Byte[]?  Value     { get; } = Value;
+        public IEnumerable<Byte[]> Cookies
+
+            => NTSKERecords.
+                   Where (ntsKERecord => ntsKERecord.Type == 5).
+                   Select(ntsKERecord => ntsKERecord.Value);
 
         #endregion
 
@@ -56,7 +57,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public override String ToString()
 
-            => $"Type: 0x{Type:X4}, Length: {Length}, Data: {BitConverter.ToString(Value ?? [])}";
+            => String.Concat(
+
+                   $"{NTSKERecords.Count()} NTS-KE records",
+
+                   C2SKey.Length > 0
+                       ? $", C2S-Key: {BitConverter.ToString(C2SKey)}"
+                       : ""
+
+               );
 
         #endregion
 

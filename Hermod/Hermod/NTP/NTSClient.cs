@@ -17,12 +17,19 @@
 
 #region Usings
 
-using System.Net;
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Tls;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Tls.Crypto.Impl.BC;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Utilities;
+using Org.BouncyCastle.Crypto.Engines;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -35,19 +42,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
     public class NTSClient
     {
 
+        #region Data
+
+        public const    UInt16   DefaultNTSKE_Port  = 4460;
+        public const    UInt16   DefaultNTP_Port    = 123;
+        public readonly TimeSpan DefaultTimeout     = TimeSpan.FromSeconds(3);
+
+        #endregion
+
         #region Properties
 
-        public String  Host          { get; }
-        public UInt16  NTSKE_Port    { get; } = 4460;
-        public UInt16  NTP_Port      { get; } = 123;
+        public String     Host              { get; }
+        public UInt16     NTSKE_Port        { get; }
+        public UInt16     NTP_Port          { get; }
+        public TimeSpan?  Timeout           { get; set; }
+        public Byte[]     ExportedTLSKey    { get; set; }
 
         #endregion
 
         #region NTSClient(Host)
 
-        public NTSClient(String Host)
+        public NTSClient(String     Host,
+                         UInt16     NTSKE_Port   = DefaultNTSKE_Port,
+                         UInt16     NTP_Port     = DefaultNTP_Port,
+                         TimeSpan?  Timeout      = null)
         {
-            this.Host = Host;
+
+            this.Host            = Host;
+            this.NTSKE_Port      = NTSKE_Port;
+            this.NTP_Port        = NTP_Port;
+            this.Timeout         = Timeout;
+            this.ExportedTLSKey  = [];
+
         }
 
         #endregion
@@ -75,17 +101,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #endregion
 
 
-        #region GetCookies()
+        public NTSKE_Response GetNTSKERecords_BC(TimeSpan? Timeout = null)
+        {
+            try
+            {
 
-        public IEnumerable<NTSKERecord> GetCookies()
+                var timeout              = Timeout ?? this.Timeout ?? DefaultTimeout;
+
+                using var tcpClient      = new TcpClient(Host, NTSKE_Port) {
+                                               ReceiveTimeout = (Int32) timeout.TotalMilliseconds
+                                           };
+
+                using var networkStream  = tcpClient.GetStream();
+
+                var tlsClientProtocol    = new TlsClientProtocol(networkStream);
+                var ntsTlsClient         = new NTSKE_TLSClient();
+
+                tlsClientProtocol.Connect(ntsTlsClient);
+
+                ExportedTLSKey           = ntsTlsClient.ExportedKey ?? [];
+
+                var ntsKeRequest = BuildNtsKeRequest();
+                tlsClientProtocol.Stream.Write(ntsKeRequest, 0, ntsKeRequest.Length);
+                tlsClientProtocol.Stream.Flush();
+
+                var buffer    = new Byte[4096];
+                //var bytesRead = tlsClientProtocol.Stream.Read(buffer, 0, buffer.Length);
+
+
+                var readTask = Task.Run(() => tlsClientProtocol.Stream.Read(buffer, 0, buffer.Length));
+                if (!readTask.Wait(timeout))
+                {
+                    throw new TimeoutException("Read operation timed out.");
+                }
+
+                var bytesRead = readTask.Result;
+                if (bytesRead > 0)
+                {
+
+                    Array.Resize(ref buffer, bytesRead);
+
+                    return new NTSKE_Response(
+                               ParseNtsKeResponse(buffer, (UInt32) bytesRead),
+                               ExportedTLSKey
+                           );
+
+                }
+                else
+                {
+                    DebugX.Log($"No response received from {Host}!");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                DebugX.Log("Exception: " + ex.Message);
+            }
+
+            return new NTSKE_Response([],[]);
+
+        }
+
+
+        #region GetNTSKERecords()
+
+        public IEnumerable<NTSKE_Record> GetNTSKERecords()
         {
 
             try
             {
                 using (var tcpClient = new TcpClient(Host, NTSKE_Port))
                 {
-
-                    //tcpClient.ReceiveTimeout = 5000;
 
                     using (var sslStream = new SslStream(
                                                tcpClient.GetStream(),
@@ -106,6 +192,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                         sslStream.AuthenticateAsClient(sslOptions);
 
+                        //// Angenommen, du hast den AEAD-Algorithmus aus der NTS-KE-Antwort (Record Type 4)
+                        //// ermittelt – z.B. 0x000F für AES-SIV-CMAC-256.
+                        //ushort chosenAead = 0x000F; // Dieser Wert sollte aus der Serverantwort entnommen werden.
+
+                        //// Erstelle den per-association Context (5 Byte):
+                        //byte[] associationContext = new byte[5];
+                        //associationContext[0] = 0x00; // High Byte der Protocol ID (NTPv4: 0x0000)
+                        //associationContext[1] = 0x00; // Low Byte der Protocol ID
+                        //associationContext[2] = (byte)((chosenAead >> 8) & 0xFF);  // High Byte des AEAD-ID
+                        //associationContext[3] = (byte)(chosenAead & 0xFF);           // Low Byte des AEAD-ID
+                        //associationContext[4] = 0x00; // 0x00 für C2S, 0x01 wäre für S2C
+
+                        //// Jetzt rufst du ExportKeyingMaterial auf. Beispielsweise benötigst du 32 Byte (für AES-SIV-CMAC-256):
+                        //int keyLength = 32;
+                        //byte[] c2sKey = sslStream.ExportKeyingMaterial("EXPORTER-network-time-security", associationContext, keyLength);
+
+                        //// Der c2sKey steht nun für die Verschlüsselung der NTS-Erweiterungen in deinem NTP-Request zur Verfügung.
+                        //DebugX.Log("C2S-Key abgeleitet: " + BitConverter.ToString(c2sKey));
+
+
                         var ntsKeRequest = BuildNtsKeRequest();
                         sslStream.Write(ntsKeRequest, 0, ntsKeRequest.Length);
                         sslStream.Flush();
@@ -119,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                         }
                         else
                         {
-                            DebugX.Log("No response received.");
+                            DebugX.Log($"No response received from {Host}!");
                         }
 
                     }
@@ -232,11 +338,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// <param name="Buffer">The raw NTS-KE data from the server.</param>
         /// <param name="Length">Number of valid bytes in 'buffer'.</param>
         /// <returns>List of parsed records.</returns>
-        public static List<NTSKERecord> ParseNtsKeResponse(Byte[]  Buffer,
+        public static List<NTSKE_Record> ParseNtsKeResponse(Byte[]  Buffer,
                                                            UInt32  Length)
         {
 
-            var records = new List<NTSKERecord>();
+            var records = new List<NTSKE_Record>();
             var offset  = 0;
 
             while (offset + 4 <= Length)
@@ -272,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 offset += bodyLength;
 
                 records.Add(
-                    new NTSKERecord(
+                    new NTSKE_Record(
                         critical,
                         type,
                         body
@@ -299,112 +405,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  3) NTS Authenticator & Encrypted extension field (placeholder)
         /// and reads a single response.
         /// </summary>
-        public Tuple<NTPHeader, IEnumerable<NTPExtensionField>> QueryTime(Byte[] NTSCookie, Byte[] c2sKey)
+        public async Task<NTPResponse?> QueryTime(TimeSpan?          Timeout             = null,
+                                                  NTSKE_Response?    NTSKEResponse       = null,
+                                                  CancellationToken  CancellationToken   = default)
         {
 
-            var requestPacket = BuildNTSRequest(NTSCookie, c2sKey);
+            var uniqueId = new Byte[32];
+            RandomNumberGenerator.Fill(uniqueId);
+
+            var requestPacket = BuildNTPRequest(NTSKEResponse, uniqueId);
 
             using (var udpClient = new UdpClient())
             {
 
-                udpClient.Client.ReceiveTimeout = 5000;
-                udpClient.Connect(Host, NTP_Port);
-                udpClient.Send(requestPacket, requestPacket.Length);
-
                 try
                 {
 
-                    IPEndPoint? remote = null;
-                    var response = udpClient.Receive(ref remote);
+                    await udpClient.SendAsync(
+                              requestPacket,
+                              Host,
+                              NTP_Port,
+                              CancellationToken
+                          );
 
-                    DebugX.Log($"Got {response.Length}-byte response from {remote}");
+                    var timeout       = Timeout ?? this.Timeout ?? DefaultTimeout;
+                    var receiveTask   = udpClient.ReceiveAsync(CancellationToken).AsTask();
+                    var timeoutTask   = Task.Delay(timeout, CancellationToken);
+                    var finishedTask  = await Task.WhenAny(receiveTask, timeoutTask);
 
-                    // Parse response for time offset, etc...
-                    // Also parse extension fields and verify authenticity with S2C key
-                    if (NTPHeader.TryParseNTPHeader(response, out var ntpHeader, out var errorResponse))
+                    if (finishedTask == timeoutTask)
+                    {
+                        DebugX.Log($"No NTP response within {Math.Round(timeout.TotalSeconds, 2)} seconds timeout!");
+                        return null;
+                    }
+
+                    var receiveResult = await receiveTask;
+
+                    DebugX.Log($"Got {receiveResult.Buffer.Length}-byte response from {receiveResult.RemoteEndPoint}");
+
+                    if (NTPResponse.TryParse(receiveResult.Buffer, out var ntpResponse, out var errorResponse))
                     {
 
-                        var fields = new List<NTPExtensionField>();
-                        var offset = 48; // Start of extension fields
+                        var uid = ntpResponse.Extensions.FirstOrDefault(e => e.Type == 0x0104)?.Value ?? [];
 
-                        // Solange noch mindestens 4 Byte für ein weiteres Extension Field vorhanden sind...
-                        while (offset + 4 <= response.Length)
-                        {
+                        DebugX.Log("uid1: " + uniqueId.ToHexString());
+                        DebugX.Log("uid2: " + uid.     ToHexString());
 
-                            var type   = (UInt16) ((response[offset]     << 8) | response[offset + 1]);
-                            var length = (UInt16) ((response[offset + 2] << 8) | response[offset + 3]);
+                        DebugX.Log("Serverzeit (UTC): " + ntpResponse.TransmitTimestamp.ToString("o"));
 
-                            if (length < 4)
-                                throw new Exception($"Illegal length of extension {length} at offset {offset}!");
-
-                            if (offset + length > response.Length)
-                                break;
-
-                            var data = new Byte[length - 4];
-                            Array.Copy(response, offset + 4, data, 0, length - 4);
-
-                            fields.Add(
-                                new NTPExtensionField(
-                                    type,
-                                    length,
-                                    data
-                                )
-                            );
-
-                            offset += length;
-
-                        }
-
-                        var serverTimeUtc = NTPTimestampToDateTime(ntpHeader.Value.TransmitTimestamp);
-                        DebugX.Log("Serverzeit (UTC): " + serverTimeUtc.ToString("o"));
-
-                        return new Tuple<NTPHeader, IEnumerable<NTPExtensionField>>(ntpHeader.Value, fields);
+                        return ntpResponse;
 
                     }
 
                 }
-                catch (SocketException ex)
+                catch (Exception e)
                 {
-                    DebugX.Log($"No response within timeout. {ex.Message}");
+                    DebugX.Log("NTP receive exception: " + e.Message);
                 }
 
             }
 
-            return new Tuple<NTPHeader, IEnumerable<NTPExtensionField>>(default, []);
+            return null;
 
         }
 
-        
 
-        /// <summary>
-        /// Konvertiert einen 64-Bit NTP-Zeitstempel in ein DateTime (UTC).
-        /// Die oberen 32 Bit sind die Sekunden seit 1.1.1900,
-        /// die unteren 32 Bit sind der Bruchteil einer Sekunde.
-        /// </summary>
-        public static DateTime NTPTimestampToDateTime(ulong ntpTimestamp)
-        {
-            // Extrahiere die oberen 32 Bit (Sekunden)
-            uint seconds = (uint)(ntpTimestamp >> 32);
-
-            // Extrahiere die unteren 32 Bit (Bruchteil)
-            uint fraction = (uint)(ntpTimestamp & 0xFFFFFFFF);
-
-            // Berechne den Bruchteil als Double (Sekunden)
-            double fractionSeconds = fraction / (double)0x100000000L; // 2^32
-
-            // NTP-Epoch: 1. Januar 1900 UTC
-            DateTime ntpEpoch = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-            // Addiere Sekunden + Bruchteile
-            DateTime result = ntpEpoch.AddSeconds(seconds + fractionSeconds);
-            return result;
-        }
-
-
-
-
-
-        #region BuildNTSRequest(Cookie, c2sKey)
+        #region BuildNTSRequest(NTSResponse = null, UniqueId = null)
 
         /// <summary>
         /// Builds an NTP mode=3 request with minimal NTS EFs:
@@ -412,70 +478,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  2) NTS Cookie (0204)
         ///  3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
         /// </summary>
-        private static Byte[] BuildNTSRequest(Byte[] NTSCookie, Byte[] c2sKey)
+        private static Byte[] BuildNTPRequest(NTSKE_Response? NTSResponse = null, Byte[]? UniqueId = null)
         {
 
-            var packet       = new Byte[48];
+            var ntpRequest1 = new NTPRequest(
+                                  TransmitTimestamp: NTPRequest.GetCurrentNTPTimestamp()
+                              );
 
-            // [LI(2 bits)=0, Version(3 bits)=4, Mode(3 bits)=3 (client), ...] => 0x23
-            packet[0]        = 0x23;
+            var extensions = new List<NTPExtension>();
 
-            // 3. Byte:          Poll (z.B. 4 → 16 sec interval)
-            packet[2]        = 4;
+            if (NTSResponse is not null &&
+                NTSResponse.Cookies.Any() &&
+                NTSResponse.C2SKey.Length > 0)
+            {
 
-            // 4. Byte:          Precision (z.B. -6; in 8-bit Zweierkomplement entspricht das 0xFA)
-            packet[3]        = 0xFA;
+                var uniqueIdExtension  = CreateUniqueIdExtension(UniqueId);
+                var cookieExtension    = CreateCookieExtension  (NTSResponse.Cookies.First());
 
-            // 11. Bytes 40-47:  Transmit Timestamp
-            var ntpTimestamp = GetCurrentNtpTimestamp();
+                extensions.Add(
+                    CreateUniqueIdExtension(UniqueId)
+                );
 
-            // Write as big-endian...
-            for (var i = 0; i < 8; i++)
-                packet[40 + i] = (Byte) (ntpTimestamp >> (56 - i * 8));
+                extensions.Add(
+                    CreateCookieExtension(NTSResponse.Cookies.First())
+                );
 
+                // Basically this extension validates all data (NTP header + extensions) which came before it!
+                extensions.Add(
+                    CreateNTSAuthenticatorExtension(
+                        NTSResponse,
+                        ntpRequest1.      ToByteArray(),
+                        uniqueIdExtension.ToByteArray(),
+                        cookieExtension.  ToByteArray()
+                    )
+                );
+
+            }
+
+            var ntpRequest = new NTPRequest(
+                                 ntpRequest1,
+                                 Extensions: extensions
+                             );
+
+            var packet     = ntpRequest.ToByteArray();
 
             return packet;
-
-            var uniqueIdExt  = CreateUniqueIdExtension();
-            var cookieExt    = CreateCookieExtension(NTSCookie);
-            var authExt      = CreateNTSAuthenticatorExtension(c2sKey, packet, uniqueIdExt, cookieExt);
-
-            // Combine header + uniqueIdExt + cookieExt + authExt
-            var final = new Byte[48 + uniqueIdExt.Length + cookieExt.Length + authExt.Length];
-            Buffer.BlockCopy(packet, 0, final, 0, 48);
-
-            var offset = 48;
-            Buffer.BlockCopy(uniqueIdExt, 0, final, offset, uniqueIdExt.Length);
-            offset += uniqueIdExt.Length;
-
-            Buffer.BlockCopy(cookieExt,   0, final, offset, cookieExt.  Length);
-            offset += cookieExt.Length;
-
-            Buffer.BlockCopy(authExt,     0, final, offset, authExt.    Length);
-
-            return final;
 
         }
 
         #endregion
 
-        #region GetCurrentNtpTimestamp()
+        #region GetCurrentNTPTimestamp(Timestamp = null)
 
         /// <summary>
-        /// Konvertiert DateTime.UtcNow in ein 64-Bit NTP-Zeitformat (Sekunden seit 1900).
-        /// Die oberen 32 Bit enthalten die Sekunden, die unteren 32 Bit den Bruchteil einer Sekunde.
+        /// Converts DateTime.UtcNow to a 64-bit NTP time format (seconds since 1900).
+        /// The upper 32 bits contain the seconds, the lower 32 bits the fraction of a second as 32-bit fixed-point (2^32 is 1 second).
         /// </summary>
-        private static UInt64 GetCurrentNtpTimestamp()
+        /// <param name="Timestamp">An optional timestamp (UTC) to be converted to a NTP timestamp.</param>
+        public static UInt64 GetCurrentNTPTimestamp(DateTime? Timestamp = null)
         {
 
-            // NTP-Zeit beginnt am 1. Januar 1900
             var ntpEpoch  = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            var now       = DateTime.UtcNow;
+            var now       = Timestamp ?? DateTime.UtcNow;
             var ts        = now - ntpEpoch;
 
-            // Ganze Sekunden
             var seconds   = (UInt64) ts.TotalSeconds;
-            // Bruchteile als 32-Bit-Festkomma (2^32 entspricht 1 Sekunde)
             var fraction  = (UInt64) ((ts.TotalSeconds - seconds) * 0x100000000L);
 
             return (seconds << 32) | fraction;
@@ -484,41 +551,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region CreateUniqueIdExtension()
+
+        #region CreateUniqueIdExtension(UniqueId = null)
 
         /// <summary>
-        /// Creates a Unique Identifier Extension Field (type=0x0104).
-        /// Must be at least 32 random bytes in the body. The EF length is (body size + 4).
-        /// Also must be multiple of 4 overall.
+        /// Creates a Unique Identifier Extension (type=0x0104).
+        /// Must be at least 32 random bytes in the body.
         /// </summary>
-        private static Byte[] CreateUniqueIdExtension()
+        /// <param name="UniqueId">An optional 32-byte unique identification.</param>
+        private static NTPExtension CreateUniqueIdExtension(Byte[]? UniqueId = null)
         {
 
-            var uniqueId = new Byte[32];
-            RandomNumberGenerator.Fill(uniqueId);
+            UniqueId ??= new Byte[32];
+            RandomNumberGenerator.Fill(UniqueId);
 
-            // 4 = type+length
-            var totalLen = 4 + uniqueId.Length;
-
-            // Must be multiple of 4, so if needed, pad up (rarely needed for 32).
-            //while ((totalLen % 4) != 0)
-            //    totalLen++;
-
-            var data = new Byte[totalLen];
-
-            // EF Type = 0x0104 (Unique ID). For network byte order:
-            // We'll do big-endian: [0x01, 0x04]
-            data[0] = 0x01;
-            data[1] = 0x04;
-            // EF Length (2 bytes, big-endian) = totalLen
-            // BUT recall that for an NTP extension field, "Length" includes
-            // the entire EF, including the 4-byte header. So:
-            data[2] = (Byte) ((totalLen >> 8) & 0xFF);
-            data[3] = (Byte)  (totalLen       & 0xFF);
-
-            Buffer.BlockCopy(uniqueId, 0, data, 4, uniqueId.Length);
-
-            return data;
+            return new (
+                       0x0104,
+                       UniqueId
+                   );
 
         }
 
@@ -527,35 +577,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #region CreateCookieExtension(NTSCookie)
 
         /// <summary>
-        /// Creates the NTS Cookie Extension Field (type=0x0204) for the given cookie.
+        /// Creates the NTS Cookie Extension (type=0x0204).
         /// This is stored in the clear (unencrypted) in client->server direction.
         /// </summary>
-        private static Byte[] CreateCookieExtension(Byte[] NTSCookie)
-        {
+        /// <param name="NTSCookie">The NTS cookie.</param>
+        private static NTPExtension CreateCookieExtension(Byte[] NTSCookie)
 
-            // total length = 4 (header) + cookie.Length
-            var totalLen = 4 + NTSCookie.Length;
-
-            // pad to multiple of 4
-            while ((totalLen % 4) != 0)
-                totalLen++;
-
-            var data = new Byte[totalLen];
-
-            // EF Type = 0x0204
-            data[0] = 0x02;
-            data[1] = 0x04;
-            // EF length includes entire extension
-            data[2] = (Byte) ((totalLen >> 8) & 0xFF);
-            data[3] = (Byte)  (totalLen       & 0xFF);
-
-            Buffer.BlockCopy(NTSCookie, 0, data, 4, NTSCookie.Length);
-
-            return data;
-
-        }
+            => new (
+                   0x0204,
+                   NTSCookie
+               );
 
         #endregion
+
+        // NTS Cookie Placeholder Extension Field (Typ 0x0304)
+        //   – Wird vom Client optional mitgesendet, um dem Server mitzuteilen, dass er zusätzliche Cookies zurücksenden soll, falls der Vorrat niedrig ist.
+        //   – Dient der Verbesserung der Unlinkability, da so nicht immer exakt dieselben Cookies wiederverwendet werden.
 
         #region CreateNtsAuthenticatorExtension(...)
 
@@ -571,10 +608,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///
         /// Here we only show a minimal placeholder to demonstrate the correct structure.
         /// </summary>
-        private static byte[] CreateNTSAuthenticatorExtension(Byte[] c2sKey,
-                                                              Byte[] ntpHeader,
-                                                              Byte[] uniqueIdExt,
-                                                              Byte[] cookieExt)
+        public static NTPExtension CreateNTSAuthenticatorExtension_old(NTSKE_Response NTSResponse)
         {
 
             // In real code, you'd do something like:
@@ -600,7 +634,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             // For simplicity, let's do no extra padding other than the 4 boundary for each part.
             // So, NonceLength = 16, CiphertextLength=16.
 
-            var nonceLen             = (ushort) dummyNonce.Length;
+            var nonceLen             = (ushort) dummyNonce.     Length;
             var ciphertextLen        = (ushort) dummyCiphertext.Length;
 
             // We'll compute how many bytes for the Nonce block, round up to nearest 4
@@ -618,15 +652,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             data[0] = 0x04;
             data[1] = 0x04;
             // 2) EF length (entire extension, includes 4 header bytes) 
-            data[2] = (byte)((totalLen >> 8) & 0xFF);
-            data[3] = (byte)(totalLen & 0xFF);
+            data[2] = (byte) ((totalLen >> 8) & 0xFF);
+            data[3] = (byte)  (totalLen & 0xFF);
 
             // Next 2 bytes = NonceLength (big-endian)
-            data[4] = (byte)((nonceLen >> 8) & 0xFF);
-            data[5] = (byte)(nonceLen & 0xFF);
+            data[4] = (byte) ((nonceLen >> 8) & 0xFF);
+            data[5] = (byte) (nonceLen & 0xFF);
             // Next 2 bytes = CiphertextLength (big-endian)
-            data[6] = (byte)((ciphertextLen >> 8) & 0xFF);
-            data[7] = (byte)(ciphertextLen & 0xFF);
+            data[6] = (byte) ((ciphertextLen >> 8) & 0xFF);
+            data[7] = (byte) (ciphertextLen & 0xFF);
 
             // Copy the Nonce (16 bytes) at offset=8
             Buffer.BlockCopy(dummyNonce, 0, data, 8, nonceLen);
@@ -638,9 +672,137 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             // Any leftover is 0 padding, if needed.
 
-            return data;
+
+            var value = new Byte[4 + paddedNonceLen + paddedCiphertextLen];
+
+            // Next 2 bytes = NonceLength (big-endian)
+            value[0] = (byte)((nonceLen >> 8) & 0xFF);
+            value[1] = (byte)(nonceLen & 0xFF);
+            // Next 2 bytes = CiphertextLength (big-endian)
+            value[2] = (byte)((ciphertextLen >> 8) & 0xFF);
+            value[3] = (byte)(ciphertextLen & 0xFF);
+
+            var offset2 = 4;
+
+            Buffer.BlockCopy(dummyNonce, 0, value, offset2, nonceLen);
+            offset2 += paddedNonceLen;
+
+            Buffer.BlockCopy(dummyCiphertext, 0, value, offset2, ciphertextLen);
+            //offset2 += paddedCiphertextLen;
+
+            var x = new NTPExtension(
+                       0x0404,
+                       value
+                   );
+
+            return x;
 
         }
+
+
+        /// <summary>
+        /// Creates the "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404)
+        /// 
+        /// In a real implementation:
+        /// 1. The associated data (A) is computed as: [NTP header || UniqueId EF || Cookie EF].
+        /// 2. The plaintext (P) is set to the internal extension fields that need confidentiality (here we use an empty plaintext).
+        /// 3. A random nonce is not needed separately since AES-SIV computes a synthetic IV (SIV) deterministically.
+        /// 4. The AEAD encryption is run with the C2S key (extracted from the TLS session during NTS-KE).
+        /// 5. The resulting output is SIV || C. Here, with an empty plaintext, only SIV (16 bytes) is produced.
+        /// 6. The extension field value is then built as:
+        ///    [NonceLength (2 bytes) || CiphertextLength (2 bytes) || padded(Nonce) || padded(Ciphertext)]
+        ///    where each of nonce and ciphertext is padded to a 4-byte boundary.
+        /// 7. Finally, an NTPExtension (with 4-byte header containing type and total length) is returned.
+        /// </summary>
+        /// <param name="ntsResponse">The NTS-KE response containing the derived C2S key.</param>
+        /// <param name="ntpHeader">The 48-byte NTP header that was used in the NTS-KE request.</param>
+        /// <param name="uniqueIdExt">The Unique Identifier extension (Type 0x0104) as sent in the request.</param>
+        /// <param name="cookieExt">The NTS Cookie extension (Type 0x0204) as sent in the request.</param>
+        private static NTPExtension CreateNTSAuthenticatorExtension(NTSKE_Response  ntsResponse,
+                                                                    Byte[]          ntpHeader,
+                                                                    Byte[]          uniqueIdExt,
+                                                                    Byte[]          cookieExt)
+        {
+
+            // 1. Compute Associated Data = NTP header || UniqueId EF || Cookie EF
+            var associatedData       = Concat(ntpHeader, uniqueIdExt, cookieExt);
+
+            // 2. Plaintext P: for this example, we encrypt an empty plaintext.
+            var plaintext            = Array.Empty<Byte>();
+
+            // 3. Obtain the C2S key from the NTS-KE response.
+            var c2sKey               = ntsResponse.C2SKey; // Must be 32 bytes for AES-128 SIV
+
+            // 4. Use AesSiv to encrypt the plaintext.
+            var aesSiv               = new AesSiv(c2sKey);
+            var sivAndCiphertext     = aesSiv.Encrypt(associatedData, plaintext);
+            // With an empty plaintext, sivAndCiphertext = 16-byte SIV.
+
+            // 5. For our extension, we consider the SIV as the "nonce" and the ciphertext is empty.
+            var nonceLen             = 16;
+            var ciphertextLen        = 16; // 0
+            var paddedNonceLen       = ((nonceLen      + 3) / 4) * 4; // Likely 16.
+            var paddedCiphertextLen  = ((ciphertextLen + 3) / 4) * 4; // 0.
+            var valueLen             = 4 + paddedNonceLen + paddedCiphertextLen;
+            var value                = new Byte[valueLen];
+
+            // Write NonceLength (2 bytes, big-endian)
+            value[0] = (byte) ((nonceLen      >> 8) & 0xff);
+            value[1] = (byte)  (nonceLen            & 0xff);
+
+            // Write CiphertextLength (2 bytes, big-endian)
+            value[2] = (byte) ((ciphertextLen >> 8) & 0xff);
+            value[3] = (byte)  (ciphertextLen       & 0xff);
+
+            var offset = 4;
+            Buffer.BlockCopy(sivAndCiphertext, 0, value, offset, nonceLen);
+
+            // If needed, pad nonce to paddedNonceLen (should be unnecessary if nonceLen is already multiple of 4)
+            for (var i = nonceLen; i < paddedNonceLen; i++)
+                value[offset + i] = 0;
+
+            offset += paddedNonceLen;
+
+            // Copy ciphertext (empty in our case)
+            // No need to copy if ciphertextLen is 0.
+
+            // 7. Build the full NTPExtension.
+            // The total length of the extension (including the 4-byte header) is valueLen + 4.
+            //UInt16 totalExtLength = (UInt16)(valueLen + 4);
+
+            var ext = new NTPExtension(
+                          0x0404,
+                          value
+                      );
+
+            return ext;
+
+        }
+
+        /// <summary>
+        /// Helper: Concatenate multiple byte arrays.
+        /// </summary>
+        private static byte[] Concat(params byte[][] arrays)
+        {
+
+            var totalLen = 0;
+
+            foreach (var arr in arrays)
+                totalLen += arr.Length;
+
+            var result = new Byte[totalLen];
+            int offset = 0;
+
+            foreach (var arr in arrays)
+            {
+                Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
+                offset += arr.Length;
+            }
+
+            return result;
+
+        }
+
 
         #endregion
 
