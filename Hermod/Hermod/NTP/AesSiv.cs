@@ -187,6 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var output      = new Byte[plaintext.Length];
             var blockSize   = ctr.GetBlockSize();
 
+            //ToDo: Add padding, when the plaintext is not a multiple of the block size!
             for (var i = 0; i < plaintext.Length; i += blockSize)
             {
                 var chunk = Math.Min(blockSize, plaintext.Length - i);

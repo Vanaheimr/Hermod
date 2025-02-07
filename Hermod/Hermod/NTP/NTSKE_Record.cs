@@ -19,7 +19,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
     /// <summary>
-    /// The NTS-KE record (RFC 8915).
+    /// The Network Time Security Key Establishment (NTS-KE) record (RFC 8915).
     /// </summary>
     /// <param name="IsCritical">Whether an unrecognized record must cause an error.</param>
     /// <param name="Type">The type of the record.</param>

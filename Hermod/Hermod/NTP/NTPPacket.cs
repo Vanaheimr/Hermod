@@ -19,10 +19,26 @@
 
 using System.Diagnostics.CodeAnalysis;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
+
+    // https://datatracker.ietf.org/doc/html/rfc4330 Simple Network Time Protocol (SNTP) Version 4
+    // https://datatracker.ietf.org/doc/html/rfc5905 Network Time Protocol Version 4: Protocol and Algorithms Specification
+    // https://datatracker.ietf.org/doc/html/rfc7822 Network Time Protocol Version 4 (NTPv4) Extension Fields
+    // https://datatracker.ietf.org/doc/html/rfc8915 Network Time Security for the Network Time Protocol
+
+
+    // Stratum  Meaning
+    //   ----------------------------------------------
+    //   0        kiss-o'-death message (see below)
+    //   1        primary reference (e.g., synchronized by radio clock)
+    //   2-15     secondary reference (synchronized by NTP or SNTP)
+    //   16-255   reserved
+
 
     /// <summary>
     /// The NTP request (RFC 5905).
@@ -41,20 +57,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
     /// <param name="ReceiveTimestamp"></param>
     /// <param name="TransmitTimestamp"></param>
     /// <param name="Extensions"></param>
-    public class NTPRequest(Byte?                       LI                    = null,
-                            Byte?                       VN                    = null,
-                            Byte?                       Mode                  = null,
-                            Byte?                       Stratum               = null,
-                            Byte?                       Poll                  = null,
-                            SByte?                      Precision             = null,
-                            UInt32?                     RootDelay             = null,
-                            UInt32?                     RootDispersion        = null,
-                            UInt32?                     ReferenceIdentifier   = null,
-                            UInt64?                     ReferenceTimestamp    = null,
-                            UInt64?                     OriginateTimestamp    = null,
-                            UInt64?                     ReceiveTimestamp      = null,
-                            UInt64?                     TransmitTimestamp     = null,
-                            IEnumerable<NTPExtension>?  Extensions            = null)
+    public class NTPPacket(Byte?                       LI                     = null,
+                           Byte?                       VN                     = null,
+                           Byte?                       Mode                   = null,
+                           Byte?                       Stratum                = null,
+                           Byte?                       Poll                   = null,
+                           SByte?                      Precision              = null,
+                           UInt32?                     RootDelay              = null,
+                           UInt32?                     RootDispersion         = null,
+                           UInt32?                     ReferenceIdentifier    = null,
+                           UInt64?                     ReferenceTimestamp     = null,
+                           UInt64?                     OriginateTimestamp     = null,
+                           UInt64?                     ReceiveTimestamp       = null,
+                           UInt64?                     TransmitTimestamp      = null,
+                           IEnumerable<NTPExtension>?  Extensions             = null,
+                           Int32?                      KeyId                  = null,
+                           Byte[]?                     MessageDigest          = null,
+                           UInt64?                     DestinationTimestamp   = null)
     {
 
         #region Properties
@@ -99,8 +118,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public UInt32                     RootDispersion         { get; } = RootDispersion      ?? 0;
 
+        // Code       External Reference Source
+        // ------------------------------------------------------------------
+        // LOCL       uncalibrated local clock
+        // CESM       calibrated Cesium clock
+        // RBDM       calibrated Rubidium clock
+        // PPS        calibrated quartz clock or other pulse-per-second
+        //            source
+        // IRIG       Inter-Range Instrumentation Group
+        // ACTS       NIST telephone modem service
+        // USNO       USNO telephone modem service
+        // PTB        PTB (Germany) telephone modem service
+        // TDF        Allouis (France) Radio 164 kHz
+        // DCF        Mainflingen (Germany) Radio 77.5 kHz
+        // MSF        Rugby (UK) Radio 60 kHz
+        // WWV        Ft. Collins (US) Radio 2.5, 5, 10, 15, 20 MHz
+        // WWVB       Boulder (US) Radio 60 kHz
+        // WWVH       Kauai Hawaii (US) Radio 2.5, 5, 10, 15 MHz
+        // CHU        Ottawa (Canada) Radio 3330, 7335, 14670 kHz
+        // LORC       LORAN-C radionavigation system
+        // OMEG       OMEGA radionavigation system
+        // GPS        Global Positioning Service
+
         /// <summary>
         /// Reference Identifier (32 Bit)
+        /// This is a 32-bit bitstring identifying the
+        /// particular reference source.This field is significant only in
+        /// server messages, where for stratum 0 (kiss-o'-death message) and 1
+        /// (primary server), the value is a four-character ASCII string, left
+        /// justified and zero padded to 32 bits.For IPv4 secondary servers,
+        /// the value is the 32-bit IPv4 address of the synchronization source.
+        /// For IPv6 and OSI secondary servers, the value is the first 32 bits of
+        /// the MD5 hash of the IPv6 or NSAP address of the synchronization
+        /// source.
         /// </summary>
         public UInt32                     ReferenceIdentifier    { get; } = ReferenceIdentifier ?? 0;
 
@@ -133,11 +183,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public IEnumerable<NTPExtension>  Extensions             { get; } = Extensions          ?? [];
 
+
+        /// <summary>
+        /// Optional 4 byte key identification
+        /// </summary>
+        public Int32?                     KeyId                  { get; } = KeyId;
+
+        /// <summary>
+        /// Optional 16 byte message digest
+        /// </summary>
+        public Byte[]?                    MessageDigest          { get; } = MessageDigest;
+
+        /// <summary>
+        /// Optional 64 bit destination timestamp
+        /// Note: This timestamp is not part of the packet itself!
+        /// It is captured upon arrival and returned in the receive buffer along with the buffer length and data.
+        /// </summary>
+        public UInt64?                    DestinationTimestamp   { get; } = DestinationTimestamp;
+
         #endregion
 
         #region Constructor(s)
 
-        public NTPRequest(NTPRequest                  NTPRequest,
+        public NTPPacket(NTPPacket                  NTPRequest,
                           IEnumerable<NTPExtension>?  Extensions = null)
 
             : this(NTPRequest.LI,
@@ -294,11 +362,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region TryParseNTPHeader(Buffer, out NTPResponse, out ErrorResponse, ExptectedUniqueId   = null)
-        public static Boolean TryParse(Byte[]                                 Buffer,
-                                       [NotNullWhen(true)]  out NTPResponse?  NTPResponse,
-                                       [NotNullWhen(false)] out String?       ErrorResponse,
-                                       Byte[]?                                ExptectedUniqueId   = null)
+        #region TryParse(Buffer, out NTPRequest, out ErrorResponse, ExptectedUniqueId   = null)
+
+        public static Boolean TryParse(Byte[]                                Buffer,
+                                       [NotNullWhen(true)]  out NTPPacket?  NTPRequest,
+                                       [NotNullWhen(false)] out String?      ErrorResponse,
+                                       Byte[]?                               ExptectedUniqueId   = null)
         {
 
             ErrorResponse = null;
@@ -306,11 +375,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             if (Buffer.Length < 48)
             {
                 ErrorResponse = "Buffer too short!";
-                NTPResponse   = null;
+                NTPRequest   = null;
                 return false;
             }
 
-            var offset     = 48; // Start position of NTP extension fields
+            var offset     = 48;
             var extensions = new List<NTPExtension>();
 
             while (offset + 4 <= Buffer.Length)
@@ -322,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 if (length < 4)
                 {
                     ErrorResponse  = $"Illegal length of extension {length} at offset {offset}!";
-                    NTPResponse      = null;
+                    NTPRequest      = null;
                     return false;
                 }
 
@@ -334,7 +403,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                 extensions.Add(
                     new NTPExtension(
-                        type,
+                        (ExtensionTypes) type,
                         data
                     )
                 );
@@ -343,20 +412,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             }
 
-            NTPResponse = new NTPResponse(
-                              LI_VN_Mode:           Buffer[0],
-                              Stratum:              Buffer[1],
-                              Poll:                 Buffer[2],
-                              Precision:            (SByte) Buffer[3],
-                              RootDelay:            (UInt32) ((Buffer[4]  << 24) | (Buffer[5]  << 16) | (Buffer[6]  << 8) | Buffer[7]),
-                              RootDispersion:       (UInt32) ((Buffer[8]  << 24) | (Buffer[9]  << 16) | (Buffer[10] << 8) | Buffer[11]),
-                              ReferenceIdentifier:  (UInt32) ((Buffer[12] << 24) | (Buffer[13] << 16) | (Buffer[14] << 8) | Buffer[15]),
-                              ReferenceTimestamp:   NTPTimestampToDateTime(ReadUInt64(Buffer, 16)),
-                              OriginateTimestamp:   NTPTimestampToDateTime(ReadUInt64(Buffer, 24)),
-                              ReceiveTimestamp:     NTPTimestampToDateTime(ReadUInt64(Buffer, 32)),
-                              TransmitTimestamp:    NTPTimestampToDateTime(ReadUInt64(Buffer, 40)),
-                              Extensions:           extensions
-                          );
+            NTPRequest = new NTPPacket(
+                             LI:                   (Byte) ((Buffer[0] >> 6) & 0x03),
+                             VN:                   (Byte) ((Buffer[0] >> 3) & 0x07),
+                             Mode:                 (Byte)  (Buffer[0]       & 0x07),
+                             Stratum:              Buffer[1],
+                             Poll:                 Buffer[2],
+                             Precision:            (SByte) Buffer[3],
+                             RootDelay:            (UInt32) ((Buffer[4]  << 24) | (Buffer[5]  << 16) | (Buffer[6]  << 8) | Buffer[7]),
+                             RootDispersion:       (UInt32) ((Buffer[8]  << 24) | (Buffer[9]  << 16) | (Buffer[10] << 8) | Buffer[11]),
+                             ReferenceIdentifier:  (UInt32) ((Buffer[12] << 24) | (Buffer[13] << 16) | (Buffer[14] << 8) | Buffer[15]),
+                             ReferenceTimestamp:   ReadUInt64(Buffer, 16),
+                             OriginateTimestamp:   ReadUInt64(Buffer, 24),
+                             ReceiveTimestamp:     ReadUInt64(Buffer, 32),
+                             TransmitTimestamp:    ReadUInt64(Buffer, 40),
+                             Extensions:           extensions
+                         );
 
             return true;
 

@@ -26,6 +26,9 @@ using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
+    /// <summary>
+    /// The Network Time Security Key Establishment (NTS-KE) TLS client.
+    /// </summary>
     public class NTSKE_TLSClient() : DefaultTlsClient(new BcTlsCrypto(new SecureRandom()))
     {
 

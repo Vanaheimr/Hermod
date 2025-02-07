@@ -51,43 +51,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Zero
         /// </summary>
-        public static readonly IPPort Zero = new(0);
+        public static readonly IPPort Zero    = new (0);
 
 
         /// <summary>
         /// SSH
         /// </summary>
-        public static readonly IPPort SSH = new(22);
+        public static readonly IPPort SSH     = new (22);
 
         /// <summary>
         /// TELNET
         /// </summary>
-        public static readonly IPPort TELNET = new(23);
+        public static readonly IPPort TELNET  = new (23);
 
         /// <summary>
         /// SMTP
         /// </summary>
-        public static readonly IPPort SMTP = new(25);
+        public static readonly IPPort SMTP    = new (25);
 
         /// <summary>
         /// DNS
         /// </summary>
-        public static readonly IPPort DNS = new(53);
+        public static readonly IPPort DNS     = new (53);
 
         /// <summary>
         /// HTTP
         /// </summary>
-        public static readonly IPPort HTTP = new(80);
+        public static readonly IPPort HTTP    = new (80);
+
+        /// <summary>
+        /// NTP
+        /// </summary>
+        public static readonly IPPort NTP     = new (123);
 
         /// <summary>
         /// HTTPS
         /// </summary>
-        public static readonly IPPort HTTPS = new(443);
+        public static readonly IPPort HTTPS   = new (443);
 
         /// <summary>
         /// MQTT
         /// </summary>
-        public static readonly IPPort MQTT = new(1883);
+        public static readonly IPPort MQTT    = new (1883);
+
+        /// <summary>
+        /// NTS
+        /// </summary>
+        public static readonly IPPort NTS     = new (4460);
 
         #endregion
 

@@ -19,7 +19,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
     /// <summary>
-    /// The NTS-KE Response.
+    /// The Network Time Security Key Establishment (NTS-KE) response.
     /// </summary>
     /// <param name="NTSKERecords">The enumeration of NTS-KE records.</param>
     /// <param name="C2SKey">The TLS client-to-server Key.</param>

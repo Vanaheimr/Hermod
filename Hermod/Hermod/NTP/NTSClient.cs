@@ -23,13 +23,7 @@ using System.Security.Cryptography;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
-using Org.BouncyCastle.Crypto.Modes;
-using Org.BouncyCastle.Tls.Crypto.Impl.BC;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Utilities;
-using Org.BouncyCastle.Crypto.Engines;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -405,15 +399,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  3) NTS Authenticator & Encrypted extension field (placeholder)
         /// and reads a single response.
         /// </summary>
-        public async Task<NTPResponse?> QueryTime(TimeSpan?          Timeout             = null,
-                                                  NTSKE_Response?    NTSKEResponse       = null,
-                                                  CancellationToken  CancellationToken   = default)
+        public async Task<NTPPacket?> QueryTime(TimeSpan?          Timeout             = null,
+                                                 NTSKE_Response?    NTSKEResponse       = null,
+                                                 CancellationToken  CancellationToken   = default)
         {
 
             var uniqueId = new Byte[32];
             RandomNumberGenerator.Fill(uniqueId);
 
             var requestPacket = BuildNTPRequest(NTSKEResponse, uniqueId);
+            var requestData   = requestPacket.ToByteArray();
 
             using (var udpClient = new UdpClient())
             {
@@ -422,7 +417,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 {
 
                     await udpClient.SendAsync(
-                              requestPacket,
+                              requestData,
                               Host,
                               NTP_Port,
                               CancellationToken
@@ -443,15 +438,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                     DebugX.Log($"Got {receiveResult.Buffer.Length}-byte response from {receiveResult.RemoteEndPoint}");
 
-                    if (NTPResponse.TryParse(receiveResult.Buffer, out var ntpResponse, out var errorResponse))
+                    if (NTPPacket.TryParse(receiveResult.Buffer, out var ntpResponse, out var errorResponse))
                     {
 
-                        var uid = ntpResponse.Extensions.FirstOrDefault(e => e.Type == 0x0104)?.Value ?? [];
+                        var uid = ntpResponse.Extensions.FirstOrDefault(e => e.Type == ExtensionTypes.UniqueIdentifier)?.Value ?? [];
 
-                        DebugX.Log("uid1: " + uniqueId.ToHexString());
-                        DebugX.Log("uid2: " + uid.     ToHexString());
+                        if (!requestPacket.Extensions.Any(extension => extension.Type == ExtensionTypes.UniqueIdentifier) ||
+                            uniqueId.ToHexString() == uid.ToHexString())
+                            //ToDo: Validate S2C AEAD data
+                            DebugX.Log("Serverzeit (UTC): " + NTPPacket.NTPTimestampToDateTime(ntpResponse.TransmitTimestamp.Value).ToString("o"));
 
-                        DebugX.Log("Serverzeit (UTC): " + ntpResponse.TransmitTimestamp.ToString("o"));
+                        else
+                            DebugX.Log("UniqueId mismatch!");
 
                         return ntpResponse;
 
@@ -478,11 +476,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  2) NTS Cookie (0204)
         ///  3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
         /// </summary>
-        private static Byte[] BuildNTPRequest(NTSKE_Response? NTSResponse = null, Byte[]? UniqueId = null)
+        private static NTPPacket BuildNTPRequest(NTSKE_Response? NTSResponse = null, Byte[]? UniqueId = null)
         {
 
-            var ntpRequest1 = new NTPRequest(
-                                  TransmitTimestamp: NTPRequest.GetCurrentNTPTimestamp()
+            var ntpRequest1 = new NTPPacket(
+                                  TransmitTimestamp: NTPPacket.GetCurrentNTPTimestamp()
                               );
 
             var extensions = new List<NTPExtension>();
@@ -492,15 +490,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 NTSResponse.C2SKey.Length > 0)
             {
 
-                var uniqueIdExtension  = CreateUniqueIdExtension(UniqueId);
-                var cookieExtension    = CreateCookieExtension  (NTSResponse.Cookies.First());
+                var uniqueIdExtension  = NTPExtension.UniqueIdentifier(UniqueId);
+                var cookieExtension    = NTPExtension.NTSCookie(NTSResponse.Cookies.First());
 
                 extensions.Add(
-                    CreateUniqueIdExtension(UniqueId)
+                    uniqueIdExtension
                 );
 
                 extensions.Add(
-                    CreateCookieExtension(NTSResponse.Cookies.First())
+                    NTPExtension.NTSCookie(NTSResponse.Cookies.First())
                 );
 
                 // Basically this extension validates all data (NTP header + extensions) which came before it!
@@ -515,14 +513,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             }
 
-            var ntpRequest = new NTPRequest(
+            var ntpRequest = new NTPPacket(
                                  ntpRequest1,
                                  Extensions: extensions
                              );
 
-            var packet     = ntpRequest.ToByteArray();
+          //  var packet     = ntpRequest.ToByteArray();
 
-            return packet;
+            return ntpRequest;
 
         }
 
@@ -554,50 +552,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #region CreateUniqueIdExtension(UniqueId = null)
 
-        /// <summary>
-        /// Creates a Unique Identifier Extension (type=0x0104).
-        /// Must be at least 32 random bytes in the body.
-        /// </summary>
-        /// <param name="UniqueId">An optional 32-byte unique identification.</param>
-        private static NTPExtension CreateUniqueIdExtension(Byte[]? UniqueId = null)
-        {
+        ///// <summary>
+        ///// Creates a Unique Identifier Extension (type=0x0104).
+        ///// Must be at least 32 random bytes in the body.
+        ///// </summary>
+        ///// <param name="UniqueId">An optional 32-byte unique identification.</param>
+        //private static NTPExtension CreateUniqueIdExtension(Byte[]? UniqueId = null)
+        //{
 
-            UniqueId ??= new Byte[32];
-            RandomNumberGenerator.Fill(UniqueId);
+        //    UniqueId ??= new Byte[32];
+        //    RandomNumberGenerator.Fill(UniqueId);
 
-            return new (
-                       0x0104,
-                       UniqueId
-                   );
+        //    return NTPExtension.UniqueIdentifier(UniqueId);
 
-        }
+        //}
 
         #endregion
-
-        #region CreateCookieExtension(NTSCookie)
-
-        /// <summary>
-        /// Creates the NTS Cookie Extension (type=0x0204).
-        /// This is stored in the clear (unencrypted) in client->server direction.
-        /// </summary>
-        /// <param name="NTSCookie">The NTS cookie.</param>
-        private static NTPExtension CreateCookieExtension(Byte[] NTSCookie)
-
-            => new (
-                   0x0204,
-                   NTSCookie
-               );
-
-        #endregion
-
-        // NTS Cookie Placeholder Extension Field (Typ 0x0304)
-        //   – Wird vom Client optional mitgesendet, um dem Server mitzuteilen, dass er zusätzliche Cookies zurücksenden soll, falls der Vorrat niedrig ist.
-        //   – Dient der Verbesserung der Unlinkability, da so nicht immer exakt dieselben Cookies wiederverwendet werden.
 
         #region CreateNtsAuthenticatorExtension(...)
 
         /// <summary>
-        /// Creates the "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404),
+        /// Create a "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404),
         /// which holds AEAD nonce, ciphertext, etc.
         ///
         /// In a real implementation:
@@ -690,10 +665,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             Buffer.BlockCopy(dummyCiphertext, 0, value, offset2, ciphertextLen);
             //offset2 += paddedCiphertextLen;
 
-            var x = new NTPExtension(
-                       0x0404,
-                       value
-                   );
+            var x = NTPExtension.AuthenticatorAndEncrypted(value);
 
             return x;
 
@@ -701,7 +673,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
 
         /// <summary>
-        /// Creates the "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404)
+        /// Create a "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404)
         /// 
         /// In a real implementation:
         /// 1. The associated data (A) is computed as: [NTP header || UniqueId EF || Cookie EF].
@@ -728,14 +700,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var associatedData       = Concat(ntpHeader, uniqueIdExt, cookieExt);
 
             // 2. Plaintext P: for this example, we encrypt an empty plaintext.
-            var plaintext            = Array.Empty<Byte>();
+            var plaintext            = "Hello world!".ToUTF8Bytes();// Array.Empty<Byte>();
 
             // 3. Obtain the C2S key from the NTS-KE response.
             var c2sKey               = ntsResponse.C2SKey; // Must be 32 bytes for AES-128 SIV
 
             // 4. Use AesSiv to encrypt the plaintext.
             var aesSiv               = new AesSiv(c2sKey);
-            var sivAndCiphertext     = aesSiv.Encrypt(associatedData, plaintext);
+            var sivAndCiphertext     = aesSiv.Encrypt(associatedData, plaintext);  // 16
             // With an empty plaintext, sivAndCiphertext = 16-byte SIV.
 
             // 5. For our extension, we consider the SIV as the "nonce" and the ciphertext is empty.
@@ -770,10 +742,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             // The total length of the extension (including the 4-byte header) is valueLen + 4.
             //UInt16 totalExtLength = (UInt16)(valueLen + 4);
 
-            var ext = new NTPExtension(
-                          0x0404,
-                          value
-                      );
+            var ext = NTPExtension.AuthenticatorAndEncrypted(value);
 
             return ext;
 

@@ -15,14 +15,35 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Security.Cryptography;
 using System.Xml;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
+    public enum ExtensionTypes : UInt16
+    {
+        UniqueIdentifier            = 0x0104,
+        NTSCookie                   = 0x0204,
+        NTSCookiePlaceholder        = 0x0304,
+        AuthenticatorAndEncrypted   = 0x0404
+    }
+
+
     /// <summary>
-    /// The NTP Extension.
+    /// A NTP Extension.
+    /// 
+    /// Network Time Security for the Network Time Protocol: https://datatracker.ietf.org/doc/html/rfc8915
+    /// 5. NTS Extension Fields for NTPv4
+    /// 
+    /// Network Time Protocol Version 4 (NTPv4) Extension Fields: https://datatracker.ietf.org/doc/html/rfc7822
+    /// 
     /// </summary>
     /// <param name="Type">The extension type.</param>
     /// <param name="Length">The overall length of the extension in octets (including the 4-byte header).</param>
@@ -35,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// <summary>
         /// The extension type.
         /// </summary>
-        public UInt16  Type      { get; }
+        public ExtensionTypes  Type      { get; }
 
         /// <summary>
         /// The text representation of the extension type.
@@ -43,10 +64,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         public String  Name
 
             => Type switch {
-                   0x0104  => "Unique Identifier",
-                   0x0204  => "NTS Cookie",
-                   0x0404  => "Authenticator and Encrypted",
-                   _       => "<unknown>"
+                   ExtensionTypes.UniqueIdentifier           => "Unique Identifier",
+                   ExtensionTypes.NTSCookie                  => "NTS Cookie",
+                   ExtensionTypes.NTSCookiePlaceholder       => "NTS Cookie Placeholder",
+                   ExtensionTypes.AuthenticatorAndEncrypted  => "Authenticator and Encrypted",
+                   _                                         => "<unknown>"
                };
 
         /// <summary>
@@ -68,8 +90,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         /// <param name="Type">The extension type.</param>
         /// <param name="Value">The data within the extension.</param>
-        public NTPExtension(UInt16  Type,
-                            Byte[]  Value)
+        public NTPExtension(ExtensionTypes  Type,
+                            Byte[]          Value)
         {
 
             this.Type   = Type;
@@ -126,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             Buffer.BlockCopy(packet, 4, value, 0, length - 4);
 
             NTPExtension = new NTPExtension(
-                               type,
+                               (ExtensionTypes) type,
                                value
                            );
 
@@ -145,9 +167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         {
 
             var result = new Byte[Length];
+            var type   = (UInt16) Type;
 
-            result[0] = (Byte) ((Type   >> 8) & 0xff);
-            result[1] = (Byte)  (Type         & 0xff);
+            result[0] = (Byte) ((type   >> 8) & 0xff);
+            result[1] = (Byte)  (type         & 0xff);
 
             result[2] = (Byte) ((Length >> 8) & 0xff);
             result[3] = (Byte)  (Length       & 0xff);
@@ -158,6 +181,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             return result;
 
         }
+
+        #endregion
+
+
+        #region Static methods
+
+        /// <summary>
+        /// Create a new Unique Identifier extension.
+        /// </summary>
+        /// <param name="UniqueId">The unique identifier.</param>
+        public static NTPExtension UniqueIdentifier(Byte[]? UniqueId = null)
+        {
+
+            UniqueId ??= new Byte[32];
+            RandomNumberGenerator.Fill(UniqueId);
+
+            return new (
+                       ExtensionTypes.UniqueIdentifier,
+                       UniqueId
+                   );
+
+        }
+
+        /// <summary>
+        /// Create a new NTS Cookie extension.
+        /// </summary>
+        /// <param name="Value">The NTS cookie.</param>
+        public static NTPExtension  NTSCookie(Byte[] Value)
+
+            => new (
+                   ExtensionTypes.NTSCookie,
+                   Value
+               );
+
+        /// <summary>
+        /// Create a new NTS Cookie Placeholder extension.
+        /// </summary>
+        /// <param name="Length">The length of the expected NTS cookie.</param>
+        public static NTPExtension  NTSCookiePlaceholder(UInt16 Length)
+
+            => new (
+                   ExtensionTypes.NTSCookiePlaceholder,
+                   new Byte[Length]
+               );
+
+        /// <summary>
+        /// Create a new Authenticator and Encrypted extension.
+        /// </summary>
+        /// <param name="Value">The Authenticator and Encrypted data.</param>
+        public static NTPExtension  AuthenticatorAndEncrypted(Byte[] Value) //Byte[] Nonce, Byte[] Ciphertext)
+
+            => new (
+                   ExtensionTypes.AuthenticatorAndEncrypted,
+                   Value
+               );
 
         #endregion
 
