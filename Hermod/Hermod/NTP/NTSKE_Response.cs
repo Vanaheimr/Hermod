@@ -24,7 +24,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
     /// <param name="NTSKERecords">The enumeration of NTS-KE records.</param>
     /// <param name="C2SKey">The TLS client-to-server Key.</param>
     public class NTSKE_Response(IEnumerable<NTSKE_Record>  NTSKERecords,
-                                Byte[]                     C2SKey)
+                                Byte[]                     C2SKey,
+                                Byte[]                     S2CKey)
     {
 
         #region Properties
@@ -40,9 +41,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         public Byte[]                     C2SKey          { get; } = C2SKey;
 
         /// <summary>
+        /// The TLS server-to-client Key.
+        /// </summary>
+        public Byte[]                     S2CKey          { get; } = S2CKey;
+
+
+        /// <summary>
         /// The NTS-KE cookies.
         /// </summary>
-        public IEnumerable<Byte[]> Cookies
+        public IEnumerable<Byte[]>        Cookies
 
             => NTSKERecords.
                    Where (ntsKERecord => ntsKERecord.Type == 5).
@@ -63,6 +70,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                    C2SKey.Length > 0
                        ? $", C2S-Key: {BitConverter.ToString(C2SKey)}"
+                       : "",
+
+                   S2CKey.Length > 0
+                       ? $", S2C-Key: {BitConverter.ToString(S2CKey)}"
                        : ""
 
                );

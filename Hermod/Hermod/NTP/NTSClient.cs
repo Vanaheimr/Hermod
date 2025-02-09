@@ -26,6 +26,7 @@ using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Tls;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -50,11 +51,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         public UInt16     NTSKE_Port        { get; }
         public UInt16     NTP_Port          { get; }
         public TimeSpan?  Timeout           { get; set; }
-        public Byte[]     ExportedTLSKey    { get; set; }
+        public Byte[]     C2S_Key           { get; set; }
+        public Byte[]     S2C_Key           { get; set; }
 
         #endregion
 
-        #region NTSClient(Host)
+        #region NTSClient(Host, NTSKE_Port = 4460, NTP_Port = 123, Timeout = null)
 
         public NTSClient(String     Host,
                          UInt16     NTSKE_Port   = DefaultNTSKE_Port,
@@ -62,40 +64,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                          TimeSpan?  Timeout      = null)
         {
 
-            this.Host            = Host;
-            this.NTSKE_Port      = NTSKE_Port;
-            this.NTP_Port        = NTP_Port;
-            this.Timeout         = Timeout;
-            this.ExportedTLSKey  = [];
+            this.Host        = Host;
+            this.NTSKE_Port  = NTSKE_Port;
+            this.NTP_Port    = NTP_Port;
+            this.Timeout     = Timeout;
+            this.C2S_Key     = [];
+            this.S2C_Key     = [];
 
         }
 
         #endregion
 
 
-        #region ValidateServerCertificate(...)
+        #region GetNTSKERecords(Timeout = null)
 
         /// <summary>
-        /// Certificate validation callback.
-        /// In this demo, all certificates are accepted.
-        /// In production, validate the certificate properly.
+        /// Get NTS-KE records from the server.
         /// </summary>
-        public static Boolean ValidateServerCertificate(Object            sender,
-                                                        X509Certificate?  certificate,
-                                                        X509Chain?        chain,
-                                                        SslPolicyErrors   sslPolicyErrors)
-        {
-
-            DebugX.Log("Server certificate received.");
-
-            return true;
-
-        }
-
-        #endregion
-
-
-        public NTSKE_Response GetNTSKERecords_BC(TimeSpan? Timeout = null)
+        /// <param name="Timeout">An optional timeout.</param>
+        public NTSKE_Response GetNTSKERecords(TimeSpan? Timeout = null)
         {
             try
             {
@@ -113,32 +100,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                 tlsClientProtocol.Connect(ntsTlsClient);
 
-                ExportedTLSKey           = ntsTlsClient.ExportedKey ?? [];
+                C2S_Key                  = ntsTlsClient.NTS_C2S_Key ?? [];
+                S2C_Key                  = ntsTlsClient.NTS_S2C_Key ?? [];
 
-                var ntsKeRequest = BuildNtsKeRequest();
+                var ntsKeRequest = BuildNTSKERequest();
                 tlsClientProtocol.Stream.Write(ntsKeRequest, 0, ntsKeRequest.Length);
                 tlsClientProtocol.Stream.Flush();
 
-                var buffer    = new Byte[4096];
-                //var bytesRead = tlsClientProtocol.Stream.Read(buffer, 0, buffer.Length);
+                var buffer               = new Byte[4096];
 
-
-                var readTask = Task.Run(() => tlsClientProtocol.Stream.Read(buffer, 0, buffer.Length));
+                var readTask             = Task.Run(() => tlsClientProtocol.Stream.Read(buffer, 0, buffer.Length));
                 if (!readTask.Wait(timeout))
                 {
                     throw new TimeoutException("Read operation timed out.");
                 }
 
-                var bytesRead = readTask.Result;
+                var bytesRead            = readTask.Result;
                 if (bytesRead > 0)
                 {
 
                     Array.Resize(ref buffer, bytesRead);
 
-                    return new NTSKE_Response(
-                               ParseNtsKeResponse(buffer, (UInt32) bytesRead),
-                               ExportedTLSKey
-                           );
+                    if (TryParseNTSKE_Response(buffer, out var record, out var errorResponse))
+                        return new NTSKE_Response(
+                                   record,
+                                   C2S_Key,
+                                   S2C_Key
+                               );
 
                 }
                 else
@@ -152,14 +140,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 DebugX.Log("Exception: " + ex.Message);
             }
 
-            return new NTSKE_Response([],[]);
+            return new NTSKE_Response([], [], []);
 
         }
 
+        #endregion
 
-        #region GetNTSKERecords()
 
-        public IEnumerable<NTSKE_Record> GetNTSKERecords()
+        #region ValidateServerCertificate(...)
+
+        /// <summary>
+        /// Certificate validation callback.
+        /// In this demo, all certificates are accepted.
+        /// In production, validate the certificate properly.
+        /// </summary>
+        [Obsolete("Can not access TLS key material!")]
+        public static Boolean ValidateServerCertificate(Object sender,
+                                                        X509Certificate? certificate,
+                                                        X509Chain? chain,
+                                                        SslPolicyErrors sslPolicyErrors)
+        {
+
+            DebugX.Log("Server certificate received.");
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region GetNTSKERecords_dotNET()
+
+        [Obsolete("Can not access TLS key material!")]
+        public IEnumerable<NTSKE_Record> GetNTSKERecords_dotNET()
         {
 
             try
@@ -206,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                         //DebugX.Log("C2S-Key abgeleitet: " + BitConverter.ToString(c2sKey));
 
 
-                        var ntsKeRequest = BuildNtsKeRequest();
+                        var ntsKeRequest = BuildNTSKERequest();
                         sslStream.Write(ntsKeRequest, 0, ntsKeRequest.Length);
                         sslStream.Flush();
 
@@ -214,8 +227,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                         var bytesRead = sslStream.Read(buffer, 0, buffer.Length);
                         if (bytesRead > 0)
                         {
+
                             Array.Resize(ref buffer, bytesRead);
-                            return ParseNtsKeResponse(buffer, (UInt32) bytesRead);
+
+                            if (TryParseNTSKE_Response(buffer, out var record, out var errorResponse))
+                                return record;
+
                         }
                         else
                         {
@@ -237,17 +254,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #endregion
 
 
-        #region BuildNtsKeRequest()
+        #region BuildNTSKERequest()
 
         /// <summary>
         /// Erzeugt das NTS‑KE Request PDU im TLV‑Format.
         /// Record Aufbau:
-        ///   - Record Type: 0x0001 (Next Protocol Negotiation)
+        ///   - Record Type:   0x0001 (Next Protocol Negotiation)
         ///   - Record Length: 0x0002 (2 Byte für Protocol ID)
-        ///   - Protocol ID: 0x0002 (NTP)
+        ///   - Protocol ID:   0x0002 (NTP)
         /// </summary>
         /// <returns>Byte-Array mit dem Request</returns>
-        private static byte[] BuildNtsKeRequest()
+        private static Byte[] BuildNTSKERequest()
         {
             using (var ms = new MemoryStream())
             {
@@ -272,15 +289,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                     0x00, 0x0F  // AEAD Algorithm ID = 15 (AES-SIV-CMAC-256)
                 ];
 
-                //// Record #1: Cookie Request (Record-Type = 0x0002)
-                ////  - Length = 2
-                ////  - Data: 0x0004 (Anzahl angeforderter Cookies = 4)
-                //byte[] cookieRequest = [
-                //    0x00, 0x02,  // Record-Type = 2
-                //    0x00, 0x02,  // Length = 2
-                //    0x00, 0x04   // Fordere 4 Cookies
-                //];
-
                 // 3) End of Message (record type=0)
                 //    => length=0, no body
                 byte[] eom = [
@@ -300,71 +308,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region ParseNtsKeResponse()
-
-        // 80010002000080040002000f00050064e157c67c54f94390fbb930a259d5438e5bd89c18c0e3c5e0d18c0c4a72741e7d634d1a06ae5539805515b03aa756462ca77f479fb368d026dcebf0af426b073936506ae693f169327c5a5eba8b7f4254c9dd382aea59fa1f7dd47a681d4105316ef6315300050064e157c67c932d10869d717e0b9c864d07faa7478f55e64e3bfea56448dc8f72d57172db5428bb2a4b2f7aa9d32fe3b2c31134e3113aa36c5ce0b618a9634463653960fe672c78bf5846c6f16b34cc20246fd0a11625af9085a159b07851454f0241e3828a00050064e157c67c6113c3776e098e743a8aecffce82e880496daccaaf9440a494157d82be894a03c59f5cd6bfc0b93145367400e00db6d334c912184a03eecbd1db14bf1f26e7fb12556dc7ff8e0dde49972de5db2c4825f323ba668e5c3641969477144665474600050064e157c67c22aedc90c00997fbeb508f6e6923460fc5130036f13d807da55910fa8d9ad7b24d4636dd822b59e5df274c380536c5d0080561cca3758eda5015422b9857b89e3cf3f075242bc25ae6725c779ede7a006617f2959380da32b2b44ff32499db5900050064e157c67c8cb8afc1a79c90a0bd88e7d3ea24fa8182cdc750e37ac4f6f515302b10cdfdf972845221fe86f409ac225841c5404f360c6f680fe50f7c91bc2dde900f0741cc198d6073963316ea9400f4881c6c359cf6524ed09d98829bc862dbfda137e1fc00050064e157c67cac5362c0d8e4d8f043557871eed408ac4eb361f39ff6aa5c12f11563584e8103e1351cf2a4672845fc5bed6128e2ffb54a5bc402cb3f1f7c09b69ab35ffe096072d5767722d011c8a60ca9fe1963f68c5887f163b5430af96e22aa62943fe29d00050064e157c67c8869d5681d34853d66b1f41147650aaf0d33c0979b7f0aa1a99259674035913ea10585923a7f468b4a1e7d1e0c300e6e476c09e2ff93a0fa4161696b32c6f7e84e58866be6aa8a42fbad4bb1d4af15d0dd6a04c4a43a2f31bc6f633e6140e52800050064e157c67c6995cfd339caeca4c4deb45f8ffdbb6a10b56f62c5e34dc2a2868e05e1376b44b22904f0f23070cabcdf6d70b4d5a2170aef53acae00edb1ee37bb50368e140593022582ea50c8149afa4a64cf1451168700ba94b8a2722c45be3f72f18ff74e80000000
+        #region TryParseNTSKE_Response(Buffer, out NTSKERecords, out ErrorResponse)
 
         // 8001 0002 0000
         // 8004 0002 000f
-        // 0005 0064 e157 c67c 28 4c 75 81 ... [100 bytes total] ...
-        // 0005 0064 e157 c67c bb 52 54 94 ... [100 bytes total] ...
-        // 0005 0064 e157 c67c a7 cb b9 a3 ... [100 bytes total] ...
-        // 0005 0064 e157 c67c 93 9c 9c 97 ... [100 bytes total] ...
-        // 0005 0064 e157 c67c 62 ae e6 bb ... [100 bytes total] ...
-        // 0005 0064 e157 c67c 60 7e 78 dd ... [100 bytes total] ...
-        // 0005 0064 e157 c67c 0b dd 68 55 ... [100 bytes total] ...
-        // 0005 0064 e157 c67c 93 46 be 89 ... [100 bytes total] ...
+        // 0005 0064 e157c67c54f94390fbb930a259d5438e5bd89c18c0e3c5e0d18c0c4a72741e7d634d1a06ae5539805515b03aa756462ca77f479fb368d026dcebf0af426b073936506ae693f169327c5a5eba8b7f4254c9dd382aea59fa1f7dd47a681d4105316ef63153
+        // 0005 0064 e157c67c932d10869d717e0b9c864d07faa7478f55e64e3bfea56448dc8f72d57172db5428bb2a4b2f7aa9d32fe3b2c31134e3113aa36c5ce0b618a9634463653960fe672c78bf5846c6f16b34cc20246fd0a11625af9085a159b07851454f0241e3828a
+        // 0005 0064 e157c67c6113c3776e098e743a8aecffce82e880496daccaaf9440a494157d82be894a03c59f5cd6bfc0b93145367400e00db6d334c912184a03eecbd1db14bf1f26e7fb12556dc7ff8e0dde49972de5db2c4825f323ba668e5c36419694771446654746
+        // 0005 0064 e157c67c22aedc90c00997fbeb508f6e6923460fc5130036f13d807da55910fa8d9ad7b24d4636dd822b59e5df274c380536c5d0080561cca3758eda5015422b9857b89e3cf3f075242bc25ae6725c779ede7a006617f2959380da32b2b44ff32499db59
+        // 0005 0064 e157c67c8cb8afc1a79c90a0bd88e7d3ea24fa8182cdc750e37ac4f6f515302b10cdfdf972845221fe86f409ac225841c5404f360c6f680fe50f7c91bc2dde900f0741cc198d6073963316ea9400f4881c6c359cf6524ed09d98829bc862dbfda137e1fc
+        // 0005 0064 e157c67cac5362c0d8e4d8f043557871eed408ac4eb361f39ff6aa5c12f11563584e8103e1351cf2a4672845fc5bed6128e2ffb54a5bc402cb3f1f7c09b69ab35ffe096072d5767722d011c8a60ca9fe1963f68c5887f163b5430af96e22aa62943fe29d
+        // 0005 0064 e157c67c8869d5681d34853d66b1f41147650aaf0d33c0979b7f0aa1a99259674035913ea10585923a7f468b4a1e7d1e0c300e6e476c09e2ff93a0fa4161696b32c6f7e84e58866be6aa8a42fbad4bb1d4af15d0dd6a04c4a43a2f31bc6f633e6140e528
+        // 0005 0064 e157c67c6995cfd339caeca4c4deb45f8ffdbb6a10b56f62c5e34dc2a2868e05e1376b44b22904f0f23070cabcdf6d70b4d5a2170aef53acae00edb1ee37bb50368e140593022582ea50c8149afa4a64cf1451168700ba94b8a2722c45be3f72f18ff74e
         // 8000 0000
 
-
-
-
         /// <summary>
-        /// Parses the NTS-KE response data into a list of records.
-        /// RFC 8915 defines the record format as:
-        ///
-        ///   16 bits: [CriticalBit (1) + RecordType (15)]
-        ///   16 bits: BodyLength (big-endian)
-        ///   Body:    [BodyLength bytes]
-        ///
-        /// Returns a list of NtsKeRecord objects.
+        /// Try to parse the NTS-KE response records.
         /// </summary>
         /// <param name="Buffer">The raw NTS-KE data from the server.</param>
-        /// <param name="Length">Number of valid bytes in 'buffer'.</param>
-        /// <returns>List of parsed records.</returns>
-        public static List<NTSKE_Record> ParseNtsKeResponse(Byte[]  Buffer,
-                                                           UInt32  Length)
+        /// <param name="NTSKERecords">The parsed NTS-KE records.</param>
+        /// <param name="ErrorResponse">An optional error message.</param>
+        public static Boolean TryParseNTSKE_Response(Byte[]                                               Buffer,
+                                                     [NotNullWhen(true)]  out IEnumerable<NTSKE_Record>?  NTSKERecords,
+                                                     [NotNullWhen(false)] out String?                     ErrorResponse)
         {
 
-            var records = new List<NTSKE_Record>();
-            var offset  = 0;
+            ErrorResponse  = null;
+            NTSKERecords   = [];
 
-            while (offset + 4 <= Length)
+            var records    = new List<NTSKE_Record>();
+            var offset     = 0;
+
+            while (offset + 4 <= Buffer.Length)
             {
 
-                // Read the 16-bit record-type field (big-endian)
-                // The first byte has the critical bit (most significant bit).
-                var hi          = Buffer[offset];
-                var lo          = Buffer[offset + 1];
-
-                // Extract the "critical" bit (bit 7 in 'hi'), then the lower 15 bits
-                var critical    = (hi & 0x80) != 0;   // top bit
-                var type        = (UInt16) (((hi & 0x7F) << 8) | lo);
-
+                // RFC 8915:
+                // 16 bits: [CriticalBit (1) + RecordType (15)]
+                // 16 bits: BodyLength (big-endian)
+                // Body:    [BodyLength bytes]
+                var critical    =            (Buffer[offset] & 0x80) != 0;
+                var type        = (UInt16) (((Buffer[offset] & 0x7F) << 8) | Buffer[offset + 1]);
                 offset += 2;
 
-                // Read the 16-bit "bodyLength" in big-endian
-                var lenHi       = Buffer[offset];
-                var lenLo       = Buffer[offset + 1];
-                var bodyLength  = (UInt16) ((lenHi << 8) | lenLo);
-
+                var bodyLength  = (UInt16)  ((Buffer[offset]         << 8) | Buffer[offset + 1]);
                 offset += 2;
 
-                // Ensure we have enough bytes left for the body
-                if (offset + bodyLength > Length)
+                if (offset + bodyLength > Buffer.Length)
                 {
-                    // Truncated buffer
-                    throw new Exception("NTS-KE record claims more body bytes than available!");
+                    ErrorResponse = "NTS-KE record claims more body bytes than available!";
+                    return false;
                 }
 
                 var body = new Byte[bodyLength];
@@ -381,7 +373,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             }
 
-            return records;
+            NTSKERecords = records;
+            return true;
 
         }
 
@@ -400,9 +393,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// and reads a single response.
         /// </summary>
         public async Task<NTPPacket?> QueryTime(TimeSpan?          Timeout             = null,
-                                                 NTSKE_Response?    NTSKEResponse       = null,
-                                                 CancellationToken  CancellationToken   = default)
+                                                NTSKE_Response?    NTSKEResponse       = null,
+                                                CancellationToken  CancellationToken   = default)
         {
+
+            // NTS request
+            // 230008200000000000000000000000000000000000000000000000000000000000000000000000005001ac7cd6000835
+            // 0104 0024 2027e75e68914d89bdd2461d6c18a87914ae432326ae452516f1af36876c37e2
+            // 0204 0068 9dad3e6fcd545c8fc9a6eb945be9e2a600760641ea6e3d89c47fc692135e9ba4ca075866699e30a46b4b31f195f6d7cf8c72a4556189029c19d3c2eedda04969441c47a62004307a62c9b57cae3dc4a4af2be69757c30bd5c917e3e25564dfa3a3e283a0
+            // 0404 0028 0010 0010 768f82009746999ea26472c70d9e4906 3b474cf41d387f62e78ae20224c53209
+
+            // NTS response
+            // 240308e7000001a00000003974cb60e3eb51b89a96d03cb65001ac7cd6000835eb51b99eb19a6fd1eb51b99eb19e575e
+            // 0104 0024 2027e75e68914d89bdd2461d6c18a87914ae432326ae452516f1af36876c37e2
+            // 0404 0090 0010 0078 c562375b4cf5e6338cecf184f1c9b739ecc6daa3e27bbda9935a184f9089bc5ad6060a80afd71b5dcd421b332f4f26fdb53d9a1d092662595944696573fea2c1ae33761b04f5b399f504779bf4745caab96ac43c10595f0abe61aedbb6471b806e737cba62035e8bfd44279ed869996102168d9c68edf37cba02d3db49ca6aaf28923d67bb43e0ba
 
             var uniqueId = new Byte[32];
             RandomNumberGenerator.Fill(uniqueId);
@@ -468,7 +472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         }
 
 
-        #region BuildNTSRequest(NTSResponse = null, UniqueId = null)
+        #region BuildNTSRequest(NTSKEResponse = null, UniqueId = null)
 
         /// <summary>
         /// Builds an NTP mode=3 request with minimal NTS EFs:
@@ -476,51 +480,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  2) NTS Cookie (0204)
         ///  3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
         /// </summary>
-        private static NTPPacket BuildNTPRequest(NTSKE_Response? NTSResponse = null, Byte[]? UniqueId = null)
+        private static NTPPacket BuildNTPRequest(NTSKE_Response?  NTSKEResponse   = null,
+                                                 Byte[]?          UniqueId        = null)
         {
 
-            var ntpRequest1 = new NTPPacket(
-                                  TransmitTimestamp: NTPPacket.GetCurrentNTPTimestamp()
-                              );
+            var ntpPacket1 = new NTPPacket(
+                                 TransmitTimestamp: NTPPacket.GetCurrentNTPTimestamp()
+                             );
 
             var extensions = new List<NTPExtension>();
 
-            if (NTSResponse is not null &&
-                NTSResponse.Cookies.Any() &&
-                NTSResponse.C2SKey.Length > 0)
+            if (NTSKEResponse is not null &&
+                NTSKEResponse.Cookies.Any() &&
+                NTSKEResponse.C2SKey.Length > 0)
             {
 
                 var uniqueIdExtension  = NTPExtension.UniqueIdentifier(UniqueId);
-                var cookieExtension    = NTPExtension.NTSCookie(NTSResponse.Cookies.First());
+                var cookieExtension    = NTPExtension.NTSCookie(NTSKEResponse.Cookies.First());
 
                 extensions.Add(
                     uniqueIdExtension
                 );
 
                 extensions.Add(
-                    NTPExtension.NTSCookie(NTSResponse.Cookies.First())
+                    NTPExtension.NTSCookie(NTSKEResponse.Cookies.First())
                 );
 
                 // Basically this extension validates all data (NTP header + extensions) which came before it!
                 extensions.Add(
                     CreateNTSAuthenticatorExtension(
-                        NTSResponse,
-                        ntpRequest1.      ToByteArray(),
-                        uniqueIdExtension.ToByteArray(),
-                        cookieExtension.  ToByteArray()
+                        NTSKEResponse,
+                        [
+                            ntpPacket1.       ToByteArray(),
+                            uniqueIdExtension.ToByteArray(),
+                            cookieExtension.  ToByteArray()
+                        ]
                     )
                 );
 
+                var xx = TryValidateNTSAuthenticatorExtension(
+                             extensions.Last().Value,
+                             [
+                                 ntpPacket1.       ToByteArray(),
+                                 uniqueIdExtension.ToByteArray(),
+                                 cookieExtension.  ToByteArray()
+                             ],
+                             NTSKEResponse.C2SKey,
+                             [],
+                             out var err
+                         );
+
             }
 
-            var ntpRequest = new NTPPacket(
-                                 ntpRequest1,
-                                 Extensions: extensions
-                             );
+            var ntpPacket = new NTPPacket(
+                                ntpPacket1,
+                                Extensions: extensions
+                            );
 
-          //  var packet     = ntpRequest.ToByteArray();
-
-            return ntpRequest;
+            return ntpPacket;
 
         }
 
@@ -569,108 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region CreateNtsAuthenticatorExtension(...)
-
-        /// <summary>
-        /// Create a "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404),
-        /// which holds AEAD nonce, ciphertext, etc.
-        ///
-        /// In a real implementation:
-        ///   - You compute "associated data" as everything up to this EF (the header + unique ID EF + cookie EF).
-        ///   - You set plaintext if you want to encrypt more extension fields.
-        ///   - You run AES-SIV (or whichever AEAD) with c2sKey.
-        ///   - Fill NonceLength(2 bytes), CiphertextLength(2 bytes), Nonce[], Ciphertext[], plus any zero padding.
-        ///
-        /// Here we only show a minimal placeholder to demonstrate the correct structure.
-        /// </summary>
-        public static NTPExtension CreateNTSAuthenticatorExtension_old(NTSKE_Response NTSResponse)
-        {
-
-            // In real code, you'd do something like:
-            //  1) Construct Associated Data (A) = [NTP header + UniqueId EF + Cookie EF]
-            //  2) Construct your plaintext (P) if you want to encrypt any internal extension fields
-            //  3) Generate a random nonce
-            //  4) Run AES-SIV using c2sKey, to produce ciphertext + authentication tag
-            // For now, let's create a dummy 16-byte "nonce" and 16-byte "ciphertext" to show the format.
-
-            var dummyNonce           = new Byte[16];
-            RandomNumberGenerator.Fill(dummyNonce);
-
-            var dummyCiphertext      = new Byte[16];
-            // In real code, you'd fill this with AEAD output from the encryption of some plaintext.
-
-            // The EF's internal structure is:
-            //   2 bytes: Nonce Length
-            //   2 bytes: Ciphertext Length
-            //   Nonce (nonce length, pad up to multiple-of-4)
-            //   Ciphertext (ciphertext length, pad up to multiple-of-4)
-            //   Possibly additional padding so that the entire EF is multiple of 4
-            //
-            // For simplicity, let's do no extra padding other than the 4 boundary for each part.
-            // So, NonceLength = 16, CiphertextLength=16.
-
-            var nonceLen             = (ushort) dummyNonce.     Length;
-            var ciphertextLen        = (ushort) dummyCiphertext.Length;
-
-            // We'll compute how many bytes for the Nonce block, round up to nearest 4
-            var paddedNonceLen       = ((nonceLen + 3) / 4) * 4;
-            var paddedCiphertextLen  = ((ciphertextLen + 3) / 4) * 4;
-
-            // So the total EF size = 4 (EF header) + 4 (nonce/ciphertext length fields)
-            //   + paddedNonceLen + paddedCiphertextLen
-            var bodySize             = 4 + paddedNonceLen + paddedCiphertextLen;
-            var totalLen             = 4 + bodySize; // 4 for EF type+length
-
-            var data                 = new Byte[totalLen];
-
-            // 1) EF type=0x0404
-            data[0] = 0x04;
-            data[1] = 0x04;
-            // 2) EF length (entire extension, includes 4 header bytes) 
-            data[2] = (byte) ((totalLen >> 8) & 0xFF);
-            data[3] = (byte)  (totalLen & 0xFF);
-
-            // Next 2 bytes = NonceLength (big-endian)
-            data[4] = (byte) ((nonceLen >> 8) & 0xFF);
-            data[5] = (byte) (nonceLen & 0xFF);
-            // Next 2 bytes = CiphertextLength (big-endian)
-            data[6] = (byte) ((ciphertextLen >> 8) & 0xFF);
-            data[7] = (byte) (ciphertextLen & 0xFF);
-
-            // Copy the Nonce (16 bytes) at offset=8
-            Buffer.BlockCopy(dummyNonce, 0, data, 8, nonceLen);
-            var offset = 8 + paddedNonceLen;
-
-            // Copy the ciphertext (16 bytes) next
-            Buffer.BlockCopy(dummyCiphertext, 0, data, offset, ciphertextLen);
-            offset += paddedCiphertextLen;
-
-            // Any leftover is 0 padding, if needed.
-
-
-            var value = new Byte[4 + paddedNonceLen + paddedCiphertextLen];
-
-            // Next 2 bytes = NonceLength (big-endian)
-            value[0] = (byte)((nonceLen >> 8) & 0xFF);
-            value[1] = (byte)(nonceLen & 0xFF);
-            // Next 2 bytes = CiphertextLength (big-endian)
-            value[2] = (byte)((ciphertextLen >> 8) & 0xFF);
-            value[3] = (byte)(ciphertextLen & 0xFF);
-
-            var offset2 = 4;
-
-            Buffer.BlockCopy(dummyNonce, 0, value, offset2, nonceLen);
-            offset2 += paddedNonceLen;
-
-            Buffer.BlockCopy(dummyCiphertext, 0, value, offset2, ciphertextLen);
-            //offset2 += paddedCiphertextLen;
-
-            var x = NTPExtension.AuthenticatorAndEncrypted(value);
-
-            return x;
-
-        }
-
+        #region CreateNTSAuthenticatorExtension(NTSKEResponse, AssociatedData, Plainttext = null)
 
         /// <summary>
         /// Create a "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404)
@@ -686,67 +602,158 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///    where each of nonce and ciphertext is padded to a 4-byte boundary.
         /// 7. Finally, an NTPExtension (with 4-byte header containing type and total length) is returned.
         /// </summary>
-        /// <param name="ntsResponse">The NTS-KE response containing the derived C2S key.</param>
-        /// <param name="ntpHeader">The 48-byte NTP header that was used in the NTS-KE request.</param>
-        /// <param name="uniqueIdExt">The Unique Identifier extension (Type 0x0104) as sent in the request.</param>
-        /// <param name="cookieExt">The NTS Cookie extension (Type 0x0204) as sent in the request.</param>
-        private static NTPExtension CreateNTSAuthenticatorExtension(NTSKE_Response  ntsResponse,
-                                                                    Byte[]          ntpHeader,
-                                                                    Byte[]          uniqueIdExt,
-                                                                    Byte[]          cookieExt)
+        /// <param name="NTSKEResponse">A Network Time Security Key Establishment (NTS-KE) response containing the C2S key.</param>
+        /// <param name="AssociatedData">An array of byte arrays to be authenticated but not encrypted.</param>
+        /// <param name="Plainttext">The optional plaintext to be encrypted (e.g. internal extension fields).</param>
+        private static NTPExtension CreateNTSAuthenticatorExtension(NTSKE_Response  NTSKEResponse,
+                                                                    IList<Byte[]>   AssociatedData,
+                                                                    Byte[]?         Plainttext   = null)
         {
 
-            // 1. Compute Associated Data = NTP header || UniqueId EF || Cookie EF
-            var associatedData       = Concat(ntpHeader, uniqueIdExt, cookieExt);
+            var plaintext            = Plainttext ?? [];
+            var c2sKey               = NTSKEResponse.C2SKey;
+            var aesSiv               = new AES_SIV(c2sKey); // AES-SIV-CMAC-256
+            var sivAndCiphertext     = aesSiv.Encrypt(AssociatedData, plaintext);
 
-            // 2. Plaintext P: for this example, we encrypt an empty plaintext.
-            var plaintext            = "Hello world!".ToUTF8Bytes();// Array.Empty<Byte>();
-
-            // 3. Obtain the C2S key from the NTS-KE response.
-            var c2sKey               = ntsResponse.C2SKey; // Must be 32 bytes for AES-128 SIV
-
-            // 4. Use AesSiv to encrypt the plaintext.
-            var aesSiv               = new AesSiv(c2sKey);
-            var sivAndCiphertext     = aesSiv.Encrypt(associatedData, plaintext);  // 16
-            // With an empty plaintext, sivAndCiphertext = 16-byte SIV.
-
-            // 5. For our extension, we consider the SIV as the "nonce" and the ciphertext is empty.
+            // We consider the SIV as the "nonce"...
             var nonceLen             = 16;
-            var ciphertextLen        = 16; // 0
-            var paddedNonceLen       = ((nonceLen      + 3) / 4) * 4; // Likely 16.
-            var paddedCiphertextLen  = ((ciphertextLen + 3) / 4) * 4; // 0.
-            var valueLen             = 4 + paddedNonceLen + paddedCiphertextLen;
-            var value                = new Byte[valueLen];
+            var ciphertextLen        = Math.Max(sivAndCiphertext.Length - 16, 16);
+            var paddedNonceLen       = (nonceLen      + 3) & ~3;
+            var paddedCiphertextLen  = (ciphertextLen + 3) & ~3;
+            var value                = new Byte[4 + paddedNonceLen + paddedCiphertextLen];
 
-            // Write NonceLength (2 bytes, big-endian)
-            value[0] = (byte) ((nonceLen      >> 8) & 0xff);
-            value[1] = (byte)  (nonceLen            & 0xff);
+            value[0] = (Byte) ((nonceLen      >> 8) & 0xff);
+            value[1] = (Byte)  (nonceLen            & 0xff);
 
-            // Write CiphertextLength (2 bytes, big-endian)
-            value[2] = (byte) ((ciphertextLen >> 8) & 0xff);
-            value[3] = (byte)  (ciphertextLen       & 0xff);
+            value[2] = (Byte) ((ciphertextLen >> 8) & 0xff);
+            value[3] = (Byte)  (ciphertextLen       & 0xff);
 
-            var offset = 4;
-            Buffer.BlockCopy(sivAndCiphertext, 0, value, offset, nonceLen);
+            Buffer.BlockCopy(sivAndCiphertext, 0, value, 4,                  nonceLen);
+            Buffer.BlockCopy(sivAndCiphertext, 0, value, 4 + paddedNonceLen, nonceLen);
 
-            // If needed, pad nonce to paddedNonceLen (should be unnecessary if nonceLen is already multiple of 4)
-            for (var i = nonceLen; i < paddedNonceLen; i++)
-                value[offset + i] = 0;
+            if (sivAndCiphertext.Length > nonceLen)
+                Buffer.BlockCopy(sivAndCiphertext, nonceLen, value, 4 + paddedNonceLen, ciphertextLen);
 
-            offset += paddedNonceLen;
-
-            // Copy ciphertext (empty in our case)
-            // No need to copy if ciphertextLen is 0.
-
-            // 7. Build the full NTPExtension.
-            // The total length of the extension (including the 4-byte header) is valueLen + 4.
-            //UInt16 totalExtLength = (UInt16)(valueLen + 4);
-
-            var ext = NTPExtension.AuthenticatorAndEncrypted(value);
-
-            return ext;
+            return NTPExtension.AuthenticatorAndEncrypted(value);
 
         }
+
+        #endregion
+
+        #region TryValidateNTSAuthenticatorExtension(ReceivedValue, AssociatedData, C2SKey, ExpectedPlaintext, out ErrorResponse)
+
+        /// <summary>
+        /// Validates the NTS Authenticator and Encrypted Extension Field received from an NTP request.
+        /// The extension value should have the format:
+        /// [NonceLength (2 bytes) || CiphertextLength (2 bytes) || padded(Nonce) || padded(Ciphertext)]
+        /// where each of nonce and ciphertext is padded to a 4-byte boundary.
+        /// The validation is performed by re-computing the AEAD encryption using the provided C2S key,
+        /// the expected associated data (e.g. NTP header || UniqueId EF || Cookie EF)
+        /// and the expected plaintext.
+        /// </summary>
+        /// <param name="ReceivedValue">
+        /// The raw value bytes of the authenticator extension (excluding the 4-byte NTPExtension header).
+        /// </param>
+        /// <param name="AssociatedData">
+        /// The associated data as a list of byte arrays (for example: [NTP header, UniqueId extension, Cookie extension]).
+        /// </param>
+        /// <param name="C2SKey">The client-to-server key derived from the TLS session (e.g. 32 bytes for AES-SIV).</param>
+        /// <param name="ExpectedPlaintext">
+        /// The plaintext that was encrypted (for example, in testing it might be "Hello world!" as UTF8 bytes).
+        /// In a real implementation, this would be the concatenation of confidential internal extension fields.
+        /// </param>
+        public static Boolean TryValidateNTSAuthenticatorExtension(Byte[]         ReceivedValue,
+                                                                   IList<Byte[]>  AssociatedData,
+                                                                   Byte[]         C2SKey,
+                                                                   Byte[]         ExpectedPlaintext,
+                                                                   out String?    ErrorResponse)
+        {
+
+            ErrorResponse = null;
+
+            if (ReceivedValue == null || ReceivedValue.Length < 4)
+            {
+                ErrorResponse = "NTS Authenticator and Encrypted extension value is null or too short!";
+                return false;
+            }
+
+            var nonceLen                  = (UInt16) ((ReceivedValue[0] << 8) | ReceivedValue[1]);
+            var ciphertextLen             = (UInt16) ((ReceivedValue[2] << 8) | ReceivedValue[3]);
+
+            var paddedNonceLen            = ((nonceLen      + 3) / 4) * 4;
+            var paddedCiphertextLen       = ((ciphertextLen + 3) / 4) * 4;
+
+            // Verify that the total length of the received value matches expectations:
+            var expectedTotalValueLength  = 4 + paddedNonceLen + paddedCiphertextLen;
+            if (ReceivedValue.Length != expectedTotalValueLength)
+            {
+                ErrorResponse = "NTS Authenticator and Encrypted extension value has unexpected length!";
+                return false;
+            }
+
+            var receivedNonce             = new Byte[nonceLen];
+            Buffer.BlockCopy(ReceivedValue, 4, receivedNonce, 0, nonceLen);
+
+            var receivedCiphertext        = new Byte[ciphertextLen];
+            if (ciphertextLen > 0)
+                Buffer.BlockCopy(ReceivedValue, 4 + paddedNonceLen, receivedCiphertext, 0, ciphertextLen);
+
+            // Recompute the AEAD output using AES-SIV.
+            // Our AesSiv class expects an IList<byte[]> as associated data.
+            var aesSiv                    = new AES_SIV(C2SKey);
+            var computedOutput            = aesSiv.Encrypt(AssociatedData, ExpectedPlaintext);
+
+            // computedOutput should be SIV || Ciphertext.
+            // Let’s assume that our implementation produces a computedOutput of length = (nonceLen + ciphertextLen)
+            // (e.g. if plaintext is non-empty, computedOutput includes both parts).
+            if (computedOutput.Length < nonceLen)
+            {
+                ErrorResponse = "Computed AEAD output is too short!";
+                return false;
+            }
+
+            var computedNonce             = new Byte[nonceLen];
+            Buffer.BlockCopy(computedOutput, 0, computedNonce, 0, nonceLen);
+
+            var computedCiphertextLen     = Math.Max(computedOutput.Length - nonceLen, 16);
+            var computedCiphertext        = new Byte[computedCiphertextLen];
+            if (computedOutput.Length > nonceLen)
+                Buffer.BlockCopy(computedOutput, nonceLen, computedCiphertext, 0, computedCiphertextLen);
+
+            var nonceMatch                = AreEqual(receivedNonce,      computedNonce);
+            var ciphertextMatch           = AreEqual(receivedCiphertext, computedCiphertext);
+
+            return nonceMatch && ciphertextMatch;
+
+        }
+
+        #endregion
+
+
+        #region (private static) AreEqual(a, b)
+
+        /// <summary>
+        /// Compares two byte arrays for equality.
+        /// </summary>
+        private static Boolean AreEqual(Byte[] a, Byte[] b)
+        {
+
+            if (a == null || b == null || a.Length != b.Length)
+                return false;
+
+            for (var i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                    return false;
+            }
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region (private static) Concat(params arrays)
 
         /// <summary>
         /// Helper: Concatenate multiple byte arrays.
@@ -772,8 +779,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         }
 
-
         #endregion
+
 
     }
 

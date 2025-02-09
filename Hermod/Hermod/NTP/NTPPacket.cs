@@ -362,12 +362,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region TryParse(Buffer, out NTPRequest, out ErrorResponse, ExptectedUniqueId   = null)
+        #region TryParse(Buffer, out NTPPacket, out ErrorResponse, ExptectedUniqueId   = null)
 
-        public static Boolean TryParse(Byte[]                                Buffer,
-                                       [NotNullWhen(true)]  out NTPPacket?  NTPRequest,
-                                       [NotNullWhen(false)] out String?      ErrorResponse,
-                                       Byte[]?                               ExptectedUniqueId   = null)
+        public static Boolean TryParse(Byte[]                               Buffer,
+                                       [NotNullWhen(true)]  out NTPPacket?  NTPPacket,
+                                       [NotNullWhen(false)] out String?     ErrorResponse,
+                                       Byte[]?                              ExptectedUniqueId   = null)
         {
 
             ErrorResponse = null;
@@ -375,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             if (Buffer.Length < 48)
             {
                 ErrorResponse = "Buffer too short!";
-                NTPRequest   = null;
+                NTPPacket   = null;
                 return false;
             }
 
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 if (length < 4)
                 {
                     ErrorResponse  = $"Illegal length of extension {length} at offset {offset}!";
-                    NTPRequest      = null;
+                    NTPPacket      = null;
                     return false;
                 }
 
@@ -412,22 +412,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             }
 
-            NTPRequest = new NTPPacket(
-                             LI:                   (Byte) ((Buffer[0] >> 6) & 0x03),
-                             VN:                   (Byte) ((Buffer[0] >> 3) & 0x07),
-                             Mode:                 (Byte)  (Buffer[0]       & 0x07),
-                             Stratum:              Buffer[1],
-                             Poll:                 Buffer[2],
-                             Precision:            (SByte) Buffer[3],
-                             RootDelay:            (UInt32) ((Buffer[4]  << 24) | (Buffer[5]  << 16) | (Buffer[6]  << 8) | Buffer[7]),
-                             RootDispersion:       (UInt32) ((Buffer[8]  << 24) | (Buffer[9]  << 16) | (Buffer[10] << 8) | Buffer[11]),
-                             ReferenceIdentifier:  (UInt32) ((Buffer[12] << 24) | (Buffer[13] << 16) | (Buffer[14] << 8) | Buffer[15]),
-                             ReferenceTimestamp:   ReadUInt64(Buffer, 16),
-                             OriginateTimestamp:   ReadUInt64(Buffer, 24),
-                             ReceiveTimestamp:     ReadUInt64(Buffer, 32),
-                             TransmitTimestamp:    ReadUInt64(Buffer, 40),
-                             Extensions:           extensions
-                         );
+            NTPPacket = new NTPPacket(
+                            LI:                   (Byte) ((Buffer[0] >> 6) & 0x03),
+                            VN:                   (Byte) ((Buffer[0] >> 3) & 0x07),
+                            Mode:                 (Byte)  (Buffer[0]       & 0x07),
+                            Stratum:              Buffer[1],
+                            Poll:                 Buffer[2],
+                            Precision:            (SByte) Buffer[3],
+                            RootDelay:            (UInt32) ((Buffer[4]  << 24) | (Buffer[5]  << 16) | (Buffer[6]  << 8) | Buffer[7]),
+                            RootDispersion:       (UInt32) ((Buffer[8]  << 24) | (Buffer[9]  << 16) | (Buffer[10] << 8) | Buffer[11]),
+                            ReferenceIdentifier:  (UInt32) ((Buffer[12] << 24) | (Buffer[13] << 16) | (Buffer[14] << 8) | Buffer[15]),
+                            ReferenceTimestamp:   ReadUInt64(Buffer, 16),
+                            OriginateTimestamp:   ReadUInt64(Buffer, 24),
+                            ReceiveTimestamp:     ReadUInt64(Buffer, 32),
+                            TransmitTimestamp:    ReadUInt64(Buffer, 40),
+                            Extensions:           extensions
+                        );
 
             return true;
 

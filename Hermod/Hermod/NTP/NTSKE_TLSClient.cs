@@ -35,7 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #region Properties
 
         public TlsContext?  MyContext      { get; private set; }
-        public Byte[]?      ExportedKey    { get; private set; }
+        public Byte[]?      NTS_C2S_Key    { get; private set; }
+        public Byte[]?      NTS_S2C_Key    { get; private set; }
 
         #endregion
 
@@ -49,16 +50,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             MyContext = base.m_context;
 
-            // If you already know your association context, label, etc., you can export right here:
-            var chosenAEAD = 0x000F;
-            var associationContext = new Byte[5] {
-                0x00, 0x00, (byte) (chosenAEAD >> 8), (byte) (chosenAEAD & 0xFF), 0x00
-            };
-
             // Export 32 bytes for AES-SIV-CMAC-256:
-            ExportedKey = MyContext.ExportKeyingMaterial(
+            NTS_C2S_Key = MyContext.ExportKeyingMaterial(
                 "EXPORTER-network-time-security",
-                associationContext,
+                [ 0x00, 0x00, 0x00, 0x0f, 0x00 ],
+                32
+            );
+
+            NTS_S2C_Key = MyContext.ExportKeyingMaterial(
+                "EXPORTER-network-time-security",
+                [ 0x00, 0x00, 0x00, 0x0f, 0x01 ],
                 32
             );
 

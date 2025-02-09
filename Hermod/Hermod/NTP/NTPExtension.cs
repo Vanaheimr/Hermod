@@ -17,10 +17,8 @@
 
 #region Usings
 
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
 using System.Security.Cryptography;
-using System.Xml;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -247,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public override String ToString()
 
-            => $"Type: 0x{Type:X4}, Length: {Length}, Data: {BitConverter.ToString(Value ?? [])}";
+            => $"Type: {Type}, Length: {Length}, Data: {BitConverter.ToString(Value ?? [])}";
 
         #endregion
 
