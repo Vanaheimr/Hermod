@@ -95,9 +95,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static readonly IPPort MQTT    = new (1883);
 
         /// <summary>
-        /// NTS
+        /// NTS-KE
         /// </summary>
-        public static readonly IPPort NTS     = new (4460);
+        public static readonly IPPort NTSKE   = new (4460);
 
         #endregion
 

@@ -257,48 +257,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #region BuildNTSKERequest()
 
         /// <summary>
-        /// Erzeugt das NTS‑KE Request PDU im TLV‑Format.
-        /// Record Aufbau:
-        ///   - Record Type:   0x0001 (Next Protocol Negotiation)
-        ///   - Record Length: 0x0002 (2 Byte für Protocol ID)
-        ///   - Protocol ID:   0x0002 (NTP)
+        /// Create a new NTS-KE request.
         /// </summary>
-        /// <returns>Byte-Array mit dem Request</returns>
         private static Byte[] BuildNTSKERequest()
         {
             using (var ms = new MemoryStream())
             {
 
-                // 1) NTS Next Protocol Negotiation (record type=1)
-                //    - Body = 16-bit Protocol ID(s) in network order.
-                //    - For NTPv4, Protocol ID = 0x0000.
-                //    => length = 2, body = { 00 00 }
-                byte[] nextProtocolNegotiation = [
-                    0x80, 0x01, // Record-Type = 1 (NTS Next Protocol Negotiation)
-                    0x00, 0x02, // Body Length = 2
-                    0x00, 0x00  // Protocol ID for NTPv4 = 0
+                Byte[] nextProtocolNegotiation = [
+                    0x80, 0x01, // Record-Type        = 1 (NTS Next Protocol Negotiation)
+                    0x00, 0x02, // Body Length        = 2
+                    0x00, 0x00  // Protocol ID        = 0 (0 for NTPv4)
                 ];
 
-                // 2) AEAD Algorithm Negotiation (record type=4)
-                //    - Body = 16-bit AEAD Algorithm ID in network order.
-                //    - For AES-SIV-CMAC-256, ID = 0x000F
-                //    => length = 2, body = { 00 0F }
-                byte[] aeadOffer = [
-                    0x80, 0x04, // Record-Type = 4 (AEAD Algorithm Negotiation)
-                    0x00, 0x02, // Body Length = 2
-                    0x00, 0x0F  // AEAD Algorithm ID = 15 (AES-SIV-CMAC-256)
+                Byte[] aeadOffer = [
+                    0x80, 0x04, // Record-Type        = 4 (AEAD Algorithm Negotiation)
+                    0x00, 0x02, // Body Length        = 2
+                    0x00, 0x0F  // AEAD Algorithm ID  = 15 (AES-SIV-CMAC-256)
                 ];
 
-                // 3) End of Message (record type=0)
-                //    => length=0, no body
-                byte[] eom = [
-                    0x80, 0x00, // Record-Type = 0 (End of Message)
-                    0x00, 0x00  // Body Length = 0
+                Byte[] eom = [
+                    0x80, 0x00, // Record-Type        = 0 (End of Message)
+                    0x00, 0x00  // Body Length        = 0
                 ];
 
                 ms.Write(nextProtocolNegotiation, 0, nextProtocolNegotiation.Length);
                 ms.Write(aeadOffer,               0, aeadOffer.              Length);
-                //ms.Write(cookieRequest,           0, cookieRequest.Length);
                 ms.Write(eom,                     0, eom.                    Length);
 
                 return ms.ToArray();

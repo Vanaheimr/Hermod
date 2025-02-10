@@ -19,8 +19,10 @@
 
 using System.Net;
 using System.Net.Sockets;
-
+using System.Text;
 using org.GraphDefined.Vanaheimr.Illias;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Tls;
 
 #endregion
 
@@ -37,6 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #region Data
 
         private Socket?                   udpSocket;
+        private Socket?                   tcpSocket;
         private CancellationTokenSource?  cts;
 
         #endregion
@@ -44,6 +47,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #region Properties
 
         public IPPort  UDPPort       { get; } = UDPPort ?? IPPort.NTP;
+
+        public IPPort  TCPPort       { get; } = UDPPort ?? IPPort.NTSKE;
 
         public UInt32  BufferSize    { get; } = 4096;
 
@@ -58,10 +63,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         public async Task Start(CancellationToken CancellationToken = default)
         {
 
-            if (udpSocket is not null)
+            if (udpSocket is not null || tcpSocket is not null)
                 return;
 
             cts       = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+            #region Start UDP server
 
             udpSocket = new Socket(
                             AddressFamily.InterNetwork,
@@ -76,71 +83,169 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 )
             );
 
-
             DebugX.Log($"NTP Server started on port {UDPPort}/UDP");
 
-            try
-            {
-                while (!cts.Token.IsCancellationRequested)
+            // Fire-and-forget task that handles incoming NTP in a loop
+            _ = Task.Run(async () => {
+
+                try
                 {
+                    while (!cts.Token.IsCancellationRequested)
+                    {
 
-                    var buffer       = new Byte[BufferSize];
-                    var remoteEP     = new IPEndPoint(System.Net.IPAddress.Any, 0);
+                        var buffer       = new Byte[BufferSize];
+                        var remoteEP     = new IPEndPoint(System.Net.IPAddress.Any, 0);
 
-                    var result       = await udpSocket.ReceiveFromAsync(
-                                                 new ArraySegment<Byte>(buffer),
-                                                 SocketFlags.None,
-                                                 remoteEP,
-                                                 cts.Token
-                                             );
+                        var result       = await udpSocket.ReceiveFromAsync(
+                                                     new ArraySegment<Byte>(buffer),
+                                                     SocketFlags.None,
+                                                     remoteEP,
+                                                     cts.Token
+                                                 );
 
-                    var resultLocal  = result;
+                        // Local copy to pass into the Task
+                        var resultLocal  = result;
 
 
-                    _ = Task.Run(async () => {
+                        _ = Task.Run(async () => {
 
-                        try
-                        {
-
-                            Array.Resize(ref buffer, resultLocal.ReceivedBytes);
-
-                            if (NTPPacket.TryParse(buffer, out var requestPacket, out var errorResponse))
+                            try
                             {
 
-                                var responsePacket = BuildResponse(requestPacket);
+                                Array.Resize(ref buffer, resultLocal.ReceivedBytes);
 
-                                await udpSocket.SendToAsync(
-                                          new ArraySegment<Byte>(responsePacket.ToByteArray()),
-                                          SocketFlags.None,
-                                          resultLocal.RemoteEndPoint
-                                      );
+                                if (NTPPacket.TryParse(buffer, out var requestPacket, out var errorResponse))
+                                {
 
+                                    var responsePacket = BuildResponse(requestPacket);
+
+                                    await udpSocket.SendToAsync(
+                                              new ArraySegment<Byte>(responsePacket.ToByteArray()),
+                                              SocketFlags.None,
+                                              resultLocal.RemoteEndPoint
+                                          );
+
+                                }
+                                else
+                                {
+                                    DebugX.Log($"Invalid NTP request from {resultLocal.RemoteEndPoint}: {errorResponse}");
+                                }
                             }
-                            else
+                            catch (Exception e)
                             {
-                                DebugX.Log($"Invalid NTP request from {resultLocal.RemoteEndPoint}: {errorResponse}");
+                                DebugX.Log($"Exception while processing a NTP request: {e}");
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            DebugX.Log($"Exception while processing a NTP request: {e}");
-                        }
 
-                    }, cts.Token);
+                        }, cts.Token);
 
+                    }
                 }
-            }
-            catch (ObjectDisposedException)
-            {
-                // Will be thrown when the UDP client is closed during shutdown.
-            }
-            catch (Exception ex)
-            {
-                DebugX.Log($"Exception: {ex}");
-            }
+                catch (ObjectDisposedException)
+                {
+                    // Will be thrown when the UDP client is closed during shutdown.
+                }
+                catch (Exception ex)
+                {
+                    DebugX.Log($"Exception: {ex}");
+                }
 
-            udpSocket.Close();
-            udpSocket = null;
+                try { udpSocket?.Close(); } catch { }
+                udpSocket = null;
+
+            }, cts.Token);
+
+            #endregion
+
+            #region Start TCP server
+
+            tcpSocket = new Socket(
+                            AddressFamily.InterNetwork,
+                            SocketType.Stream,
+                            ProtocolType.Tcp
+                        );
+
+            tcpSocket.Bind(
+                new IPEndPoint(
+                    System.Net.IPAddress.Any,
+                    TCPPort.ToUInt16()
+                )
+            );
+
+            tcpSocket.Listen(backlog: 20);
+
+            DebugX.Log($"NTP/NTS-KE Server started on port {TCPPort}/TCP");
+
+            // telnet 127.0.0.1:4460
+            // openssl s_client -connect 127.0.0.1:4460
+            // openssl s_client -connect 127.0.0.1:4460 -showcerts
+            // openssl s_client -connect 127.0.0.1:4460 -verify 0
+
+            // Fire-and-forget loop that Accepts new sockets
+            _ = Task.Run(async () => {
+
+                try
+                {
+                    while (!cts.Token.IsCancellationRequested)
+                    {
+
+                        var clientSocket = await tcpSocket.AcceptAsync(cts.Token);
+
+                        if (clientSocket == null)
+                            continue;
+
+                        _ = Task.Run(async () => {
+
+                            try
+                            {
+
+                                using var networkStream = new NetworkStream(clientSocket, ownsSocket: false);
+
+                                var tlsServerProtocol = new TlsServerProtocol(networkStream);
+
+                                var tlsServer = new NTSKE_TLSService();
+                                tlsServerProtocol.Accept(tlsServer);
+
+                                var c2sKey = tlsServer.NTS_C2S_Key;
+                                var s2cKey = tlsServer.NTS_S2C_Key;
+
+                                // Write "Hello World!" to the TLS-encrypted stream
+                                using var writer = new StreamWriter(tlsServerProtocol.Stream, Encoding.UTF8, leaveOpen: true);
+                                await writer.WriteLineAsync("Hello World!");
+                                await writer.FlushAsync();
+
+                                // A friendly close
+                                tlsServerProtocol.Close();
+
+                            }
+                            catch (Exception ex)
+                            {
+                                DebugX.Log($"TLS handshake/IO failed: {ex.Message}");
+                            }
+                            finally
+                            {
+                                try { clientSocket.Shutdown(SocketShutdown.Both); } catch { }
+                                clientSocket.Close();
+                            }
+
+                        });
+
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // normal on shutdown
+                }
+                catch (Exception ex)
+                {
+                    DebugX.Log($"Exception in TLS Accept loop: {ex}");
+                }
+
+                try { tcpSocket?.Close(); } catch { }
+                tcpSocket = null;
+
+            }, cts.Token);
+
+            #endregion
 
         }
 

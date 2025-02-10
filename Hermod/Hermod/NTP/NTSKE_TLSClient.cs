@@ -17,9 +17,9 @@
 
 #region Usings
 
-using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Tls.Crypto.Impl.BC;
+using Org.BouncyCastle.Security;
 
 #endregion
 
@@ -34,9 +34,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #region Properties
 
-        public TlsContext?  MyContext      { get; private set; }
-        public Byte[]?      NTS_C2S_Key    { get; private set; }
-        public Byte[]?      NTS_S2C_Key    { get; private set; }
+        public TlsContext?  NTSKEContext    { get; private set; }
+
+        /// <summary>
+        /// The NTP-KE Client-2-Server Key
+        /// </summary>
+        public Byte[]?      NTS_C2S_Key     { get; private set; }
+
+        /// <summary>
+        /// The NTP-KE Server-2-Client Key
+        /// </summary>
+        public Byte[]?      NTS_S2C_Key     { get; private set; }
 
         #endregion
 
@@ -48,16 +56,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             base.NotifyHandshakeComplete();
 
-            MyContext = base.m_context;
+            NTSKEContext = base.m_context;
 
             // Export 32 bytes for AES-SIV-CMAC-256:
-            NTS_C2S_Key = MyContext.ExportKeyingMaterial(
+            NTS_C2S_Key = NTSKEContext.ExportKeyingMaterial(
                 "EXPORTER-network-time-security",
                 [ 0x00, 0x00, 0x00, 0x0f, 0x00 ],
                 32
             );
 
-            NTS_S2C_Key = MyContext.ExportKeyingMaterial(
+            NTS_S2C_Key = NTSKEContext.ExportKeyingMaterial(
                 "EXPORTER-network-time-security",
                 [ 0x00, 0x00, 0x00, 0x0f, 0x01 ],
                 32
@@ -70,22 +78,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #region (override) GetProtocolVersions()
 
         public override ProtocolVersion[] GetProtocolVersions()
-        {
-            return [ ProtocolVersion.TLSv13 ];
-        }
+
+            => [ ProtocolVersion.TLSv13 ];
 
         #endregion
 
         // Restrict to a subset of TLS 1.3 cipher suites
         //public override int[] GetCipherSuites()
-        //{
-        //    return new int[]
-        //    {
-        //    CipherSuite.TLS_AES_256_GCM_SHA384,
-        //    CipherSuite.TLS_CHACHA20_POLY1305_SHA256,
-        //    CipherSuite.TLS_AES_128_GCM_SHA256,
-        //    };
-        //}
+        //
+        //    => new int[] {
+        //           CipherSuite.TLS_AES_256_GCM_SHA384,
+        //           CipherSuite.TLS_CHACHA20_POLY1305_SHA256,
+        //           CipherSuite.TLS_AES_128_GCM_SHA256,
+        //       };
 
         #region (override) GetClientExtensions()
 
@@ -111,31 +116,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         public override TlsAuthentication GetAuthentication()
         {
-            return new NullTlsAuthentication();
+            return new NoTLSClientAuthentication();
         }
 
         #endregion
-
-    }
-
-    public class NullTlsAuthentication : TlsAuthentication
-    {
-
-        public void NotifyServerCertificate(Certificate serverCertificate)
-        {
-            // In real code, check serverCertificate for validity/pinning here
-        }
-
-        public TlsCredentials GetClientCredentials(CertificateRequest certificateRequest)
-        {
-            // If no client cert needed, return null
-            return null;
-        }
-
-        public void NotifyServerCertificate(TlsServerCertificate serverCertificate)
-        {
-            
-        }
 
     }
 
