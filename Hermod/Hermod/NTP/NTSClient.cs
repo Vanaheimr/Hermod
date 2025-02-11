@@ -381,13 +381,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                                                 CancellationToken  CancellationToken   = default)
         {
 
-            // NTS request
+            // NTP + UniqueId + NTS Cookie + NTS Auth request
             // 230008200000000000000000000000000000000000000000000000000000000000000000000000005001ac7cd6000835
             // 0104 0024 2027e75e68914d89bdd2461d6c18a87914ae432326ae452516f1af36876c37e2
             // 0204 0068 9dad3e6fcd545c8fc9a6eb945be9e2a600760641ea6e3d89c47fc692135e9ba4ca075866699e30a46b4b31f195f6d7cf8c72a4556189029c19d3c2eedda04969441c47a62004307a62c9b57cae3dc4a4af2be69757c30bd5c917e3e25564dfa3a3e283a0
             // 0404 0028 0010 0010 768f82009746999ea26472c70d9e4906 3b474cf41d387f62e78ae20224c53209
 
-            // NTS response
+            // NTP + UniqueId + NTS Auth with Encrypted Data response
             // 240308e7000001a00000003974cb60e3eb51b89a96d03cb65001ac7cd6000835eb51b99eb19a6fd1eb51b99eb19e575e
             // 0104 0024 2027e75e68914d89bdd2461d6c18a87914ae432326ae452516f1af36876c37e2
             // 0404 0090 0010 0078 c562375b4cf5e6338cecf184f1c9b739ecc6daa3e27bbda9935a184f9089bc5ad6060a80afd71b5dcd421b332f4f26fdb53d9a1d092662595944696573fea2c1ae33761b04f5b399f504779bf4745caab96ac43c10595f0abe61aedbb6471b806e737cba62035e8bfd44279ed869996102168d9c68edf37cba02d3db49ca6aaf28923d67bb43e0ba
@@ -465,14 +465,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
         /// </summary>
         private static NTPPacket BuildNTPRequest(NTSKE_Response?  NTSKEResponse   = null,
-                                                 Byte[]?          UniqueId        = null)
+                                                 Byte[]?          UniqueId        = null,
+                                                 Byte[]?          Plaintext       = null)
         {
 
-            var ntpPacket1 = new NTPPacket(
-                                 TransmitTimestamp: NTPPacket.GetCurrentNTPTimestamp()
-                             );
+            var ntpPacket1  = new NTPPacket(
+                                  TransmitTimestamp: NTPPacket.GetCurrentNTPTimestamp()
+                              );
 
-            var extensions = new List<NTPExtension>();
+            var extensions  = new List<NTPExtension>();
 
             if (NTSKEResponse is not null &&
                 NTSKEResponse.Cookies.Any() &&
@@ -498,7 +499,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                             ntpPacket1.       ToByteArray(),
                             uniqueIdExtension.ToByteArray(),
                             cookieExtension.  ToByteArray()
-                        ]
+                        ],
+                        Plaintext
                     )
                 );
 
@@ -570,53 +572,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region CreateNTSAuthenticatorExtension(NTSKEResponse, AssociatedData, Plainttext = null)
+        #region CreateNTSAuthenticatorExtension(NTSKEResponse, AssociatedData, Plainttext = null, Nonce = null)
 
         /// <summary>
         /// Create a "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404)
-        /// 
-        /// In a real implementation:
-        /// 1. The associated data (A) is computed as: [NTP header || UniqueId EF || Cookie EF].
-        /// 2. The plaintext (P) is set to the internal extension fields that need confidentiality (here we use an empty plaintext).
-        /// 3. A random nonce is not needed separately since AES-SIV computes a synthetic IV (SIV) deterministically.
-        /// 4. The AEAD encryption is run with the C2S key (extracted from the TLS session during NTS-KE).
-        /// 5. The resulting output is SIV || C. Here, with an empty plaintext, only SIV (16 bytes) is produced.
-        /// 6. The extension field value is then built as:
-        ///    [NonceLength (2 bytes) || CiphertextLength (2 bytes) || padded(Nonce) || padded(Ciphertext)]
-        ///    where each of nonce and ciphertext is padded to a 4-byte boundary.
-        /// 7. Finally, an NTPExtension (with 4-byte header containing type and total length) is returned.
         /// </summary>
         /// <param name="NTSKEResponse">A Network Time Security Key Establishment (NTS-KE) response containing the C2S key.</param>
         /// <param name="AssociatedData">An array of byte arrays to be authenticated but not encrypted.</param>
-        /// <param name="Plainttext">The optional plaintext to be encrypted (e.g. internal extension fields).</param>
+        /// <param name="Plaintext">The optional plaintext to be encrypted (e.g. internal extension fields).</param>
+        /// <param name="Nonce">The optional nonce to be used for encryption.</param>
         private static NTPExtension CreateNTSAuthenticatorExtension(NTSKE_Response  NTSKEResponse,
                                                                     IList<Byte[]>   AssociatedData,
-                                                                    Byte[]?         Plainttext   = null)
+                                                                    Byte[]?         Plaintext   = null,
+                                                                    Byte[]?         Nonce       = null)
         {
 
-            var plaintext            = Plainttext ?? [];
-            var c2sKey               = NTSKEResponse.C2SKey;
-            var aesSiv               = new AES_SIV(c2sKey); // AES-SIV-CMAC-256
-            var sivAndCiphertext     = aesSiv.Encrypt(AssociatedData, plaintext);
+            var nonce                   = Nonce     ?? new Byte[16];
+            var plaintext               = Plaintext ?? [];
 
-            // We consider the SIV as the "nonce"...
-            var nonceLen             = 16;
-            var ciphertextLen        = Math.Max(sivAndCiphertext.Length - 16, 16);
-            var paddedNonceLen       = (nonceLen      + 3) & ~3;
-            var paddedCiphertextLen  = (ciphertextLen + 3) & ~3;
-            var value                = new Byte[4 + paddedNonceLen + paddedCiphertextLen];
+            if (Nonce is null)
+                RandomNumberGenerator.Fill(nonce);
 
-            value[0] = (Byte) ((nonceLen      >> 8) & 0xff);
-            value[1] = (Byte)  (nonceLen            & 0xff);
+            var c2sKey                  = NTSKEResponse.C2SKey;
+            var aesSiv                  = new AES_SIV(c2sKey);
+            var sivAndCiphertext        = aesSiv.Encrypt(AssociatedData, nonce, plaintext);
 
-            value[2] = (Byte) ((ciphertextLen >> 8) & 0xff);
-            value[3] = (Byte)  (ciphertextLen       & 0xff);
+            var nonceLength             = nonce.Length;
+            var ciphertextLength        = Math.Max(sivAndCiphertext.Length - 16, 16);
+            var paddedNonceLength       = (nonceLength      + 3) & ~3;
+            var paddedCiphertextLength  = (ciphertextLength + 3) & ~3;
+            var value                   = new Byte[4 + paddedNonceLength + paddedCiphertextLength];
 
-            Buffer.BlockCopy(sivAndCiphertext, 0, value, 4,                  nonceLen);
-            Buffer.BlockCopy(sivAndCiphertext, 0, value, 4 + paddedNonceLen, nonceLen);
+            value[0] = (Byte) ((nonceLength      >> 8) & 0xff);
+            value[1] = (Byte)  (nonceLength            & 0xff);
 
-            if (sivAndCiphertext.Length > nonceLen)
-                Buffer.BlockCopy(sivAndCiphertext, nonceLen, value, 4 + paddedNonceLen, ciphertextLen);
+            value[2] = (Byte) ((ciphertextLength >> 8) & 0xff);
+            value[3] = (Byte)  (ciphertextLength       & 0xff);
+
+            Buffer.BlockCopy(nonce,            0, value, 4,                     nonceLength);
+            Buffer.BlockCopy(sivAndCiphertext, 0, value, 4 + paddedNonceLength, ciphertextLength);
 
             return NTPExtension.AuthenticatorAndEncrypted(value);
 
@@ -685,7 +679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             // Recompute the AEAD output using AES-SIV.
             // Our AesSiv class expects an IList<byte[]> as associated data.
             var aesSiv                    = new AES_SIV(C2SKey);
-            var computedOutput            = aesSiv.Encrypt(AssociatedData, ExpectedPlaintext);
+            var computedOutput            = aesSiv.Encrypt(AssociatedData, receivedNonce, ExpectedPlaintext);
 
             // computedOutput should be SIV || Ciphertext.
             // Let’s assume that our implementation produces a computedOutput of length = (nonceLen + ciphertextLen)

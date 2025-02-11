@@ -80,10 +80,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// It will return the synthetic initialization vector (SIV) concatenated with the ciphertext: SIV|Ciphertext
         /// </summary>
         public Byte[] Encrypt(IList<Byte[]>  AssociatedData,
+                              Byte[]         Nonce,
                               Byte[]         Plaintext)
         {
 
-            var syntheticIV  = String2InitializationVector(AssociatedData, Plaintext);
+            var syntheticIV  = String2InitializationVector(AssociatedData, Nonce, Plaintext);
             var ciphertext   = AES_CTR_Encrypt(Plaintext, syntheticIV, Key2_AESCTR);
             var result       = new Byte[syntheticIV.Length + ciphertext.Length];
 
@@ -104,6 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// https://www.rfc-editor.org/rfc/rfc5297.html#section-2.4
         /// </summary>
         private Byte[] String2InitializationVector(IList<Byte[]>  AssociatedData,
+                                                   Byte[]         Nonce,
                                                    Byte[]         Plaintext)
         {
 
@@ -123,6 +125,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 var cmacX = CMAC(Key1_CMAC, associatedData);
                 D = XOR_Blocks(D, cmacX);
             }
+
+            // Nonce
+            D = DoubleBlock(D);
+            var cmacN = CMAC(Key1_CMAC, Nonce);
+            D = XOR_Blocks(D, cmacN);
 
             Byte[] T;
             if (Plaintext.Length >= 16)

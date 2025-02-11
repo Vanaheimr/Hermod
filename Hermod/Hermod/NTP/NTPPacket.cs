@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
     // https://datatracker.ietf.org/doc/html/rfc5905 Network Time Protocol Version 4: Protocol and Algorithms Specification
     // https://datatracker.ietf.org/doc/html/rfc7822 Network Time Protocol Version 4 (NTPv4) Extension Fields
     // https://datatracker.ietf.org/doc/html/rfc8915 Network Time Security for the Network Time Protocol
-
+    // https://datatracker.ietf.org/doc/html/rfc5297 Synthetic Initialization Vector (SIV) Authenticated Encryption Using the Advanced Encryption Standard (AES)
 
     // Stratum  Meaning
     //   ----------------------------------------------
@@ -178,6 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public UInt64?                    TransmitTimestamp      { get; } = TransmitTimestamp;
 
+
         /// <summary>
         /// The optional enumeration of NTP extensions.
         /// </summary>
@@ -205,8 +206,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #region Constructor(s)
 
-        public NTPPacket(NTPPacket                  NTPRequest,
-                          IEnumerable<NTPExtension>?  Extensions = null)
+        public NTPPacket(NTPPacket                   NTPRequest,
+                         IEnumerable<NTPExtension>?  Extensions   = null)
 
             : this(NTPRequest.LI,
                    NTPRequest.VN,
@@ -367,7 +368,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         public static Boolean TryParse(Byte[]                               Buffer,
                                        [NotNullWhen(true)]  out NTPPacket?  NTPPacket,
                                        [NotNullWhen(false)] out String?     ErrorResponse,
-                                       Byte[]?                              ExptectedUniqueId   = null)
+                                       Byte[]?                              ExptectedUniqueId   = null,
+                                       Byte[]?                              Nonce               = null)
         {
 
             ErrorResponse = null;
@@ -413,6 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             }
 
             NTPPacket = new NTPPacket(
+
                             LI:                   (Byte) ((Buffer[0] >> 6) & 0x03),
                             VN:                   (Byte) ((Buffer[0] >> 3) & 0x07),
                             Mode:                 (Byte)  (Buffer[0]       & 0x07),
@@ -426,7 +429,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                             OriginateTimestamp:   ReadUInt64(Buffer, 24),
                             ReceiveTimestamp:     ReadUInt64(Buffer, 32),
                             TransmitTimestamp:    ReadUInt64(Buffer, 40),
+
                             Extensions:           extensions
+
                         );
 
             return true;
