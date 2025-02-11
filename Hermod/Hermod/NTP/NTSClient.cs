@@ -395,8 +395,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var uniqueId = new Byte[32];
             RandomNumberGenerator.Fill(uniqueId);
 
-            var requestPacket = BuildNTPRequest(NTSKEResponse, uniqueId);
+            var requestPacket = BuildNTPRequest(NTSKEResponse, uniqueId, "Hello world!".ToUTF8Bytes());
             var requestData   = requestPacket.ToByteArray();
+
+
+            var yyy = NTPPacket.TryParse(requestData, out var ntpRequest, out var errorRequest, NTSKEResponse.C2SKey, uniqueId);
 
             using (var udpClient = new UdpClient())
             {
@@ -426,22 +429,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                     DebugX.Log($"Got {receiveResult.Buffer.Length}-byte response from {receiveResult.RemoteEndPoint}");
 
-                    if (NTPPacket.TryParse(receiveResult.Buffer, out var ntpResponse, out var errorResponse))
+                    if (NTPPacket.TryParse(receiveResult.Buffer,
+                                           out var ntpResponse,
+                                           out var errorResponse,
+                                           NTSKey:            NTSKEResponse?.S2CKey,
+                                           ExpectedUniqueId:  requestPacket.UniqueIdentifier))
                     {
 
-                        var uid = ntpResponse.Extensions.FirstOrDefault(e => e.Type == ExtensionTypes.UniqueIdentifier)?.Value ?? [];
+                        if (ntpResponse.Extensions.Count() == 3)
+                        {
 
-                        if (!requestPacket.Extensions.Any(extension => extension.Type == ExtensionTypes.UniqueIdentifier) ||
-                            uniqueId.ToHexString() == uid.ToHexString())
-                            //ToDo: Validate S2C AEAD data
-                            DebugX.Log("Serverzeit (UTC): " + NTPPacket.NTPTimestampToDateTime(ntpResponse.TransmitTimestamp.Value).ToString("o"));
+                        }
 
-                        else
-                            DebugX.Log("UniqueId mismatch!");
+                        //ToDo: Validate S2C AEAD data
+                        DebugX.Log($"{Host} Serverzeit (UTC): " + NTPPacket.NTPTimestampToDateTime(ntpResponse.TransmitTimestamp.Value).ToString("o"));
 
                         return ntpResponse;
 
                     }
+
+                    else
+                        DebugX.Log("NTP response error: " + errorResponse);
 
                 }
                 catch (Exception e)
@@ -464,9 +472,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         ///  2) NTS Cookie (0204)
         ///  3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
         /// </summary>
-        private static NTPPacket BuildNTPRequest(NTSKE_Response?  NTSKEResponse   = null,
-                                                 Byte[]?          UniqueId        = null,
-                                                 Byte[]?          Plaintext       = null)
+        public static NTPPacket BuildNTPRequest(NTSKE_Response?  NTSKEResponse   = null,
+                                                Byte[]?          UniqueId        = null,
+                                                Byte[]?          Plaintext       = null)
         {
 
             var ntpPacket1  = new NTPPacket(
@@ -493,7 +501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                 // Basically this extension validates all data (NTP header + extensions) which came before it!
                 extensions.Add(
-                    CreateNTSAuthenticatorExtension(
+                    AuthenticatorAndEncryptedExtension.Create(
                         NTSKEResponse,
                         [
                             ntpPacket1.       ToByteArray(),
@@ -503,18 +511,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                         Plaintext
                     )
                 );
-
-                var xx = TryValidateNTSAuthenticatorExtension(
-                             extensions.Last().Value,
-                             [
-                                 ntpPacket1.       ToByteArray(),
-                                 uniqueIdExtension.ToByteArray(),
-                                 cookieExtension.  ToByteArray()
-                             ],
-                             NTSKEResponse.C2SKey,
-                             [],
-                             out var err
-                         );
 
             }
 
@@ -553,71 +549,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         #endregion
 
 
-        #region CreateUniqueIdExtension(UniqueId = null)
-
-        ///// <summary>
-        ///// Creates a Unique Identifier Extension (type=0x0104).
-        ///// Must be at least 32 random bytes in the body.
-        ///// </summary>
-        ///// <param name="UniqueId">An optional 32-byte unique identification.</param>
-        //private static NTPExtension CreateUniqueIdExtension(Byte[]? UniqueId = null)
-        //{
-
-        //    UniqueId ??= new Byte[32];
-        //    RandomNumberGenerator.Fill(UniqueId);
-
-        //    return NTPExtension.UniqueIdentifier(UniqueId);
-
-        //}
-
-        #endregion
-
-        #region CreateNTSAuthenticatorExtension(NTSKEResponse, AssociatedData, Plainttext = null, Nonce = null)
-
-        /// <summary>
-        /// Create a "NTS Authenticator and Encrypted Extension Fields" extension (type=0x0404)
-        /// </summary>
-        /// <param name="NTSKEResponse">A Network Time Security Key Establishment (NTS-KE) response containing the C2S key.</param>
-        /// <param name="AssociatedData">An array of byte arrays to be authenticated but not encrypted.</param>
-        /// <param name="Plaintext">The optional plaintext to be encrypted (e.g. internal extension fields).</param>
-        /// <param name="Nonce">The optional nonce to be used for encryption.</param>
-        private static NTPExtension CreateNTSAuthenticatorExtension(NTSKE_Response  NTSKEResponse,
-                                                                    IList<Byte[]>   AssociatedData,
-                                                                    Byte[]?         Plaintext   = null,
-                                                                    Byte[]?         Nonce       = null)
-        {
-
-            var nonce                   = Nonce     ?? new Byte[16];
-            var plaintext               = Plaintext ?? [];
-
-            if (Nonce is null)
-                RandomNumberGenerator.Fill(nonce);
-
-            var c2sKey                  = NTSKEResponse.C2SKey;
-            var aesSiv                  = new AES_SIV(c2sKey);
-            var sivAndCiphertext        = aesSiv.Encrypt(AssociatedData, nonce, plaintext);
-
-            var nonceLength             = nonce.Length;
-            var ciphertextLength        = Math.Max(sivAndCiphertext.Length - 16, 16);
-            var paddedNonceLength       = (nonceLength      + 3) & ~3;
-            var paddedCiphertextLength  = (ciphertextLength + 3) & ~3;
-            var value                   = new Byte[4 + paddedNonceLength + paddedCiphertextLength];
-
-            value[0] = (Byte) ((nonceLength      >> 8) & 0xff);
-            value[1] = (Byte)  (nonceLength            & 0xff);
-
-            value[2] = (Byte) ((ciphertextLength >> 8) & 0xff);
-            value[3] = (Byte)  (ciphertextLength       & 0xff);
-
-            Buffer.BlockCopy(nonce,            0, value, 4,                     nonceLength);
-            Buffer.BlockCopy(sivAndCiphertext, 0, value, 4 + paddedNonceLength, ciphertextLength);
-
-            return NTPExtension.AuthenticatorAndEncrypted(value);
-
-        }
-
-        #endregion
-
         #region TryValidateNTSAuthenticatorExtension(ReceivedValue, AssociatedData, C2SKey, ExpectedPlaintext, out ErrorResponse)
 
         /// <summary>
@@ -642,14 +573,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </param>
         public static Boolean TryValidateNTSAuthenticatorExtension(Byte[]         ReceivedValue,
                                                                    IList<Byte[]>  AssociatedData,
-                                                                   Byte[]         C2SKey,
+                                                                   Byte[]         S2CKey,
                                                                    Byte[]         ExpectedPlaintext,
                                                                    out String?    ErrorResponse)
         {
 
             ErrorResponse = null;
 
-            if (ReceivedValue == null || ReceivedValue.Length < 4)
+            if (ReceivedValue is null || ReceivedValue.Length < 4)
             {
                 ErrorResponse = "NTS Authenticator and Encrypted extension value is null or too short!";
                 return false;
@@ -658,8 +589,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var nonceLen                  = (UInt16) ((ReceivedValue[0] << 8) | ReceivedValue[1]);
             var ciphertextLen             = (UInt16) ((ReceivedValue[2] << 8) | ReceivedValue[3]);
 
-            var paddedNonceLen            = ((nonceLen      + 3) / 4) * 4;
-            var paddedCiphertextLen       = ((ciphertextLen + 3) / 4) * 4;
+            var paddedNonceLen            = (nonceLen      + 3) & ~3;
+            var paddedCiphertextLen       = (ciphertextLen + 3) & ~3;
 
             // Verify that the total length of the received value matches expectations:
             var expectedTotalValueLength  = 4 + paddedNonceLen + paddedCiphertextLen;
@@ -678,7 +609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             // Recompute the AEAD output using AES-SIV.
             // Our AesSiv class expects an IList<byte[]> as associated data.
-            var aesSiv                    = new AES_SIV(C2SKey);
+            var aesSiv                    = new AES_SIV(S2CKey);
             var computedOutput            = aesSiv.Encrypt(AssociatedData, receivedNonce, ExpectedPlaintext);
 
             // computedOutput should be SIV || Ciphertext.

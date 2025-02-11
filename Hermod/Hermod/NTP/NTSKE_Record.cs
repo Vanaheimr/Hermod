@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public override String ToString()
 
-            => $"{Name} ({Type}, {(IsCritical ? "critical" : "non critical")}, Len={Value.Length} Body=[{BitConverter.ToString(Value)}]";
+            => $"{Name} ({Type}, {(IsCritical ? "critical" : "non critical")}, Length={Value.Length} Body=[{BitConverter.ToString(Value)}]";
 
         #endregion
 

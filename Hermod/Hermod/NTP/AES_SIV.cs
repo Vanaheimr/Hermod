@@ -21,6 +21,8 @@ using Org.BouncyCastle.Crypto.Macs;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -79,19 +81,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// 
         /// It will return the synthetic initialization vector (SIV) concatenated with the ciphertext: SIV|Ciphertext
         /// </summary>
-        public Byte[] Encrypt(IList<Byte[]>  AssociatedData,
-                              Byte[]         Nonce,
-                              Byte[]         Plaintext)
+        public Byte[] Encrypt(IEnumerable<Byte[]>  AssociatedData,
+                              Byte[]               Nonce,
+                              Byte[]               Plaintext)
         {
 
             var syntheticIV  = String2InitializationVector(AssociatedData, Nonce, Plaintext);
             var ciphertext   = AES_CTR_Encrypt(Plaintext, syntheticIV, Key2_AESCTR);
             var result       = new Byte[syntheticIV.Length + ciphertext.Length];
 
-            Array.Copy(syntheticIV,        0, result,          0, syntheticIV.Length);
-            Array.Copy(ciphertext, 0, result, syntheticIV.Length, ciphertext. Length);
+            var a = AssociatedData.Select(ad => ad.ToHexString()).AggregateWith(" / ");
+            var n = Nonce.      ToHexString();
+            var s = syntheticIV.ToHexString();
+            var c = ciphertext. ToHexString();
+
+            var o = $"{a} - {n} - {s} - {c}";
+
+            Array.Copy(syntheticIV, 0, result,                  0, syntheticIV.Length);
+            Array.Copy(ciphertext,  0, result, syntheticIV.Length, ciphertext. Length);
 
             return result;
+
+        }
+
+        #endregion
+
+        #region            Decrypt(AssociatedData, Nonce, SyntheticIVAndCiphertext)
+
+        /// <summary>
+        /// Decrypts an encrypted message of the form syntheticIV || ciphertext.
+        /// Recomputes the expected synthetic IV using the associated data and nonce (which may be a salt)
+        /// and verifies that it matches the one embedded in the message.
+        /// Throws CryptographicException if authentication fails.
+        /// </summary>
+        public Byte[] Decrypt(IEnumerable<Byte[]>  AssociatedData,
+                              Byte[]               Nonce,
+                              Byte[]               SyntheticIVAndCiphertext)
+        {
+
+            var sivLen = 16; // Assume synthetic IV is 16 bytes.
+            if (SyntheticIVAndCiphertext.Length < sivLen)
+                throw new ArgumentException("Encrypted message too short.");
+
+            var syntheticIV  = new Byte[sivLen];
+            Array.Copy(SyntheticIVAndCiphertext, 0, syntheticIV, 0, sivLen);
+
+            var ciphertext   = new Byte[SyntheticIVAndCiphertext.Length - sivLen];
+            Array.Copy(SyntheticIVAndCiphertext, sivLen, ciphertext, 0, SyntheticIVAndCiphertext.Length - sivLen);
+
+            // AES-CTR decryption is the same as encryption:
+            var plaintext    = AES_CTR_Encrypt(ciphertext, syntheticIV, Key2_AESCTR);
+
+            // Recompute the synthetic IV from associated data, nonce, and the decrypted plaintext:
+            var computedSIV  = String2InitializationVector(AssociatedData, Nonce, plaintext);
+
+            var a = AssociatedData.Select(ad => ad.ToHexString()).AggregateWith(" / ");
+            var n = Nonce.      ToHexString();
+            var s = syntheticIV.ToHexString();
+            var c = ciphertext. ToHexString();
+            var z = computedSIV.ToHexString();
+
+            var o = $"{a} - {n} - {s} - {c} - {z}";
+
+            if (!syntheticIV.SequenceEqual(computedSIV))
+                throw new Exception("Authentication failed: SIV mismatch!");
+
+            return plaintext;
 
         }
 
@@ -104,32 +159,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// Implements the "String to Initialization Vector" (S2V) function according to RFC 5297.
         /// https://www.rfc-editor.org/rfc/rfc5297.html#section-2.4
         /// </summary>
-        private Byte[] String2InitializationVector(IList<Byte[]>  AssociatedData,
-                                                   Byte[]         Nonce,
-                                                   Byte[]         Plaintext)
+        private Byte[] String2InitializationVector(IEnumerable<Byte[]>  AssociatedData,
+                                                   Byte[]               Nonce,
+                                                   Byte[]               Plaintext)
         {
 
             // Special case: If there are no associated data blocks
             // and no plaintext, return CMAC(K, <one>)
-            if (AssociatedData.Count == 0 && Plaintext.Length == 0)
+            if (!AssociatedData.Any() && Plaintext.Length == 0)
                 return CMAC(Key1_CMAC, [ 0x01 ]);
 
 
             // Step 1: Initialize D with CMAC(K, <zero>), meaning 0^128
-            var D = CMAC(Key1_CMAC, new Byte[16]);
+            var D          = CMAC(Key1_CMAC, new Byte[16]);
 
             // 2. Hash all associated data blocks
             foreach (var associatedData in AssociatedData)
             {
-                D = DoubleBlock(D);
-                var cmacX = CMAC(Key1_CMAC, associatedData);
-                D = XOR_Blocks(D, cmacX);
+                D          = DoubleBlock(D);
+                var cmacX  = CMAC(Key1_CMAC, associatedData);
+                D          = XOR_Blocks(D, cmacX);
             }
 
             // Nonce
-            D = DoubleBlock(D);
-            var cmacN = CMAC(Key1_CMAC, Nonce);
-            D = XOR_Blocks(D, cmacN);
+            if (Nonce.Length > 0)
+            {
+                D          = DoubleBlock(D);
+                var cmacN  = CMAC(Key1_CMAC, Nonce);
+                D          = XOR_Blocks(D, cmacN);
+            }
 
             Byte[] T;
             if (Plaintext.Length >= 16)

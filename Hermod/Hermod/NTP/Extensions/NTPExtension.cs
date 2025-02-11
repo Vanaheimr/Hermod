@@ -20,19 +20,12 @@
 using System.Security.Cryptography;
 using System.Diagnostics.CodeAnalysis;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
-
-    public enum ExtensionTypes : UInt16
-    {
-        UniqueIdentifier            = 0x0104,
-        NTSCookie                   = 0x0204,
-        NTSCookiePlaceholder        = 0x0304,
-        AuthenticatorAndEncrypted   = 0x0404
-    }
-
 
     /// <summary>
     /// A NTP Extension.
@@ -54,30 +47,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// <summary>
         /// The extension type.
         /// </summary>
-        public ExtensionTypes  Type      { get; }
+        public ExtensionTypes  Type             { get; }
 
         /// <summary>
         /// The text representation of the extension type.
         /// </summary>
-        public String  Name
+        public String          Name
 
             => Type switch {
                    ExtensionTypes.UniqueIdentifier           => "Unique Identifier",
                    ExtensionTypes.NTSCookie                  => "NTS Cookie",
                    ExtensionTypes.NTSCookiePlaceholder       => "NTS Cookie Placeholder",
                    ExtensionTypes.AuthenticatorAndEncrypted  => "Authenticator and Encrypted",
+                   ExtensionTypes.Debug                      => "Debug",
                    _                                         => "<unknown>"
                };
 
         /// <summary>
         /// The overall length of the extension (including the 4-byte header).
         /// </summary>
-        public UInt16  Length    { get; }
+        public UInt16          Length           { get; }
 
         /// <summary>
         /// The data within the extension.
         /// </summary>
-        public Byte[]  Value     { get; }
+        public Byte[]          Value            { get; }
+
+        /// <summary>
+        /// Whether the extension is/was authenticated.
+        /// </summary>
+        public Boolean         Authenticated    { get; internal set; }
+
+        /// <summary>
+        /// Whether the extension is/was encrypted.
+        /// </summary>
+        public Boolean         Encrypted        { get; internal set; }
 
         #endregion
 
@@ -88,13 +92,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         /// <param name="Type">The extension type.</param>
         /// <param name="Value">The data within the extension.</param>
+        /// <param name="Authenticated">Whether the extension is/was authenticated.</param>
+        /// <param name="Encrypted">Whether the extension is/was encrypted.</param>
         public NTPExtension(ExtensionTypes  Type,
-                            Byte[]          Value)
+                            Byte[]          Value,
+                            Boolean         Authenticated = false,
+                            Boolean         Encrypted     = false)
         {
 
-            this.Type   = Type;
-            this.Value  = Value;
-            this.Length = (UInt16) (4 + Value.Length);
+            this.Type           = Type;
+            this.Value          = Value;
+            this.Length         = (UInt16) (4 + Value.Length);
+            this.Authenticated  = Authenticated;
+            this.Encrypted      = Encrypted;
 
             // Must be multiple of 4, so if needed, pad up
             while ((this.Length % 4) != 0)
@@ -185,6 +195,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #region Static methods
 
+        #region (static) UniqueIdentifier(UniqueId = null)
+
         /// <summary>
         /// Create a new Unique Identifier extension.
         /// </summary>
@@ -202,6 +214,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         }
 
+        #endregion
+
+        #region (static) NTSCookie(Value)
+
         /// <summary>
         /// Create a new NTS Cookie extension.
         /// </summary>
@@ -212,6 +228,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                    ExtensionTypes.NTSCookie,
                    Value
                );
+
+        #endregion
+
+        #region (static) NTSCookiePlaceholder(Length)
 
         /// <summary>
         /// Create a new NTS Cookie Placeholder extension.
@@ -224,16 +244,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                    new Byte[Length]
                );
 
+        #endregion
+
+        #region (static) AuthenticatorAndEncrypted(Value)
+
         /// <summary>
         /// Create a new Authenticator and Encrypted extension.
         /// </summary>
         /// <param name="Value">The Authenticator and Encrypted data.</param>
-        public static NTPExtension  AuthenticatorAndEncrypted(Byte[] Value) //Byte[] Nonce, Byte[] Ciphertext)
+        public static NTPExtension  AuthenticatorAndEncrypted(Byte[] Value)
 
             => new (
                    ExtensionTypes.AuthenticatorAndEncrypted,
                    Value
                );
+
+        #endregion
 
         #endregion
 

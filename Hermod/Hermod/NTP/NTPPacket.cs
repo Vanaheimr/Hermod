@@ -184,6 +184,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         /// </summary>
         public IEnumerable<NTPExtension>  Extensions             { get; } = Extensions          ?? [];
 
+        /// <summary>
+        /// The value of an optional UniqueIdentifier extension.
+        /// </summary>
+        public Byte[]?                    UniqueIdentifier
+            => Extensions.FirstOrDefault(ext => ext.Type == ExtensionTypes.UniqueIdentifier)?.Value;
+
 
         /// <summary>
         /// Optional 4 byte key identification
@@ -368,18 +374,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
         public static Boolean TryParse(Byte[]                               Buffer,
                                        [NotNullWhen(true)]  out NTPPacket?  NTPPacket,
                                        [NotNullWhen(false)] out String?     ErrorResponse,
-                                       Byte[]?                              ExptectedUniqueId   = null,
-                                       Byte[]?                              Nonce               = null)
+                                       Byte[]?                              NTSKey             = null,
+                                       Byte[]?                              ExpectedUniqueId   = null,
+                                       Byte[]?                              Nonce              = null)
         {
 
             ErrorResponse = null;
+            NTPPacket     = null;
 
             if (Buffer.Length < 48)
             {
                 ErrorResponse = "Buffer too short!";
-                NTPPacket   = null;
+                NTPPacket     = null;
                 return false;
             }
+
+            var ntpPacketBytes = new Byte[48];
+            Array.Copy(Buffer, ntpPacketBytes, 48);
+            var things         = new List<Byte[]>() { ntpPacketBytes };
 
             var offset     = 48;
             var extensions = new List<NTPExtension>();
@@ -387,8 +399,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             while (offset + 4 <= Buffer.Length)
             {
 
-                var type   = (UInt16) ((Buffer[offset]     << 8) | Buffer[offset + 1]);
-                var length = (UInt16) ((Buffer[offset + 2] << 8) | Buffer[offset + 3]);
+                var type   = (ExtensionTypes) ((Buffer[offset]     << 8) | Buffer[offset + 1]);
+                var length = (UInt16)         ((Buffer[offset + 2] << 8) | Buffer[offset + 3]);
 
                 if (length < 4)
                 {
@@ -400,15 +412,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 if (offset + length > Buffer.Length)
                     break;
 
+                var copy = new Byte[length];
+                Array.Copy(Buffer, offset, copy, 0, length);
+                things.Add(copy);
+
                 var data = new Byte[length - 4];
                 Array.Copy(Buffer, offset + 4, data, 0, length - 4);
 
-                extensions.Add(
-                    new NTPExtension(
-                        (ExtensionTypes) type,
-                        data
-                    )
-                );
+                switch (type)
+                {
+
+                    case ExtensionTypes.UniqueIdentifier:
+                        var uid = new UniqueIdentifierExtension(data);
+                        if (ExpectedUniqueId is not null &&
+                            !uid.Value.SequenceEqual(ExpectedUniqueId))
+                        {
+                            ErrorResponse = $"Unexpected UniqueIdentifier '{uid.Value}' != '{ExpectedUniqueId}'!";
+                            return false;
+                        }
+                        extensions.Add(uid);
+                        break;
+
+                    case ExtensionTypes.NTSCookie:
+                        extensions.Add(
+                            new NTSCookieExtension(data)
+                        );
+                        break;
+
+                    case ExtensionTypes.NTSCookiePlaceholder:
+                        extensions.Add(
+                            new NTSCookiePlaceholderExtension(100) // Nonsense!
+                        );
+                        break;
+
+                    case ExtensionTypes.AuthenticatorAndEncrypted:
+                        if (NTSKey is null)
+                        {
+                            ErrorResponse = "Missing NTS key!";
+                            return false;
+                        }
+                        if (!AuthenticatorAndEncryptedExtension.TryParse(data,
+                                                                         things.Take(things.Count-1),
+                                                                         ref extensions,
+                                                                         NTSKey,
+                                                                         out var authenticatorAndEncryptedExtension,
+                                                                         out ErrorResponse))
+                        {
+                            return false;
+                        }
+                        extensions.Add(authenticatorAndEncryptedExtension);
+
+                        if (authenticatorAndEncryptedExtension.EncryptedExtensions.Any())
+                            extensions.AddRange(authenticatorAndEncryptedExtension.EncryptedExtensions);
+
+                        break;
+
+                    case ExtensionTypes.Debug:
+                        if (!DebugExtension.TryParse(data, out var debugExtension, out ErrorResponse))
+                        {
+                            return false;
+                        }
+                        extensions.Add(debugExtension);
+                        break;
+
+                    default:
+                        extensions.Add(
+                            new NTPExtension(
+                                type,
+                                data
+                            )
+                        );
+                        break;
+
+                }
 
                 offset += length;
 
