@@ -90,12 +90,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var ciphertext   = AES_CTR_Encrypt(Plaintext, syntheticIV, Key2_AESCTR);
             var result       = new Byte[syntheticIV.Length + ciphertext.Length];
 
-            var a = AssociatedData.Select(ad => ad.ToHexString()).AggregateWith(" / ");
-            var n = Nonce.      ToHexString();
-            var s = syntheticIV.ToHexString();
-            var c = ciphertext. ToHexString();
+            //var a = AssociatedData.Select(ad => ad.ToHexString()).AggregateWith(" / ");
+            //var n = Nonce.      ToHexString();
+            //var s = syntheticIV.ToHexString();
+            //var c = ciphertext. ToHexString();
 
-            var o = $"{a} - {n} - {s} - {c}";
+            //var o = $"{a} - {n} - {s} - {c}";
 
             Array.Copy(syntheticIV, 0, result,                  0, syntheticIV.Length);
             Array.Copy(ciphertext,  0, result, syntheticIV.Length, ciphertext. Length);

@@ -545,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.NTP
             var plaintext      = new DebugExtension(message1).ToByteArray().Concat(new DebugExtension(message2).ToByteArray()).ToArray();
 
             var requestPacket  = NTSClient.BuildNTPRequest(ntsKEResponse, uniqueId, plaintext);
-            var isValid        = NTPPacket.TryParse(requestPacket.ToByteArray(), out var ntpPacket, out var errorRequest, ntsKEResponse.C2SKey, uniqueId);
+            var isValid        = NTPPacket.TryParseRequest(requestPacket.ToByteArray(), out var ntpPacket, out var errorRequest, ntsKEResponse.C2SKey, uniqueId);
             var uniqueId2      = (ntpPacket?.Extensions.FirstOrDefault(extension => extension.Type == ExtensionTypes.UniqueIdentifier) as UniqueIdentifierExtension)?.Value;
             var cookie2        = (ntpPacket?.Extensions.FirstOrDefault(extension => extension.Type == ExtensionTypes.NTSCookie)        as NTSCookieExtension)?.       Value;
             var debugMessages  =  ntpPacket?.Extensions.Where         (extension => extension.Type == ExtensionTypes.Debug).Cast<DebugExtension>().ToArray() ?? [];
