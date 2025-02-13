@@ -27,10 +27,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
     // https://datatracker.ietf.org/doc/html/rfc4330 Simple Network Time Protocol (SNTP) Version 4
+    // https://datatracker.ietf.org/doc/html/rfc5297 Synthetic Initialization Vector (SIV) Authenticated Encryption Using the Advanced Encryption Standard (AES)
     // https://datatracker.ietf.org/doc/html/rfc5905 Network Time Protocol Version 4: Protocol and Algorithms Specification
+    // https://datatracker.ietf.org/doc/html/rfc7384 Security Requirements of Time Protocols in Packet Switched Networks
     // https://datatracker.ietf.org/doc/html/rfc7822 Network Time Protocol Version 4 (NTPv4) Extension Fields
     // https://datatracker.ietf.org/doc/html/rfc8915 Network Time Security for the Network Time Protocol
-    // https://datatracker.ietf.org/doc/html/rfc5297 Synthetic Initialization Vector (SIV) Authenticated Encryption Using the Advanced Encryption Standard (AES)
 
     // Stratum  Meaning
     //   ----------------------------------------------
@@ -369,29 +370,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #endregion
 
-        #region TryParse(Buffer, out NTPPacket, out ErrorResponse, ExptectedUniqueId   = null)
+        #region TryParseRequest(Buffer, out NTPPacket, out ErrorResponse, NTSKey = null, ExptectedUniqueId = null)
 
-        public static Boolean TryParse(Byte[]                               Buffer,
-                                       [NotNullWhen(true)]  out NTPPacket?  NTPPacket,
-                                       [NotNullWhen(false)] out String?     ErrorResponse,
-                                       Byte[]?                              NTSKey             = null,
-                                       Byte[]?                              ExpectedUniqueId   = null,
-                                       Byte[]?                              Nonce              = null)
+        public static Boolean TryParseRequest(Byte[]                               Buffer,
+                                              [NotNullWhen(true)]  out NTPPacket?  NTPPacket,
+                                              [NotNullWhen(false)] out String?     ErrorResponse,
+                                              Byte[]?                              NTSKey             = null,
+                                              Byte[]?                              ExpectedUniqueId   = null,
+                                              Byte[]?                              Nonce              = null)
         {
+
+            #region Initial checks
 
             ErrorResponse = null;
             NTPPacket     = null;
 
             if (Buffer.Length < 48)
             {
-                ErrorResponse = "Buffer too short!";
+                ErrorResponse = "The NTP request is too short!";
                 NTPPacket     = null;
                 return false;
             }
 
+            #endregion
+
             var ntpPacketBytes = new Byte[48];
             Array.Copy(Buffer, ntpPacketBytes, 48);
             var things         = new List<Byte[]>() { ntpPacketBytes };
+
+            #region Parse Extensions
 
             var offset     = 48;
             var extensions = new List<NTPExtension>();
@@ -490,6 +497,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             }
 
+            #endregion
+
+            #region Parse NTP packet
+
             NTPPacket = new NTPPacket(
 
                             LI:                   (Byte) ((Buffer[0] >> 6) & 0x03),
@@ -509,6 +520,212 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                             Extensions:           extensions
 
                         );
+
+            #endregion
+
+            return true;
+
+        }
+
+        #endregion
+
+        #region TryParseResponse(Buffer, out NTPPacket, out ErrorResponse, NTSKey = null, ExptectedUniqueId = null)
+
+        public static Boolean TryParseResponse(Byte[]                               Buffer,
+                                               [NotNullWhen(true)]  out NTPPacket?  NTPPacket,
+                                               [NotNullWhen(false)] out String?     ErrorResponse,
+                                               Byte[]?                              NTSKey             = null,
+                                               Byte[]?                              ExpectedUniqueId   = null,
+                                               Byte[]?                              Nonce              = null)
+        {
+
+            #region Initial checks
+
+            ErrorResponse = null;
+            NTPPacket     = null;
+
+            if (Buffer.Length < 48)
+            {
+                ErrorResponse = "The NTP response is too short!";
+                NTPPacket     = null;
+                return false;
+            }
+
+            #endregion
+
+            var ntpPacketBytes = new Byte[48];
+            Array.Copy(Buffer, ntpPacketBytes, 48);
+            var things         = new List<Byte[]>() { ntpPacketBytes };
+
+            #region Parse Extensions
+
+            var offset     = 48;
+            var extensions = new List<NTPExtension>();
+
+            while (offset + 4 <= Buffer.Length)
+            {
+
+                var type   = (ExtensionTypes) ((Buffer[offset]     << 8) | Buffer[offset + 1]);
+                var length = (UInt16)         ((Buffer[offset + 2] << 8) | Buffer[offset + 3]);
+
+                if (length < 4)
+                {
+                    ErrorResponse  = $"Illegal length of extension {length} at offset {offset}!";
+                    NTPPacket      = null;
+                    return false;
+                }
+
+                if (offset + length > Buffer.Length)
+                    break;
+
+                var copy = new Byte[length];
+                Array.Copy(Buffer, offset, copy, 0, length);
+                things.Add(copy);
+
+                var data = new Byte[length - 4];
+                Array.Copy(Buffer, offset + 4, data, 0, length - 4);
+
+                switch (type)
+                {
+
+                    case ExtensionTypes.UniqueIdentifier:
+                        var uid = new UniqueIdentifierExtension(data);
+                        if (ExpectedUniqueId is not null &&
+                            !uid.Value.SequenceEqual(ExpectedUniqueId))
+                        {
+                            ErrorResponse = $"Unexpected UniqueIdentifier '{uid.Value}' != '{ExpectedUniqueId}'!";
+                            return false;
+                        }
+                        extensions.Add(uid);
+                        break;
+
+                    case ExtensionTypes.NTSCookie:
+                        extensions.Add(
+                            new NTSCookieExtension(data)
+                        );
+                        break;
+
+                    case ExtensionTypes.NTSCookiePlaceholder:
+                        extensions.Add(
+                            new NTSCookiePlaceholderExtension(100) // Nonsense!
+                        );
+                        break;
+
+                    case ExtensionTypes.AuthenticatorAndEncrypted:
+                        if (NTSKey is null)
+                        {
+                            ErrorResponse = "Missing NTS key!";
+                            return false;
+                        }
+                        if (!AuthenticatorAndEncryptedExtension.TryParse(data,
+                                                                         things.Take(things.Count-1),
+                                                                         ref extensions,
+                                                                         NTSKey,
+                                                                         out var authenticatorAndEncryptedExtension,
+                                                                         out ErrorResponse))
+                        {
+                            return false;
+                        }
+                        extensions.Add(authenticatorAndEncryptedExtension);
+
+                        if (authenticatorAndEncryptedExtension.EncryptedExtensions.Any())
+                            extensions.AddRange(authenticatorAndEncryptedExtension.EncryptedExtensions);
+
+                        break;
+
+                    case ExtensionTypes.Debug:
+                        if (!DebugExtension.TryParse(data, out var debugExtension, out ErrorResponse))
+                        {
+                            return false;
+                        }
+                        extensions.Add(debugExtension);
+                        break;
+
+                    default:
+                        extensions.Add(
+                            new NTPExtension(
+                                type,
+                                data
+                            )
+                        );
+                        break;
+
+                }
+
+                offset += length;
+
+            }
+
+            #endregion
+
+            #region Parse NTP packet
+
+            NTPPacket = new NTPPacket(
+
+                            LI:                   (Byte) ((Buffer[0] >> 6) & 0x03),
+                            VN:                   (Byte) ((Buffer[0] >> 3) & 0x07),
+                            Mode:                 (Byte)  (Buffer[0]       & 0x07),
+                            Stratum:              Buffer[1],
+                            Poll:                 Buffer[2],
+                            Precision:            (SByte) Buffer[3],
+                            RootDelay:            (UInt32) ((Buffer[4]  << 24) | (Buffer[5]  << 16) | (Buffer[6]  << 8) | Buffer[7]),
+                            RootDispersion:       (UInt32) ((Buffer[8]  << 24) | (Buffer[9]  << 16) | (Buffer[10] << 8) | Buffer[11]),
+                            ReferenceIdentifier:  (UInt32) ((Buffer[12] << 24) | (Buffer[13] << 16) | (Buffer[14] << 8) | Buffer[15]),
+                            ReferenceTimestamp:   ReadUInt64(Buffer, 16),
+                            OriginateTimestamp:   ReadUInt64(Buffer, 24),
+                            ReceiveTimestamp:     ReadUInt64(Buffer, 32),
+                            TransmitTimestamp:    ReadUInt64(Buffer, 40),
+
+                            Extensions:           extensions
+
+                        );
+
+            #endregion
+
+            #region Parse Kiss-o'-Death
+
+            if (NTPPacket.Stratum == 0)
+            {
+
+                var bytes = BitConverter.GetBytes(NTPPacket.ReferenceIdentifier);
+
+                if (BitConverter.IsLittleEndian)
+                    Array.Reverse(bytes);
+
+                var error = System.Text.Encoding.ASCII.GetString(bytes);
+
+                ErrorResponse = error switch {
+
+                    // https://datatracker.ietf.org/doc/html/rfc5905
+                    // 7.4. The Kiss-o'-Death Packet
+                    "ACST" => $"'{error}' The association belongs to a unicast server.",
+                    "AUTH" => $"'{error}' Server authentication failed.",
+                    "AUTO" => $"'{error}' Autokey sequence failed.",
+                    "BCST" => $"'{error}' The association belongs to a broadcast server.",
+                    "CRYP" => $"'{error}' Cryptographic authentication or identification failed.",
+                    "DENY" => $"'{error}' Access denied by remote server.",
+                    "DROP" => $"'{error}' Lost peer in symmetric mode.",
+                    "RSTR" => $"'{error}' Access denied due to local policy.",
+                    "INIT" => $"'{error}' The association has not yet synchronized for the first time.",
+                    "MCST" => $"'{error}' The association belongs to a dynamically discovered server.",
+                    "NKEY" => $"'{error}' No key found.Either the key was never installed or is not trusted.",
+                    "RATE" => $"'{error}' Rate exceeded.The server has temporarily denied access because the client exceeded the rate threshold.",
+                    "RMOT" => $"'{error}' Alteration of association from a remote host running ntpdc.",
+                    "STEP" => $"'{error}' A step change in system time has occurred, but the association has not yet resynchronized.",
+
+                    // https://datatracker.ietf.org/doc/html/rfc8915
+                    // 5.7. Protocol Details
+                    "NTSN" => $"'{error}' NTS Negative Acknowledgment (NAK).",
+
+                     _     => $"'{error}' Unknown error!",
+
+                };
+
+                return false;
+
+            }
+
+            #endregion
 
             return true;
 

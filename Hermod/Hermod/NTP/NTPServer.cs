@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                                 Array.Resize(ref buffer, resultLocal.ReceivedBytes);
 
-                                if (NTPPacket.TryParse(buffer, out var requestPacket, out var errorResponse))
+                                if (NTPPacket.TryParseRequest(buffer, out var requestPacket, out var errorResponse))
                                 {
 
                                     var responsePacket = BuildResponse(requestPacket);

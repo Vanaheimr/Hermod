@@ -395,11 +395,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var uniqueId = new Byte[32];
             RandomNumberGenerator.Fill(uniqueId);
 
-            var requestPacket = BuildNTPRequest(NTSKEResponse, uniqueId, "Hello world!".ToUTF8Bytes());
+            var requestPacket = BuildNTPRequest(NTSKEResponse, uniqueId, Plaintext: null);
             var requestData   = requestPacket.ToByteArray();
 
 
-            var yyy = NTPPacket.TryParse(requestData, out var ntpRequest, out var errorRequest, NTSKEResponse.C2SKey, uniqueId);
+            //var yyy = NTPPacket.TryParse(requestData, out var ntpRequest, out var errorRequest, NTSKEResponse.C2SKey, uniqueId);
 
             using (var udpClient = new UdpClient())
             {
@@ -429,14 +429,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
                     DebugX.Log($"Got {receiveResult.Buffer.Length}-byte response from {receiveResult.RemoteEndPoint}");
 
-                    if (NTPPacket.TryParse(receiveResult.Buffer,
-                                           out var ntpResponse,
-                                           out var errorResponse,
-                                           NTSKey:            NTSKEResponse?.S2CKey,
-                                           ExpectedUniqueId:  requestPacket.UniqueIdentifier))
+                    if (NTPPacket.TryParseResponse(receiveResult.Buffer,
+                                                   out var ntpResponse,
+                                                   out var errorResponse,
+                                                   NTSKey:            NTSKEResponse?.S2CKey,
+                                                   ExpectedUniqueId:  requestPacket.UniqueIdentifier))
                     {
 
-                        if (ntpResponse.Extensions.Count() == 3)
+                        if (ntpResponse.Extensions.Count() == 2)
                         {
 
                         }
