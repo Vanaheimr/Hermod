@@ -1839,6 +1839,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             httpFilters.Add(Filter);
         }
 
+        public void ClearFilters(HTTPFilter2Delegate? Filter = null)
+        {
+
+            if (Filter is null)
+                httpFilters.Clear();
+
+            else
+                httpFilters.RemoveAll(filter => filter == Filter);
+
+        }
+
         #endregion
 
         #region HTTP Rewrites
