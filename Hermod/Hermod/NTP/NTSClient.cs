@@ -22,18 +22,20 @@ using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Diagnostics.CodeAnalysis;
 
 using Org.BouncyCastle.Tls;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
-
+    /// <summary>
+    /// The Network Time Security (NTS) client.
+    /// </summary>
     public class NTSClient
     {
 
@@ -47,12 +49,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         #region Properties
 
-        public String     Host              { get; }
-        public UInt16     NTSKE_Port        { get; }
-        public UInt16     NTP_Port          { get; }
-        public TimeSpan?  Timeout           { get; set; }
-        public Byte[]     C2S_Key           { get; set; }
-        public Byte[]     S2C_Key           { get; set; }
+        public String     Host          { get; }
+        public UInt16     NTSKE_Port    { get; }
+        public UInt16     NTP_Port      { get; }
+        public TimeSpan?  Timeout       { get; set; }
+        public Byte[]     C2S_Key       { get; set; }
+        public Byte[]     S2C_Key       { get; set; }
 
         #endregion
 
@@ -371,9 +373,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         /// <summary>
         /// Sends a single NTP request (mode=3) with NTS extension fields:
-        ///  1) Unique Identifier extension field
-        ///  2) NTS Cookie extension field (cleartext for server)
-        ///  3) NTS Authenticator & Encrypted extension field (placeholder)
+        ///   1) Unique Identifier extension field
+        ///   2) NTS Cookie extension field (cleartext for server)
+        ///   3) NTS Authenticator & Encrypted extension field (placeholder)
         /// and reads a single response.
         /// </summary>
         public async Task<NTPPacket?> QueryTime(TimeSpan?          Timeout             = null,
@@ -468,9 +470,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
         /// <summary>
         /// Builds an NTP mode=3 request with minimal NTS EFs:
-        ///  1) Unique ID (0104)
-        ///  2) NTS Cookie (0204)
-        ///  3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
+        ///   1) Unique ID (0104)
+        ///   2) NTS Cookie (0204)
+        ///   3) NTS Auth & Encrypted (0404) - with placeholder AEAD data
         /// </summary>
         public static NTPPacket BuildNTPRequest(NTSKE_Response?  NTSKEResponse   = null,
                                                 Byte[]?          UniqueId        = null,
@@ -657,34 +659,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             }
 
             return true;
-
-        }
-
-        #endregion
-
-        #region (private static) Concat(params arrays)
-
-        /// <summary>
-        /// Helper: Concatenate multiple byte arrays.
-        /// </summary>
-        private static byte[] Concat(params byte[][] arrays)
-        {
-
-            var totalLen = 0;
-
-            foreach (var arr in arrays)
-                totalLen += arr.Length;
-
-            var result = new Byte[totalLen];
-            int offset = 0;
-
-            foreach (var arr in arrays)
-            {
-                Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
-                offset += arr.Length;
-            }
-
-            return result;
 
         }
 

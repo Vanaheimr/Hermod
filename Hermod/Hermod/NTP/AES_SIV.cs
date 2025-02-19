@@ -23,6 +23,7 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Linq;
 
 #endregion
 
@@ -90,12 +91,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             var ciphertext   = AES_CTR_Encrypt(Plaintext, syntheticIV, Key2_AESCTR);
             var result       = new Byte[syntheticIV.Length + ciphertext.Length];
 
-            //var a = AssociatedData.Select(ad => ad.ToHexString()).AggregateWith(" / ");
-            //var n = Nonce.      ToHexString();
-            //var s = syntheticIV.ToHexString();
-            //var c = ciphertext. ToHexString();
-
-            //var o = $"{a} - {n} - {s} - {c}";
+            DebugX.Log($"key (CMAC):   '{Key1_CMAC.  ToHexString()}'");
+            DebugX.Log($"key (CTR):    '{Key2_AESCTR.ToHexString()}'");
+            DebugX.Log($"syntheticIV:  '{syntheticIV.ToHexString()}'");
+            foreach (var ad in AssociatedData.SelectCounted((ad, c) => $"assocdata({c}): '{ad.ToHexString()}'"))
+                DebugX.Log(ad);
+            DebugX.Log($"nonce:        '{Nonce.      ToHexString()}'");
+            DebugX.Log($"ciphertext:   '{ciphertext. ToHexString()}'");
 
             Array.Copy(syntheticIV, 0, result,                  0, syntheticIV.Length);
             Array.Copy(ciphertext,  0, result, syntheticIV.Length, ciphertext. Length);
@@ -173,42 +175,89 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             // Step 1: Initialize D with CMAC(K, <zero>), meaning 0^128
             var D          = CMAC(Key1_CMAC, new Byte[16]);
 
-            // 2. Hash all associated data blocks
-            foreach (var associatedData in AssociatedData)
-            {
-                D          = DoubleBlock(D);
-                var cmacX  = CMAC(Key1_CMAC, associatedData);
-                D          = XOR_Blocks(D, cmacX);
-            }
 
-            // Nonce
-            if (Nonce.Length > 0)
+            #region Build byte blocks
+
+            var byteBlocks = new List<Byte[]>();
+
+            foreach (var associatedData in AssociatedData)
+                byteBlocks.Add(associatedData);
+
+            if (Nonce.    Length > 0)
+                byteBlocks.Add(Nonce);
+
+            if (Plaintext.Length > 0)
+                byteBlocks.Add(Plaintext);
+
+            #endregion
+
+            foreach (var byteBlock in byteBlocks.Take(byteBlocks.Count - 1))
             {
-                D          = DoubleBlock(D);
-                var cmacN  = CMAC(Key1_CMAC, Nonce);
-                D          = XOR_Blocks(D, cmacN);
+                D = DoubleBlock(D);
+                var cmacX = CMAC(Key1_CMAC, byteBlock);
+                D = XOR_Blocks(D, cmacX);
             }
 
             Byte[] T;
-            if (Plaintext.Length >= 16)
+            var lastBlock = byteBlocks.Last();
+            if (lastBlock.Length >= 16)
             {
 
-                // Take the last 16 bytes of the plaintext
-                var lastBlock = new Byte[16];
-                Buffer.BlockCopy(Plaintext, Plaintext.Length - 16, lastBlock, 0, 16);
-                var T1 = AES_SIV.XOR_Blocks(lastBlock, D);
+                // Take the last 16 bytes of the last block
+                var lastBytesOfTheBlock = new Byte[16];
+                Buffer.BlockCopy(lastBlock, lastBlock.Length - 16, lastBytesOfTheBlock, 0, 16);
+                var T1 = AES_SIV.XOR_Blocks(lastBytesOfTheBlock, D);
 
-                T = new Byte[Plaintext.Length];
-                Buffer.BlockCopy(Plaintext, 0, T,                     0, Plaintext.Length);
-                Buffer.BlockCopy(T1,        0, T, Plaintext.Length - 16,               16);
+                T = new Byte[lastBlock.Length];
+                Buffer.BlockCopy(lastBlock, 0, T,                     0, lastBlock.Length);
+                Buffer.BlockCopy(T1,        0, T, lastBlock.Length - 16,               16);
 
             }
             else
             {
                 D = AES_SIV.DoubleBlock(D);
-                var padded = Pad(Plaintext);
+                var padded = Pad(lastBlock);
                 T = XOR_Blocks(D, padded);
             }
+
+
+            //// 2. Hash all associated data blocks
+            //foreach (var associatedData in AssociatedData)
+            //{
+            //    D          = DoubleBlock(D);
+            //    var cmacX  = CMAC(Key1_CMAC, associatedData);
+            //    D          = XOR_Blocks(D, cmacX);
+            //}
+
+            //// Nonce
+            //if (Nonce.Length > 0)
+            //{
+            //    D          = DoubleBlock(D);
+            //    var cmacN  = CMAC(Key1_CMAC, Nonce);
+            //    D          = XOR_Blocks(D, cmacN);
+            //}
+
+            //Byte[] T;
+            //if (Plaintext.Length >= 16)
+            //{
+
+            //    // Take the last 16 bytes of the plaintext
+            //    var lastBlock = new Byte[16];
+            //    Buffer.BlockCopy(Plaintext, Plaintext.Length - 16, lastBlock, 0, 16);
+            //    var T1 = AES_SIV.XOR_Blocks(lastBlock, D);
+
+            //    T = new Byte[Plaintext.Length];
+            //    Buffer.BlockCopy(Plaintext, 0, T,                     0, Plaintext.Length);
+            //    Buffer.BlockCopy(T1,        0, T, Plaintext.Length - 16,               16);
+
+            //}
+            //else
+            //{
+            //    D = AES_SIV.DoubleBlock(D);
+            //    var padded = Pad(Plaintext);
+            //    T = XOR_Blocks(D, padded);
+            //}
+
 
             // 4. Final: V = CMAC(K, T)
             return CMAC(Key1_CMAC, T);
