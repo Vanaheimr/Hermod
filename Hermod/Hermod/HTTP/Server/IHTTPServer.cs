@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         /// <summary>
-        /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
+        /// The default HTTP server name, used whenever no HTTP "Host"-header had been given.
         /// </summary>
         String                                                     DefaultServerName             { get; }
 

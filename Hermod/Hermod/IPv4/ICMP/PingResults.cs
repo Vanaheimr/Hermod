@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
             var average           = goodResults.Any()
                                         ? goodResults.Select(result => result.Runtime.TotalMilliseconds).AverageAndStdDev()
-                                        : new Illias.Collections.Tuple<Double, Double>(Timeout.TotalMilliseconds, 0);
+                                        : new Tuple<Double, Double>(Timeout.TotalMilliseconds, 0);
 
             var commonError       = ICMPErrors.Mixed;
 

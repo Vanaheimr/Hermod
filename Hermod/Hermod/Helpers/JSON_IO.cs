@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Return a JSON representation of the given IP address.
         /// </summary>
-        /// <param name="IIPAddress">An identificator.</param>
+        /// <param name="IIPAddress">An identifier.</param>
         /// <param name="JPropertyKey">The name of the JSON property key to use.</param>
         public static JProperty ToJSON(this IIPAddress IIPAddress, String JPropertyKey)
 

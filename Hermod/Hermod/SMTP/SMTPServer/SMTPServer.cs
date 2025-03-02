@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private String _DefaultServerName;
 
         /// <summary>
-        /// The default SMTP servername.
+        /// The default SMTP server name.
         /// </summary>
         public String DefaultServerName
         {
@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// Initialize the SMTP server using the given parameters.
         /// </summary>
         /// <param name="TCPPort"></param>
-        /// <param name="DefaultServerName">The default SMTP servername.</param>
+        /// <param name="DefaultServerName">The default SMTP server name.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>

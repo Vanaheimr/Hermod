@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #region Properties
 
         /// <summary>
-        /// The default SMTP servername.
+        /// The default SMTP server name.
         /// </summary>
         public String   DefaultServerName    { get; }
 
@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// This processor will accept incoming SMTP TCP connections and
         /// decode the transmitted data as SMTP requests.
         /// </summary>
-        /// <param name="DefaultServername">The default SMTP servername.</param>
+        /// <param name="DefaultServername">The default SMTP server name.</param>
         /// <param name="AllowStartTLS">>Allow to start TLS via the 'STARTTLS' SMTP command.</param>
         public SMTPConnection(String  DefaultServername  = SMTPServer.__DefaultServerName,
                               Boolean AllowStartTLS      = true)

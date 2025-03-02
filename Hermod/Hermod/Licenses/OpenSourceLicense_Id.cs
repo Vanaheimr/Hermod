@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the Open Source license identificator.
+        /// The length of the Open Source license identifier.
         /// </summary>
         public UInt64 Length
             => (UInt64) (InternalId?.Length ?? 0);
