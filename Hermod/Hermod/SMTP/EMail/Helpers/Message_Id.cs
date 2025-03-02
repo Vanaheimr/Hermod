@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                DomainPart.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the e-mail message identificator.
+        /// The length of the e-mail message identifier.
         /// </summary>
         public UInt64 Length
             => (UInt64) (RandomPart.Length + 1 + DomainPart.Length);

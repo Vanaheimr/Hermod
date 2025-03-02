@@ -40,7 +40,7 @@
 //        public EMailAddress               EMail                { get; }
 
 //        ///// <summary>
-//        ///// The offical public name of the user.
+//        ///// The official public name of the user.
 //        ///// </summary>
 //        //[Optional]
 //        //public String                     Name                 { get; }

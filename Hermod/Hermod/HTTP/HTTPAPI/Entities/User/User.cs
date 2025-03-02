@@ -737,7 +737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new user.
         /// </summary>
         /// <param name="Id">The unique identification of the user.</param>
-        /// <param name="Name">An offical (multi-language) name of the user.</param>
+        /// <param name="Name">An official (multi-language) name of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// 
         /// <param name="Description">An optional (multi-language) description of the user.</param>
@@ -1739,7 +1739,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) GetHashCode()
 
         /// <summary>
-        /// Get the hashcode of this object.
+        /// Get the hash code of this object.
         /// </summary>
         public override Int32 GetHashCode()
 
@@ -2284,7 +2284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Id">The unique identification of the user.</param>
             /// <param name="EMail">The primary e-mail of the user.</param>
-            /// <param name="Name">An offical (multi-language) name of the user.</param>
+            /// <param name="Name">An official (multi-language) name of the user.</param>
             /// <param name="Description">An optional (multi-language) description of the user.</param>
             /// <param name="PublicKeyRing">An optional PGP/GPG public keyring of the user.</param>
             /// <param name="SecretKeyRing">An optional PGP/GPG secret keyring of the user.</param>
@@ -2848,7 +2848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (override) GetHashCode()
 
             /// <summary>
-            /// Get the hashcode of this object.
+            /// Get the hash code of this object.
             /// </summary>
             public override Int32 GetHashCode()
 

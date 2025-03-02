@@ -583,7 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
-        /// <param name="Name">An offical (multi-language) name of the user.</param>
+        /// <param name="Name">An official (multi-language) name of the user.</param>
         /// <param name="Description">An optional (multi-language) description of the user.</param>
         /// <param name="PublicKeyRing">An optional PGP/GPG public keyring of the user.</param>
         /// <param name="SecretKeyRing">An optional PGP/GPG secret keyring of the user.</param>
@@ -689,7 +689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="AccessRight">The organization membership of the new user.</param>
         /// <param name="Organization">The organization of the new user.</param>
         /// <param name="Password">An optional password of the user.</param>
-        /// <param name="Name">An offical (multi-language) name of the user.</param>
+        /// <param name="Name">An official (multi-language) name of the user.</param>
         /// <param name="Description">An optional (multi-language) description of the user.</param>
         /// <param name="PublicKeyRing">An optional PGP/GPG public keyring of the user.</param>
         /// <param name="SecretKeyRing">An optional PGP/GPG secret keyring of the user.</param>
@@ -798,7 +798,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
-        /// <param name="Name">An offical (multi-language) name of the user.</param>
+        /// <param name="Name">An official (multi-language) name of the user.</param>
         /// <param name="Description">An optional (multi-language) description of the user.</param>
         /// <param name="PublicKeyRing">An optional PGP/GPG public keyring of the user.</param>
         /// <param name="SecretKeyRing">An optional PGP/GPG secret keyring of the user.</param>
@@ -904,7 +904,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="AccessRight">The organization membership of the new user.</param>
         /// <param name="Organization">The organization of the new user.</param>
         /// <param name="Password">An optional password of the user.</param>
-        /// <param name="Name">An offical (multi-language) name of the user.</param>
+        /// <param name="Name">An official (multi-language) name of the user.</param>
         /// <param name="Description">An optional (multi-language) description of the user.</param>
         /// <param name="PublicKeyRing">An optional PGP/GPG public keyring of the user.</param>
         /// <param name="SecretKeyRing">An optional PGP/GPG secret keyring of the user.</param>
@@ -2063,10 +2063,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP server and attach this Open Data HTTP API to it.
         /// </summary>
         /// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServerPort">A TCP port to listen on.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        /// <param name="HTTPServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="HTTPServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// 
         /// <param name="URLPathPrefix">A common prefix for all URLs.</param>
         /// <param name="HTTPServiceName">The name of the HTTP service.</param>
@@ -2392,7 +2392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
         /// 
@@ -2627,7 +2627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// <param name="HTTPServer">An existing HTTP server.</param>
         ///// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
         ///// <param name="ServiceName">The name of the service.</param>
-        ///// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        ///// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         ///// <param name="URLPathPrefix">A common prefix for all URLs.</param>
         ///// <param name="HTMLTemplate">An optional HTML template.</param>
         ///// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
@@ -13853,7 +13853,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var messageTypes = messageTypesHash.ToArray();
 
 
-            ComparizionResult? comparizionResult = null;
+            ComparisonResult? comparizionResult = null;
 
             if (messageTypes.Contains(updateUser_MessageType))
                 comparizionResult = (User as User).CompareWith(OldUser as User);
@@ -23696,7 +23696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var messageTypes = messageTypesHash.ToArray();
 
 
-            ComparizionResult? comparizionResult = null;
+            ComparisonResult? comparizionResult = null;
 
             if (messageTypes.Contains(updateOrganization_MessageType))
                 comparizionResult = (Organization as Organization).CompareWith(OldOrganization as Organization);

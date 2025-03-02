@@ -1046,7 +1046,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname             Hostname                    { get; }
 
         /// <summary>
-        /// The offical URL/DNS name of this service, e.g. for sending e-mails.
+        /// The official URL/DNS name of this service, e.g. for sending e-mails.
         /// </summary>
         public String                   ExternalDNSName             { get; }
 
@@ -1148,10 +1148,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP API.
         /// </summary>
         /// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServerPort">A TCP port to listen on.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        /// <param name="HTTPServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="HTTPServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// 
         /// <param name="URLPathPrefix">A common prefix for all URLs.</param>
         /// <param name="HTTPServiceName">The name of the HTTP service.</param>
@@ -1295,7 +1295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
         /// 
