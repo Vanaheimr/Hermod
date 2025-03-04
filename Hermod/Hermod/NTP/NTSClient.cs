@@ -438,12 +438,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                                                    ExpectedUniqueId:  requestPacket.UniqueIdentifier))
                     {
 
-                        if (ntpResponse.Extensions.Count() == 2)
-                        {
-
-                        }
-
-                        //ToDo: Validate S2C AEAD data
                         DebugX.Log($"{Host} Serverzeit (UTC): " + NTPPacket.NTPTimestampToDateTime(ntpResponse.TransmitTimestamp.Value).ToString("o"));
 
                         return ntpResponse;

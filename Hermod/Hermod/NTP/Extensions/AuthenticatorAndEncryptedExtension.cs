@@ -103,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 
             // Recompute the AEAD output using AES-SIV.
             var aesSiv                    = new AES_SIV(Key);
-            var computedOutput            = aesSiv.Decrypt(AssociatedData, receivedNonce, receivedCiphertext);
+            var computedOutput            = aesSiv.Decrypt([ AssociatedData.Aggregate() ], receivedNonce, receivedCiphertext);
             var extensions                = new List<NTPExtension>();
 
             var offset = 0;
