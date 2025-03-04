@@ -567,9 +567,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.NTP
         #endregion
 
 
-        
-
-
         #region AES128_SIV_TestX()
 
         /// <summary>

@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
-        /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
+        /// The default HTTP server name, used whenever no HTTP "Host"-header had been given.
         /// </summary>
         public String                                                     DefaultServerName
             => httpServer.DefaultServerName;
@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Initialize the multitenant HTTP server using the given parameters.
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="DefaultServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
@@ -1049,7 +1049,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
-        /// The default HTTP servername, used whenever
+        /// The default HTTP server name, used whenever
         /// no HTTP Host-header had been given.
         /// </summary>
         public String                                                         DefaultServerName             { get; }
@@ -1097,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
         /// <param name="HTTPPort">The TCP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="DefaultServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>

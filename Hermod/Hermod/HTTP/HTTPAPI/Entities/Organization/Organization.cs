@@ -620,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Id">The unique identification of the organization.</param>
         /// 
-        /// <param name="Name">The offical (multi-language) name of the organization.</param>
+        /// <param name="Name">The official (multi-language) name of the organization.</param>
         /// <param name="Description">An optional (multi-language) description of the organization.</param>
         /// <param name="Website">The website of the organization.</param>
         /// <param name="EMail">The primary e-mail of the organisation.</param>
@@ -1440,7 +1440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) GetHashCode()
 
         /// <summary>
-        /// Get the hashcode of this object.
+        /// Get the hash code of this object.
         /// </summary>
         public override Int32 GetHashCode()
             => Id.GetHashCode();
@@ -1778,7 +1778,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new organization builder.
             /// </summary>
             /// <param name="Id">The unique identification of the organization.</param>
-            /// <param name="Name">The offical (multi-language) name of the organization.</param>
+            /// <param name="Name">The official (multi-language) name of the organization.</param>
             /// <param name="Description">An optional (multi-language) description of the organization.</param>
             /// <param name="Website">The website of the organization.</param>
             /// <param name="EMail">The primary e-mail of the organisation.</param>
@@ -2286,7 +2286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (override) GetHashCode()
 
             /// <summary>
-            /// Get the hashcode of this object.
+            /// Get the hash code of this object.
             /// </summary>
             public override Int32 GetHashCode()
                 => Id.GetHashCode();

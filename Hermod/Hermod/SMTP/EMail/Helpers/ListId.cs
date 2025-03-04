@@ -370,9 +370,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a formated string representation of this object.
+        /// Returns a formatted string representation of this object.
         /// </summary>
-        /// <returns>A formated string representation of this object.</returns>
+        /// <returns>A formatted string representation of this object.</returns>
         public override String ToString()
         {
             return Value;

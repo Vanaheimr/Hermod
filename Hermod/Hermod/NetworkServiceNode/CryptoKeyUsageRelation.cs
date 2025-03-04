@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the node identificator.
+        /// The length of the node identifier.
         /// </summary>
         public UInt64 Length
             => (UInt64) (InternalId?.Length ?? 0);

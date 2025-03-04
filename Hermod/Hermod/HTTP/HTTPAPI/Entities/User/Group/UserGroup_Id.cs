@@ -77,10 +77,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the user group identificator.
+        /// The length of the user group identifier.
         /// </summary>
         public UInt64 Length
-            => (UInt64) InternalId?.Length;
+            => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
 
