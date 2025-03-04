@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             return new AuthenticatorAndEncryptedExtension(
                        nonce,
                        new AES_SIV(NTSKEResponse.C2SKey).Encrypt(
-                                                             AssociatedData,
+                                                             [ AssociatedData.Aggregate() ],
                                                              nonce,
                                                              Plaintext ?? []
                                                          )

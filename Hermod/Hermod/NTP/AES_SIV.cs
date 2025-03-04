@@ -69,6 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             Array.Copy(Key,    0, Key1_CMAC,   0, half);
             Array.Copy(Key, half, Key2_AESCTR, 0, half);
 
+//            Key1_CMAC = Key1_CMAC.Reverse();
+
         }
 
         #endregion
@@ -169,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             // Special case: If there are no associated data blocks
             // and no plaintext, return CMAC(K, <one>)
             if (!AssociatedData.Any() && Plaintext.Length == 0)
-                return CMAC(Key1_CMAC, [ 0x01 ]);
+                return CMAC(Key1_CMAC, [0x80, .. new Byte[15]]);
 
 
             // Step 1: Initialize D with CMAC(K, <zero>), meaning 0^128
@@ -186,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
             if (Nonce.    Length > 0)
                 byteBlocks.Add(Nonce);
 
-            if (Plaintext.Length > 0)
+            //if (Plaintext.Length > 0)
                 byteBlocks.Add(Plaintext);
 
             #endregion
@@ -219,45 +221,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
                 var padded = Pad(lastBlock);
                 T = XOR_Blocks(D, padded);
             }
-
-
-            //// 2. Hash all associated data blocks
-            //foreach (var associatedData in AssociatedData)
-            //{
-            //    D          = DoubleBlock(D);
-            //    var cmacX  = CMAC(Key1_CMAC, associatedData);
-            //    D          = XOR_Blocks(D, cmacX);
-            //}
-
-            //// Nonce
-            //if (Nonce.Length > 0)
-            //{
-            //    D          = DoubleBlock(D);
-            //    var cmacN  = CMAC(Key1_CMAC, Nonce);
-            //    D          = XOR_Blocks(D, cmacN);
-            //}
-
-            //Byte[] T;
-            //if (Plaintext.Length >= 16)
-            //{
-
-            //    // Take the last 16 bytes of the plaintext
-            //    var lastBlock = new Byte[16];
-            //    Buffer.BlockCopy(Plaintext, Plaintext.Length - 16, lastBlock, 0, 16);
-            //    var T1 = AES_SIV.XOR_Blocks(lastBlock, D);
-
-            //    T = new Byte[Plaintext.Length];
-            //    Buffer.BlockCopy(Plaintext, 0, T,                     0, Plaintext.Length);
-            //    Buffer.BlockCopy(T1,        0, T, Plaintext.Length - 16,               16);
-
-            //}
-            //else
-            //{
-            //    D = AES_SIV.DoubleBlock(D);
-            //    var padded = Pad(Plaintext);
-            //    T = XOR_Blocks(D, padded);
-            //}
-
 
             // 4. Final: V = CMAC(K, T)
             return CMAC(Key1_CMAC, T);
