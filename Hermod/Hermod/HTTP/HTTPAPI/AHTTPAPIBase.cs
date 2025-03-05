@@ -188,8 +188,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             try
             {
 
-                var resourceStream = GetResourceStream(ResourceName,
-                                                       ResourceAssemblies);
+                var resourceStream = GetResourceStream(
+                                         ResourceName,
+                                         ResourceAssemblies
+                                     );
 
                 if (resourceStream is not null)
                 {
