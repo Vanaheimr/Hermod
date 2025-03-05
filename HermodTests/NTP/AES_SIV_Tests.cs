@@ -567,7 +567,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.NTP
         #endregion
 
 
-        
+        #region AES128_SIV_TestX()
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [Test]
+        public void AES128_SIV_TestX()
+        {
+
+            // 23000020000000000000000000000000000000000000000000000000000000000000000000000000207a322dc8f32dbc
+            // 0104 0024 f9886ece73da5543394086fb73d126b26ce26a1a75b3e1a8d293cdeeaaa40dc5
+            // 0204 0068 a96873f24001ad862d9d0ba3e591c4a42c3ac9ac5080cbe6266d0ff97016450624a0939eb80189b75539f48acb3a8639da9fe36ac2c35de5902ddcc45804b9a935f490b57ee8bca33a0b9a20b14b83fe3c013b70a0f1f44d2a81791152ccb72bc00ceabc
+            // 0404 0028 0010 0010 8218d65567a4acea481167b591faf4d6 3d019be4815dcfa4d0fd9afa4d6c7257
+
+
+            var key              = "34dcb57b01cb4da411f95753f32f3d563a9bd8e96ddd697e29ecfec14bc5cf77".FromHEX();
+
+            var associatedData   = ("23000020000000000000000000000000000000000000000000000000000000000000000000000000207a322dc8f32dbc" +
+                                    "0104 0024 f9886ece73da5543394086fb73d126b26ce26a1a75b3e1a8d293cdeeaaa40dc5" +
+                                    "0204 0068 a96873f24001ad862d9d0ba3e591c4a42c3ac9ac5080cbe6266d0ff97016450624a0939eb80189b75539f48acb3a8639da9fe36ac2c35de5902ddcc45804b9a935f490b57ee8bca33a0b9a20b14b83fe3c013b70a0f1f44d2a81791152ccb72bc00ceabc").FromHEX();
+
+            var nonce            =  "8218d655 67a4acea 481167b5 91faf4d6".                                    FromHEX();
+            var plaintext        =  "".                                                                       FromHEX();
+
+            var siv              =  "3d019be4 815dcfa4 d0fd9afa 4d6c7257".                                    FromHEX();
+
+
+            var aes_siv = new AES_SIV(key);
+
+            var key1 = aes_siv.Key1_CMAC;
+
+            // 1. Init with: D_0 = CMAC(key1, 0^128)
+            var D = AES_SIV.CMAC(key1, new Byte[16]);
+
+
+            D = AES_SIV.DoubleBlock(D);
+            var cmacX1 = AES_SIV.CMAC(key1, associatedData);
+            D = AES_SIV.XOR_Blocks(D, cmacX1);
+
+
+            if (nonce.Length > 0)
+            {
+                D = AES_SIV.DoubleBlock(D);
+                var cmacX3 = AES_SIV.CMAC(key1, nonce);
+                D = AES_SIV.XOR_Blocks(D, cmacX3);
+            }
+
+            Byte[] T;
+            if (plaintext.Length >= 16)
+            {
+                // Take the last 16 bytes of the plaintext
+                var lastBlock = new Byte[16];
+                Buffer.BlockCopy(plaintext, plaintext.Length - 16, lastBlock, 0, 16);
+                var T1 = AES_SIV.XOR_Blocks(lastBlock, D);
+
+                T = new Byte[plaintext.Length];
+                Buffer.BlockCopy(plaintext, 0, T,                   0, plaintext.Length);
+                Buffer.BlockCopy(T1,        0, T, plaintext.Length-16,               16);
+
+            }
+            else
+            {
+                D = AES_SIV.DoubleBlock(D);
+                var padded = AES_SIV.Pad(plaintext);
+                T = AES_SIV.XOR_Blocks(D, padded);
+            }
+
+            // 4. Final: V = CMAC(K, T)
+            var final = AES_SIV.CMAC(key1, T);
+            Assert.That(final.ToHexString(),  Is.EqualTo(siv.ToHexString()));
+
+
+            // The same via library...
+            var result = aes_siv.Encrypt([ associatedData ], nonce, plaintext);
+
+            Assert.That(result.ToHexString(), Is.EqualTo(siv.ToHexString()));
+
+        }
+
+        #endregion
+
 
     }
 
