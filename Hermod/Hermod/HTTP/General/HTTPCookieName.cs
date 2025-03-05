@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -163,15 +163,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this HTTP cookie name.
         /// </summary>
-        public HTTPCookieName Clone
+        public HTTPCookieName Clone()
 
             => new (
-                   new String(InternalName?.ToCharArray())
+                   InternalName.CloneString()
                );
 
         #endregion

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * Author: Achim Friedland <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
@@ -43,13 +43,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPRequest">The attached HTTP request.</param>
         public static Task SubmitEvent(this HTTPEventSource<JObject>  HTTPEventSource,
                                        String                         SubEvent,
-                                       HTTPRequest                    HTTPRequest)
+                                       HTTPRequest                    HTTPRequest,
+                                       CancellationToken              CancellationToken = default)
 
-            => HTTPEventSource.SubmitEvent(SubEvent,
-                                           Timestamp.Now,
-                                           new JObject(
-                                               new JProperty("httpRequest", HTTPRequest.EntirePDU)
-                                           ));
+            => HTTPEventSource.SubmitEvent(
+                   SubEvent,
+                   Timestamp.Now,
+                   new JObject(
+                       new JProperty("httpRequest", HTTPRequest.EntirePDU)
+                   ),
+                   CancellationToken
+               );
 
         #endregion
 
@@ -62,13 +66,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPResponse">The attached HTTP request.</param>
         public static Task SubmitEvent(this HTTPEventSource<JObject>  HTTPEventSource,
                                        String                         SubEvent,
-                                       HTTPResponse                   HTTPResponse)
+                                       HTTPResponse                   HTTPResponse,
+                                       CancellationToken              CancellationToken = default)
 
-            => HTTPEventSource.SubmitEvent(SubEvent,
-                                           Timestamp.Now,
-                                           new JObject(
-                                               new JProperty("httpRequest", HTTPResponse.EntirePDU)
-                                           ));
+            => HTTPEventSource.SubmitEvent(
+                   SubEvent,
+                   Timestamp.Now,
+                   new JObject(
+                       new JProperty("httpRequest", HTTPResponse.EntirePDU)
+                   ),
+                   CancellationToken
+               );
 
         #endregion
 
@@ -104,12 +112,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         protected const Char GS = (Char) 0x1D;
 
-        private                 Int64                  IdCounter;
-        private        readonly TSQueue<HTTPEvent<T>>  QueueOfEvents;
-        private static readonly SemaphoreSlim          LogfileLock  = new SemaphoreSlim(1,1);
+        private                 Int64                        IdCounter;
+        private        readonly LockFreeQueue<HTTPEvent<T>>  QueueOfEvents;  //TSQueue<HTTPEvent<T>>  QueueOfEvents;
+        private static readonly SemaphoreSlim                LogfileLock  = new (1,1);
 
-        private        readonly Func<T, String>        DataSerializer;
-        private        readonly Func<String, T?>       DataDeserializer;
+        private        readonly Func<T, String>              DataSerializer;
+        private        readonly Func<String, T?>             DataDeserializer;
 
         #endregion
 
@@ -175,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.HTTPAPI              = HTTPAPI;
             this.EventIdentification  = EventIdentification;
-            this.QueueOfEvents        = new TSQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
+            this.QueueOfEvents        = new LockFreeQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
             this.RetryIntervall       = RetryIntervall   ?? TimeSpan.FromSeconds(30);
             this.DataSerializer       = DataSerializer   ?? (data => data?.ToString() ?? "");
             this.DataDeserializer     = DataDeserializer ?? (data => default);
@@ -188,73 +196,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Reload old data from logfile(s)...
 
-                if (LogfileReloadSearchPattern != null)
+                if (LogfileReloadSearchPattern is not null)
                 {
 
                     var httpSSEs = new List<String[]>();
 
-                    foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
-                                                                         LogfileReloadSearchPattern,
-                                                                         SearchOption.TopDirectoryOnly).
-                                                          OrderByDescending(file => file))
+                    try
                     {
 
-                        DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
+                        foreach (var logfilename in Directory.EnumerateFiles(this.LogfilePath,
+                                                                             LogfileReloadSearchPattern,
+                                                                             SearchOption.TopDirectoryOnly).
+                                                              OrderByDescending(file => file))
+                        {
 
-                        File.ReadAllLines(logfilename).
-                             Reverse().
-                             Where  (line => line.IsNotNullOrEmpty() &&
-                                            !line.StartsWith("//")   &&
-                                            !line.StartsWith("#")).
-                             Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
-                             Select (line => line.Split(RS)).
-                             ForEach(line => {
+                            DebugX.LogT("Reloading: HTTP SSE logfile: " + logfilename);
 
-                                                 if (line.Length >= 3           &&
-                                                     line.Length <= 4           &&
-                                                     line[0].IsNotNullOrEmpty() &&
-                                                     line[2].IsNotNullOrEmpty())
-                                                 {
-                                                     httpSSEs.Add(line);
-                                                 }
+                            File.ReadAllLines(logfilename).
+                                 Reverse().
+                                 Where  (line => line.IsNotNullOrEmpty() &&
+                                                !line.StartsWith("//")   &&
+                                                !line.StartsWith("#")).
+                                 Take   ((Int64) MaxNumberOfCachedEvents - httpSSEs.Count).
+                                 Select (line => line.Split(RS)).
+                                 ForEach(line => {
 
-                                                 else
-                                                     DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
+                                                     if (line.Length >= 3           &&
+                                                         line.Length <= 4           &&
+                                                         line[0].IsNotNullOrEmpty() &&
+                                                         line[2].IsNotNullOrEmpty())
+                                                     {
+                                                         httpSSEs.Add(line);
+                                                     }
 
-                                             });
+                                                     else
+                                                         DebugX.Log("Invalid HTTP event source data in file '", logfilename, "'!");
 
-                        if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
-                            break;
+                                                 });
 
+                            if (httpSSEs.ULongCount() >= MaxNumberOfCachedEvents)
+                                break;
+
+                        }
+
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        // Will fail, when part of the file system path is not accessible!
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.LogException(e, "While creating a HTTP Event Source!");
                     }
 
                     httpSSEs.Reverse();
 
                     httpSSEs.ForEach(line => {
 
-                                         try
-                                         {
+                        try
+                        {
 
-                                             QueueOfEvents.Push(new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
-                                                                                 Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
-                                                                                 Subevent:          line[1],
-                                                                                 Data:              DataDeserializer(line[2]),
-                                                                                 SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
-                                                                                                                      ? "event: " + line[1] + Environment.NewLine
-                                                                                                                      : "",
-                                                                                                                  "id: ",   IdCounter,        Environment.NewLine,
-                                                                                                                  "data: "),
-                                                                                 SerializedData:    line[2])).
-                                                           Wait();
+                            QueueOfEvents.Enqueue(
+                                new HTTPEvent<T>(Id:                (UInt64) IdCounter++,
+                                                 Timestamp:         DateTime.Parse(line[0]).ToUniversalTime(),
+                                                 Subevent:          line[1],
+                                                 Data:              DataDeserializer(line[2]),
+                                                 SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
+                                                                                      ? "event: " + line[1] + Environment.NewLine
+                                                                                      : "",
+                                                                                  "id: ",   IdCounter,        Environment.NewLine,
+                                                                                  "data: "),
+                                                 SerializedData:    line[2])
+                            ).Wait();
 
-                                         }
-                                         catch (Exception e)
-                                         {
-                                             DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
-                                                        e.Message);
-                                         }
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.Log("Reloading HTTP event source data led to an exception: ", Environment.NewLine,
+                                       e.Message);
+                        }
 
-                                     });
+                    });
 
                 }
 
@@ -267,9 +289,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     // Note: Do not attach this event handler before the data
                     //       is reread from the logfiles above!
-                    QueueOfEvents.OnAdded += async (Sender, httpEvent) => {
+                    QueueOfEvents.OnAdded += async (Sender, httpEvent, ct) => {
 
-                        await LogfileLock.WaitAsync();
+                        await LogfileLock.WaitAsync(ct);
 
                         try
                         {
@@ -313,11 +335,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Submit a new event.
         /// </summary>
         /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(T Data)
+        public Task SubmitEvent(T                  Data,
+                                CancellationToken  CancellationToken = default)
 
-            => SubmitEvent(String.Empty,
-                           Timestamp.Now,
-                           Data);
+            => SubmitEvent(
+                   String.Empty,
+                   Timestamp.Now,
+                   Data,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -328,11 +354,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(DateTime Timestamp, T Data)
+        public Task SubmitEvent(DateTime           Timestamp,
+                                T                  Data,
+                                CancellationToken  CancellationToken = default)
 
-            => SubmitEvent(String.Empty,
-                           Timestamp,
-                           Data);
+            => SubmitEvent(
+                   String.Empty,
+                   Timestamp,
+                   Data,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -343,12 +374,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(String  SubEvent,
-                                T       Data)
+        public Task SubmitEvent(String             SubEvent,
+                                T                  Data,
+                                CancellationToken  CancellationToken = default)
 
-            => SubmitEvent(SubEvent,
-                           Timestamp.Now,
-                           Data);
+            => SubmitEvent(
+                   SubEvent,
+                   Timestamp.Now,
+                   Data,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -360,25 +395,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SubEvent">A subevent identification.</param>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public async Task SubmitEvent(String    SubEvent,
-                                      DateTime  Timestamp,
-                                      T         Data)
+        public async Task SubmitEvent(String             SubEvent,
+                                      DateTime           Timestamp,
+                                      T                  Data,
+                                      CancellationToken  CancellationToken = default)
         {
 
             if (SubEvent.IsNotNullOrEmpty())
                 SubEvent = SubEvent.Trim().Replace(",", "");
 
-            await QueueOfEvents.Push(new HTTPEvent<T>((UInt64) Interlocked.Increment(ref IdCounter),
-                                                      Timestamp,
-                                                      SubEvent,
-                                                      Data,
-                                                      String.Concat(SubEvent.IsNotNullOrEmpty()
-                                                                        ? "event: " + SubEvent + Environment.NewLine
-                                                                        : "",
-                                                                    "id: ",   IdCounter,         Environment.NewLine,
-                                                                    "data: "),
-                                                      DataSerializer(Data))).
-                                ConfigureAwait(false);
+            await QueueOfEvents.Enqueue(
+                      new HTTPEvent<T>(
+                          (UInt64) Interlocked.Increment(ref IdCounter),
+                          Timestamp,
+                          SubEvent,
+                          Data,
+                          String.Concat(
+                              SubEvent.IsNotNullOrEmpty()
+                                  ? "event: " + SubEvent + Environment.NewLine
+                                  : "",
+                              "id: ",   IdCounter,         Environment.NewLine,
+                              "data: "
+                          ),
+                          DataSerializer(Data)
+                      ),
+                      CancellationToken
+                  );
 
         }
 

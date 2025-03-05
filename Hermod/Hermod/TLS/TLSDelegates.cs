@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,9 +19,6 @@
 
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.WebSocket;
 
 #endregion
 
@@ -65,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     ///// <param name="Sender">An object that contains state information for this validation.</param>
     ///// <param name="Certificate">The certificate used to authenticate the remote party.</param>
     ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
-    ///// <param name="WebSocketServer">The HTTP Web Socket server.</param>
+    ///// <param name="WebSocketServer">The HTTP WebSocket server.</param>
     ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
     //public delegate (Boolean, IEnumerable<String>) RemoteHTTPSClientCertificateValidationHandler(Object              Sender,
     //                                                                                             X509Certificate2?   Certificate,
@@ -80,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     ///// <param name="Sender">An object that contains state information for this validation.</param>
     ///// <param name="Certificate">The certificate used to authenticate the remote party.</param>
     ///// <param name="CertificateChain">The chain of certificate authorities associated with the remote certificate.</param>
-    ///// <param name="WebSocketServer">The HTTP Web Socket server.</param>
+    ///// <param name="WebSocketServer">The HTTP WebSocket server.</param>
     ///// <param name="PolicyErrors">One or more errors associated with the remote certificate.</param>
     //public delegate (Boolean, IEnumerable<String>) RemoteWebSocketClientCertificateValidationHandler(Object              Sender,
     //                                                                                                 X509Certificate2?   Certificate,

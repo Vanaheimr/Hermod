@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,34 +17,12 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-
 using Newtonsoft.Json.Linq;
 
 using Org.BouncyCastle.Bcpg.OpenPgp;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using org.GraphDefined.Vanaheimr.Hermod.SMTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.BouncyCastle;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using org.GraphDefined.Vanaheimr.Aegir;
-using System.Collections.Concurrent;
 
 #endregion
 
@@ -62,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public readonly static TimeSpan       DefaultSendNotificationsEvery   = TimeSpan.FromSeconds(31);
 
 
-        protected readonly     SemaphoreSlim  SendNotificationsLock          = new SemaphoreSlim(1, 1);
+        protected readonly     SemaphoreSlim  SendNotificationsLock           = new (1, 1);
         protected readonly     Timer          SendNotificationsTimer;
 
         #endregion
@@ -78,19 +56,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region FlushNotificationsEvery
 
-        protected UInt32 _SendNotificationsEvery;
+        protected UInt32 sendNotificationsEvery;
 
         public TimeSpan FlushNotificationsEvery
         {
 
             get
             {
-                return TimeSpan.FromSeconds(_SendNotificationsEvery);
+                return TimeSpan.FromSeconds(sendNotificationsEvery);
             }
 
             set
             {
-                _SendNotificationsEvery = (UInt32) value.TotalSeconds;
+                sendNotificationsEvery = (UInt32) value.TotalSeconds;
             }
 
         }
@@ -109,28 +87,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Constructor(s)
 
-        protected ANotificationSender(HTTPExtAPI          HTTPExtAPI,
-                                      TimeSpan?         SendNotificationsEvery     = null,
-                                      Boolean           DisableSendNotifications   = false,
-                                      PgpPublicKeyRing  PublicKeyRing              = null,
-                                      PgpSecretKeyRing  SecretKeyRing              = null,
-                                      DNSClient         DNSClient                  = null)
+        protected ANotificationSender(HTTPExtAPI         HTTPExtAPI,
+                                      TimeSpan?          SendNotificationsEvery     = null,
+                                      Boolean            DisableSendNotifications   = false,
+                                      PgpPublicKeyRing?  PublicKeyRing              = null,
+                                      PgpSecretKeyRing?  SecretKeyRing              = null,
+                                      DNSClient?         DNSClient                  = null)
         {
 
-            this.HTTPExtAPI                     = HTTPExtAPI;
+            this.HTTPExtAPI                   = HTTPExtAPI;
             this.DisableSendNotifications     = DisableSendNotifications;
 
-            this._SendNotificationsEvery      = (UInt32) (SendNotificationsEvery.HasValue
+            this.sendNotificationsEvery       = (UInt32) (SendNotificationsEvery.HasValue
                                                     ? SendNotificationsEvery.Value. TotalSeconds
                                                     : DefaultSendNotificationsEvery.TotalSeconds);
 
-            this.SendNotificationsTimer       = new Timer(SendNotifications,
-                                                          null,
-                                                          _SendNotificationsEvery,
-                                                          _SendNotificationsEvery);
+            this.SendNotificationsTimer       = new Timer(
+                                                    SendNotifications,
+                                                    null,
+                                                    sendNotificationsEvery,
+                                                    sendNotificationsEvery
+                                                );
 
             this.LatestNotificationTimestamp  = DateTime.MinValue;
-            this.DNSClient                    = DNSClient;
+            this.DNSClient                    = DNSClient ?? new DNSClient();
 
         }
 
@@ -139,21 +119,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region (timer) SendNotifications(State)
 
-        private void SendNotifications(Object State)
+        private void SendNotifications(Object? State)
         {
             if (!DisableSendNotifications)
                 SendNotifications2(State).Wait();
         }
 
-        private async Task SendNotifications2(Object State)
+        private async Task SendNotifications2(Object? State)
         {
 
-            var LockTaken = await SendNotificationsLock.WaitAsync(0).ConfigureAwait(false);
+            var lockTaken = await SendNotificationsLock.WaitAsync(0).ConfigureAwait(false);
 
             try
             {
 
-                if (LockTaken)
+                if (lockTaken)
                 {
 
                     //var NotificationMessages  = HTTPExtAPI.NotificationMessages.
@@ -191,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             finally
             {
 
-                if (LockTaken)
+                if (lockTaken)
                 {
                     SendNotificationsLock.Release();
                //     DebugX.LogT("SendNotificationsLock released!");

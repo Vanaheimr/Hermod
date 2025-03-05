@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,19 +57,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private readonly  SemaphoreSlim                          socketWriteSemaphore   = new (1, 1);
 
+        private           UInt64                                 messagesReceivedCounter;
+        private           UInt64                                 messagesSentCounter;
+        private           UInt64                                 framesReceivedCounter;
+        private           UInt64                                 framesSentCounter;
+
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// The creation timestamp.
-        /// </summary>
-        public DateTime                 Created                       { get; }
-
-        public CancellationTokenSource  CancellationTokenSource       { get; }
-
-        /// <summary>
-        /// The HTTP web socket server.
+        /// The HTTP WebSocket server.
         /// </summary>
         public AWebSocketServer         WebSocketServer               { get; }
 
@@ -94,9 +92,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public HTTPResponse?            HTTPResponse                  { get; internal set; }
 
         /// <summary>
+        /// The creation timestamp.
+        /// </summary>
+        public DateTime                 ConnectedSince                { get; }
+
+        /// <summary>
+        /// The last time data was sent.
+        /// </summary>
+        public DateTime?                LastSentTimestamp             { get; set; }
+
+        /// <summary>
+        /// The last time data was received.
+        /// </summary>
+        public DateTime?                LastReceivedTimestamp         { get; set; }
+
+        /// <summary>
+        /// Whether the connection is still assumed to be alive.
+        /// </summary>
+        public Boolean                  IsAlive                       { get; set; } = true;
+
+        /// <summary>
+        /// The number of WebSocket messages received.
+        /// </summary>
+        public UInt64                   MessagesReceivedCounter
+            => messagesReceivedCounter;
+
+        /// <summary>
+        /// The number of WebSocket messages sent.
+        /// </summary>
+        public UInt64                   MessagesSentCounter
+            => messagesSentCounter;
+
+        /// <summary>
+        /// The number of WebSocket frames received.
+        /// </summary>
+        public UInt64                   FramesReceivedCounter
+            => framesReceivedCounter;
+
+        /// <summary>
+        /// The number of WebSocket frames sent.
+        /// </summary>
+        public UInt64                   FramesSentCounter
+            => framesSentCounter;
+
+        public UInt64?                  MaxTextMessageSizeIn          { get; set; }
+        public UInt64?                  MaxTextMessageSizeOut         { get; set; }
+        public UInt64?                  MaxTextFragmentLengthIn       { get; set; }
+        public UInt64?                  MaxTextFragmentLengthOut      { get; set; }
+
+        public UInt64?                  MaxBinaryMessageSizeIn        { get; set; }
+        public UInt64?                  MaxBinaryMessageSizeOut       { get; set; }
+        public UInt64?                  MaxBinaryFragmentLengthIn     { get; set; }
+        public UInt64?                  MaxBinaryFragmentLengthOut    { get; set; }
+
+
+        /// <summary>
         /// For debugging reasons data can be send really really slow...
         /// </summary>
         public TimeSpan?                SlowNetworkSimulationDelay    { get; }
+
 
         /// <summary>
         /// The amount of time a read operation blocks waiting for data.
@@ -164,16 +218,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
         }
 
+        public String?                  Login                         { get; internal set; }
+
         public X509Certificate2?        ClientCertificate             { get; private set; }
+
+        /// <summary>
+        /// The cancellation token source for closing this connection.
+        /// </summary>
+        public CancellationTokenSource  CancellationTokenSource       { get; }
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new HTTP web socket server connection.
+        /// Create a new HTTP WebSocket server connection.
         /// </summary>
-        /// <param name="WebSocketServer">A HTTP web socket server.</param>
+        /// <param name="WebSocketServer">A HTTP WebSocket server.</param>
         /// <param name="TcpClient">A TCP connection abstraction.</param>
         /// <param name="HTTPRequest">An optional HTTP request of this web socket connection. Can also be attached later.</param>
         /// <param name="HTTPResponse">An optional HTTP response of this web socket connection. Can also be attached later.</param>
@@ -184,11 +245,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                          X509Certificate2?                            ClientCertificate            = null,
                                          HTTPRequest?                                 HTTPRequest                  = null,
                                          HTTPResponse?                                HTTPResponse                 = null,
-                                         IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null,
-                                         TimeSpan?                                    SlowNetworkSimulationDelay   = null)
+
+                                         UInt64?                                      MaxTextMessageSizeIn         = null,
+                                         UInt64?                                      MaxTextMessageSizeOut        = null,
+                                         UInt64?                                      MaxTextFragmentLengthIn      = null,
+                                         UInt64?                                      MaxTextFragmentLengthOut     = null,
+
+                                         UInt64?                                      MaxBinaryMessageSizeIn       = null,
+                                         UInt64?                                      MaxBinaryMessageSizeOut      = null,
+                                         UInt64?                                      MaxBinaryFragmentLengthIn    = null,
+                                         UInt64?                                      MaxBinaryFragmentLengthOut   = null,
+
+                                         TimeSpan?                                    SlowNetworkSimulationDelay   = null,
+
+                                         IEnumerable<KeyValuePair<String, Object?>>?  CustomData                   = null)
         {
 
-            this.Created                     = Timestamp.Now;
+            this.ConnectedSince                     = Timestamp.Now;
             this.CancellationTokenSource     = new CancellationTokenSource();
             this.WebSocketServer             = WebSocketServer;
             this.tcpClient                   = TcpClient;
@@ -200,6 +273,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.ClientCertificate           = ClientCertificate;
             this.HTTPRequest                 = HTTPRequest;
             this.HTTPResponse                = HTTPResponse;
+
+            this.MaxTextMessageSizeIn        = MaxTextMessageSizeIn;
+            this.MaxTextMessageSizeOut       = MaxTextMessageSizeOut;
+            this.MaxTextFragmentLengthIn     = MaxTextFragmentLengthIn;
+            this.MaxTextFragmentLengthOut    = MaxTextFragmentLengthOut;
+
+            this.MaxBinaryMessageSizeIn      = MaxBinaryMessageSizeIn;
+            this.MaxBinaryMessageSizeOut     = MaxBinaryMessageSizeOut;
+            this.MaxBinaryFragmentLengthIn   = MaxBinaryFragmentLengthIn;
+            this.MaxBinaryFragmentLengthOut  = MaxBinaryFragmentLengthOut;
+
             this.SlowNetworkSimulationDelay  = SlowNetworkSimulationDelay;
 
             if (CustomData is not null)
@@ -216,15 +300,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        #region (private) Send     (Data,           CancellationToken = default)
+        #region Send               (Data,           CancellationToken = default)
 
         /// <summary>
         /// Send the given array of bytes.
         /// </summary>
         /// <param name="Data">The array of bytes to send.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        private async Task<SendStatus> Send(Byte[]             Data,
-                                            CancellationToken  CancellationToken = default)
+        public async Task<SentStatus> Send(Byte[]             Data,
+                                           CancellationToken  CancellationToken = default)
         {
 
             await socketWriteSemaphore.WaitAsync(CancellationToken);
@@ -260,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 }
 
-                return SendStatus.Success;
+                return SentStatus.Success;
 
             }
             catch (Exception e)
@@ -269,7 +353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 if (e.InnerException is SocketException socketException)
                 {
                     if (socketException.SocketErrorCode == SocketError.ConnectionReset)
-                        return SendStatus.FatalError;
+                        return SentStatus.FatalError;
                 }
 
                 //DebugX.LogException(e, "Sending data within web socket connection " + RemoteSocket);
@@ -280,41 +364,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 socketWriteSemaphore.Release();
             }
 
-            return SendStatus.Error;
+            return SentStatus.Error;
 
         }
-
-        #endregion
-
-        #region SendText           (Text,           CancellationToken = default)
-
-        /// <summary>
-        /// Send the given plain text.
-        /// Do NOT use it to send web socket frames!
-        /// </summary>
-        /// <param name="Text">A text to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendText(String             Text,
-                                         CancellationToken  CancellationToken   = default)
-
-            => Send(Text.ToUTF8Bytes(),
-                    CancellationToken);
-
-        #endregion
-
-        #region SendBinary         (Data,           CancellationToken = default)
-
-        /// <summary>
-        /// Send the given plain array of bytes.
-        /// Do NOT use it to send web socket frames!
-        /// </summary>
-        /// <param name="Data">The array of bytes to send.</param>
-        /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendBinary(Byte[]             Data,
-                                           CancellationToken  CancellationToken   = default)
-
-            => Send(Data,
-                    CancellationToken);
 
         #endregion
 
@@ -325,14 +377,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// </summary>
         /// <param name="WebSocketFrame">A web socket frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
-        public Task<SendStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
+        public Task<SentStatus> SendWebSocketFrame(WebSocketFrame     WebSocketFrame,
                                                    CancellationToken  CancellationToken   = default)
+        {
 
-            => Send(WebSocketFrame.ToByteArray(),
-                    CancellationToken);
+            if (WebSocketFrame.IsFinal)
+                Interlocked.Increment(ref messagesSentCounter);
+
+            Interlocked.Increment(ref framesSentCounter);
+            LastSentTimestamp = Timestamp.Now;
+
+            return Send(WebSocketFrame.ToByteArray(),
+                        CancellationToken);
+
+        }
 
         #endregion
 
+
+        #region IncMessagesReceivedCounter()
+
+        /// <summary>
+        /// Increment the number of WebSocket messages received.
+        /// </summary>
+        public void IncMessagesReceivedCounter()
+        {
+            Interlocked.Increment(ref messagesReceivedCounter);
+        }
+
+        #endregion
+
+        #region IncFramesReceivedCounter()
+
+        /// <summary>
+        /// Increment the number of WebSocket frames received.
+        /// </summary>
+        public void IncFramesReceivedCounter()
+        {
+            Interlocked.Increment(ref framesReceivedCounter);
+        }
+
+        #endregion
 
         #region Read(Buffer, Offset, Count)
 
@@ -396,10 +481,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         /// <summary>
         /// Close this web socket connection.
-        /// When a status code or reason is given, a HTTP Web Socket close frame will be sent.
+        /// When a status code or reason is given, a HTTP WebSocket close frame will be sent.
         /// </summary>
-        /// <param name="StatusCode">An optional closing status code for the HTTP Web Socket close frame.</param>
-        /// <param name="Reason">An optional closing reason for the HTTP Web Socket close frame.</param>
+        /// <param name="StatusCode">An optional closing status code for the HTTP WebSocket close frame.</param>
+        /// <param name="Reason">An optional closing reason for the HTTP WebSocket close frame.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel this request.</param>
         public async Task Close(ClosingStatusCode? StatusCode          = null,
                                 String?            Reason              = null,
@@ -440,7 +525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryAddCustomData  (Key, Value)
 
         /// <summary>
-        /// Add custom data to this HTTP web socket server connection.
+        /// Add custom data to this HTTP WebSocket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A value.</param>
@@ -454,7 +539,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryAddCustomData  (Key, NewValue, ComparisonValue)
 
         /// <summary>
-        /// Add custom data to this HTTP web socket server connection.
+        /// Add custom data to this HTTP WebSocket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">A new value.</param>
@@ -472,7 +557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region HasCustomData     (Key)
 
         /// <summary>
-        /// Checks whether the given data key is present within this HTTP web socket server connection.
+        /// Checks whether the given data key is present within this HTTP WebSocket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         public Boolean HasCustomData(String Key)
@@ -484,7 +569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomData  (Key)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         public Object? TryGetCustomData(String Key)
@@ -502,7 +587,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomDataAs(Key)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket server connection.
         /// </summary>
         /// <typeparam name="T">The type of the stored value.</typeparam>
         /// <param name="Key">A key.</param>
@@ -522,7 +607,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomData  (Key, out Value)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket server connection.
         /// </summary>
         /// <param name="Key">A key.</param>
         /// <param name="Value">The requested value.</param>
@@ -542,7 +627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region TryGetCustomDataAs(Key, out Value)
 
         /// <summary>
-        /// Tries to return the data associated with the given key from this HTTP web socket server connection.
+        /// Tries to return the data associated with the given key from this HTTP WebSocket server connection.
         /// </summary>
         /// <typeparam name="T">The type of the stored value.</typeparam>
         /// <param name="Key">A key.</param>
@@ -571,7 +656,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP Web Socket connections.</param>
+        /// <param name="CustomWebSocketConnectionSerializer">A delegate to serialize custom HTTP WebSocket connections.</param>
         public JObject ToJSON(CustomJObjectSerializerDelegate<IWebSocketConnection>? CustomWebSocketConnectionSerializer = null)
         {
 
@@ -600,7 +685,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP Web Socket server connections.</param>
+        /// <param name="CustomWebSocketServerConnectionSerializer">A delegate to serialize custom HTTP WebSocket server connections.</param>
         public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketServerConnection>? CustomWebSocketServerConnectionSerializer)
         {
 
@@ -635,8 +720,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (WebSocketServerConnection? WebSocketConnection1,
                                            WebSocketServerConnection? WebSocketConnection2)
@@ -661,8 +746,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (WebSocketServerConnection? WebSocketConnection1,
                                            WebSocketServerConnection? WebSocketConnection2)
@@ -676,15 +761,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (WebSocketServerConnection? WebSocketConnection1,
                                           WebSocketServerConnection? WebSocketConnection2)
         {
 
             if (WebSocketConnection1 is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP web socket server connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP WebSocket server connection must not be null!");
 
             return WebSocketConnection1.CompareTo(WebSocketConnection2) < 0;
 
@@ -697,8 +782,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (WebSocketServerConnection? WebSocketConnection1,
                                            WebSocketServerConnection? WebSocketConnection2)
@@ -712,15 +797,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (WebSocketServerConnection? WebSocketConnection1,
                                           WebSocketServerConnection? WebSocketConnection2)
         {
 
             if (WebSocketConnection1 is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP web socket server connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection2), "The given HTTP WebSocket server connection must not be null!");
 
             return WebSocketConnection1.CompareTo(WebSocketConnection2) > 0;
 
@@ -733,8 +818,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP web socket server connection.</param>
-        /// <param name="WebSocketConnection2">Another HTTP web socket server connection.</param>
+        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (WebSocketServerConnection? WebSocketConnection1,
                                            WebSocketServerConnection? WebSocketConnection2)
@@ -750,14 +835,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two HTTP web socket server connections.
+        /// Compares two HTTP WebSocket server connections.
         /// </summary>
-        /// <param name="Object">A HTTP web socket server connection to compare with.</param>
+        /// <param name="Object">A HTTP WebSocket server connection to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is WebSocketServerConnection webSocketServerConnection
                    ? CompareTo(webSocketServerConnection)
-                   : throw new ArgumentException("The given object is not a HTTP web socket server connection!",
+                   : throw new ArgumentException("The given object is not a HTTP WebSocket server connection!",
                                                  nameof(Object));
 
         #endregion
@@ -765,14 +850,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region CompareTo(WebSocketConnection)
 
         /// <summary>
-        /// Compares two HTTP web socket server connections.
+        /// Compares two HTTP WebSocket server connections.
         /// </summary>
-        /// <param name="WebSocketConnection">A HTTP web socket server connection to compare with.</param>
+        /// <param name="WebSocketConnection">A HTTP WebSocket server connection to compare with.</param>
         public Int32 CompareTo(WebSocketServerConnection? WebSocketConnection)
         {
 
             if (WebSocketConnection is null)
-                throw new ArgumentNullException(nameof(WebSocketConnection), "The given HTTP web socket server connection must not be null!");
+                throw new ArgumentNullException(nameof(WebSocketConnection), "The given HTTP WebSocket server connection must not be null!");
 
             return LocalSocket.CompareTo(WebSocketConnection.LocalSocket);
 
@@ -787,9 +872,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two HTTP web socket server connections for equality.
+        /// Compares two HTTP WebSocket server connections for equality.
         /// </summary>
-        /// <param name="Object">A HTTP web socket server connection to compare with.</param>
+        /// <param name="Object">A HTTP WebSocket server connection to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is WebSocketServerConnection webSocketServerConnection &&
@@ -800,9 +885,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Equals(WebSocketConnection)
 
         /// <summary>
-        /// Compares two HTTP web socket server connections for equality.
+        /// Compares two HTTP WebSocket server connections for equality.
         /// </summary>
-        /// <param name="WebSocketConnection">A HTTP web socket server connection to compare with.</param>
+        /// <param name="WebSocketConnection">A HTTP WebSocket server connection to compare with.</param>
         public Boolean Equals(WebSocketServerConnection? WebSocketConnection)
 
             => WebSocketConnection is not null &&
@@ -815,7 +900,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region (override) GetHashCode()
 
         /// <summary>
-        /// Get the hashcode of this object.
+        /// Get the hash code of this object.
         /// </summary>
         public override Int32 GetHashCode()
 

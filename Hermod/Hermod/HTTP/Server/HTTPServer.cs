@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
-        /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
+        /// The default HTTP server name, used whenever no HTTP "Host"-header had been given.
         /// </summary>
         public String                                                     DefaultServerName
             => httpServer.DefaultServerName;
@@ -147,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Initialize the multitenant HTTP server using the given parameters.
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="DefaultServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
@@ -349,10 +349,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPPorts  (params Ports)
 
-        public IHTTPServer AttachTCPPorts(params IPPort[] Ports)
+        public async Task<IHTTPServer> AttachTCPPorts(params IPPort[] Ports)
         {
 
-            httpServer.AttachTCPPorts(Ports);
+            await httpServer.AttachTCPPorts(Ports);
 
             return this;
 
@@ -362,10 +362,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPSockets(params Sockets)
 
-        public IHTTPServer AttachTCPSockets(params IPSocket[] Sockets)
+        public async Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            httpServer.AttachTCPSockets(Sockets);
+            await httpServer.AttachTCPSockets(Sockets);
 
             return this;
 
@@ -375,10 +375,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DetachTCPPorts  (params Sockets)
 
-        public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
+        public async Task<IHTTPServer> DetachTCPPorts(params IPPort[] Ports)
         {
 
-            httpServer.DetachTCPPorts(Ports);
+            await httpServer.DetachTCPPorts(Ports);
 
             return this;
 
@@ -462,6 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       HTTPPath                 URLTemplate,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -471,19 +472,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?            HTTPDelegate                = null,
                                       URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
-            => httpServer.AddMethodCallback(HTTPAPI,
-                                            Hostname,
-                                            HTTPMethod,
-                                            URLTemplate,
-                                            HTTPContentType,
-                                            URLAuthentication,
-                                            HTTPMethodAuthentication,
-                                            ContentTypeAuthentication,
-                                            HTTPRequestLogger,
-                                            HTTPResponseLogger,
-                                            DefaultErrorHandler,
-                                            HTTPDelegate,
-                                            AllowReplacement);
+            => httpServer.AddMethodCallback(
+                   HTTPAPI,
+                   Hostname,
+                   HTTPMethod,
+                   URLTemplate,
+                   HTTPContentType,
+                   OpenEnd,
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+                   DefaultErrorHandler,
+                   HTTPDelegate,
+                   AllowReplacement
+               );
 
         #endregion
 
@@ -508,6 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       IEnumerable<HTTPPath>    URLTemplates,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -517,19 +522,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?            HTTPDelegate                = null,
                                       URLReplacement           AllowReplacement            = URLReplacement.Fail)
 
-            => httpServer.AddMethodCallback(HTTPAPI,
-                                            Hostname,
-                                            HTTPMethod,
-                                            URLTemplates,
-                                            HTTPContentType,
-                                            URLAuthentication,
-                                            HTTPMethodAuthentication,
-                                            ContentTypeAuthentication,
-                                            HTTPRequestLogger,
-                                            HTTPResponseLogger,
-                                            DefaultErrorHandler,
-                                            HTTPDelegate,
-                                            AllowReplacement);
+            => httpServer.AddMethodCallback(
+                   HTTPAPI,
+                   Hostname,
+                   HTTPMethod,
+                   URLTemplates,
+                   HTTPContentType,
+                   OpenEnd,
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+                   DefaultErrorHandler,
+                   HTTPDelegate,
+                   AllowReplacement
+               );
 
         #endregion
 
@@ -554,6 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                     HTTPMethod,
                                       HTTPPath                       URLTemplate,
                                       IEnumerable<HTTPContentType>   HTTPContentTypes,
+                                      Boolean                        OpenEnd                     = false,
                                       HTTPAuthentication?            URLAuthentication           = null,
                                       HTTPAuthentication?            HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?            ContentTypeAuthentication   = null,
@@ -563,19 +572,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?                  HTTPDelegate                = null,
                                       URLReplacement                 AllowReplacement            = URLReplacement.Fail)
 
-            => httpServer.AddMethodCallback(HTTPAPI,
-                                            Hostname,
-                                            HTTPMethod,
-                                            URLTemplate,
-                                            HTTPContentTypes,
-                                            URLAuthentication,
-                                            HTTPMethodAuthentication,
-                                            ContentTypeAuthentication,
-                                            HTTPRequestLogger,
-                                            HTTPResponseLogger,
-                                            DefaultErrorHandler,
-                                            HTTPDelegate,
-                                            AllowReplacement);
+            => httpServer.AddMethodCallback(
+                   HTTPAPI,
+                   Hostname,
+                   HTTPMethod,
+                   URLTemplate,
+                   HTTPContentTypes,
+                   OpenEnd,
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+                   DefaultErrorHandler,
+                   HTTPDelegate,
+                   AllowReplacement
+               );
 
         #endregion
 
@@ -600,6 +612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       IEnumerable<HTTPPath>         URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      Boolean                       OpenEnd                     = false,
                                       HTTPAuthentication?           URLAuthentication           = null,
                                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -609,19 +622,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPDelegate?                 HTTPDelegate                = null,
                                       URLReplacement                AllowReplacement            = URLReplacement.Fail)
 
-            => httpServer.AddMethodCallback(HTTPAPI,
-                                            Hostname,
-                                            HTTPMethod,
-                                            URLTemplates,
-                                            HTTPContentTypes,
-                                            URLAuthentication,
-                                            HTTPMethodAuthentication,
-                                            ContentTypeAuthentication,
-                                            HTTPRequestLogger,
-                                            HTTPResponseLogger,
-                                            DefaultErrorHandler,
-                                            HTTPDelegate,
-                                            AllowReplacement);
+            => httpServer.AddMethodCallback(
+                   HTTPAPI,
+                   Hostname,
+                   HTTPMethod,
+                   URLTemplates,
+                   HTTPContentTypes,
+                   OpenEnd,
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+                   DefaultErrorHandler,
+                   HTTPDelegate,
+                   AllowReplacement
+               );
 
         #endregion
 
@@ -899,36 +915,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Start()
+        #region Start(EventTrackingId = null)
 
-        public Boolean Start()
+        public Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
 
-            => httpServer.Start();
-
-        #endregion
-
-        #region Start(Delay, InBackground = true)
-
-        public Boolean Start(TimeSpan  Delay,
-                             Boolean   InBackground = true)
-
-            => httpServer.Start(Delay,
-                                InBackground);
+            => httpServer.Start(EventTrackingId);
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Start(Delay, EventTrackingId = null, InBackground = true)
 
-        public Boolean Shutdown(String?  Message   = null,
-                                Boolean  Wait      = true)
-        {
+        public Task<Boolean> Start(TimeSpan           Delay,
+                                   EventTracking_Id?  EventTrackingId   = null,
+                                   Boolean            InBackground      = true)
 
-            httpServer.Shutdown(Message,
-                                Wait);
+            => httpServer.Start(
+                   Delay,
+                   EventTrackingId,
+                   InBackground
+               );
 
-            return true;
+        #endregion
 
-        }
+        #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
+
+        public Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                      String?            Message           = null,
+                                      Boolean            Wait              = true)
+
+            => httpServer.Shutdown(
+                   EventTrackingId,
+                   Message,
+                   Wait
+               );
 
         #endregion
 
@@ -1008,29 +1027,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default HTTP server name.
         /// </summary>
-        public  const           String           DefaultHTTPServerName   = "GraphDefined Hermod HTTP Server v1.0";
+        public  const           String                                                      DefaultHTTPServerName    = "GraphDefined Hermod HTTP Server v1.0";
 
         /// <summary>
         /// The default HTTP service name.
         /// </summary>
-        public  const           String           DefaultHTTPServiceName  = "GraphDefined Hermod HTTP Service v1.0";
+        public  const           String                                                      DefaultHTTPServiceName   = "GraphDefined Hermod HTTP Service v1.0";
 
         /// <summary>
         /// The default HTTP server TCP port.
         /// </summary>
-        public static readonly  IPPort           DefaultHTTPServerPort   = IPPort.HTTP;
+        public static readonly  IPPort                                                      DefaultHTTPServerPort    = IPPort.HTTP;
+
+        private const           UInt32                                                      ReadTimeout              = 180000U;
 
         private readonly        ConcurrentDictionary<HTTPHostname,       HostnameNode>      hostnameNodes;
         private readonly        ConcurrentDictionary<HTTPEventSource_Id, IHTTPEventSource>  eventSources;
-
-        private const    UInt32 ReadTimeout           = 180000U;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// The default HTTP servername, used whenever
+        /// The default HTTP server name, used whenever
         /// no HTTP Host-header had been given.
         /// </summary>
         public String                                                         DefaultServerName             { get; }
@@ -1078,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Initialize the HTTP server using the given parameters.
         /// </summary>
         /// <param name="HTTPPort">The TCP port to listen on.</param>
-        /// <param name="DefaultServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="DefaultServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// <param name="ServiceName">The TCP service name shown e.g. on service startup.</param>
         /// 
         /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
@@ -1161,7 +1180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            : IPPort.HTTPS));
 
             if (AutoStart)
-                Start();
+                Start(EventTracking_Id.New).Wait();
 
         }
 
@@ -1172,7 +1191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPPort   (TCPPort)
 
-        public IHTTPServer AttachTCPPort(IPPort TCPPort)
+        public Task<IHTTPServer> AttachTCPPort(IPPort TCPPort)
 
             => AttachTCPPorts(TCPPort);
 
@@ -1180,10 +1199,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPPorts  (params TCPPorts)
 
-        public IHTTPServer AttachTCPPorts(params IPPort[] TCPPorts)
+        public async Task<IHTTPServer> AttachTCPPorts(params IPPort[] TCPPorts)
         {
 
-            AttachTCPPorts(tcpServer => tcpServer.SendTo(this), TCPPorts);
+            await AttachTCPPorts(tcpServer => tcpServer.SendTo(this), TCPPorts);
 
             return this;
 
@@ -1193,7 +1212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPSocket (Socket)
 
-        public IHTTPServer AttachTCPSocket(IPSocket Socket)
+        public Task<IHTTPServer> AttachTCPSocket(IPSocket Socket)
 
             => AttachTCPSockets(Socket);
 
@@ -1201,10 +1220,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AttachTCPSockets(params Sockets)
 
-        public IHTTPServer AttachTCPSockets(params IPSocket[] Sockets)
+        public async Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets)
         {
 
-            AttachTCPSockets(tcpServer => tcpServer.SendTo(this), Sockets);
+            await AttachTCPSockets(
+                      tcpServer => tcpServer.SendTo(this),
+                      Sockets
+                  );
 
             return this;
 
@@ -1215,7 +1237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DetachTCPPort (TCPPort)
 
-        public IHTTPServer DetachTCPPort(IPPort TCPPort)
+        public Task<IHTTPServer> DetachTCPPort(IPPort TCPPort)
 
             => DetachTCPPorts(TCPPort);
 
@@ -1223,15 +1245,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region DetachTCPPorts(params Sockets)
 
-        public IHTTPServer DetachTCPPorts(params IPPort[] Ports)
+        public async Task<IHTTPServer> DetachTCPPorts(params IPPort[] Ports)
         {
 
-            DetachTCPPorts(tcpServer => {
-                               tcpServer.OnNotification     -= ProcessArrow;
-                               tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
-                               tcpServer.OnCompleted        -= ProcessCompleted;
-                           },
-                           Ports);
+            await DetachTCPPorts(
+                      tcpServer => {
+                          tcpServer.OnNotification     -= ProcessArrow;
+                          tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
+                          tcpServer.OnCompleted        -= ProcessCompleted;
+                      },
+                      Ports
+                  );
 
             return this;
 
@@ -1297,9 +1321,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessArrow(TCPConnection)
+        #region ProcessArrow(EventTracking, TCPConnection)
 
-        public void ProcessArrow(TCPConnection TCPConnection)
+        public void ProcessArrow(EventTracking_Id  EventTracking,
+                                 TCPConnection     TCPConnection)
         {
 
             if (TCPConnection is null)
@@ -1500,7 +1525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                           new JProperty("description", "HTTP response is null!")
                                                                                       ).ToUTF8Bytes(),
                                                                     CacheControl    = "private",
-                                                                    Connection      = "close"
+                                                                    Connection      = ConnectionType.Close
                                                                 };
 
                                                 ServerClose = true;
@@ -1523,7 +1548,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                       new JProperty("stacktrace",  exception.StackTrace)
                                                                                   ).ToUTF8Bytes(),
                                                                 CacheControl    = "private",
-                                                                Connection      = "close"
+                                                                Connection      = ConnectionType.Close
                                                             };
 
                                             ServerClose = true;
@@ -1584,7 +1609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         {
 
                                             ServerClose = httpResponse.Connection is not null &&
-                                                          String.Equals(httpResponse.Connection, "close", StringComparison.OrdinalIgnoreCase);
+                                                          httpResponse.Connection == ConnectionType.Close;
 
                                         }
                                         catch (Exception e)
@@ -1745,11 +1770,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+        #region ProcessExceptionOccured(Sender, Timestamp, EventTracking, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object     Sender,
-                                            DateTime   Timestamp,
-                                            Exception  ExceptionMessage)
+        public void ProcessExceptionOccured(Object            Sender,
+                                            DateTime          Timestamp,
+                                            EventTracking_Id  EventTracking,
+                                            Exception         ExceptionMessage)
         {
 
             //var OnExceptionOccuredLocal = OnExceptionOccured;
@@ -1762,11 +1788,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessCompleted(Sender, Timestamp, Message = null)
+        #region ProcessCompleted(Sender, Timestamp, EventTracking, Message = null)
 
-        public void ProcessCompleted(Object    Sender,
-                                     DateTime  Timestamp,
-                                     String?   Message   = null)
+        public void ProcessCompleted(Object            Sender,
+                                     DateTime          Timestamp,
+                                     EventTracking_Id  EventTracking,
+                                     String?           Message   = null)
         {
 
             //var OnCompletedLocal = OnCompleted;
@@ -1812,6 +1839,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             httpFilters.Add(Filter);
         }
 
+        public void ClearFilters(HTTPFilter2Delegate? Filter = null)
+        {
+
+            if (Filter is null)
+                httpFilters.Clear();
+
+            else
+                httpFilters.RemoveAll(filter => filter == Filter);
+
+        }
+
         #endregion
 
         #region HTTP Rewrites
@@ -1850,16 +1888,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            AddHandler(HTTPAPI,
-                       req => InvokeRequestHandle(new HTTPRequest.Builder(req).SetURL(URLTarget)),
-                       Hostname,
-                       URLTemplate,
-                       HTTPMethod,
-                       HTTPContentType ?? HTTPContentType.Text.HTML_UTF8,
-                       null,
-                       null,
-                       null,
-                       null);
+            AddHandler(
+                HTTPAPI,
+                req => InvokeRequestHandle(new HTTPRequest.Builder(req).SetURL(URLTarget)),
+                Hostname,
+                URLTemplate,
+                HTTPMethod,
+                HTTPContentType ?? HTTPContentType.Text.HTML_UTF8,
+                false,
+                null,
+                null,
+                null,
+                null
+            );
 
         }
 
@@ -1882,16 +1923,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            AddHandler(HTTPAPI,
-                       req => InvokeRequestHandle(new HTTPRequest.Builder(req).SetURL(URLTarget)),
-                       HTTPHostname.Any,
-                       URLTemplate,
-                       HTTPMethod,
-                       HTTPContentType ?? HTTPContentType.Text.HTML_UTF8,
-                       null,
-                       null,
-                       null,
-                       null);
+            AddHandler(
+                HTTPAPI,
+                req => InvokeRequestHandle(new HTTPRequest.Builder(req).SetURL(URLTarget)),
+                HTTPHostname.Any,
+                URLTemplate,
+                HTTPMethod,
+                HTTPContentType ?? HTTPContentType.Text.HTML_UTF8,
+                false,
+                null,
+                null,
+                null,
+                null
+            );
 
         }
 
@@ -1921,6 +1965,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  HTTPPath?                URLTemplate                 = null,
                                  HTTPMethod?              HTTPMethod                  = null,
                                  HTTPContentType?         HTTPContentType             = null,
+                                 Boolean                  OpenEnd                     = false,
 
                                  HTTPAuthentication?      URLAuthentication           = null,
                                  HTTPAuthentication?      HTTPMethodAuthentication    = null,
@@ -1960,6 +2005,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPDelegate,
 
                              URLTemplate,
+                             OpenEnd,
                              HTTPMethod,
                              HTTPContentType,
 
@@ -1998,6 +2044,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       HTTPPath                 URLTemplate,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -2026,6 +2073,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 URLTemplate,
                 HTTPMethod,
                 HTTPContentType,
+                OpenEnd,
                 URLAuthentication,
                 HTTPMethodAuthentication,
                 ContentTypeAuthentication,
@@ -2057,6 +2105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       HTTPPath                 URLTemplate,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -2085,6 +2134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 URLTemplate,
                 HTTPMethod,
                 HTTPContentType,
+                OpenEnd,
                 URLAuthentication,
                 HTTPMethodAuthentication,
                 ContentTypeAuthentication,
@@ -2120,6 +2170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       IEnumerable<HTTPPath>    URLTemplates,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -2148,6 +2199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            URLTemplate,
                            HTTPMethod,
                            HTTPContentType,
+                           OpenEnd,
                            URLAuthentication,
                            HTTPMethodAuthentication,
                            ContentTypeAuthentication,
@@ -2181,6 +2233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       HTTPPath                      URLTemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      Boolean                       OpenEnd                     = false,
                                       HTTPAuthentication?           URLAuthentication           = null,
                                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -2212,6 +2265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            URLTemplate,
                            HTTPMethod,
                            contenttype,
+                           OpenEnd,
                            URLAuthentication,
                            HTTPMethodAuthentication,
                            ContentTypeAuthentication,
@@ -2245,6 +2299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       IEnumerable<HTTPPath>         URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      Boolean                       OpenEnd                     = false,
                                       HTTPAuthentication?           URLAuthentication           = null,
                                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -2277,6 +2332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                uritemplate,
                                HTTPMethod,
                                contenttype,
+                               OpenEnd,
                                URLAuthentication,
                                HTTPMethodAuthentication,
                                ContentTypeAuthentication,
@@ -2310,6 +2366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                      HTTPHostname?            Hostname                    = null,
                                      HTTPPath?                URLTemplate                 = null,
+                                     Boolean                  OpenEnd                     = false,
                                      HTTPMethod?              HTTPMethod                  = null,
                                      HTTPContentType?         HTTPContentType             = null,
 
@@ -2342,21 +2399,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!hostnameNodes.TryGetValue(hostname, out var hostnameNode))
                     hostnameNode = hostnameNodes.AddAndReturnValue(hostname, new HostnameNode(HTTPAPI, hostname));
 
-                hostnameNode.AddHandler(HTTPAPI,
-                                        HTTPDelegate,
+                hostnameNode.AddHandler(
+                    HTTPAPI,
+                    HTTPDelegate,
 
-                                        URLTemplate,
-                                        HTTPMethod,
-                                        HTTPContentType,
+                    URLTemplate,
+                    OpenEnd,
+                    HTTPMethod,
+                    HTTPContentType,
 
-                                        URLAuthentication,
-                                        HTTPMethodAuthentication,
-                                        ContentTypeAuthentication,
+                    URLAuthentication,
+                    HTTPMethodAuthentication,
+                    ContentTypeAuthentication,
 
-                                        HTTPRequestLogger,
-                                        HTTPResponseLogger,
+                    HTTPRequestLogger,
+                    HTTPResponseLogger,
 
-                                        DefaultErrorHandler);
+                    DefaultErrorHandler
+                );
 
             }
 
@@ -2717,7 +2777,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  new JProperty("source",       e.TargetSite?.Module.Name),
                                                                  new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
                                                              ).ToUTF8Bytes(),
-                                           Connection      = "close"
+                                           Connection      = ConnectionType.Close
                                        };
 
                     }
@@ -2732,7 +2792,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("request",       Request.FirstPDULine),
                                                              new JProperty("description",  "HTTP request handler must not be null!")
                                                          ).ToUTF8Bytes(),
-                                     Connection      = "close"
+                                     Connection      = ConnectionType.Close
                                  };
 
                 #endregion
@@ -2783,7 +2843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Date            = Timestamp.Now,
                                    ContentType     = HTTPContentType.Text.PLAIN,
                                    Content         = errorResponse.ToUTF8Bytes(),
-                                   Connection      = "close"
+                                   Connection      = ConnectionType.Close
                                };
 
              httpResponse ??= new HTTPResponse.Builder(Request) {
@@ -2794,7 +2854,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                           new JProperty("request",      Request.FirstPDULine),
                                                           new JProperty("description",  errorResponse)
                                                       ).ToUTF8Bytes(),
-                                  Connection      = "close"
+                                  Connection      = ConnectionType.Close
                               };
 
 
@@ -2993,7 +3053,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                    Server                    = HTTPServer.DefaultHTTPServerName,
                                    ContentType               = HTTPContentType.Text.EVENTSTREAM,
                                    CacheControl              = "no-cache",
-                                   Connection                = "keep-alive",
+                                   Connection                = ConnectionType.KeepAlive,
                                    AccessControlAllowOrigin  = "*",
                                    KeepAlive                 = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
                                    Content                   = httpEvents.ToUTF8Bytes()
@@ -3004,6 +3064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        URLTemplate,
                        HttpMethod      ?? HTTPMethod.GET,
                        HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+                       false,
 
                        URLAuthentication,
                        HTTPMethodAuthentication,
@@ -3030,15 +3091,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPEventSource? Get(HTTPEventSource_Id EventSourceIdentification)
         {
 
-            lock (eventSources)
-            {
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                return httpEventSource;
 
-                if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
-                    return httpEventSource;
-
-                return null;
-
-            }
+            return null;
 
         }
 
@@ -3050,15 +3106,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IHTTPEventSource<TData>? Get<TData>(HTTPEventSource_Id EventSourceIdentification)
         {
 
-            lock (eventSources)
-            {
+            if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
+                return httpEventSource as IHTTPEventSource<TData>;
 
-                if (eventSources.TryGetValue(EventSourceIdentification, out var httpEventSource))
-                    return httpEventSource as IHTTPEventSource<TData>;
-
-                return null;
-
-            }
+            return null;
 
         }
 
@@ -3073,8 +3124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EventSource">The event source.</param>
         public Boolean TryGet(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource? EventSource)
 
-            => eventSources.TryGetValue(EventSourceIdentification,
-                                        out EventSource);
+            => eventSources.TryGetValue(EventSourceIdentification, out EventSource);
 
 
         /// <summary>
@@ -3085,10 +3135,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean TryGet<TData>(HTTPEventSource_Id EventSourceIdentification, out IHTTPEventSource<TData>? EventSource)
         {
 
-            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource))
+            if (eventSources.TryGetValue(EventSourceIdentification, out var eventSource) &&
+                eventSource is IHTTPEventSource<TData> eventSourceTData)
             {
-                EventSource = eventSource as IHTTPEventSource<TData>;
-                return EventSource is not null;
+                EventSource = eventSourceTData;
+                return true;
             }
 
             EventSource = null;

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@ using System.Collections.Concurrent;
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
@@ -162,11 +161,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                Content         = new JObject(new JProperty("@context",    Context),
-                                              new JProperty("description", "Missing \"" + ParameterName + "\" JSON property!")).ToString().ToUTF8Bytes()
-            };
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                       Content         = JSONObject.Create(
+                                             new JProperty("@context",     Context),
+                                             new JProperty("description",  $"Missing '{ParameterName}' JSON property!")
+                                         ).ToUTF8Bytes()
+                   };
 
         }
 
@@ -174,12 +175,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                Content         = new JObject(new JProperty("@context",    Context),
-                                              new JProperty("value",       Value),
-                                              new JProperty("description", "Invalid \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
-            };
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                       Content         = JSONObject.Create(
+                                             new JProperty("@context",     Context),
+                                             new JProperty("value",        Value),
+                                             new JProperty("description",  $"Invalid '{ParameterName}' property value!")
+                                         ).ToUTF8Bytes()
+                   };
 
         }
 
@@ -187,12 +190,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             return new HTTPResponse.Builder(HTTPRequest) {
-                HTTPStatusCode  = HTTPStatusCode.NotFound,
-                ContentType     = HTTPContentType.Application.JSON_UTF8,
-                Content         = new JObject(new JProperty("@context",    Context),
-                                              new JProperty("value",       Value),
-                                              new JProperty("description", "Unknown \"" + ParameterName + "\" property value!")).ToString().ToUTF8Bytes()
-            };
+                       HTTPStatusCode  = HTTPStatusCode.NotFound,
+                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                       Content         = JSONObject.Create(
+                                             new JProperty("@context",     Context),
+                                             new JProperty("value",        Value),
+                                             new JProperty("description",  $"Unknown '{ParameterName}' property value!")
+                                         ).ToUTF8Bytes()
+                   };
 
         }
 
@@ -222,15 +227,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static String CreateLogEntry(this HTTPResponse Response)
 
-            => String.Concat(HTTPResponse.RequestMarker,                                                                        Environment.NewLine,
-                             Response.HTTPRequest.HTTPSource.ToString(), " -> ", Response.HTTPRequest.RemoteSocket.ToString(),  Environment.NewLine,
-                             Response.HTTPRequest.Timestamp.ToIso8601(),                                                        Environment.NewLine,
-                             Response.HTTPRequest.EventTrackingId,                                                              Environment.NewLine,
-                             Response.HTTPRequest.EntirePDU,                                                                    Environment.NewLine,
-                             HTTPResponse.ResponseMarker,                                                                       Environment.NewLine,
-                             Response.Timestamp.ToIso8601(),                                                                    Environment.NewLine,
-                             Response.EntirePDU,                                                                                Environment.NewLine,
-                             HTTPResponse.EndMarker,                                                                            Environment.NewLine);
+            => String.Concat(
+                   HTTPResponse.RequestMarker,                                                                        Environment.NewLine,
+                   Response.HTTPRequest.HTTPSource.ToString(), " -> ", Response.HTTPRequest.RemoteSocket.ToString(),  Environment.NewLine,
+                   Response.HTTPRequest.Timestamp.ToIso8601(),                                                        Environment.NewLine,
+                   Response.HTTPRequest.EventTrackingId,                                                              Environment.NewLine,
+                   Response.HTTPRequest.EntirePDU,                                                                    Environment.NewLine,
+                   HTTPResponse.ResponseMarker,                                                                       Environment.NewLine,
+                   Response.Timestamp.ToIso8601(),                                                                    Environment.NewLine,
+                   Response.EntirePDU,                                                                                Environment.NewLine,
+                   HTTPResponse.EndMarker,                                                                            Environment.NewLine
+               );
 
         #endregion
 
@@ -268,10 +275,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        public const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        public const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-        public const String EndMarker       = "======================================================================================";
-        private const String Value = "_";
+        public  const String RequestMarker   = "<<< Request <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        public  const String ResponseMarker  = ">>> Response >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+        public  const String EndMarker       = "======================================================================================";
+        private const String Value           = "_";
 
         #endregion
 
@@ -417,9 +424,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///                   algorithm=MD5,
         ///                   qop="auth"
         /// </summary>
-        public String WWWAuthenticate
+        public WWWAuthenticate WWWAuthenticate
 
-            => GetHeaderFields<String>(HTTPResponseHeaderField.WWWAuthenticate);
+            => GetHeaderFields<WWWAuthenticate>(HTTPResponseHeaderField.WWWAuthenticate);
 
         #endregion
 
@@ -445,6 +452,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String? SecWebSocketAccept
 
             => GetHeaderField(HTTPResponseHeaderField.SecWebSocketAccept);
+
+        #endregion
+
+        #region Sec-WebSocket-Protocol
+
+        /// <summary>
+        /// Sec-WebSocket-Protocol
+        /// </summary>
+        public String? SecWebSocketProtocol
+
+            => GetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Response);
 
         #endregion
 
@@ -510,7 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Byte                NumberOfRetries        { get; }
 
         /// <summary>
-        /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
+        /// The optional HTTP sub protocol response, e.g. HTTP WebSocket.
         /// </summary>
         public Object?             SubprotocolResponse    { get; }
 
@@ -537,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
         /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         /// 
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
@@ -622,7 +640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String              ResponseHeader,
                                          HTTPRequest?        Request               = null,
                                          Object?             SubprotocolResponse   = null,
@@ -659,7 +677,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="ResponseBody">The HTTP body of the response.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String              ResponseHeader,
                                          Byte[]              ResponseBody,
                                          HTTPRequest?        Request               = null,
@@ -697,7 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="ResponseBodyStream">The HTTP body of the response as stream of bytes.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
-        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP Web Socket.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(String             ResponseHeader,
                                          Stream             ResponseBodyStream,
                                          HTTPRequest?       Request               = null,

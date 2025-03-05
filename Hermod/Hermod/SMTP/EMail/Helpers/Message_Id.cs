@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                DomainPart.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the e-mail message identificator.
+        /// The length of the e-mail message identifier.
         /// </summary>
         public UInt64 Length
             => (UInt64) (RandomPart.Length + 1 + DomainPart.Length);
@@ -300,16 +300,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this e-mail message identification.
         /// </summary>
-        public Message_Id Clone
+        public Message_Id Clone()
 
-            => new Message_Id(
-                   new String(RandomPart.ToCharArray()),
-                   new String(DomainPart.ToCharArray())
+            => new (
+                   RandomPart.CloneString(),
+                   DomainPart.CloneString()
                );
 
         #endregion
@@ -529,9 +529,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region (override) ToString()
 
         /// <summary>
-        /// Returns a formated string representation of this object.
+        /// Returns a formatted string representation of this object.
         /// </summary>
-        /// <returns>A formated string representation of this object.</returns>
+        /// <returns>A formatted string representation of this object.</returns>
         public override String ToString()
 
             => String.Concat(RandomPart, "@", DomainPart);

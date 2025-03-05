@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -148,11 +148,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
-    public interface IHTTPServer : IDisposable
+    public interface IHTTPServer : IServerStartStop,
+                                   IDisposable
     {
 
         /// <summary>
-        /// The default HTTP servername, used whenever no HTTP "Host"-header had been given.
+        /// The default HTTP server name, used whenever no HTTP "Host"-header had been given.
         /// </summary>
         String                                                     DefaultServerName             { get; }
 
@@ -200,6 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPMethod                    HTTPMethod,
                                HTTPPath                      URLTemplate,
                                HTTPContentType?              HTTPContentType             = null,
+                               Boolean                       OpenEnd                     = false,
                                HTTPAuthentication?           URIAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -214,6 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPMethod                    HTTPMethod,
                                IEnumerable<HTTPPath>         URLTemplates,
                                HTTPContentType?              HTTPContentType             = null,
+                               Boolean                       OpenEnd                     = false,
                                HTTPAuthentication?           URIAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -228,6 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPMethod                    HTTPMethod,
                                HTTPPath                      URLTemplate,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
+                               Boolean                       OpenEnd                     = false,
                                HTTPAuthentication?           URIAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -242,6 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPMethod                    HTTPMethod,
                                IEnumerable<HTTPPath>         URLTemplates,
                                IEnumerable<HTTPContentType>  HTTPContentTypes,
+                               Boolean                       OpenEnd                     = false,
                                HTTPAuthentication?           URIAuthentication           = null,
                                HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -251,9 +256,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                HTTPDelegate?                 HTTPDelegate                = null,
                                URLReplacement                AllowReplacement            = URLReplacement.Fail);
 
-        IHTTPServer AttachTCPPorts  (params IPPort[]   Ports);
-        IHTTPServer AttachTCPSockets(params IPSocket[] Sockets);
-        IHTTPServer DetachTCPPorts  (params IPPort[]   Ports);
+        Task<IHTTPServer> AttachTCPPorts  (params IPPort[]   Ports);
+        Task<IHTTPServer> AttachTCPSockets(params IPSocket[] Sockets);
+        Task<IHTTPServer> DetachTCPPorts  (params IPPort[]   Ports);
 
 
 
@@ -402,11 +407,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                HTTPMethod?       HTTPMethod        = null,
                                                                HTTPContentType?  HTTPContentType   = null,
                                                                HTTPStatusCode?   HTTPStatusCode    = null);
-
-        Boolean Start();
-        Boolean Start(TimeSpan Delay, Boolean InBackground = true);
-        Boolean Shutdown(String?  Message   = null,
-                         Boolean  Wait      = true);
 
     }
 

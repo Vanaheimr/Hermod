@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,15 +149,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this notification identification.
         /// </summary>
-        public NotificationMessageType Clone
+        public NotificationMessageType Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

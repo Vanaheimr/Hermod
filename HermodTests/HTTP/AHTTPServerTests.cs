@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowMethods  = [ "GET" ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = "Hello World!".ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                          AsImmutable));
 
@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                  //           AccessControlAllowMethods  = [ "GET" ],
                                                  //           AccessControlAllowHeaders  = [ "Authorization" ],
                                                  //           WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
-                                                 //           Connection                 = "close"
+                                                 //           Connection                 = ConnectionType.Close
                                                  //       }.AsImmutable;
 
                                                  if (httpBasicAuthentication.Username == "testUser1" ||
@@ -114,7 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                     AccessControlAllowHeaders  = [ "Authorization" ],
                                                                     ContentType                = HTTPContentType.Text.PLAIN,
                                                                     Content                    = $"Hello '{httpBasicAuthentication.Username}'!".ToUTF8Bytes(),
-                                                                    Connection                 = "close"
+                                                                    Connection                 = ConnectionType.Close
                                                                 }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                   AsImmutable
                                                             );
@@ -134,8 +134,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                     AccessControlAllowHeaders  = [ "Authorization" ],
                                                                     ContentType                = HTTPContentType.Text.PLAIN,
                                                                     Content                    = $"Sorry '{httpBasicAuthentication.Username}' please contact your administrator!".ToUTF8Bytes(),
-                                                                    WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
-                                                                    Connection                 = "close"
+                                                                    WWWAuthenticate            = WWWAuthenticate.Basic("Access to the staging site"),
+                                                                    Connection                 = ConnectionType.Close
                                                                 }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                   AsImmutable
                                                             );
@@ -151,8 +151,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = [ "GET" ],
                                                             AccessControlAllowHeaders  = [ "Authorization" ],
-                                                            WWWAuthenticate            = @"Basic realm=""Access to the staging site"", charset =""UTF-8""",
-                                                            Connection                 = "close"
+                                                            WWWAuthenticate            = WWWAuthenticate.Basic("Access to the staging site"),
+                                                            Connection                 = ConnectionType.Close
                                                         }.AsImmutable
                                                     );
 
@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowMethods  = [ "GET" ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = request.QueryString.GetString("q", "").Reverse().ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.AsImmutable));
 
             #endregion
@@ -194,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowMethods  = [ "GET" ],
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.AsImmutable));
 
             #endregion
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            AccessControlAllowMethods  = new[] { "MIRROR" },
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (request.HTTPBodyAsUTF8String ?? "").Reverse().ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.AsImmutable));
 
             #endregion
@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            TransferEncoding           = "chunked",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\n\r\n").ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                          AsImmutable));
 
@@ -260,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             TransferEncoding           = "chunked",
                                                             ContentType                = HTTPContentType.Text.PLAIN,
                                                             ContentStream              = responseStream,
-                                                            Connection                 = "close"
+                                                            Connection                 = ConnectionType.Close
                                                         }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                           AsImmutable
                                                     );
@@ -285,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                                            Trailer                    = "X-Message-Length, X-Protocol-Version",
                                                                            ContentType                = HTTPContentType.Text.PLAIN,
                                                                            Content                    = (new[] { "5", "Hello", "1", " ", "6", "World!", "0" }.AggregateWith("\r\n") + "\r\nX-Message-Length: 13\r\nX-Protocol-Version: 1.0\r\n\r\n").ToUTF8Bytes(),
-                                                                           Connection                 = "close"
+                                                                           Connection                 = ConnectionType.Close
                                                                        }.SetHeaderField("X-Environment-ManagedThreadId", Environment.CurrentManagedThreadId).
                                                                          AsImmutable));
 
@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                                             AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
                                                             ContentType                = HTTPContentType.Text.PLAIN,
                                                             Content                    = queryParameter.Reverse().ToUTF8Bytes(),
-                                                            Connection                 = "close"
+                                                            Connection                 = ConnectionType.Close
                                                         }.AsImmutable
                                                     );
 

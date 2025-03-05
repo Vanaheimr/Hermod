@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                                                    AggregateWith(", ")
                                                                            ).AggregateWith(Environment.NewLine + Environment.NewLine)
                                                                 ).ToUTF8Bytes(),
-                                              Connection = "close"
+                                              Connection = ConnectionType.Close
 
                                           }.AsImmutable);
 
@@ -319,10 +319,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// Start the SOAP API.
         /// </summary>
-        public virtual void Start()
-        {
-            SOAPServer.HTTPServer.Start();
-        }
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public virtual Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
+
+            => SOAPServer.HTTPServer.Start(EventTrackingId);
+
+        #endregion
+
+        #region Start()
+
+        /// <summary>
+        /// Start the SOAP API after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public virtual Task<Boolean> Start(TimeSpan           Delay,
+                                           EventTracking_Id?  EventTrackingId   = null,
+                                           Boolean            InBackground      = true)
+
+            => SOAPServer.HTTPServer.Start(
+                   Delay,
+                   EventTrackingId,
+                   InBackground
+               );
 
         #endregion
 
@@ -331,16 +351,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// Stop the SOAP API.
         /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait for a clean shutdown of the API.</param>
-        public async virtual Task Shutdown(String? Message = null,
-                                           Boolean Wait = true)
-        {
-            SOAPServer.HTTPServer.Shutdown(Message, Wait);
-        }
+        public virtual Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                              String?            Message           = null,
+                                              Boolean            Wait              = true)
+
+            => SOAPServer.HTTPServer.Shutdown(
+                   EventTrackingId,
+                   Message,
+                   Wait
+               );
 
         #endregion
 
+
+        public void Dispose()
+        {
+            SOAPServer.HTTPServer.Dispose();
+            GC.SuppressFinalize(this);
+        }
 
     }
 

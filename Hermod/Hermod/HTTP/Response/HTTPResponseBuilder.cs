@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Properties
 
             /// <summary>
-            /// The optional HTTP sub protocol response, e.g. HTTP Web Socket.
+            /// The optional HTTP sub protocol response, e.g. HTTP WebSocket.
             /// </summary>
             public Object?            SubprotocolResponse    { get; set; }
 
@@ -423,12 +423,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// WWW-Authenticate
             /// </summary>
-            public String WWWAuthenticate
+            public WWWAuthenticate WWWAuthenticate
             {
 
                 get
                 {
-                    return GetHeaderFields<String>(HTTPResponseHeaderField.WWWAuthenticate);
+                    return GetHeaderFields(HTTPResponseHeaderField.WWWAuthenticate);
                 }
 
                 set
@@ -456,6 +456,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 set
                 {
                     SetHeaderField(HTTPResponseHeaderField.SecWebSocketAccept, value);
+                }
+
+            }
+
+            #endregion
+
+            #region SecWebSocketProtocol
+
+            public String? SecWebSocketProtocol
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Response);
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Response, value);
                 }
 
             }
@@ -650,7 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP connection.
             /// </summary>
             /// <param name="Connection">A connection.</param>
-            public Builder SetConnection(String Connection)
+            public Builder SetConnection(ConnectionType Connection)
             {
                 this.Connection = Connection;
                 return this;
@@ -890,7 +909,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                };
 
                 if (CloseConnection ?? true)
-                    response.Connection = "close";
+                    response.Connection = ConnectionType.Close;
 
                 Configurator?.Invoke(response);
 
@@ -914,7 +933,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                };
 
                 if (CloseConnection ?? true)
-                    response.Connection = "close";
+                    response.Connection = ConnectionType.Close;
 
                 return Configurator is not null
                            ? Configurator(response)

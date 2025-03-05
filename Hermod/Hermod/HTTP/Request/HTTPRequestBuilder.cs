@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The HTTP query string.
             /// </summary>
-            public QueryString  QueryString     { get; }
+            public QueryString  QueryString     { get; internal set; }
 
             #endregion
 
@@ -94,12 +94,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The http content types accepted by the client.
             /// </summary>
-            public AcceptTypes? Accept
+            public AcceptTypes Accept
             {
 
                 get
                 {
-                    return GetHeaderField(HTTPRequestHeaderField.Accept);
+                    return GetHeaderField(HTTPRequestHeaderField.Accept) ?? [];
                 }
 
                 set
@@ -199,7 +199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 set
                 {
-                    SetHeaderField(HTTPRequestHeaderField.Authorization, value);
+                    if (value is not null)
+                        SetHeaderField(HTTPRequestHeaderField.Authorization, value);
                 }
 
             }
@@ -665,6 +666,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
+            #region SecWebSocketProtocol
+
+            public IEnumerable<String> SecWebSocketProtocol
+            {
+
+                get
+                {
+                    return GetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Request) ?? [];
+                }
+
+                set
+                {
+                    SetHeaderField(HTTPHeaderField.SecWebSocketProtocol_Request, value);
+                }
+
+            }
+
+            #endregion
+
             #region X_ClientId
 
             public String? X_ClientId
@@ -690,12 +710,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Constructor(s)
 
-            #region HTTPRequestBuilder(Client = null)
+            #region HTTPRequestBuilder(Client = null, CancellationToken = default)
 
             /// <summary>
             /// Create a new HTTP request.
             /// </summary>
-            public Builder(AHTTPClient? Client = null)
+            /// <param name="CancellationToken">An optional cancellation token.</param>
+            public Builder(AHTTPClient?       Client              = null,
+                           CancellationToken  CancellationToken   = default)
+
+                : base(CancellationToken)
+
             {
 
                 this.httpClient       = Client;
@@ -703,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;
                 this.Path             = HTTPPath.Parse("/");
-                this.QueryString      = QueryString.New;
+                this.QueryString      = QueryString.Empty;
                 SetHeaderField(HTTPRequestHeaderField.Accept, new AcceptTypes());
                 this.ProtocolName     = "HTTP";
                 this.ProtocolVersion  = new HTTPVersion(1, 1);
@@ -718,6 +743,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new HTTP request.
             /// </summary>
             public Builder(HTTPRequest Request)
+
+                : base(Request.CancellationToken)
+
             {
 
                 this.HTTPServer       = Request.HTTPServer;
@@ -884,7 +912,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Set the HTTP connection header field.
             /// </summary>
             /// <param name="Connection">A connection.</param>
-            public Builder SetConnection(String Connection)
+            public Builder SetConnection(ConnectionType Connection)
             {
                 this.Connection = Connection;
                 return this;

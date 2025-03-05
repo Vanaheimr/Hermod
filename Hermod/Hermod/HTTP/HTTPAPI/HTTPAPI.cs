@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -879,17 +879,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   String?                          LogfileReloadSearchPattern   = null)
 
             => HTTPAPI.AddEventSource(
-                           EventIdentification,
-                           MaxNumberOfCachedEvents,
-                           RetryIntervall,
-                           data => data.ToString(Newtonsoft.Json.Formatting.None),
-                           JObject.Parse,
-                           EnableLogging,
-                           LogfilePath,
-                           LogfilePrefix,
-                           LogfileName,
-                           LogfileReloadSearchPattern
-                       );
+                   EventIdentification,
+                   MaxNumberOfCachedEvents,
+                   RetryIntervall,
+                   data => data.ToString(Newtonsoft.Json.Formatting.None),
+                   JObject.Parse,
+                   EnableLogging,
+                   LogfilePath,
+                   LogfilePrefix,
+                   LogfileName,
+                   LogfileReloadSearchPattern
+               );
 
         #endregion
 
@@ -940,30 +940,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPDelegate?                       DefaultErrorHandler          = null)
 
             => HTTPAPI.AddEventSource(
-                           EventIdentification,
-                           URLTemplate,
+                   EventIdentification,
+                   URLTemplate,
 
-                           MaxNumberOfCachedEvents,
-                           IncludeFilterAtRuntime,
-                           RetryIntervall,
-                           data => data.ToString(Newtonsoft.Json.Formatting.None),
-                           JObject.Parse,
-                           EnableLogging,
-                           LogfilePath,
-                           LogfilePrefix,
-                           LogfileName,
-                           LogfileReloadSearchPattern,
+                   MaxNumberOfCachedEvents,
+                   IncludeFilterAtRuntime,
+                   RetryIntervall,
+                   data => data.ToString(Newtonsoft.Json.Formatting.None),
+                   JObject.Parse,
+                   EnableLogging,
+                   LogfilePath,
+                   LogfilePrefix,
+                   LogfileName,
+                   LogfileReloadSearchPattern,
 
-                           Hostname,
-                           HTTPMethod,
-                           HTTPContentType,
+                   Hostname,
+                   HTTPMethod,
+                   HTTPContentType,
 
-                           false,
-                           URIAuthentication,
-                           HTTPMethodAuthentication,
+                   false,
+                   URIAuthentication,
+                   HTTPMethodAuthentication,
 
-                           DefaultErrorHandler
-                       );
+                   DefaultErrorHandler
+               );
 
         #endregion
 
@@ -973,7 +973,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// A HTTP API.
     /// </summary>
-    public class HTTPAPI : AHTTPAPIBase
+    public class HTTPAPI : AHTTPAPIBase,
+                           IServerStartStop
     {
 
         #region Data
@@ -1022,10 +1023,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The default maintenance interval.
         /// </summary>
-        public readonly            TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
+        public           readonly  TimeSpan                DefaultMaintenanceEvery         = TimeSpan.FromMinutes(1);
 
-        private readonly           Timer                   MaintenanceTimer;
-
+        private          readonly  Timer                   MaintenanceTimer;
 
         protected static readonly  TimeSpan                SemaphoreSlimTimeout            = TimeSpan.FromSeconds(5);
 
@@ -1046,7 +1046,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname             Hostname                    { get; }
 
         /// <summary>
-        /// The offical URL/DNS name of this service, e.g. for sending e-mails.
+        /// The official URL/DNS name of this service, e.g. for sending e-mails.
         /// </summary>
         public String                   ExternalDNSName             { get; }
 
@@ -1148,10 +1148,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP API.
         /// </summary>
         /// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServerPort">A TCP port to listen on.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        /// <param name="HTTPServerName">The default HTTP servername, used whenever no HTTP Host-header has been given.</param>
+        /// <param name="HTTPServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// 
         /// <param name="URLPathPrefix">A common prefix for all URLs.</param>
         /// <param name="HTTPServiceName">The name of the HTTP service.</param>
@@ -1278,8 +1278,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            if (AutoStart && HTTPServer.Start())
-                DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
+            if (AutoStart)
+                HTTPServer.Start(EventTracking_Id.New).Wait();
+
+            //if (AutoStart && HTTPServer.Start())
+            //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
 
         }
 
@@ -1292,7 +1295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPServer">A HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="ExternalDNSName">The offical URL/DNS name of this service, e.g. for sending e-mails.</param>
+        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
         /// 
@@ -1382,9 +1385,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
             // Link HTTP events...
-            HTTPServer.RequestLog   += (HTTPProcessor, ServerTimestamp, Request)                                 => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
-            HTTPServer.ResponseLog  += (HTTPProcessor, ServerTimestamp, Request, Response)                       => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
-            HTTPServer.ErrorLog     += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
+            HTTPServer.RequestLog   += RequestLog. WhenAll;
+            HTTPServer.ResponseLog  += ResponseLog.WhenAll;
+            HTTPServer.ErrorLog     += ErrorLog.   WhenAll;
 
 
             // Setup Maintenance Task
@@ -1392,15 +1395,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
             this.MaintenanceTimer         = new Timer(
                                                 DoMaintenanceSync,
-                                                null,
-                                                this.MaintenanceEvery,
+                                                this,
+                                                MaintenanceInitialDelay ?? this.MaintenanceEvery,
                                                 this.MaintenanceEvery
                                             );
 
             // Setup Warden
-            this.Warden = new Warden.Warden(WardenInitialDelay ?? TimeSpan.FromMinutes(3),
-                                            WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
-                                            DNSClient);
+            this.Warden = new Warden.Warden(
+                              WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+                              WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                              DNSClient
+                          );
 
             #region Warden: Observe CPU/RAM
 
@@ -1469,8 +1474,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            if (AutoStart == true && HTTPServer.Start())
-                DebugX.Log(nameof(HTTPAPI) + " version '" + APIVersionHash + "' started...");
+            if (AutoStart)
+                HTTPServer.Start(EventTracking_Id.New).Wait();
+
+            //if (AutoStart == true && HTTPServer.Start())
+            //    DebugX.Log(nameof(HTTPAPI) + $" version '{APIVersionHash}' started...");
 
         }
 
@@ -1534,6 +1542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       HTTPPath                 URLTemplate,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -1555,19 +1564,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddMethodCallback(this,
-                                         Hostname,
-                                         HTTPMethod,
-                                         URLTemplate,
-                                         HTTPContentType,
-                                         URLAuthentication,
-                                         HTTPMethodAuthentication,
-                                         ContentTypeAuthentication,
-                                         HTTPRequestLogger,
-                                         HTTPResponseLogger,
-                                         DefaultErrorHandler,
-                                         HTTPDelegate,
-                                         AllowReplacement);
+            HTTPServer.AddMethodCallback(
+                this,
+                Hostname,
+                HTTPMethod,
+                URLTemplate,
+                HTTPContentType,
+                OpenEnd,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                HTTPDelegate,
+                AllowReplacement
+            );
 
         }
 
@@ -1593,6 +1605,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod               HTTPMethod,
                                       IEnumerable<HTTPPath>    URLTemplates,
                                       HTTPContentType?         HTTPContentType             = null,
+                                      Boolean                  OpenEnd                     = false,
                                       HTTPAuthentication?      URLAuthentication           = null,
                                       HTTPAuthentication?      HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?      ContentTypeAuthentication   = null,
@@ -1614,19 +1627,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddMethodCallback(this,
-                                         Hostname,
-                                         HTTPMethod,
-                                         URLTemplates,
-                                         HTTPContentType,
-                                         URLAuthentication,
-                                         HTTPMethodAuthentication,
-                                         ContentTypeAuthentication,
-                                         HTTPRequestLogger,
-                                         HTTPResponseLogger,
-                                         DefaultErrorHandler,
-                                         HTTPDelegate,
-                                         AllowReplacement);
+            HTTPServer.AddMethodCallback(
+                this,
+                Hostname,
+                HTTPMethod,
+                URLTemplates,
+                HTTPContentType,
+                OpenEnd,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                HTTPDelegate,
+                AllowReplacement
+            );
 
         }
 
@@ -1653,6 +1669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       HTTPPath                      URLTemplate,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      Boolean                       OpenEnd                     = false,
                                       HTTPAuthentication?           URLAuthentication           = null,
                                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -1677,19 +1694,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddMethodCallback(this,
-                                         Hostname,
-                                         HTTPMethod,
-                                         URLTemplate,
-                                         HTTPContentTypes,
-                                         URLAuthentication,
-                                         HTTPMethodAuthentication,
-                                         ContentTypeAuthentication,
-                                         HTTPRequestLogger,
-                                         HTTPResponseLogger,
-                                         DefaultErrorHandler,
-                                         HTTPDelegate,
-                                         AllowReplacement);
+            HTTPServer.AddMethodCallback(
+                this,
+                Hostname,
+                HTTPMethod,
+                URLTemplate,
+                HTTPContentTypes,
+                OpenEnd,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                HTTPDelegate,
+                AllowReplacement
+            );
 
         }
 
@@ -1716,6 +1736,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       HTTPMethod                    HTTPMethod,
                                       IEnumerable<HTTPPath>         URLTemplates,
                                       IEnumerable<HTTPContentType>  HTTPContentTypes,
+                                      Boolean                       OpenEnd                     = false,
                                       HTTPAuthentication?           URLAuthentication           = null,
                                       HTTPAuthentication?           HTTPMethodAuthentication    = null,
                                       HTTPAuthentication?           ContentTypeAuthentication   = null,
@@ -1740,19 +1761,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            HTTPServer.AddMethodCallback(this,
-                                         Hostname,
-                                         HTTPMethod,
-                                         URLTemplates,
-                                         HTTPContentTypes,
-                                         URLAuthentication,
-                                         HTTPMethodAuthentication,
-                                         ContentTypeAuthentication,
-                                         HTTPRequestLogger,
-                                         HTTPResponseLogger,
-                                         DefaultErrorHandler,
-                                         HTTPDelegate,
-                                         AllowReplacement);
+            HTTPServer.AddMethodCallback(
+                this,
+                Hostname,
+                HTTPMethod,
+                URLTemplates,
+                HTTPContentTypes,
+                OpenEnd,
+                URLAuthentication,
+                HTTPMethodAuthentication,
+                ContentTypeAuthentication,
+                HTTPRequestLogger,
+                HTTPResponseLogger,
+                DefaultErrorHandler,
+                HTTPDelegate,
+                AllowReplacement
+            );
 
         }
 
@@ -1788,18 +1812,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             String?                          LogfileReloadSearchPattern   = null)
 
             => HTTPServer.AddEventSource(
-                              EventIdentification,
-                              this,
-                              MaxNumberOfCachedEvents,
-                              RetryIntervall,
-                              DataSerializer,
-                              DataDeserializer,
-                              EnableLogging,
-                              LogfilePath,
-                              LogfilePrefix,
-                              LogfileName,
-                              LogfileReloadSearchPattern
-                          );
+                   EventIdentification,
+                   this,
+                   MaxNumberOfCachedEvents,
+                   RetryIntervall,
+                   DataSerializer,
+                   DataDeserializer,
+                   EnableLogging,
+                   LogfilePath,
+                   LogfilePrefix,
+                   LogfileName,
+                   LogfileReloadSearchPattern
+               );
 
         #endregion
 
@@ -1854,31 +1878,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     HTTPDelegate?                    DefaultErrorHandler          = null)
 
             => HTTPServer.AddEventSource(
-                              EventIdentification,
-                              this,
-                              URITemplate,
+                   EventIdentification,
+                   this,
+                   URITemplate,
 
-                              MaxNumberOfCachedEvents,
-                              IncludeFilterAtRuntime,
-                              RetryIntervall,
-                              DataSerializer,
-                              DataDeserializer,
-                              EnableLogging,
-                              LogfilePath,
-                              LogfilePrefix,
-                              LogfileName,
-                              LogfileReloadSearchPattern,
+                   MaxNumberOfCachedEvents,
+                   IncludeFilterAtRuntime,
+                   RetryIntervall,
+                   DataSerializer,
+                   DataDeserializer,
+                   EnableLogging,
+                   LogfilePath,
+                   LogfilePrefix,
+                   LogfileName,
+                   LogfileReloadSearchPattern,
 
-                              Hostname,
-                              HttpMethod,
-                              HTTPContentType,
+                   Hostname,
+                   HttpMethod,
+                   HTTPContentType,
 
-                              RequireAuthentication,
-                              URIAuthentication,
-                              HTTPMethodAuthentication,
+                   RequireAuthentication,
+                   URIAuthentication,
+                   HTTPMethodAuthentication,
 
-                              DefaultErrorHandler
-                          );
+                   DefaultErrorHandler
+               );
 
         #endregion
 
@@ -1953,18 +1977,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (Timer) DoMaintenance(State)
 
-        private void DoMaintenanceSync(Object State)
+        private void DoMaintenanceSync(Object? State)
         {
             if (ReloadFinished && !DisableMaintenanceTasks)
-                DoMaintenance(State).Wait();
+                DoMaintenanceAsync(State).ConfigureAwait(false);
         }
 
-        protected internal virtual async Task _DoMaintenance(Object State)
-        {
+        protected internal virtual Task DoMaintenance(Object? State)
+            => Task.CompletedTask;
 
-        }
-
-        private async Task DoMaintenance(Object State)
+        private async Task DoMaintenanceAsync(Object? State)
         {
 
             if (await MaintenanceSemaphore.WaitAsync(SemaphoreSlimTimeout).
@@ -1973,7 +1995,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 try
                 {
 
-                    await _DoMaintenance(State);
+                    await DoMaintenance(State);
 
                 }
                 catch (Exception e)
@@ -1998,66 +2020,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Start   (EventTrackingId = null)
+        #region Start    (EventTrackingId = null)
 
         /// <summary>
         /// Start this HTTP API.
         /// </summary>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public virtual Boolean Start(EventTracking_Id? EventTrackingId = null)
+        public async virtual Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
         {
 
-            lock (HTTPServer)
-            {
+            var result = await HTTPServer.Start(
+                                   EventTrackingId ?? EventTracking_Id.New
+                               );
 
-                if (!HTTPServer.IsStarted)
-                    return HTTPServer.Start();
+            //SendStarted(this, CurrentTimestamp);
 
-                return true;
-
-                //SendStarted(this, CurrentTimestamp);
-
-            }
+            return result;
 
         }
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true, EventTrackingId = null)
+        #region Start    (Delay, EventTrackingId = null, InBackground = true)
+
+        /// <summary>
+        /// Start the server after a little delay.
+        /// </summary>
+        /// <param name="Delay">The delay.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        public async virtual Task<Boolean> Start(TimeSpan           Delay,
+                                                 EventTracking_Id?  EventTrackingId   = null,
+                                                 Boolean            InBackground      = true)
+        {
+
+            var result = await HTTPServer.Start(
+                                   Delay,
+                                   EventTrackingId ?? EventTracking_Id.New,
+                                   InBackground
+                               );
+
+            //SendStarted(this, CurrentTimestamp);
+
+            return result;
+
+        }
+
+        #endregion
+
+        #region Shutdown (EventTrackingId = null, Message = null, Wait = true)
 
         /// <summary>
         /// Shutdown this HTTP API.
         /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Whether to wait for the shutdown to complete.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public virtual Boolean Shutdown(String?            Message           = null,
-                                        Boolean            Wait              = true,
-                                        EventTracking_Id?  EventTrackingId   = null)
+        public async virtual Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                                    String?            Message           = null,
+                                                    Boolean            Wait              = true)
         {
-            lock (HTTPServer)
-            {
 
-                if (HTTPServer.IsStarted)
-                    return HTTPServer.Shutdown(Message, Wait);
+            var result = await HTTPServer.Shutdown(
+                                   EventTrackingId ?? EventTracking_Id.New,
+                                   Message,
+                                   Wait
+                               );
 
-                return true;
+            //SendShutdown(this, CurrentTimestamp);
 
-            }
+            return result;
+
         }
 
         #endregion
+
 
         #region Dispose()
 
         public virtual void Dispose()
         {
-
-            lock (HTTPServer)
-            {
-                HTTPServer.Dispose();
-            }
-
+            HTTPServer.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         #endregion

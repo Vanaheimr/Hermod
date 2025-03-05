@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.IsDevelopment       = IsDevelopment ?? false;
             this.DevelopmentServers  = DevelopmentServers is not null
                                            ? new HashSet<String>(DevelopmentServers)
-                                           : new HashSet<String>();
+                                           : [];
 
             if (this.DevelopmentServers.Contains(Environment.MachineName))
                 this.IsDevelopment = true;
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (protected virtual) GetResourceStream      (ResourceName, ResourceAssemblies)
+        #region (protected virtual) GetResourceStream             (ResourceName, ResourceAssemblies)
 
         protected virtual Stream? GetResourceStream(String ResourceName)
 
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected virtual) GetResourceMemoryStream(ResourceName, ResourceAssemblies)
+        #region (protected virtual) GetResourceMemoryStream       (ResourceName, ResourceAssemblies)
 
         protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
 
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected virtual) GetResourceString      (ResourceName, ResourceAssemblies)
+        #region (protected virtual) GetResourceString             (ResourceName, ResourceAssemblies)
 
         protected virtual String GetResourceString(String ResourceName)
 
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected virtual) GetResourceBytes       (ResourceName, ResourceAssemblies)
+        #region (protected virtual) GetResourceBytes              (ResourceName, ResourceAssemblies)
 
         protected virtual Byte[] GetResourceBytes(String ResourceName)
 
@@ -238,11 +238,92 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected virtual Byte[] GetResourceBytes(String                            ResourceName,
                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
 
-            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? Array.Empty<Byte>();
+            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
 
         #endregion
 
-        #region (protected virtual) MixWithHTMLTemplate    (ResourceName, ResourceAssemblies)
+
+        #region (protected virtual) GetMergedResourceMemoryStream (ResourceName, ResourceAssemblies)
+
+        protected virtual MemoryStream? GetMergedResourceMemoryStream(String ResourceName)
+
+            => GetMergedResourceMemoryStream(ResourceName,
+                                             new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual MemoryStream? GetMergedResourceMemoryStream(String                            ResourceName,
+                                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
+            try
+            {
+
+                var outputStream = new MemoryStream();
+                var newLine      = "\r\n"u8.ToArray();
+
+                foreach (var resourceAssembly in ResourceAssemblies)
+                {
+                    try
+                    {
+
+                        var data = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+                        if (data is not null)
+                        {
+
+                            data.CopyTo(outputStream);
+
+                            outputStream.Write(newLine, 0, newLine.Length);
+
+                        }
+
+                    }
+                    catch
+                    { }
+                }
+
+                outputStream.Seek(0, SeekOrigin.Begin);
+
+                return outputStream;
+
+            }
+            catch
+            { }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) GetMergedResourceString       (ResourceName, ResourceAssemblies)
+
+        protected virtual String GetMergedResourceString(String ResourceName)
+
+            => GetMergedResourceString(ResourceName,
+                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String GetMergedResourceString(String                            ResourceName,
+                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected virtual) GetMergedResourceBytes        (ResourceName, ResourceAssemblies)
+
+        protected virtual Byte[] GetMergedResourceBytes(String ResourceName)
+
+            => GetMergedResourceBytes(ResourceName,
+                                      new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual Byte[] GetMergedResourceBytes(String                            ResourceName,
+                                                        params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+
+        #endregion
+
+
+        #region (protected virtual) MixWithHTMLTemplate           (ResourceName, ResourceAssemblies)
 
         protected virtual String MixWithHTMLTemplate(String ResourceName)
 
@@ -286,7 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected virtual) MixWithHTMLTemplate    (ResourceName, HTMLConverter, ResourceAssemblies)
+        #region (protected virtual) MixWithHTMLTemplate           (ResourceName, HTMLConverter, ResourceAssemblies)
 
         protected virtual String MixWithHTMLTemplate(String                ResourceName,
                                                      Func<String, String>  HTMLConverter)
@@ -333,7 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (protected virtual) MixWithHTMLTemplate    (Template, ResourceName, ResourceAssemblies)
+        #region (protected virtual) MixWithHTMLTemplate           (Template, ResourceName, ResourceAssemblies)
 
         protected virtual String MixWithHTMLTemplate(String   Template,
                                                      String   ResourceName,

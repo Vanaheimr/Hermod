@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
                 newWebSocketConnection.Add($"{newWebSocketConnection.Count}: {connection.RemoteSocket}");
                 return Task.CompletedTask;
             };
@@ -116,22 +116,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, eventTrackingId, textMessage, cancellationToken) => {
+            webSocketServer.OnTextMessageReceived         += (timestamp, server, connection, frame, eventTrackingId, textMessage, cancellationToken) => {
                 textMessageRequests.   Add(textMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnTextMessageSent             += (timestamp, server, connection, eventTrackingId, textMessage, cancellationToken) => {
+            webSocketServer.OnTextMessageSent             += (timestamp, server, connection, frame, eventTrackingId, textMessage, sentStatus, cancellationToken) => {
                 textMessageResponses.  Add(textMessage ?? "-");
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnBinaryMessageReceived       += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
+            webSocketServer.OnBinaryMessageReceived       += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, cancellationToken) => {
                 binaryMessageRequests. Add(binaryMessage);
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnBinaryMessageSent           += (timestamp, server, connection, eventTrackingId, binaryMessage, cancellationToken) => {
+            webSocketServer.OnBinaryMessageSent           += (timestamp, server, connection, frame, eventTrackingId, binaryMessage, sentStatus, cancellationToken) => {
                 binaryMessageResponses.Add(binaryMessage);
                 return Task.CompletedTask;
             };
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             //// HTTP/1.1 101 Switching Protocols
             //// Date:                     Wed, 02 Aug 2023 19:33:53 GMT
-            //// Server:                   GraphDefined HTTP Web Socket Service v2.0
+            //// Server:                   GraphDefined HTTP WebSocket Service v2.0
             //// Connection:               Upgrade
             //// Upgrade:                  websocket
             //// Sec-WebSocket-Accept:     s9FvxhRowHKxS38G/sBt7gC5qec=
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             //ClassicAssert.IsTrue  (response.Contains("HTTP/1.1 101 Switching Protocols"),   response);
 
-            //ClassicAssert.AreEqual("GraphDefined HTTP Web Socket Service v2.0",             httpResponse.Server);
+            //ClassicAssert.AreEqual("GraphDefined HTTP WebSocket Service v2.0",             httpResponse.Server);
             //ClassicAssert.AreEqual("Upgrade",                                               httpResponse.Connection);
             //ClassicAssert.AreEqual("websocket",                                             httpResponse.Upgrade);
 
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             #region Validate message delivery
 
-            //Note: If you are debugging too slowly HTTP Web Socket PING/PONG messages will arrive!
+            //Note: If you are debugging too slowly HTTP WebSocket PING/PONG messages will arrive!
 
             //ClassicAssert.AreEqual(2,       messageRequests. Count);
             //ClassicAssert.AreEqual("1234",  messageRequests. ElementAt(0).Payload.ToUTF8String());
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
 
             var runTime2 = Timestamp.Now - startTimestamp;
 
-            ClassicAssert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP web socket closing exceptions!");
+            ClassicAssert.AreEqual(0, exceptions2.Count, $"{exceptions2.Count} HTTP WebSocket closing exceptions!");
 
         }
 

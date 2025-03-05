@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -299,8 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RequestPathSemantic   = RequestPathSemantic;
             this.MultipleValuesAsList  = MultipleValuesAsList;
 
-            definedHTTPHeaderFields.TryAdd(this.Name,
-                                           this);
+            definedHTTPHeaderFields.TryAdd(this.Name, this);
 
         }
 
@@ -358,9 +357,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Connection: close</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField<String> Connection = new ("Connection",
-                                                                         HeaderFieldType.General,
-                                                                         RequestPathSemantic.EndToEnd);
+        public static readonly HTTPHeaderField<ConnectionType> Connection = new ("Connection",
+                                                                                 HeaderFieldType.General,
+                                                                                 RequestPathSemantic.EndToEnd,
+                                                                                 MultipleValuesAsList:   false,
+                                                                                 StringParser:           ConnectionType.TryParse,
+                                                                                 ValueSerializer:        ct => ct.ToString());
 
         #endregion
 
@@ -771,13 +773,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Sec-WebSocket-Protocol
 
         /// <summary>
-        /// Sec-Web-SocketProtocol.
+        /// Sec-Web-SocketProtocol within a HTTP request.
         /// </summary>
-        public static readonly HTTPHeaderField<IEnumerable<String>> SecWebSocketProtocol = new ("Sec-WebSocket-Protocol",
-                                                                                                HeaderFieldType.General,
-                                                                                                RequestPathSemantic.EndToEnd,
-                                                                                                MultipleValuesAsList:  true,
-                                                                                                StringParser:          StringParsers.NullableListOfStrings);
+        public static readonly HTTPHeaderField<IEnumerable<String>> SecWebSocketProtocol_Request = new ("Sec-WebSocket-Protocol",
+                                                                                                        HeaderFieldType.General,
+                                                                                                        RequestPathSemantic.EndToEnd,
+                                                                                                        MultipleValuesAsList:  true,
+                                                                                                        StringParser:          StringParsers.NullableListOfStrings);
+
+        /// <summary>
+        /// Sec-Web-SocketProtocol within a HTTP response.
+        /// </summary>
+        public static readonly HTTPHeaderField<String> SecWebSocketProtocol_Response = new ("Sec-WebSocket-Protocol",
+                                                                                            HeaderFieldType.General,
+                                                                                            RequestPathSemantic.EndToEnd);
 
         #endregion
 

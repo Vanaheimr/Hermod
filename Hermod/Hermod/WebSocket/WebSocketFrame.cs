@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             {
 
                 return BitConverter.IsLittleEndian
-                           ? (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16(new[] { Frame.Payload[1], Frame.Payload[0] }, 0)
+                           ? (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16([ Frame.Payload[1], Frame.Payload[0] ], 0)
                            : (WebSocketFrame.ClosingStatusCode) BitConverter.ToUInt16(Frame.Payload, 0);
 
             }
@@ -127,9 +127,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 // 1000-2999: Reserved for definition by the WebSocket specification and IETF
                 // 3000-3999: Available for use by libraries and frameworks
                 // 4000-4999: Available for use by applications
-                return Encoding.UTF8.GetString(Frame.Payload,
-                                               2,
-                                               Frame.Payload.Length - 2);
+                return Encoding.UTF8.GetString(
+                           Frame.Payload,
+                           2,
+                           Frame.Payload.Length - 2
+                       );
 
             }
 
@@ -445,6 +447,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public Boolean IsText
             => Opcode == Opcodes.Text;
 
+        /// <summary>
+        /// The event tracking identification for correlating this HTTP WebSocket frame with other events.</param>
+        /// </summary>
+        public EventTracking_Id  EventTrackingId { get; }
+
         #endregion
 
         #region Constructor(s)
@@ -460,27 +467,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="Rsv1">Reserved 1</param>
         /// <param name="Rsv2">Reserved 2</param>
         /// <param name="Rsv3">Reserved 3</param>
-        private WebSocketFrame(Opcodes     Opcode,
-                               Byte[]?     Payload      = null,
-                               Fin         FIN          = Fin.Final,
-                               MaskStatus  Mask         = MaskStatus.Off,
-                               Byte[]?     MaskingKey   = null,
-                               Rsv         Rsv1         = Rsv.Off,
-                               Rsv         Rsv2         = Rsv.Off,
-                               Rsv         Rsv3         = Rsv.Off)
+        /// 
+        /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param></param>
+        private WebSocketFrame(Opcodes            Opcode,
+                               Byte[]?            Payload           = null,
+                               Fin                FIN               = Fin.Final,
+                               MaskStatus         Mask              = MaskStatus.Off,
+                               Byte[]?            MaskingKey        = null,
+                               Rsv                Rsv1              = Rsv.Off,
+                               Rsv                Rsv2              = Rsv.Off,
+                               Rsv                Rsv3              = Rsv.Off,
+
+                               EventTracking_Id?  EventTrackingId   = null)
+
         {
 
             if (Mask == MaskStatus.On && (MaskingKey is null || MaskingKey.Length != 4))
                 throw new ArgumentException("When a web socket mask is used the given masking key must be set!");
 
-            this.Opcode      = Opcode;
-            this.Payload     = Payload    ?? [];
-            this.FIN         = FIN;
-            this.Mask        = Mask;
-            this.MaskingKey  = MaskingKey ?? [];
-            this.Rsv1        = Rsv1;
-            this.Rsv2        = Rsv2;
-            this.Rsv3        = Rsv3;
+            this.Opcode           = Opcode;
+            this.Payload          = Payload    ?? [];
+            this.FIN              = FIN;
+            this.Mask             = Mask;
+            this.MaskingKey       = MaskingKey ?? [];
+            this.Rsv1             = Rsv1;
+            this.Rsv2             = Rsv2;
+            this.Rsv3             = Rsv3;
+
+            this.EventTrackingId  = EventTrackingId ?? EventTracking_Id.New;
 
         }
 
@@ -714,12 +728,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region TryParse(ByteArray, out Frame, out Length)
+        #region TryParse(ByteArray, out Frame, out Length, EventTrackingId = null)
 
         public static Boolean TryParse(Byte[]                                    ByteArray,
                                        [NotNullWhen(true)]  out WebSocketFrame?  Frame,
                                        [NotNullWhen(true)]  out UInt64           Length,
-                                       [NotNullWhen(false)] out String?          ErrorResponse)
+                                       [NotNullWhen(false)] out String?          ErrorResponse,
+                                       EventTracking_Id?                         EventTrackingId = null)
         {
 
             try
@@ -819,12 +834,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 else
                 {
 
-                    maskingKey = new Byte[4] {
+                    maskingKey = [
                                      ByteArray[offset],
                                      ByteArray[offset + 1],
                                      ByteArray[offset + 2],
                                      ByteArray[offset + 3]
-                                 };
+                                 ];
 
                     offset += 4;
 
@@ -835,14 +850,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                 // DebugX.Log(String.Concat("Received a '", opcode, "' web socket frame with ", payloadLength, " bytes payload: '", payload.ToUTF8String(), "'!"));
 
-                Frame = new WebSocketFrame(opcode,
-                                           payload,
-                                           fin,
-                                           mask,
-                                           maskingKey,
-                                           rsv1,
-                                           rsv2,
-                                           rsv3);
+                Frame = new WebSocketFrame(
+                            opcode,
+                            payload,
+                            fin,
+                            mask,
+                            maskingKey,
+                            rsv1,
+                            rsv2,
+                            rsv3,
+                            EventTrackingId
+                        );
 
                 Length  = offset + payloadLength;
 
@@ -948,16 +966,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #endregion
 
 
-        public JObject ToJSON()
+        #region ToJSON(CustomWebSocketFrameSerializer = null, ...)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomWebSocketFrameSerializer">A delegate to serialize WebSocketFrames.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<WebSocketFrame>? CustomWebSocketFrameSerializer = null)
         {
 
             var json = JSONObject.Create(
-                           new JProperty("frame", ToString())
+
+                           new JProperty("opcode",    Opcode.ToString()),
+
+                           new JProperty("payload",   Opcode switch {
+                                                          Opcodes.Continuation  => Payload.ToHexString(),
+                                                          Opcodes.Text          => Payload.ToUTF8String(),
+                                                          Opcodes.Binary        => Payload.ToHexString(),
+                                                          Opcodes.Ping          => Payload.ToUTF8String(),
+                                                          Opcodes.Pong          => Payload.ToUTF8String(),
+                                                          _                     => null // also: Close
+                                                      }),
+                           new JProperty("length",    Payload.Length),
+
+                           Opcode == Opcodes.Close
+                               ? new JProperty("closingStatusCode",  this.GetClosingStatusCode().ToString())
+                               : null,
+
+                           Opcode == Opcodes.Close
+                               ? new JProperty("closingReason",      this.GetClosingReason())
+                               : null,
+
+                           new JProperty("FIN",       FIN.   ToString()),
+
+                           new JProperty("Rsv1",      Rsv1.  ToString()),
+                           new JProperty("Rsv2",      Rsv2.  ToString()),
+                           new JProperty("Rsv3",      Rsv3.  ToString())
+
                        );
 
-            return json;
+            return CustomWebSocketFrameSerializer is not null
+                       ? CustomWebSocketFrameSerializer(this, json)
+                       : json;
 
         }
+
+        #endregion
 
 
         #region (override) ToString()
@@ -968,12 +1022,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public override String ToString()
 
             => Opcode switch {
-                   Opcodes.Continuation  => $"Continuation '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
-                   Opcodes.Text          => $"Text '{Payload.ToUTF8String().SubstringMax(30)}' ({Payload.ToUTF8String().Length})",
-                   Opcodes.Binary        => $"Binary '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Continuation  => $"Continuation '{Payload.ToHexString().SubstringMax(50)}' ({Payload.Length})",
+                   Opcodes.Text          => $"Text '{Payload.ToUTF8String().SubstringMax(50)}' ({Payload.ToUTF8String().Length})",
+                   Opcodes.Binary        => $"Binary '{Payload.ToHexString().SubstringMax(50)}' ({Payload.Length})",
                    Opcodes.Close         => $"Close '{this.GetClosingStatusCode()}' '{this.GetClosingReason()}'",
-                   Opcodes.Ping          => $"Ping '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
-                   Opcodes.Pong          => $"Pong '{Payload.ToHexString().SubstringMax(30)}' ({Payload.Length})",
+                   Opcodes.Ping          => $"Ping '{Payload.ToUTF8String().SubstringMax(50)}' ({Payload.Length})",
+                   Opcodes.Pong          => $"Pong '{Payload.ToUTF8String().SubstringMax(50)}' ({Payload.Length})",
                    _                     => $"Unknown web socket opcode '{Opcode}'!"
                };
 

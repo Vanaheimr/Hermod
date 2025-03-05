@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +17,8 @@
 
 #region Usings
 
-using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Illias;
@@ -48,8 +44,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         private readonly Socket                          LocalDotNetSocket;
         public  readonly IPSocket                        LocalSocket;
         private readonly Func<UDPPacket<TData>, String>  PacketThreadsNameCreator;
-        private readonly MapperDelegate                  Mapper; 
-        private readonly MapReduceDelegate               MapReduce; 
+        private readonly MapperDelegate?                 Mapper;
+        private readonly MapReduceDelegate?              MapReduce;
         private          CancellationTokenSource         CancellationTokenSource;
         private          CancellationToken               CancellationToken;
 
@@ -117,22 +113,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         // mutatable
 
-        #region ServiceBanner
-
         public String ServiceBanner { get; set; }
-
-        #endregion
-
-        #region BufferSize
 
         /// <summary>
         /// The size of the receive buffer.
         /// </summary>
         public UInt32 BufferSize { get; set; }
-
-        #endregion
-
-        #region ReceiveTimeout
 
         /// <summary>
         /// Gets or sets a value that specifies the amount of time in milliseconds
@@ -164,40 +150,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         }
 
-        #endregion
-
-        #region IsRunning
-
         private Int32 _IsRunning = 0;
 
         /// <summary>
         /// True while the server is listening for new clients
         /// </summary>
         public Boolean IsRunning
-        {
-            get
-            {
-                return _IsRunning == 1;
-            }
-        }
-
-        #endregion
-
-        #region StopRequested
+            => _IsRunning == 1;
 
         /// <summary>
         /// The server was requested to stop and will no
         /// longer accept new client connections
         /// </summary>
         public Boolean StopRequested
-        {
-            get
-            {
-                return this.CancellationToken.IsCancellationRequested;
-            }
-        }
-
-        #endregion
+            => this.CancellationToken.IsCancellationRequested;
 
         #endregion
 
@@ -206,28 +172,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// An event fired when the UDP receiver started.
         /// </summary>
-        public event StartedEventHandler                         OnStarted;
+        public event StartedEventHandler?                         OnStarted;
 
         /// <summary>
         /// An event fired for every incoming UDP packet.
         /// </summary>
-        public event NotificationEventHandler<UDPPacket<TData>>  OnNotification;
+        public event NotificationEventHandler<UDPPacket<TData>>?  OnNotification;
 
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler                OnExceptionOccured;
+        public event ExceptionOccuredEventHandler?                OnExceptionOccured;
 
         /// <summary>
         /// An event fired when the UDP receiver stopped.
         /// </summary>
-        public event CompletedEventHandler                       OnCompleted;
+        public event CompletedEventHandler?                       OnCompleted;
 
         #endregion
 
         #region Delegates
-
-        #region MapperDelegate
 
         /// <summary>
         /// A delegate to transform the incoming UDP packets into custom data structures.
@@ -244,10 +208,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                                              IPSocket            RemoteSocket,
                                              Byte[]              Payload);
 
-        #endregion
-
-        #region MapReduceDelegate
-
         /// <summary>
         /// A delegate to transform the incoming UDP packets into custom data structures.
         /// </summary>
@@ -262,8 +222,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                                                              IPSocket            LocalSocket,
                                                              IPSocket            RemoteSocket,
                                                              Byte[]              Payload);
-
-        #endregion
 
         #endregion
 
@@ -284,16 +242,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPPort                          Port,
-                           String                          ServiceBanner                = DefaultServiceBanner,
-                           MapperDelegate                  Mapper                       = null,
-                           String                          ReceiverThreadName           = "UDP receiver thread",
-                           ThreadPriority                  ReceiverThreadPriority       = ThreadPriority.AboveNormal,
-                           Boolean                         ReceiverThreadIsBackground   = true,
-                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
-                           ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
-                           Boolean                         PacketThreadsAreBackground   = true,
-                           Boolean                         AutoStart                    = false)
+        public UDPReceiver(IPPort                           Port,
+                           String                           ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate?                  Mapper                       = null,
+                           String                           ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                          ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<TData>, String>?  PacketThreadsNameCreator     = null,
+                           ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                          PacketThreadsAreBackground   = true,
+                           Boolean                          AutoStart                    = false)
 
 
             : this(new IPSocket(IPv4Address.Any, Port),
@@ -327,21 +285,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IPSocket                        IPSocket,
-                           String                          ServiceBanner                = DefaultServiceBanner,
-                           MapperDelegate                  Mapper                       = null,
-                           MapReduceDelegate               MapReduce                    = null,
-                           String                          ReceiverThreadName           = "UDP receiver thread",
-                           ThreadPriority                  ReceiverThreadPriority       = ThreadPriority.AboveNormal,
-                           Boolean                         ReceiverThreadIsBackground   = true,
-                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
-                           ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
-                           Boolean                         PacketThreadsAreBackground   = true,
-                           Boolean                         AutoStart                    = false)
+        public UDPReceiver(IPSocket                         IPSocket,
+                           String                           ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate?                  Mapper                       = null,
+                           MapReduceDelegate?               MapReduce                    = null,
+                           String                           ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                          ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<TData>, String>?  PacketThreadsNameCreator     = null,
+                           ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                          PacketThreadsAreBackground   = true,
+                           Boolean                          AutoStart                    = false)
 
         {
 
-            if (Mapper == null && MapReduce == null)
+            if (Mapper is null && MapReduce is null)
                 throw new ArgumentNullException("The mapper and mapreduce delegate can not be both null!");
 
             this.IPSocket                     = IPSocket;
@@ -398,17 +356,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="PacketThreadsPriority">The optional priority of the UDP packet threads.</param>
         /// <param name="PacketThreadsAreBackground">Whether the UDP packet threads are background threads or not.</param>
         /// <param name="AutoStart">Start the UDP receiver thread immediately.</param>
-        public UDPReceiver(IIPAddress                      IPAddress,
-                           IPPort                          Port,
-                           String                          ServiceBanner                = DefaultServiceBanner,
-                           MapperDelegate                  Mapper                       = null,
-                           String                          ReceiverThreadName           = "UDP receiver thread",
-                           ThreadPriority                  ReceiverThreadPriority       = ThreadPriority.AboveNormal,
-                           Boolean                         ReceiverThreadIsBackground   = true,
-                           Func<UDPPacket<TData>, String>  PacketThreadsNameCreator     = null,
-                           ThreadPriority                  PacketThreadsPriority        = ThreadPriority.AboveNormal,
-                           Boolean                         PacketThreadsAreBackground   = true,
-                           Boolean                         AutoStart                    = false)
+        public UDPReceiver(IIPAddress                       IPAddress,
+                           IPPort                           Port,
+                           String                           ServiceBanner                = DefaultServiceBanner,
+                           MapperDelegate?                  Mapper                       = null,
+                           String                           ReceiverThreadName           = "UDP receiver thread",
+                           ThreadPriority                   ReceiverThreadPriority       = ThreadPriority.AboveNormal,
+                           Boolean                          ReceiverThreadIsBackground   = true,
+                           Func<UDPPacket<TData>, String>?  PacketThreadsNameCreator     = null,
+                           ThreadPriority                   PacketThreadsPriority        = ThreadPriority.AboveNormal,
+                           Boolean                          PacketThreadsAreBackground   = true,
+                           Boolean                          AutoStart                    = false)
 
             : this(new IPSocket(IPAddress, Port),
                    ServiceBanner,
@@ -429,16 +387,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         #endregion
 
 
-        #region Start()
+        #region Start(EventTrackingId = null)
 
         /// <summary>
         /// Start the UDP receiver.
         /// </summary>
-        public Boolean Start()
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        public async Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
         {
 
             if (_IsRunning == 1)
                 return false;
+
+            EventTrackingId ??= EventTracking_Id.New;
 
             try
             {
@@ -453,11 +414,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                     Thread.CurrentThread.IsBackground  = PacketThreadsAreBackground;
 #endif
 
-                    EndPoint  RemoteEndPoint = null;
-                    Byte[]    UDPPayload;
-                    Int32     NumberOfReceivedBytes;
-                    DateTime  timestamp;
-                    Int32     WaitForChildTaskCreation = 0;
+                    EndPoint?  RemoteEndPoint = null;
+                    Byte[]     UDPPayload;
+                    Int32      NumberOfReceivedBytes;
+                    DateTime   timestamp;
+                    Int32      WaitForChildTaskCreation = 0;
 
                     Interlocked.Exchange(ref _IsRunning, 1);
 
@@ -533,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 #endif
 
                                         // Start upper-layer protocol processing
-                                        OnNotificationLocal?.Invoke(NewUDPPacket);
+                                        OnNotificationLocal?.Invoke(EventTracking_Id.New, NewUDPPacket);
 
                                     }
 
@@ -548,11 +509,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                                         {
 
                                             // Start upper-layer protocol processing
-                                            OnNotificationLocal?.Invoke(new UDPPacket<TData>(this,
-                                                                                             Timestamp_Local,
-                                                                                             this.LocalSocket,
-                                                                                             RemoteSocket_Local,
-                                                                                             aaa));
+                                            OnNotificationLocal?.Invoke(
+                                                EventTracking_Id.New,
+                                                new UDPPacket<TData>(
+                                                    this,
+                                                    Timestamp_Local,
+                                                    this.LocalSocket,
+                                                    RemoteSocket_Local,
+                                                    aaa
+                                                )
+                                            );
 
                                         }
 
@@ -579,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                         }
                         catch (Exception e)
                         {
-                            OnExceptionOccured?.Invoke(this, Timestamp.Now, e);
+                            OnExceptionOccured?.Invoke(this, Timestamp.Now, EventTrackingId, e);
                         }
 
                     }
@@ -596,14 +562,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             catch (Exception e)
             {
 
-                OnExceptionOccured?.Invoke(this,
-                                           Timestamp.Now,
-                                           e);
+                OnExceptionOccured?.Invoke(
+                    this,
+                    Timestamp.Now,
+                    EventTrackingId,
+                    e
+                );
 
             }
 
-            OnStarted?.Invoke(this,
-                              Timestamp.Now);
+            OnStarted?.Invoke(
+                this,
+                Timestamp.Now,
+                EventTrackingId
+            );
 
             return true;
 
@@ -611,29 +583,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #endregion
 
-        #region Start(Delay, InBackground = true)
+        #region Start(Delay, EventTrackingId = null, InBackground = true)
 
         /// <summary>
         /// Start the UDP receiver after a little delay.
         /// </summary>
         /// <param name="Delay">The delay.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public Boolean Start(TimeSpan  Delay,
-                             Boolean   InBackground = true)
+        public async Task<Boolean> Start(TimeSpan           Delay,
+                                         EventTracking_Id?  EventTrackingId   = null,
+                                         Boolean            InBackground      = true)
         {
 
             if (!InBackground)
             {
-                Thread.Sleep(Delay);
-                return Start();
+                await Task.Delay(Delay);
+                return await Start();
             }
 
             else
             {
-                Task.Factory.StartNew(() => {
+                await Task.Factory.StartNew(async () => {
 
                     Thread.Sleep(Delay);
-                    Start();
+                    await Start();
 
                 }, CancellationTokenSource.Token,
                    TaskCreationOptions.AttachedToParent,
@@ -646,24 +620,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #endregion
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
 
         /// <summary>
         /// Shutdown the UDP receiver.
         /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Message">An optional shutdown message.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
-        public Boolean Shutdown(String  Message  = null,
-                                Boolean Wait     = true)
+        public async Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                            String?            Message           = null,
+                                            Boolean            Wait              = true)
         {
 
             if (IsMulticast)
             {
 
-                LocalDotNetSocket.SetSocketOption(SocketOptionLevel.IP,
-                                                  SocketOptionName.DropMembership,
-                                                  new MulticastOption(System.Net.IPAddress.Parse(IPAddress.ToString()),
-                                                                      System.Net.IPAddress.Any));
+                LocalDotNetSocket.SetSocketOption(
+                    SocketOptionLevel.IP,
+                    SocketOptionName.DropMembership,
+                    new MulticastOption(
+                        System.Net.IPAddress.Parse(IPAddress.ToString()),
+                        System.Net.IPAddress.Any
+                    )
+                );
 
             }
 
@@ -673,9 +653,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 while (_IsRunning > 0)
                     Thread.Sleep(10);
 
-            OnCompleted?.Invoke(this,
-                                Timestamp.Now,
-                                Message);
+            OnCompleted?.Invoke(
+                this,
+                Timestamp.Now,
+                EventTrackingId ?? EventTracking_Id.New,
+                Message
+            );
 
             return true;
 

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@
 using System.Text;
 using System.Collections;
 using System.Net.Sockets;
+using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
@@ -72,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Non-HTTP header fields
 
         /// <summary>
-        /// The timestamp of the HTTP request generation.
+        /// The timestamp of the HTTP PDU generation.
         /// </summary>
         public DateTime                 Timestamp            { get; }
 
@@ -244,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Connection
         /// </summary>
-        public String? Connection
+        public ConnectionType? Connection
 
             => GetHeaderField(HTTPHeaderField.Connection);
 
@@ -330,18 +331,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String? Via
 
             => GetHeaderField(HTTPHeaderField.Via);
-
-        #endregion
-
-        #region Sec-WebSocket-Protocol
-
-        /// <summary>
-        /// Sec-WebSocket-Protocol
-        /// </summary>
-        public IEnumerable<String> SecWebSocketProtocol
-
-            => GetHeaderFields<IEnumerable<String>>(HTTPHeaderField.SecWebSocketProtocol)
-                   ?? Array.Empty<String>();
 
         #endregion
 
@@ -670,7 +659,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        public Boolean TryGetHeaderField(String FieldName, out Object? Value)
+        public Boolean TryGetHeaderField(String                           FieldName,
+                                         [NotNullWhen(true)] out Object?  Value)
 
             => headerFields.TryGetValue(FieldName, out Value);
 
@@ -684,7 +674,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HeaderField">The key of the requested header field.</param>
         /// <param name="Value">The value of the requested header field.</param>
         /// <returns>True if the requested header exists; false otherwise.</returns>
-        public Boolean TryGetHeaderField<T>(HTTPHeaderField<T> HeaderField, out T? Value)
+        public Boolean TryGetHeaderField<T>(HTTPHeaderField<T>          HeaderField,
+                                            [NotNullWhen(true)] out T?  Value)
         {
 
             if (headerFields.TryGetValue(HeaderField.Name, out var value) &&
@@ -893,21 +884,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region GetHeaderField(Field)
-
-        /// <summary>
-        /// Return the value of the given HTTP header field.
-        /// </summary>
-        /// <param name="Field">The name of the header field.</param>
-        public String? GetHeaderField(HTTPHeaderField Field)
-
-            => headerFields.TryGetValue(Field.Name, out var Value)
-                   ? Value?.ToString()
-                   : String.Empty;
-
-        #endregion
-
-        #region GetHeaderField(FieldName)
+        #region GetHeaderField        (FieldName)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
@@ -915,28 +892,160 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="FieldName">The name of the header field.</param>
         public String? GetHeaderField(String FieldName)
 
-            => headerFields.TryGetValue(FieldName, out var Value)
-                   ? Value?.ToString()
-                   : String.Empty;
+            => headerFields.TryGetValue(FieldName, out var httpValue)
+                   ? httpValue?.ToString()
+                   : null;
 
         #endregion
 
-        #region GetHeaderField<T>(FieldName)
+        #region GetHeaderStruct<T>    (FieldName, Parser)
 
-        ///// <summary>
-        ///// Return the given HTTP header field.
-        ///// </summary>
-        ///// <typeparam name="T">The expected type of the field value.</typeparam>
-        ///// <param name="FieldName">The name of the header field.</param>
-        //public T? GetHeaderField<T>(String FieldName)
+        /// <summary>
+        /// Return the given HTTP header field.
+        /// </summary>
+        /// <typeparam name="T">The expected type of the field value.</typeparam>
+        /// <param name="FieldName">The name of the header field.</param>
+        public T? GetHeaderStruct<T>(String FieldName, Func<String, T?> Parser)
+            where T: struct
+        {
 
-        //    => headerFields.TryGetValue(FieldName, out var Value) && Value is T value
-        //           ? value
-        //           : default;
+            if (headerFields.TryGetValue(FieldName, out var headerValue))
+            {
+
+                if (headerValue is T valueT)
+                    return valueT;
+
+                if (headerValue is String text)
+                {
+                    try
+                    {
+                        return Parser(text);
+                    }
+                    catch
+                    { }
+                }
+
+            }
+
+            return null;
+
+        }
 
         #endregion
 
-        #region GetHeaderField (HeaderField)
+        #region GetHeaderField<T>     (FieldName, Parser)
+
+        /// <summary>
+        /// Return the given HTTP header field.
+        /// </summary>
+        /// <typeparam name="T">The expected type of the field value.</typeparam>
+        /// <param name="FieldName">The name of the header field.</param>
+        public T? TryGetHeaderField<T>(String FieldName, Func<String, T?> Parser)
+            where T: class
+        {
+
+            if (headerFields.TryGetValue(FieldName, out var headerValue))
+            {
+
+                if (headerValue is T valueT)
+                    return valueT;
+
+                if (headerValue is String text)
+                {
+                    try
+                    {
+                        return Parser(text);
+                    }
+                    catch
+                    { }
+                }
+
+            }
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryGetHeaderStruct<T> (FieldName, TryParser)
+
+        /// <summary>
+        /// Return the given HTTP header field.
+        /// </summary>
+        /// <typeparam name="T">The expected type of the field value.</typeparam>
+        /// <param name="FieldName">The name of the header field.</param>
+        public T? TryGetHeaderStruct<T>(String FieldName, TryParser<T> TryParser)
+            where T: struct
+        {
+
+            if (headerFields.TryGetValue(FieldName, out var headerValue))
+            {
+
+                if (headerValue is T valueT)
+                    return valueT;
+
+                if (headerValue is String text &&
+                    TryParser(text, out var parsedValue))
+                {
+                    return parsedValue;
+                }
+
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryGetHeaderField<T>  (FieldName, TryParser)
+
+        /// <summary>
+        /// Return the given HTTP header field.
+        /// </summary>
+        /// <typeparam name="T">The expected type of the field value.</typeparam>
+        /// <param name="FieldName">The name of the header field.</param>
+        public T? TryGetHeaderField<T>(String FieldName, TryParser<T> TryParser)
+            where T: class
+        {
+
+            if (headerFields.TryGetValue(FieldName, out var headerValue))
+            {
+
+                if (headerValue is T valueT)
+                    return valueT;
+
+                if (headerValue is String text &&
+                    TryParser(text, out var parsedValue))
+                {
+                    return parsedValue;
+                }
+
+            }
+
+            return default;
+
+        }
+
+        #endregion
+
+
+        #region GetHeaderField        (HeaderField)
+
+        /// <summary>
+        /// Return the value of the given HTTP header field.
+        /// </summary>
+        /// <param name="HeaderField">The name of the header field.</param>
+        public String? GetHeaderField(HTTPHeaderField HeaderField)
+
+            => headerFields.TryGetValue(HeaderField.Name, out var httpValue)
+                   ? httpValue?.ToString()
+                   : null;
+
+        #endregion
+
+        #region GetHeaderField        (HeaderField)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
@@ -991,14 +1100,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region GetHeaderFields(HeaderField, DefaultT = default)
+        #region GetHeaderFields       (HeaderField, DefaultT = default)
 
         /// <summary>
         /// Return the value of the given HTTP header field.
         /// </summary>
         /// <param name="HeaderField">The HTTP header field.</param>
-        public T GetHeaderFields<T>(HTTPHeaderField<T>  HeaderField,
-                                    T                   DefaultT = default)
+        public T? GetHeaderFields<T>(HTTPHeaderField<T>  HeaderField,
+                                     T?                  DefaultT   = default)
         {
 
             if (headerFieldsParsed.TryGetValue(HeaderField.Name, out var parsedValues) &&
@@ -1032,112 +1141,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             return DefaultT;
 
         }
-
-        #endregion
-
-
-        #region GetHeaderField_Int64 (FieldName)
-
-        ///// <summary>
-        ///// Return the given HTTP header field.
-        ///// </summary>
-        ///// <param name="FieldName">The name of the header field.</param>
-        //public Int64? GetHeaderField_Int64(String FieldName)
-        //{
-
-        //    if (headerFields.TryGetValue(FieldName, out var Value))
-        //    {
-
-        //        if (Value is Int64 value)
-        //            return value;
-
-        //        if (Int64.TryParse(Value.ToString(), out var Int64Value))
-        //            return Int64Value;
-
-        //    }
-
-        //    return null;
-
-        //}
-
-        #endregion
-
-        #region GetHeaderField_Int64 (HeaderField)
-
-        ///// <summary>
-        ///// Return the given HTTP header field.
-        ///// </summary>
-        ///// <param name="HeaderField">The HTTP header field.</param>
-        //public Int64? GetHeaderField_Int64(HTTPHeaderField<Int64> HeaderField)
-        //{
-
-        //    if (headerFields.TryGetValue(HeaderField.Name, out var Value))
-        //    {
-
-        //        if (Value is Int64 value)
-        //            return value;
-
-        //        if (Int64.TryParse(Value.ToString(), out var Int64Value))
-        //            return Int64Value;
-
-        //    }
-
-        //    return null;
-
-        //}
-
-        #endregion
-
-        #region GetHeaderField_UInt64(FieldName)
-
-        ///// <summary>
-        ///// Return the given HTTP header field.
-        ///// </summary>
-        ///// <param name="FieldName">The name of the header field.</param>
-        //public UInt64? GetHeaderField_UInt64(String FieldName)
-        //{
-
-        //    if (headerFields.TryGetValue(FieldName, out var value) &&
-        //        value is not null)
-        //    {
-
-        //        if (value is UInt64 uInt64)
-        //            return uInt64;
-
-        //        if (UInt64.TryParse(value.ToString(), out uInt64))
-        //            return uInt64;
-
-        //    }
-
-        //    return null;
-
-        //}
-
-        #endregion
-
-        #region GetHeaderField_UInt64(HeaderField)
-
-        ///// <summary>
-        ///// Return the given HTTP header field.
-        ///// </summary>
-        ///// <param name="HeaderField">The HTTP header field.</param>
-        //public UInt64? GetHeaderField_UInt64(HTTPHeaderField<UInt64> HeaderField)
-        //{
-
-        //    if (headerFields.TryGetValue(HeaderField.Name, out var Value))
-        //    {
-
-        //        if (Value is UInt64 value)
-        //            return value;
-
-        //        if (UInt64.TryParse(Value.ToString(), out var UInt64Value))
-        //            return UInt64Value;
-
-        //    }
-
-        //    return null;
-
-        //}
 
         #endregion
 

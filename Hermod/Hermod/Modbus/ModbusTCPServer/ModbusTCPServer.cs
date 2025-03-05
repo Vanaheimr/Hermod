@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,11 @@
 
 #region Usings
 
-using System.Net.Security;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -164,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                              );
 
 
-            this.TCPServer.OnNotification += async (NewTCPConnection) => {
+            this.TCPServer.OnNotification += async (eventTrackingId, NewTCPConnection) => {
 
                 //var buffer = new ThreadLocal<Byte[]>(() => new Byte[5000]);
 
@@ -377,28 +375,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         #endregion
 
 
-        #region Shutdown(Message = null, Wait = true)
+        #region Shutdown(EventTrackingId = null, Message = null, Wait = true)
 
         /// <summary>
         /// Shutdown the TCP listener.
         /// </summary>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="Wait">Wait until the server finally shutted down.</param>
         /// <param name="Message">An optional shutdown message.</param>
-        public Boolean Shutdown(String? Message = null,
-                                Boolean Wait = true)
+        public Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+                                      String?            Message           = null,
+                                      Boolean            Wait              = true)
 
-            => TCPServer.Shutdown(Message, Wait);
+            => TCPServer.Shutdown(
+                   EventTrackingId,
+                   Message,
+                   Wait
+               );
 
         #endregion
 
         #region StopAndWait()
 
-        /// <summary>
-        /// Stop the TCPServer and wait until all connections are closed.
-        /// </summary>
-        public Boolean StopAndWait()
+        ///// <summary>
+        ///// Stop the TCPServer and wait until all connections are closed.
+        ///// </summary>
+        //public Task<Boolean> StopAndWait()
 
-            => TCPServer.StopAndWait();
+        //    => TCPServer.StopAndWait();
 
         #endregion
 

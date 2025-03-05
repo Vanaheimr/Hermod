@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the node identificator.
+        /// The length of the node identifier.
         /// </summary>
         public UInt64 Length
             => (UInt64) (InternalId?.Length ?? 0);

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,9 +52,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// The unique identification of an organization.
     /// </summary>
-    public struct Organization_Id : IId,
-                                    IEquatable<Organization_Id>,
-                                    IComparable<Organization_Id>
+    public readonly struct Organization_Id : IId,
+                                             IEquatable<Organization_Id>,
+                                             IComparable<Organization_Id>
     {
 
         #region Data
@@ -81,10 +81,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the organization identificator.
+        /// The length of the organization identifier.
         /// </summary>
         public UInt64 Length
-            => (UInt64) InternalId?.Length;
+            => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
 
@@ -180,15 +180,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this organization identification.
         /// </summary>
         public Organization_Id Clone
 
-            => new Organization_Id(
-                   new String(InternalId?.ToCharArray())
+            => new (
+                   InternalId.CloneString()
                );
 
         #endregion

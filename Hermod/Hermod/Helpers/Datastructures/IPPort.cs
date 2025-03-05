@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,43 +51,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Zero
         /// </summary>
-        public static readonly IPPort Zero     = new (0);
+        public static readonly IPPort Zero    = new (0);
 
 
         /// <summary>
         /// SSH
         /// </summary>
-        public static readonly IPPort SSH      = new (22);
+        public static readonly IPPort SSH     = new (22);
 
         /// <summary>
         /// TELNET
         /// </summary>
-        public static readonly IPPort TELNET   = new (23);
+        public static readonly IPPort TELNET  = new (23);
 
         /// <summary>
         /// SMTP
         /// </summary>
-        public static readonly IPPort SMTP     = new (25);
+        public static readonly IPPort SMTP    = new (25);
 
         /// <summary>
         /// DNS
         /// </summary>
-        public static readonly IPPort DNS      = new (53);
+        public static readonly IPPort DNS     = new (53);
 
         /// <summary>
         /// HTTP
         /// </summary>
-        public static readonly IPPort HTTP     = new (80);
+        public static readonly IPPort HTTP    = new (80);
+
+        /// <summary>
+        /// NTP
+        /// </summary>
+        public static readonly IPPort NTP     = new (123);
 
         /// <summary>
         /// HTTPS
         /// </summary>
-        public static readonly IPPort HTTPS    = new (443);
+        public static readonly IPPort HTTPS   = new (443);
 
         /// <summary>
         /// MQTT
         /// </summary>
-        public static readonly IPPort MQTT     = new (1883);
+        public static readonly IPPort MQTT    = new (1883);
+
+        /// <summary>
+        /// NTS-KE
+        /// </summary>
+        public static readonly IPPort NTSKE   = new (4460);
 
         #endregion
 
@@ -100,10 +110,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static IPPort NewRandom
 
 #pragma warning disable SCS0005 // Weak random number generator.
-            => new ((UInt16) Random.Shared.Next(UInt16.MaxValue));
+
+                   // 0 means in this context, that .NET will choose a random port number!
+                => new ((UInt16) (Random.Shared.Next(UInt16.MaxValue - 1) + 1));
+
 #pragma warning restore SCS0005 // Weak random number generator.
 
         #endregion
+
+        #region (static) Auto
+
+        /// <summary>
+        /// Create an automatic Internet Protocol Layer 4 Port,
+        /// which will be choosen by .NET during socket creation!
+        /// </summary>
+        public static IPPort Auto
+            => new (0);
+
+        #endregion
+
 
         #region (static) Parse   (Number)
 
@@ -248,12 +273,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
-        /// Clone this object.
+        /// Clone this IP port.
         /// </summary>
-        public IPPort Clone
+        public IPPort Clone()
 
             => new (InternalId);
 
@@ -266,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Returns a numeric representation of an IP port.
         /// </summary>
         public UInt16 ToUInt16()
-            =>InternalId;
+            => InternalId;
 
         #endregion
 

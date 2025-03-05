@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,14 +40,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="CharSet">The char set of the HTTP content type.</param>
     /// <param name="FileExtensions">Well-known file extensions using this HTTP content type.</param>
     [DebuggerDisplay("{DebugView}")]
-    public sealed class HTTPContentType(String           MediaMainType,
-                                        String           MediaSubType,
-                                        String?          CharSet,
-                                        String?          Action,
-                                        String?          MIMEBoundary,
-                                        params String[]  FileExtensions) : IEquatable<HTTPContentType>,
-                                                                           IComparable<HTTPContentType>,
-                                                                           IComparable
+    public sealed class HTTPContentType(String                      MediaMainType,
+                                        String                      MediaSubType,
+                                        String?                     CharSet,
+                                        String?                     Action,
+                                        String?                     MIMEBoundary,
+                                        params IEnumerable<String>  FileExtensions) : IEquatable<HTTPContentType>,
+                                                                                      IComparable<HTTPContentType>,
+                                                                                      IComparable
     {
 
         #region Data
@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static readonly  Dictionary<String, HTTPContentType>    lookup                = [];
         private static readonly  Dictionary<String, HTTPContentType[]>  fileExtensionLookup   = [];
 
-        private        readonly  String[]                               fileExtensions        = FileExtensions ?? [];
+        private        readonly  IEnumerable<String>                    fileExtensions        = FileExtensions ?? [];
 
         #endregion
 
@@ -291,6 +291,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region Clone()
+
+        /// <summary>
+        /// Clone this HTTP content type.
+        /// </summary>
+        public HTTPContentType Clone()
+
+                => new (
+                       MediaMainType.CloneString(),
+                       MediaSubType. CloneString(),
+                       CharSet?.     CloneString(),
+                       Action?.      CloneString(),
+                       MIMEBoundary?.CloneString(),
+                       fileExtensions.Select(fileExtension => fileExtension.CloneString())
+                   );
+
+        #endregion
+
+
         #region Static definitions
 
         public static HTTPContentType ALL                    { get; }
@@ -355,6 +374,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 = Register("application", "x-www-form-urlencoded",      "utf-8", null, null);
             public static HTTPContentType OCTETSTREAM            { get; }
                 = Register("application", "octet-stream",               "utf-8", null, null);
+
+            public static HTTPContentType JavaScript             { get; }
+                = Register("application", "javascript",                 "utf-8", null, null);
+            public static HTTPContentType TypeScript             { get; }
+                = Register("application", "typescript",                 "utf-8", null, null);
 
         }
 
@@ -591,7 +615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    ToString(),
 
-                   fileExtensions.Length > 0
+                   fileExtensions.Any()
                        ? $", file extensions: {fileExtensions.Aggregate((a, b) => a + ", " + b)}"
                        : ""
 

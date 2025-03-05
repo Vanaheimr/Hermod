@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
@@ -34,17 +26,7 @@ using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Styx.Arrows;
-using org.GraphDefined.Vanaheimr.Hermod;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using org.GraphDefined.Vanaheimr.Hermod.SMTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.BouncyCastle;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets;
-using org.GraphDefined.Vanaheimr.Aegir;
-using System.Collections.Concurrent;
 
 #endregion
 
@@ -77,14 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         #region Constructor(s)
 
-        public HTTPNotificationSender(HTTPExtAPI          HTTPExtAPI,
-                                      HTTPHostname      Hostname,
-                                      IPPort?           HTTPPort                   = null,
-                                      TimeSpan?         SendNotificationsEvery     = null,
-                                      Boolean           DisableSendNotifications   = false,
-                                      PgpPublicKeyRing  PublicKeyRing              = null,
-                                      PgpSecretKeyRing  SecretKeyRing              = null,
-                                      DNSClient         DNSClient                  = null)
+        public HTTPNotificationSender(HTTPExtAPI         HTTPExtAPI,
+                                      HTTPHostname       Hostname,
+                                      IPPort?            HTTPPort                   = null,
+                                      TimeSpan?          SendNotificationsEvery     = null,
+                                      Boolean            DisableSendNotifications   = false,
+                                      PgpPublicKeyRing?  PublicKeyRing              = null,
+                                      PgpSecretKeyRing?  SecretKeyRing              = null,
+                                      DNSClient?         DNSClient                  = null)
 
             : base(HTTPExtAPI,
                    SendNotificationsEvery,
@@ -108,9 +90,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public override async Task SendNotifications(IEnumerable<JObject> JSONData)
         {
 
-            var _JSONData = JSONData.ToArray();
+            var json = JSONData.ToArray();
 
-            if (_JSONData.Length > 0)
+            if (json.Length > 0)
             {
 
                 var JSON = new JObject(
@@ -121,8 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                                new JProperty("parentHash",  CurrentDatabaseHashValue)
                            );
 
-                var SHA256                = new SHA256Managed();
-                CurrentDatabaseHashValue  = SHA256.ComputeHash(Encoding.Unicode.GetBytes(JSONWhitespaceRegEx.Replace(JSON.ToString(), " "))).
+                CurrentDatabaseHashValue  = SHA256.HashData(Encoding.Unicode.GetBytes(JSONWhitespaceRegEx.Replace(JSON.ToString(), " "))).
                                                    Select(value => String.Format("{0:x2}", value)).
                                                    Aggregate();
 

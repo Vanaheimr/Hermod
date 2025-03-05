@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +36,10 @@ using org.GraphDefined.Vanaheimr.Hermod.Services;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
+    public delegate MAIL_FROM_FilterResponse  MAIL_FROM_FilterHandler (String MAIL_FROM);
+    public delegate RCPT_TO_FilterResponse    RCPT_TO_FilterHandler   (String RCPT_TO);
+
+
     /// <summary>
     /// Accept incoming SMTP TCP connections and
     /// decode the transmitted data as E-Mails.
@@ -46,74 +50,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region Data
 
-        private const UInt32 ReadTimeout           = 180000U;
+        private const UInt32 ReadTimeout = 180000U;
 
         #endregion
 
         #region Properties
 
-        #region DefaultServerName
-
-        private readonly String _DefaultServerName;
-
         /// <summary>
-        /// The default SMTP servername.
+        /// The default SMTP server name.
         /// </summary>
-        public String DefaultServerName
-        {
-            get
-            {
-                return _DefaultServerName;
-            }
-        }
-
-        #endregion
+        public String   DefaultServerName    { get; }
 
         /// <summary>
         /// Allow to start TLS via the 'STARTTLS' SMTP command.
         /// </summary>
-        public Boolean  AllowStartTLS   { get; }
-
-        #region TLSEnabled
-
-        private Boolean _TLSEnabled;
+        public Boolean  AllowStartTLS        { get; }
 
         /// <summary>
         /// TLS was enabled for this SMTP connection.
         /// </summary>
-        public Boolean TLSEnabled
-        {
-            get
-            {
-                return _TLSEnabled;
-            }
-        }
-
-        #endregion
+        public Boolean  TLSEnabled           { get; private set; }
 
         #endregion
 
         #region Events
 
-        public   event StartedEventHandler                            OnStarted;
+        public   event StartedEventHandler?                            OnStarted;
 
-        public delegate MAIL_FROM_FilterResponse MAIL_FROM_FilterHandler(String MAIL_FROM);
-        public delegate RCPT_TO_FilterResponse   RCPT_TO_FilterHandler  (String RCPT_TO);
+        public   event MAIL_FROM_FilterHandler?                        MAIL_FROMFilter;
+        public   event RCPT_TO_FilterHandler?                          RCPT_TOFilter;
+        public   event IncomingEMailEnvelopeHandler?                   OnIncomingEMailEnvelope;
 
-        public   event MAIL_FROM_FilterHandler                        MAIL_FROMFilter;
-        public   event RCPT_TO_FilterHandler                          RCPT_TOFilter;
-        public   event IncomingEMailEnvelopeHandler                   OnIncomingEMailEnvelope;
+        public   event NotificationEventHandler<EMailEnvelop>?         OnNotification;
 
-        public   event NotificationEventHandler<EMailEnvelop>         OnNotification;
-
-        public   event CompletedEventHandler                          OnCompleted;
+        public   event CompletedEventHandler?                          OnCompleted;
 
         /// <summary>
         /// An event called whenever a request resulted in an error.
         /// </summary>
-        internal event InternalErrorLogHandler                        ErrorLog;
+        internal event InternalErrorLogHandler?                        ErrorLog;
 
-        public   event ExceptionOccuredEventHandler                   OnExceptionOccured;
+        public   event ExceptionOccuredEventHandler?                   OnExceptionOccured;
 
         #endregion
 
@@ -123,15 +100,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// This processor will accept incoming SMTP TCP connections and
         /// decode the transmitted data as SMTP requests.
         /// </summary>
-        /// <param name="DefaultServername">The default SMTP servername.</param>
+        /// <param name="DefaultServername">The default SMTP server name.</param>
         /// <param name="AllowStartTLS">>Allow to start TLS via the 'STARTTLS' SMTP command.</param>
         public SMTPConnection(String  DefaultServername  = SMTPServer.__DefaultServerName,
                               Boolean AllowStartTLS      = true)
         {
 
-            this._DefaultServerName  = DefaultServername;
-            this.AllowStartTLS       = AllowStartTLS;
-            this._TLSEnabled         = false;
+            this.DefaultServerName  = DefaultServername;
+            this.AllowStartTLS      = AllowStartTLS;
+            this.TLSEnabled         = false;
 
         }
 
@@ -141,30 +118,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region NotifyErrors(...)
 
-        private void NotifyErrors(TCPConnection         TCPConnection,
-                                  DateTime              Timestamp,
-                                  String                SMTPCommand,
-                                  SMTPStatusCode        SMTPStatusCode,
-                                  EMail                 EMail            = null,
-                                  SMTPExtendedResponse  Response         = null,
-                                  String                Error            = null,
-                                  Exception             LastException    = null,
-                                  Boolean               CloseConnection  = true)
+        private void NotifyErrors(TCPConnection          TCPConnection,
+                                  DateTime               Timestamp,
+                                  String                 SMTPCommand,
+                                  SMTPStatusCode         SMTPStatusCode,
+                                  EMail?                 EMail             = null,
+                                  SMTPExtendedResponse?  Response          = null,
+                                  String?                Error             = null,
+                                  Exception?             LastException     = null,
+                                  Boolean                CloseConnection   = true)
         {
-
-            var ErrorLogLocal = ErrorLog;
-            if (ErrorLogLocal != null)
-            {
-                ErrorLogLocal(this, Timestamp, SMTPCommand, EMail, Response, Error, LastException);
-            }
-
+            ErrorLog?.Invoke(this, Timestamp, SMTPCommand, EMail, Response, Error, LastException);
         }
 
         #endregion
 
-        #region ProcessArrow(TCPConnection)
+        #region ProcessArrow(EventTrackingId, TCPConnection)
 
-        public void ProcessArrow(TCPConnection TCPConnection)
+        public void ProcessArrow(EventTracking_Id EventTrackingId, TCPConnection TCPConnection)
         {
 
             #region Start
@@ -188,7 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var RcptTos    = EMailAddressListBuilder.Empty;
 
                 TCPConnection.WriteLineSMTP(SMTPStatusCode.ServiceReady,
-                                            _DefaultServerName + " ESMTP Vanaheimr Hermod Mail Transport Service");
+                                            DefaultServerName + " ESMTP Vanaheimr Hermod Mail Transport Service");
 
                 do
                 {
@@ -320,7 +291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                                         DefaultServerName,
                                                                         "VRFY",
                                                                         AllowStartTLS ? "STARTTLS"         : null,
-                                                                        _TLSEnabled   ? "AUTH PLAIN LOGIN" : null,
+                                                                        TLSEnabled   ? "AUTH PLAIN LOGIN" : null,
                                                                         "SIZE 204800000",
                                                                         "ENHANCEDSTATUSCODES",
                                                                         "8BITMIME");
@@ -341,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     else if (SMTPCommand.ToUpper() == "STARTTLS")
                                     {
 
-                                        if (_TLSEnabled)
+                                        if (TLSEnabled)
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "5.5.1 TLS already started");
 
                                         else if (MailClientName.IsNullOrEmpty())
@@ -354,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             //                                            var _TLSStream = new SslStream(TCPConnection.NetworkStream);
                                             //                                            _TLSStream.AuthenticateAsServer(TLSCert, false, SslProtocols.Tls12, false);
-                                            _TLSEnabled = true;
+                                            TLSEnabled = true;
 
                                         }
 
@@ -367,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     else if (SMTPCommand.ToUpper().StartsWith("AUTH "))
                                     {
 
-                                        if (!_TLSEnabled)
+                                        if (!TLSEnabled)
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.BadCommandSequence, "5.5.1 STARTTLS first");
 
                                     }
@@ -563,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             if (_MessageId == null)
                                             {
-                                                _MessageId = Message_Id.Parse(Guid.NewGuid().ToString() + "@" + _DefaultServerName);
+                                                _MessageId = Message_Id.Parse(Guid.NewGuid().ToString() + "@" + DefaultServerName);
                                                 IncomingMail = EMail.Parse(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
                                             }
 
@@ -571,12 +542,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "Message received: " + _MessageId);
 
-                                            var OnNotificationLocal = OnNotification;
-                                            if (OnNotificationLocal != null)
-                                                OnNotificationLocal(new EMailEnvelop(MailFrom:      MailFroms,
-                                                                                     RcptTo:        RcptTos,
-                                                                                     EMail:         IncomingMail,
-                                                                                     RemoteSocket:  TCPConnection.RemoteSocket));
+                                            OnNotification?.Invoke(
+                                                EventTracking_Id.New,
+                                                new EMailEnvelop(
+                                                    MailFrom:      MailFroms,
+                                                    RcptTo:        RcptTos,
+                                                    EMail:         IncomingMail,
+                                                    RemoteSocket:  TCPConnection.RemoteSocket
+                                                )
+                                            );
 
                                         }
 
@@ -733,35 +707,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+        #region ProcessExceptionOccured(Sender, Timestamp, EventTrackingId, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object     Sender,
-                                            DateTime   Timestamp,
-                                            Exception  ExceptionMessage)
+        public void ProcessExceptionOccured(Object            Sender,
+                                            DateTime          Timestamp,
+                                            EventTracking_Id  EventTrackingId,
+                                            Exception         ExceptionMessage)
         {
 
-            var OnExceptionOccuredLocal = OnExceptionOccured;
-            if (OnExceptionOccuredLocal != null)
-                OnExceptionOccuredLocal(Sender,
-                                        Timestamp,
-                                        ExceptionMessage);
+            OnExceptionOccured?.Invoke(
+                Sender,
+                Timestamp,
+                EventTrackingId,
+                ExceptionMessage
+            );
 
         }
 
         #endregion
 
-        #region ProcessCompleted(Sender, Timestamp, Message = null)
+        #region ProcessCompleted(Sender, Timestamp, EventTrackingId, Message = null)
 
-        public void ProcessCompleted(Object    Sender,
-                                     DateTime  Timestamp,
-                                     String    Message = null)
+        public void ProcessCompleted(Object            Sender,
+                                     DateTime          Timestamp,
+                                     EventTracking_Id  EventTrackingId,
+                                     String?           Message = null)
         {
 
-            var OnCompletedLocal = OnCompleted;
-            if (OnCompletedLocal != null)
-                OnCompletedLocal(Sender,
-                                 Timestamp,
-                                 Message);
+            OnCompleted?.Invoke(
+                Sender,
+                Timestamp,
+                EventTrackingId,
+                Message
+            );
 
         }
 

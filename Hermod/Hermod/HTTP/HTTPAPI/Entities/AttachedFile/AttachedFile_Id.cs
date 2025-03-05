@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
-        /// The length of the attached file identificator.
+        /// The length of the attached file identifier.
         /// </summary>
         public UInt64 Length
             => (UInt64) (InternalId?.Length ?? 0);
@@ -155,15 +155,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this attached file identification.
         /// </summary>
-        public AttachedFile_Id Clone
+        public AttachedFile_Id Clone()
 
-            => new AttachedFile_Id(
-                   new String(InternalId?.ToCharArray())
+            => new (
+                   InternalId.CloneString()
                );
 
         #endregion

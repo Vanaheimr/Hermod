@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -32,9 +34,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
+        private        readonly Lock              acceptTypesLock = new();
+
         private        readonly List<AcceptType>  acceptedTypes;
 
-        private static readonly Char[]            splitter = new Char[] { ',' };
+        private static readonly Char[]            splitter = [','];
 
         #endregion
 
@@ -43,10 +47,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public AcceptTypes(params AcceptType[] AcceptTypes)
         {
 
-            this.acceptedTypes = new List<AcceptType>();
+            acceptedTypes = [];
 
-            if (AcceptTypes is not null && AcceptTypes.Any())
-                this.acceptedTypes.AddRange(AcceptTypes);
+            if (AcceptTypes is not null && AcceptTypes.Length != 0)
+                acceptedTypes.AddRange(AcceptTypes);
 
         }
 
@@ -55,12 +59,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region TryParse(AcceptString, out AcceptTypes)
 
-        public static Boolean TryParse(String AcceptString, out AcceptTypes? AcceptTypes)
+        public static Boolean TryParse(String                                AcceptString,
+                                       [NotNullWhen(true)] out AcceptTypes?  AcceptTypes)
         {
 
             var elements = AcceptString.Split(splitter, StringSplitOptions.RemoveEmptyEntries);
 
-            if (elements.Any())
+            if (elements.Length != 0)
             {
 
                 var list = new List<AcceptType>();
@@ -80,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 }
 
-                AcceptTypes = new AcceptTypes(list.ToArray());
+                AcceptTypes = new AcceptTypes([.. list]);
                 return true;
 
             }
@@ -98,7 +103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static AcceptTypes FromHTTPContentTypes(params HTTPContentType[] HTTPContentTypes)
 
             => new (HTTPContentTypes?.Select(contentType => new AcceptType(contentType, 1))?.ToArray()
-                        ?? Array.Empty<AcceptType>());
+                        ?? []);
 
         #endregion
 
@@ -121,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (AcceptType is null)
                 return;
 
-            lock (acceptedTypes)
+            lock (acceptTypesLock)
             {
                 acceptedTypes.Add(AcceptType);
             }
@@ -132,15 +137,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Add(HTTPContentType, Quality = 1)
 
-        public void Add(HTTPContentType HTTPContentType, Double Quality = 1)
+        public void Add(HTTPContentType  HTTPContentType,
+                        Double           Quality   = 1)
         {
 
             if (HTTPContentType is null)
                 return;
 
-            lock (acceptedTypes)
+            lock (acceptTypesLock)
             {
-                acceptedTypes.Add(new AcceptType(HTTPContentType, Quality));
+                acceptedTypes.Add(
+                    new AcceptType(
+                        HTTPContentType,
+                        Quality
+                    )
+                );
             }
 
         }

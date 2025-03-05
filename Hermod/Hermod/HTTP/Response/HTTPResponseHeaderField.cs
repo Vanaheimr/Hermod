@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,29 +24,16 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
-    #region HTTPResponseHeaderField
-
-    public class HTTPResponseHeaderField : HTTPHeaderField
+    /// <summary>
+    /// A HTTP response header field.
+    /// </summary>
+    /// <param name="Name">The name of the HTTP response header field.</param>
+    /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
+    public class HTTPResponseHeaderField(String               Name,
+                                         RequestPathSemantic  RequestPathSemantic) : HTTPHeaderField(Name,
+                                                                                                     HeaderFieldType.Response,
+                                                                                                     RequestPathSemantic)
     {
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Creates a new HTTP response header field.
-        /// </summary>
-        /// <param name="Name">The name of the HTTP response header field.</param>
-        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
-        public HTTPResponseHeaderField(String               Name,
-                                       RequestPathSemantic  RequestPathSemantic)
-
-            : base(Name,
-                   HeaderFieldType.Response,
-                   RequestPathSemantic)
-
-        { }
-
-        #endregion
-
 
         #region Age
 
@@ -480,17 +467,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// contain a comma-separated list of authentication parameters. 
         /// </summary>
         /// <example>
-        /// WWW-Authenticate: Basic realm="Access to the web sockets server",
-        ///                   charset="UTF-8",
-        ///                   Digest realm="Access to the web sockets server",
-        ///                   domain="/",
-        ///                   nonce="n9ivb628MTAuMTY4LjEuODQ=",
-        ///                   algorithm=MD5,
-        ///                   qop="auth"
+        /// WWW-Authenticate: Basic  realm      = "Access to the WebSockets server",
+        ///                          charset    = "UTF-8"
+        ///
+        /// WWW-Authenticate: Digest realm      = "Access to the WebSockets server",
+        ///                          domain     = "/",
+        ///                          nonce      = "n9ivb628MTAuMTY4LjEuODQ=",
+        ///                          algorithm  = MD5,
+        ///                          qop        = "auth"
         /// </example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPResponseHeaderField<String> WWWAuthenticate = new ("WWW-Authenticate",
-                                                                                      RequestPathSemantic.EndToEnd);
+        public static readonly HTTPResponseHeaderField<WWWAuthenticate> WWWAuthenticate = new ("WWW-Authenticate",
+                                                                                               RequestPathSemantic.EndToEnd,
+                                                                                               StringParser: HTTP.WWWAuthenticate.TryParse);
 
         #endregion
 
@@ -527,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Access-Control-Allow-Origin
 
         /// <summary>
-        /// Access-Control-Allow-Origin.
+        /// Access-Control-Allow-Origin
         /// </summary>
         /// <example>Access-Control-Allow-Origin: *</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
@@ -539,20 +528,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Access-Control-Allow-Methods
 
         /// <summary>
-        /// Access-Control-Allow-Methods.
+        /// Access-Control-Allow-Methods
         /// </summary>
         /// <example>Access-Control-Allow-Methods: GET, PUT, POST, DELETE</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
         public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlAllowMethods = new ("Access-Control-Allow-Methods",
                                                                                                              RequestPathSemantic.EndToEnd,
-                                                                                                             StringParser: StringParsers.NullableHashSetOfStrings);
+                                                                                                             MultipleValuesAsList:  true,
+                                                                                                             StringParser:          StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
         #region Access-Control-Allow-Headers
 
         /// <summary>
-        /// Access-Control-Allow-Headers.
+        /// Access-Control-Allow-Headers
         /// </summary>
         /// <example>Access-Control-Allow-Headers: Content-Type</example>
         /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
@@ -560,6 +550,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                              RequestPathSemantic.EndToEnd,
                                                                                                              MultipleValuesAsList:  true,
                                                                                                              StringParser:          StringParsers.NullableHashSetOfStrings);
+
+        #endregion
+
+        #region Access-Control-Expose-Headers
+
+        /// <summary>
+        /// Access-Control-Expose-Headers
+        /// </summary>
+        /// <example>Access-Control-Expose-Headers: Content-Type</example>
+        /// <seealso cref="http://en.wikipedia.org/wiki/Cross-origin_resource_sharing"/>
+        public static readonly HTTPResponseHeaderField<IEnumerable<String>> AccessControlExposeHeaders = new ("Access-Control-Expose-Headers",
+                                                                                                              RequestPathSemantic.EndToEnd,
+                                                                                                              MultipleValuesAsList: true,
+                                                                                                              StringParser: StringParsers.NullableHashSetOfStrings);
 
         #endregion
 
@@ -620,42 +624,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     }
 
-    #endregion
 
-    #region HTTPResponseHeaderField<T>
+    /// <summary>
+    /// A generic HTTP response header field.
+    /// </summary>
+    /// <param name="Name">The name of the HTTP response header field.</param>
+    /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
+    /// <param name="MultipleValuesAsList">When set to true header fields having multiple values will be serialized as a comma separated list, otherwise as multiple lines.</param>
+    /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
+    /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
+    public class HTTPResponseHeaderField<T>(String                                          Name,
+                                            RequestPathSemantic                             RequestPathSemantic,
+                                            Boolean?                                        MultipleValuesAsList   = null,
+                                            TryParser<T>?                                   StringParser           = null,
+                                            HTTPHeaderField<T>.ValueSerializerDelegate<T>?  ValueSerializer        = null) : HTTPHeaderField<T>(Name,
+                                                                                                                                                HeaderFieldType.Response,
+                                                                                                                                                RequestPathSemantic,
+                                                                                                                                                MultipleValuesAsList,
+                                                                                                                                                StringParser,
+                                                                                                                                                ValueSerializer)
 
-    public class HTTPResponseHeaderField<T> : HTTPHeaderField<T>
-    {
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Creates a new HTTP response header field.
-        /// </summary>
-        /// <param name="Name">The name of the HTTP response header field.</param>
-        /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>
-        /// <param name="MultipleValuesAsList">When set to true header fields having multiple values will be serialized as a comma separated list, otherwise as multiple lines.</param>
-        /// <param name="StringParser">Parse this HTTPHeaderField from a string.</param>
-        /// <param name="ValueSerializer">A delegate to serialize the value of the header field to a string.</param>
-        public HTTPResponseHeaderField(String                       Name,
-                                       RequestPathSemantic          RequestPathSemantic,
-                                       Boolean?                     MultipleValuesAsList   = null,
-                                       TryParser<T>?                StringParser           = null,
-                                       ValueSerializerDelegate<T>?  ValueSerializer        = null)
-
-            : base(Name,
-                   HeaderFieldType.Response,
-                   RequestPathSemantic,
-                   MultipleValuesAsList,
-                   StringParser,
-                   ValueSerializer)
-
-        { }
-
-        #endregion
-
-    }
-
-    #endregion
+    { }
 
 }

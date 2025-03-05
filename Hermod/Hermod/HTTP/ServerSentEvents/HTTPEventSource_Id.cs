@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@
 
 #region Usings
 
-using System;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -32,7 +32,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public readonly struct HTTPEventSource_Id : IId,
                                                 IEquatable<HTTPEventSource_Id>,
                                                 IComparable<HTTPEventSource_Id>
-
     {
 
         #region Data
@@ -49,19 +48,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this identification is null or empty.
         /// </summary>
-        public Boolean IsNullOrEmpty
+        public Boolean  IsNullOrEmpty
             => InternalId.IsNullOrEmpty();
 
         /// <summary>
         /// Indicates whether this identification is NOT null or empty.
         /// </summary>
-        public Boolean IsNotNullOrEmpty
+        public Boolean  IsNotNullOrEmpty
             => InternalId.IsNotNullOrEmpty();
 
         /// <summary>
         /// The length of the HTTP Event Source identification.
         /// </summary>
-        public UInt64 Length
+        public UInt64   Length
             => (UInt64) (InternalId?.Length ?? 0);
 
         #endregion
@@ -89,17 +88,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPEventSource_Id Parse(String Text)
         {
 
-            #region Initial checks
+            if (TryParse(Text, out var httpEventSourceId))
+                return httpEventSourceId;
 
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of a HTTP Event Source identification must not be null or empty!");
-
-            #endregion
-
-            return new HTTPEventSource_Id(Text);
+            throw new ArgumentException($"Invalid text representation of a HTTP Event Source identification: '{Text}'!",
+                                        nameof(Text));
 
         }
 
@@ -114,20 +107,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPEventSource_Id? TryParse(String Text)
         {
 
-            #region Initial checks
+            if (TryParse(Text, out var httpEventSourceId))
+                return httpEventSourceId;
 
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of a HTTP Event Source identification must not be null or empty!");
-
-            #endregion
-
-            if (TryParse(Text, out HTTPEventSource_Id _HTTPEventSourceId))
-                return _HTTPEventSourceId;
-
-            return new HTTPEventSource_Id?();
+            return null;
 
         }
 
@@ -140,43 +123,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId">The parsed HTTP Event Source identification.</param>
-        public static Boolean TryParse(String Text, out HTTPEventSource_Id HTTPEventSourceId)
+        public static Boolean TryParse(String                                      Text,
+                                       [NotNullWhen(true)] out HTTPEventSource_Id  HTTPEventSourceId)
         {
 
-            #region Initial checks
+            Text = Text.Trim();
 
-            if (Text != null)
-                Text = Text.Trim();
-
-            if (Text.IsNullOrEmpty())
-                throw new ArgumentNullException(nameof(Text), "The given text representation of a HTTP Event Source identification must not be null or empty!");
-
-            #endregion
-
-            try
+            if (Text.IsNotNullOrEmpty())
             {
-                HTTPEventSourceId = new HTTPEventSource_Id(Text);
-                return true;
+                try
+                {
+                    HTTPEventSourceId = new HTTPEventSource_Id(Text);
+                    return true;
+                }
+                catch
+                { }
             }
-            catch
-            {
-                HTTPEventSourceId = default(HTTPEventSource_Id);
-                return false;
-            }
+
+            HTTPEventSourceId = default;
+            return false;
 
         }
 
         #endregion
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone this HTTP Event Source identification.
         /// </summary>
-        public HTTPEventSource_Id Clone
+        public HTTPEventSource_Id Clone()
 
             => new (
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion
@@ -192,20 +171,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (HTTPEventSource_Id HTTPEventSourceId1, HTTPEventSource_Id HTTPEventSourceId2)
-        {
+        public static Boolean operator == (HTTPEventSource_Id HTTPEventSourceId1,
+                                           HTTPEventSource_Id HTTPEventSourceId2)
 
-            // If both are null, or both are same instance, return true.
-            if (Object.ReferenceEquals(HTTPEventSourceId1, HTTPEventSourceId2))
-                return true;
-
-            // If one is null, but not both, return false.
-            if (((Object) HTTPEventSourceId1 == null) || ((Object) HTTPEventSourceId2 == null))
-                return false;
-
-            return HTTPEventSourceId1.Equals(HTTPEventSourceId2);
-
-        }
+            => HTTPEventSourceId1.Equals(HTTPEventSourceId2);
 
         #endregion
 
@@ -217,8 +186,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (HTTPEventSource_Id HTTPEventSourceId1, HTTPEventSource_Id HTTPEventSourceId2)
-            => !(HTTPEventSourceId1 == HTTPEventSourceId2);
+        public static Boolean operator != (HTTPEventSource_Id HTTPEventSourceId1,
+                                           HTTPEventSource_Id HTTPEventSourceId2)
+
+            => !HTTPEventSourceId1.Equals(HTTPEventSourceId2);
 
         #endregion
 
@@ -230,15 +201,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (HTTPEventSource_Id HTTPEventSourceId1, HTTPEventSource_Id HTTPEventSourceId2)
-        {
+        public static Boolean operator < (HTTPEventSource_Id HTTPEventSourceId1,
+                                          HTTPEventSource_Id HTTPEventSourceId2)
 
-            if ((Object) HTTPEventSourceId1 == null)
-                throw new ArgumentNullException(nameof(HTTPEventSourceId1), "The given HTTPEventSourceId1 must not be null!");
-
-            return HTTPEventSourceId1.CompareTo(HTTPEventSourceId2) < 0;
-
-        }
+            => HTTPEventSourceId1.CompareTo(HTTPEventSourceId2) < 0;
 
         #endregion
 
@@ -250,8 +216,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (HTTPEventSource_Id HTTPEventSourceId1, HTTPEventSource_Id HTTPEventSourceId2)
-            => !(HTTPEventSourceId1 > HTTPEventSourceId2);
+        public static Boolean operator <= (HTTPEventSource_Id HTTPEventSourceId1,
+                                           HTTPEventSource_Id HTTPEventSourceId2)
+
+            => HTTPEventSourceId1.CompareTo(HTTPEventSourceId2) <= 0;
 
         #endregion
 
@@ -263,15 +231,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (HTTPEventSource_Id HTTPEventSourceId1, HTTPEventSource_Id HTTPEventSourceId2)
-        {
+        public static Boolean operator > (HTTPEventSource_Id HTTPEventSourceId1,
+                                          HTTPEventSource_Id HTTPEventSourceId2)
 
-            if ((Object) HTTPEventSourceId1 == null)
-                throw new ArgumentNullException(nameof(HTTPEventSourceId1), "The given HTTPEventSourceId1 must not be null!");
-
-            return HTTPEventSourceId1.CompareTo(HTTPEventSourceId2) > 0;
-
-        }
+            => HTTPEventSourceId1.CompareTo(HTTPEventSourceId2) > 0;
 
         #endregion
 
@@ -283,8 +246,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (HTTPEventSource_Id HTTPEventSourceId1, HTTPEventSource_Id HTTPEventSourceId2)
-            => !(HTTPEventSourceId1 < HTTPEventSourceId2);
+        public static Boolean operator >= (HTTPEventSource_Id HTTPEventSourceId1,
+                                           HTTPEventSource_Id HTTPEventSourceId2)
+
+            => HTTPEventSourceId1.CompareTo(HTTPEventSourceId2) >= 0;
 
         #endregion
 
@@ -295,40 +260,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP Event Source identifications.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        public Int32 CompareTo(Object Object)
-        {
+        /// <param name="Object">A HTTP Event Source identification to compare with.</param>
+        public Int32 CompareTo(Object? Object)
 
-            if (Object == null)
-                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
-
-            if (!(Object is HTTPEventSource_Id))
-                throw new ArgumentException("The given object is not a HTTP Event Source identification!",
-                                            nameof(Object));
-
-            return CompareTo((HTTPEventSource_Id) Object);
-
-        }
+            => Object is HTTPEventSource_Id httpEventSourceId
+                   ? CompareTo(httpEventSourceId)
+                   : throw new ArgumentException("The given object is not a HTTP Event Source identification!",
+                                                 nameof(Object));
 
         #endregion
 
         #region CompareTo(HTTPEventSourceId)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP Event Source identifications.
         /// </summary>
-        /// <param name="HTTPEventSourceId">An object to compare with.</param>
+        /// <param name="HTTPEventSourceId">A HTTP Event Source identification to compare with.</param>
         public Int32 CompareTo(HTTPEventSource_Id HTTPEventSourceId)
-        {
 
-            if ((Object) HTTPEventSourceId == null)
-                throw new ArgumentNullException(nameof(HTTPEventSourceId),  "The given HTTP Event Source identification must not be null!");
-
-            return String.Compare(InternalId, HTTPEventSourceId.InternalId, StringComparison.Ordinal);
-
-        }
+            => String.Compare(InternalId,
+                              HTTPEventSourceId.InternalId,
+                              StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -339,22 +293,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Compares two HTTP Event Source identifications for equality.
         /// </summary>
-        /// <param name="Object">An object to compare with.</param>
-        /// <returns>true|false</returns>
-        public override Boolean Equals(Object Object)
-        {
+        /// <param name="Object">A HTTP Event Source identification to compare with.</param>
+        public override Boolean Equals(Object? Object)
 
-            if (Object == null)
-                return false;
-
-            if (!(Object is HTTPEventSource_Id))
-                return false;
-
-            return Equals((HTTPEventSource_Id) Object);
-
-        }
+            => Object is HTTPEventSource_Id httpEventSourceId &&
+                   Equals(httpEventSourceId);
 
         #endregion
 
@@ -363,17 +308,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Event Source identifications for equality.
         /// </summary>
-        /// <param name="HTTPEventSourceId">An HTTP Event Source identification to compare with.</param>
-        /// <returns>True if both match; False otherwise.</returns>
+        /// <param name="HTTPEventSourceId">A HTTP Event Source identification to compare with.</param>
         public Boolean Equals(HTTPEventSource_Id HTTPEventSourceId)
-        {
 
-            if ((Object) HTTPEventSourceId == null)
-                return false;
-
-            return InternalId.Equals(HTTPEventSourceId.InternalId);
-
-        }
+            => String.Equals(InternalId,
+                             HTTPEventSourceId.InternalId,
+                             StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -386,7 +326,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-            => InternalId.GetHashCode();
+
+            => InternalId?.ToLower().GetHashCode() ?? 0;
 
         #endregion
 
@@ -396,6 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
+
             => InternalId ?? "";
 
         #endregion

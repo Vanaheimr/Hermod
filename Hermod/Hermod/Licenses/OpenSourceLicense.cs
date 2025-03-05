@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -336,9 +336,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public OpenSourceLicense Clone()
 
             => new (
-                   Id.         Clone,
+                   Id.         Clone(),
                    Description.Clone(),
-                   URLs.Select(url => url.Clone).ToArray()
+                   URLs.Select(url => url.Clone()).ToArray()
                );
 
         #endregion

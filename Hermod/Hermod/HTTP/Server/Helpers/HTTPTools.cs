@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2011-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        HTTPStatusCode  = HTTPStatusCode.MovedPermanently,
                        CacheControl    = "no-cache",
                        Location        = Location,
-                       Connection      = "close"
-                   };
+                       Connection      = ConnectionType.Close
+            };
 
         #endregion
 
@@ -64,8 +64,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        HTTPStatusCode  = HTTPStatusCode.TemporaryRedirect,
                        CacheControl    = "no-cache",
                        Location        = Location,
-                       Connection      = "close"
-                   };
+                       Connection      = ConnectionType.Close
+            };
 
         #endregion
 

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -39,6 +40,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         URL                                                        RemoteURL                     { get; }
 
         /// <summary>
+        /// The IP Address to connect to.
+        /// </summary>
+        IIPAddress?                                                RemoteIPAddress               { get; }
+
+        /// <summary>
         /// An optional HTTP virtual hostname.
         /// </summary>
         HTTPHostname?                                              VirtualHostname               { get; }
@@ -46,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An optional description of this CPO client.
         /// </summary>
-        String?                                                    Description                   { get; set; }
+        I18NString                                                 Description                   { get; set; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -69,9 +75,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         Boolean                                                    PreferIPv4                    { get; }
 
         /// <summary>
+        /// An optional HTTP content type.
+        /// </summary>
+        HTTPContentType?                                           ContentType                   { get; }
+
+        /// <summary>
+        /// Optional HTTP accept types.
+        /// </summary>
+        AcceptTypes?                                               Accept                        { get; }
+
+        /// <summary>
+        /// The optional HTTP authentication to use.
+        /// </summary>
+        IHTTPAuthentication?                                       Authentication                { get; }
+
+        /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
         String                                                     HTTPUserAgent                 { get; }
+
+        /// <summary>
+        /// The optional HTTP connection type.
+        /// </summary>
+        ConnectionType?                                            Connection                    { get; }
 
         /// <summary>
         /// The timeout for HTTP requests.
@@ -108,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         //int Available { get; }
         //X509Certificate ClientCert { get; }
-        //bool Connected { get; }
+        Boolean Connected { get; }
 
         //LingerOption LingerState { get; set; }
         //LocalCertificateSelectionHandler LocalCertificateSelector { get; }

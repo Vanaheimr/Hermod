@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              Date            = Timestamp.Now,
                                              ContentType     = HTTPContentType.Text.PLAIN,
                                              Content         = "MozillaDeveloperNetwork".ToUTF8Bytes(),
-                                             Connection      = "close"
+                                             Connection      = ConnectionType.Close
                                          }.AsImmutable),
 
                                   AllowReplacement: URLReplacement.Allow);
@@ -126,7 +126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              TransferEncoding  = "chunked",
                                              ContentType       = HTTPContentType.Text.PLAIN,
                                              Content           = "7\r\nMozilla\r\n9\r\nDeveloper\r\n7\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                             Connection        = "close"
+                                             Connection        = ConnectionType.Close
                                          }.AsImmutable),
 
                                   AllowReplacement: URLReplacement.Allow);
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              TransferEncoding  = "chunked",
                                              ContentType       = HTTPContentType.Text.PLAIN,
                                              Content           = "007\r\nMozilla\r\n009\r\nDeveloper\r\n007\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                             Connection        = "close"
+                                             Connection        = ConnectionType.Close
                                          }.AsImmutable),
 
                                   AllowReplacement: URLReplacement.Allow);
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              TransferEncoding  = "chunked",
                                              ContentType       = HTTPContentType.Text.PLAIN,
                                              Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\n\r\n".ToUTF8Bytes(),
-                                             Connection        = "close"
+                                             Connection        = ConnectionType.Close
                                          }.AsImmutable),
 
                                   AllowReplacement: URLReplacement.Allow);
@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              TransferEncoding  = "chunked",
                                              ContentType       = HTTPContentType.Text.PLAIN,
                                              Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\n\r\n".ToUTF8Bytes(),
-                                             Connection        = "close"
+                                             Connection        = ConnectionType.Close
                                          }.AsImmutable),
 
                                   AllowReplacement: URLReplacement.Allow);
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                              ContentType       = HTTPContentType.Text.PLAIN,
                                              Content           = "007\r\nMozilla\r\n009;a=b\r\nDeveloper\r\n007;a=b;c=d\r\nNetwork\r\n0\r\nCache-Control: no-cache\r\nTrailingHeader: yes\r\nTrailingHeader2: yes\r\n\r\n".ToUTF8Bytes(),
                                              Trailer           = "Cache-Control",
-                                             Connection        = "close"
+                                             Connection        = ConnectionType.Close
                                          }.AsImmutable),
 
                                   AllowReplacement: URLReplacement.Allow);
@@ -269,12 +269,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         {
 
             var response = HTTPClientFactory.Create (URL.Parse("http://127.0.0.1:1234")).
-                                             Execute(client => client.GETRequest(HTTPPath.Parse("/test01"),
-                                                                                 requestbuilder => {
-                                                                                     requestbuilder.Host        = HTTPHostname.Localhost;
-                                                                                     requestbuilder.Accept.Add(HTTPContentType.Text.PLAIN);
-                                                                                     requestbuilder.Connection  = "close";
-                                                                                 })).
+                                             Execute(client => client.GETRequest(
+                                                                   HTTPPath.Parse("/test01"),
+                                                                   RequestBuilder: requestBuilder => {
+                                                                       requestBuilder.Host        = HTTPHostname.Localhost;
+                                                                       requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
+                                                                       requestBuilder.Connection  = ConnectionType.Close;
+                                                                   }
+                                                               )).
 
                                              Result;
 
@@ -295,10 +297,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var response = HTTPClientFactory.Create(URL.Parse("http://127.0.0.1:1234")).
 
                                         Execute(client => client.GETRequest(HTTPPath.Parse("/test02"),
-                                                                            requestbuilder => {
-                                                                                requestbuilder.Host = HTTPHostname.Localhost;
-                                                                                requestbuilder.Accept.Add(HTTPContentType.Text.PLAIN);
-                                                                                requestbuilder.Connection = "close";
+                                                                            RequestBuilder: requestBuilder => {
+                                                                                requestBuilder.Host = HTTPHostname.Localhost;
+                                                                                requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
+                                                                                requestBuilder.Connection = ConnectionType.Close;
                                                                             })).
 
                                         Result;
@@ -320,10 +322,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var response = HTTPClientFactory.Create(URL.Parse("http://127.0.0.1:1234")).
 
                                         Execute(client => client.GETRequest(HTTPPath.Parse("/test03"),
-                                                                            requestbuilder => {
-                                                                                requestbuilder.Host = HTTPHostname.Localhost;
-                                                                                requestbuilder.Accept.Add(HTTPContentType.Text.PLAIN);
-                                                                                requestbuilder.Connection = "close";
+                                                                            RequestBuilder: requestBuilder => {
+                                                                                requestBuilder.Host = HTTPHostname.Localhost;
+                                                                                requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
+                                                                                requestBuilder.Connection = ConnectionType.Close;
                                                                             })).
 
                                         Result;
@@ -359,10 +361,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             };
 
             var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test04"),
-                                                                              requestbuilder => {
-                                                                                  requestbuilder.Host = HTTPHostname.Localhost;
-                                                                                  requestbuilder.Accept.Add(HTTPContentType.Text.PLAIN);
-                                                                                  requestbuilder.Connection = "close";
+                                                                              RequestBuilder: requestBuilder => {
+                                                                                  requestBuilder.Host = HTTPHostname.Localhost;
+                                                                                  requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
+                                                                                  requestBuilder.Connection = ConnectionType.Close;
                                                                               })).
                                           Result;
 
@@ -428,10 +430,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             };
 
             var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test05"),
-                                                                              requestbuilder => {
-                                                                                  requestbuilder.Host = HTTPHostname.Localhost;
-                                                                                  requestbuilder.Accept.Add(HTTPContentType.Text.PLAIN);
-                                                                                  requestbuilder.Connection = "close";
+                                                                              RequestBuilder: requestBuilder => {
+                                                                                  requestBuilder.Host = HTTPHostname.Localhost;
+                                                                                  requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
+                                                                                  requestBuilder.Connection = ConnectionType.Close;
                                                                               })).
                                           Result;
 
@@ -497,10 +499,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             };
 
             var response         = client.Execute(client => client.GETRequest(HTTPPath.Parse("/test06"),
-                                                                              requestbuilder => {
-                                                                                  requestbuilder.Host = HTTPHostname.Localhost;
-                                                                                  requestbuilder.Accept.Add(HTTPContentType.Text.PLAIN);
-                                                                                  requestbuilder.Connection = "close";
+                                                                              RequestBuilder: requestBuilder => {
+                                                                                  requestBuilder.Host = HTTPHostname.Localhost;
+                                                                                  requestBuilder.Accept.Add(HTTPContentType.Text.PLAIN);
+                                                                                  requestBuilder.Connection = ConnectionType.Close;
                                                                               })).
                                           Result;
 

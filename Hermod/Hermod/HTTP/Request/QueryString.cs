@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -107,6 +107,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private static readonly Char[]                                      EqualsSign           = ['='];
         private static readonly Char[]                                      CommaSign            = [','];
 
+        private const           String                                      exclamationMark      = "!";
+
         #endregion
 
         #region Constructor(s)
@@ -165,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return a new empty query string.
         /// </summary>
-        public static QueryString New
+        public static QueryString Empty
 
             => new ();
 
@@ -509,8 +511,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 value is not null)
             {
 
-                return item => value.StartsWith("!", StringComparison.Ordinal)
-                                   ? !FilterDelegate(item, value.Substring(1))
+                return item => value.StartsWith(exclamationMark, StringComparison.Ordinal)
+                                   ? !FilterDelegate(item, value[1..])
                                    :  FilterDelegate(item, value);
 
             }

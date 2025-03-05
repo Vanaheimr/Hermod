@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -40,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         // All Unicode code points from U+0021 to U+007E
         private static readonly Regex   tokenRegExpr  = new (@"^[A-Za-z0-9!""#$%&'()\*\+,\-\./:;<=>\?@\[\]\\^_`{}\|~]*$");
 
-        private static readonly Char[]  splitter      = new[] { ' ' };
+        private static readonly Char[]  splitter      = [ ' ' ];
 
         #endregion
 
@@ -182,7 +183,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Token Authentication header.</param>
         /// <param name="TokenAuthentication">The parsed HTTP Token Authentication header.</param>
-        public static Boolean TryParseHTTPHeader(String Text, out HTTPTokenAuthentication? TokenAuthentication)
+        public static Boolean TryParseHTTPHeader(String                                            Text,
+                                                 [NotNullWhen(true)] out HTTPTokenAuthentication?  TokenAuthentication)
         {
 
             TokenAuthentication = null;
@@ -348,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPTokenAuthentication is null)
-                throw new ArgumentNullException(nameof(Object),
+                throw new ArgumentNullException(nameof(HTTPTokenAuthentication),
                                                 "The given object HTTP Token Authentication must not be null!");
 
             return String.Compare(Token,

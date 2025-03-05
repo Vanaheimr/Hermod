@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,11 +30,11 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
-    public delegate T        CustomXMLParserDelegate<T>(XElement XML, T Data);
+    public delegate T        CustomXMLParserDelegate<T>     (XElement XML,              T        Data);
 
-    public delegate XElement CustomXMLSerializerDelegate<T>(T ResponseBuilder, XElement XML);
+    public delegate XElement CustomXMLSerializerDelegate<T> (T        ResponseBuilder,  XElement XML);
 
-    public delegate XElement XMLNamespacesDelegate(XElement XML);
+    public delegate XElement XMLNamespacesDelegate          (XElement XML);
 
 }
 
@@ -58,6 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         public static readonly XNamespace SOAPAdressing  = "http://www.w3.org/2005/08/addressing";
 
     }
+
 
     /// <summary>
     /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.1.
@@ -86,11 +87,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="TLSProtocol">The TLS protocol to use.</param>
+        /// <param name="ContentType">An optional HTTP content type.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
-        /// <param name="HTTPContentType">The HTTP content type to use.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -101,17 +104,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="DNSClient">The DNS client to use.</param>
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
-                          String?                                                    Description                  = null,
+                          I18NString?                                                Description                  = null,
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                           X509Certificate?                                           ClientCert                   = null,
                           SslProtocols?                                              TLSProtocol                  = null,
-                          String                                                     HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPContentType?                                           ContentType                  = null,
+                          AcceptTypes?                                               Accept                       = null,
                           IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                          String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
                           HTTPPath?                                                  URLPathPrefix                = null,
                           Tuple<String, String>?                                     WSSLoginPassword             = null,
-                          HTTPContentType?                                           HTTPContentType              = null,
+                          ConnectionType?                                            Connection                   = null,
                           TimeSpan?                                                  RequestTimeout               = null,
                           TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
                           UInt16?                                                    MaxNumberOfRetries           = null,
@@ -129,11 +134,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                    LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   HTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
-                   HTTPContentType,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -186,22 +193,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
             #region Initial checks
 
-            if (QueryXML    == null)
+            if (QueryXML    is null)
                 throw new ArgumentNullException(nameof(QueryXML),     "The 'Query'-string must not be null!");
 
             if (SOAPAction.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(SOAPAction),   "The 'SOAPAction'-string must not be null or empty!");
 
-            if (OnSuccess   == null)
+            if (OnSuccess   is null)
                 throw new ArgumentNullException(nameof(OnSuccess),    "The 'OnSuccess'-delegate must not be null!");
 
-            if (OnSOAPFault == null)
+            if (OnSOAPFault is null)
                 throw new ArgumentNullException(nameof(OnSOAPFault),  "The 'OnSOAPFault'-delegate must not be null!");
 
-            if (OnHTTPError == null)
+            if (OnHTTPError is null)
                 throw new ArgumentNullException(nameof(OnHTTPError),  "The 'OnHTTPError'-delegate must not be null!");
 
-            if (OnException == null)
+            if (OnException is null)
                 throw new ArgumentNullException(nameof(OnException),  "The 'OnException'-delegate must not be null!");
 
             #endregion
@@ -320,6 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
 
 }
 
+
 namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 {
 
@@ -340,6 +348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         public static readonly XNamespace SOAPAdressing  = "http://www.w3.org/2005/08/addressing";
 
     }
+
 
     /// <summary>
     /// A specialized HTTP client for the Simple Object Access Protocol (SOAP) v1.2.
@@ -374,8 +383,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="RemoteCertificateValidator">The remote TLS certificate validator.</param>
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
         /// <param name="URLPathPrefix">An optional default URL path prefix.</param>
         /// <param name="WSSLoginPassword">The WebService-Security username/password.</param>
         /// <param name="HTTPContentType">The HTTP content type to use.</param>
@@ -390,17 +400,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
                           Boolean                                                    UseFakeURLPrefix             = true,
-                          String?                                                    Description                  = null,
+                          I18NString?                                                Description                  = null,
                           Boolean?                                                   PreferIPv4                   = null,
                           RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                           LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                           X509Certificate?                                           ClientCert                   = null,
                           SslProtocols?                                              TLSProtocol                  = null,
-                          String                                                     HTTPUserAgent                = DefaultHTTPUserAgent,
+                          HTTPContentType?                                           ContentType                  = null,
+                          AcceptTypes?                                               Accept                       = null,
                           IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                          String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
                           HTTPPath?                                                  URLPathPrefix                = null,
                           Tuple<String, String>?                                     WSSLoginPassword             = null,
-                          HTTPContentType?                                           HTTPContentType              = null,
+                          ConnectionType?                                            Connection                   = null,
                           TimeSpan?                                                  RequestTimeout               = null,
                           TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
                           UInt16?                                                    MaxNumberOfRetries           = null,
@@ -418,11 +430,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                    LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   HTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent,
                    URLPathPrefix,
                    WSSLoginPassword,
-                   HTTPContentType,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -479,22 +493,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
 
             #region Initial checks
 
-            if (QueryXML    == null)
+            if (QueryXML    is null)
                 throw new ArgumentNullException(nameof(QueryXML),     "The 'Query'-string must not be null!");
 
             if (SOAPAction.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(SOAPAction),   "The 'SOAPAction'-string must not be null or empty!");
 
-            if (OnSuccess   == null)
+            if (OnSuccess   is null)
                 throw new ArgumentNullException(nameof(OnSuccess),    "The 'OnSuccess'-delegate must not be null!");
 
-            if (OnSOAPFault == null)
+            if (OnSOAPFault is null)
                 throw new ArgumentNullException(nameof(OnSOAPFault),  "The 'OnSOAPFault'-delegate must not be null!");
 
-            if (OnHTTPError == null)
+            if (OnHTTPError is null)
                 throw new ArgumentNullException(nameof(OnHTTPError),  "The 'OnHTTPError'-delegate must not be null!");
 
-            if (OnException == null)
+            if (OnException is null)
                 throw new ArgumentNullException(nameof(OnException),  "The 'OnException'-delegate must not be null!");
 
             #endregion
@@ -504,16 +518,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                                      Host           = VirtualHostname ?? HTTPHostname.Parse(RemoteURL.Hostname.ToString() + ":" + RemoteURL.Port.ToString()),
                                      Path           = URLPathPrefix + RemoteURL.Path,
                                      Content        = QueryXML.ToUTF8Bytes(),
-                                     ContentType    = ContentType ?? HTTPContentType ?? new HTTPContentType("application",
-                                                                                                            "soap+xml",
-                                                                                                            "utf-8",
-                                                                                                            SOAPAction,
-                                                                                                            null),
-                                     Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? HTTPContentType ?? new HTTPContentType("application",
-                                                                                                                                             "soap+xml",
-                                                                                                                                             "utf-8",
-                                                                                                                                             null,
-                                                                                                                                             null)),
+                                     ContentType    = ContentType ?? this.ContentType ?? new HTTPContentType("application",
+                                                                                                             "soap+xml",
+                                                                                                             "utf-8",
+                                                                                                             SOAPAction,
+                                                                                                             null),
+                                     Accept         = AcceptTypes.FromHTTPContentTypes(ContentType ?? this.ContentType ?? new HTTPContentType("application",
+                                                                                                                                              "soap+xml",
+                                                                                                                                              "utf-8",
+                                                                                                                                              null,
+                                                                                                                                              null)),
                                      UserAgent      = HTTPUserAgent,
                                      FakeURLPrefix  = UseFakeURLPrefix ? "https://" + (VirtualHostname ?? RemoteURL.Hostname) : null
                                  };

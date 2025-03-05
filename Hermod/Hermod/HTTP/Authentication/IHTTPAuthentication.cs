@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,24 +27,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (authorizationString is not null)
             {
 
-                if (HTTPBasicAuthentication.TryParseHeader(authorizationString, out var basicAuthentication) &&
-                    basicAuthentication is not null)
+                if (HTTPBasicAuthentication.TryParseHTTPHeader(authorizationString, out var basicAuthentication))
                 {
                     HTTPAuthentication = basicAuthentication;
                     return true;
                 }
 
-                if (HTTPTokenAuthentication.TryParseHTTPHeader(authorizationString, out var tokenAuthentication) &&
-                    tokenAuthentication is not null)
+                if (HTTPBearerAuthentication.TryParseHTTPHeader(authorizationString, out var bearerAuthentication))
+                {
+                    HTTPAuthentication = bearerAuthentication;
+                    return true;
+                }
+
+                if (HTTPTokenAuthentication.TryParseHTTPHeader(authorizationString, out var tokenAuthentication))
                 {
                     HTTPAuthentication = tokenAuthentication;
                     return true;
                 }
 
-                if (HTTPBearerAuthentication.TryParse(authorizationString, out var bearerAuthentication) &&
-                    bearerAuthentication is not null)
+                if (HTTPTOTPAuthentication.TryParseHTTPHeader(authorizationString, out var totpAuthentication))
                 {
-                    HTTPAuthentication = bearerAuthentication;
+                    HTTPAuthentication = totpAuthentication;
                     return true;
                 }
 

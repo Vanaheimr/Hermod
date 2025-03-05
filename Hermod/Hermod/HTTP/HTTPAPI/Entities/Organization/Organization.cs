@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -620,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Id">The unique identification of the organization.</param>
         /// 
-        /// <param name="Name">The offical (multi-language) name of the organization.</param>
+        /// <param name="Name">The official (multi-language) name of the organization.</param>
         /// <param name="Description">An optional (multi-language) description of the organization.</param>
         /// <param name="Website">The website of the organization.</param>
         /// <param name="EMail">The primary e-mail of the organisation.</param>
@@ -1093,11 +1093,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse GeoLocation      [optional]
 
-                if (JSONObject.ParseOptionalStruct("geoLocation",
-                                                   "geo location",
-                                                   GeoCoordinate.TryParseJSON,
-                                                   out GeoCoordinate? GeoLocation,
-                                                   out ErrorResponse))
+                if (JSONObject.ParseOptionalJSON("geoLocation",
+                                                 "geo location",
+                                                 GeoCoordinate.TryParse,
+                                                 out GeoCoordinate? GeoLocation,
+                                                 out ErrorResponse))
                 {
 
                     if (ErrorResponse is not null)
@@ -1155,17 +1155,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                Organization = new Organization(OrganizationIdBody ?? OrganizationIdURL.Value,
+                Organization = new Organization(
 
-                                                Name,
-                                                Description,
-                                                Website,
-                                                EMail,
-                                                Telephone,
-                                                Address,
-                                                GeoLocation,
-                                                _ => Tags,
-                                                IsDisabled ?? false);
+                                   OrganizationIdBody ?? OrganizationIdURL.Value,
+
+                                   Name,
+                                   Description,
+                                   Website,
+                                   EMail,
+                                   Telephone,
+                                   Address,
+                                   GeoLocation,
+                                   _ => Tags,
+                                   IsDisabled ?? false
+
+                               );
 
                                           //      CustomData,
                                           //      AttachedFiles,
@@ -1436,7 +1440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) GetHashCode()
 
         /// <summary>
-        /// Get the hashcode of this object.
+        /// Get the hash code of this object.
         /// </summary>
         public override Int32 GetHashCode()
             => Id.GetHashCode();
@@ -1774,7 +1778,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new organization builder.
             /// </summary>
             /// <param name="Id">The unique identification of the organization.</param>
-            /// <param name="Name">The offical (multi-language) name of the organization.</param>
+            /// <param name="Name">The official (multi-language) name of the organization.</param>
             /// <param name="Description">An optional (multi-language) description of the organization.</param>
             /// <param name="Website">The website of the organization.</param>
             /// <param name="EMail">The primary e-mail of the organisation.</param>
@@ -1800,14 +1804,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<Organization2OrganizationEdge>?  Organization2OrganizationInEdges    = null,
                            IEnumerable<Organization2OrganizationEdge>?  Organization2OrganizationOutEdges   = null,
 
-                           JObject?                                     CustomData                          = default,
-                           IEnumerable<AttachedFile>?                   AttachedFiles                       = default,
-                           JSONLDContext?                               JSONLDContext                       = default,
-                           String?                                      DataSource                          = default,
-                           DateTime?                                    LastChange                          = default)
+                           JObject?                                     CustomData                          = null,
+                           IEnumerable<AttachedFile>?                   AttachedFiles                       = null,
+                           JSONLDContext?                               JSONLDContext                       = null,
+                           String?                                      DataSource                          = null,
+                           DateTime?                                    Created                             = null,
+                           DateTime?                                    LastChange                          = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
+                       Created,
                        LastChange,
                        null,
                        CustomData,
@@ -2280,7 +2286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (override) GetHashCode()
 
             /// <summary>
-            /// Get the hashcode of this object.
+            /// Get the hash code of this object.
             /// </summary>
             public override Int32 GetHashCode()
                 => Id.GetHashCode();

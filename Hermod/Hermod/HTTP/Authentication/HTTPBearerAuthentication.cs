@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,8 @@
  */
 
 #region Usings
+
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -35,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly static Char[] splitter = new[] { ' ' };
+        private readonly static Char[] splitter = [ ' ' ];
 
         #endregion
 
@@ -111,7 +113,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A token.</param>
         /// <param name="BearerAuthentication">The new HTTP Bearer Authentication.</param>
-        public static Boolean TryParse(String Text, out HTTPBearerAuthentication? BearerAuthentication)
+        public static Boolean TryParse(String                                             Text,
+                                       [NotNullWhen(true)] out HTTPBearerAuthentication?  BearerAuthentication)
         {
 
             BearerAuthentication = null;
@@ -172,7 +175,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Text">A text representation of a HTTP Bearer Authentication header.</param>
         /// <param name="BearerAuthentication">The parsed HTTP Bearer Authentication header.</param>
-        public static Boolean TryParseHTTPHeader(String Text, out HTTPBearerAuthentication? BearerAuthentication)
+        public static Boolean TryParseHTTPHeader(String                                             Text,
+                                                 [NotNullWhen(true)] out HTTPBearerAuthentication?  BearerAuthentication)
         {
 
             BearerAuthentication = null;
@@ -340,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPBearerAuthentication is null)
-                throw new ArgumentNullException(nameof(Object),
+                throw new ArgumentNullException(nameof(HTTPBearerAuthentication),
                                                 "The given object HTTP Bearer Authentication must not be null!");
 
             return String.Compare(Token,

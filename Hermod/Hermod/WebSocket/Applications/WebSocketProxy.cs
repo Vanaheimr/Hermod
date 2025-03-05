@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,17 +45,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region Properties
 
         /// <summary>
-        /// The URL of the upstream HTTP web socket server.
+        /// The URL of the upstream HTTP WebSocket server.
         /// </summary>
         public URL? UpstreamServerURL { get; }
 
         /// <summary>
-        /// Whether to connect to the HTTP web socket server automatically.
+        /// Whether to connect to the HTTP WebSocket server automatically.
         /// </summary>
         public Boolean AutoConnect { get; }
 
         /// <summary>
-        /// The HTTP response of the upstream HTTP web socket server.
+        /// The HTTP response of the upstream HTTP WebSocket server.
         /// </summary>
         public HTTPResponse? UpstreamHTTPResponse { get; private set; }
 
@@ -66,18 +66,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketProxy(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
-        /// <param name="UpstreamServerURL">An URL of the upstream HTTP web socket server.</param>
-        /// <param name="AutoConnect">Whether to connect to the HTTP web socket server automatically.</param>
+        /// <param name="UpstreamServerURL">An URL of the upstream HTTP WebSocket server.</param>
+        /// <param name="AutoConnect">Whether to connect to the HTTP WebSocket server automatically.</param>
         /// 
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public WebSocketProxy(URL                                                             UpstreamServerURL,
                               Boolean                                                         AutoConnect                  = true,
 
@@ -86,7 +86,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                               String?                                                         HTTPServiceName              = null,
                               I18NString?                                                     Description                  = null,
 
+                              Boolean?                                                        RequireAuthentication        = true,
                               IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                              SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                               Boolean                                                         DisableWebSocketPings        = false,
                               TimeSpan?                                                       WebSocketPingEvery           = null,
                               TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -113,7 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -174,11 +178,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                    webSocketFrame,
                                                    cancellationToken);
 
-                    await SendOnTextMessageSent(timestamp,
-                                                connection,
-                                                eventTrackingId,
-                                                textMessage,
-                                                cancellationToken);
+                    //await SendOnTextMessageSent(timestamp,
+                    //                            connection,
+                    //                            eventTrackingId,
+                    //                            textMessage,
+                    //                            cancellationToken);
 
                 }
 
@@ -209,11 +213,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                    webSocketFrame,
                                                    cancellationToken);
 
-                    await SendOnBinaryMessageSent(timestamp,
-                                                  connection,
-                                                  eventTrackingId,
-                                                  binaryMessage,
-                                                  cancellationToken);
+                    //await SendOnBinaryMessageSent(timestamp,
+                    //                              connection,
+                    //                              eventTrackingId,
+                    //                              binaryMessage,
+                    //                              cancellationToken);
 
                 }
 
@@ -229,6 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                webSocketServerConnection,
                                                eventTrackingId,
                                                sharedSubprotocols,
+                                               selectedSubprotocol,
                                                cancellationToken) =>
             {
 

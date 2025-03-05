@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -447,7 +447,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
             unchecked
@@ -466,7 +465,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Returns a text representation of this object.
         /// </summary>
-        /// <returns>A string representation of this object.</returns>
         public override String ToString()
 
             => $"{IPAddress}:{Port}";

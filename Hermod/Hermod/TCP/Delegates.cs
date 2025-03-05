@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
@@ -23,37 +25,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the TCP socket attached event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="TCPSocket">The new TCP socket.</param>
     /// <param name="Message">An optional message.</param>
-    public delegate void TCPSocketAttachedHandler(ATCPServers  TCPServer,
-                                                  DateTime     Timestamp,
-                                                  IPSocket     TCPSocket,
-                                                  String?      Message   = null);
+    public delegate void TCPSocketAttachedHandler(ATCPServers       TCPServer,
+                                                  DateTime          Timestamp,
+                                                  EventTracking_Id  EventTrackingId,
+                                                  IPSocket          TCPSocket,
+                                                  String?           Message   = null);
 
     /// <summary>
     /// New connection delegate.
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the new TCP connection event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="TCPConnection">The new TCP connection.</param>
-    public delegate void NewConnectionHandler(TCPServer      TCPServer,
-                                              DateTime       Timestamp,
-                                              IPSocket       RemoteSocket,
-                                              String         ConnectionId,
-                                              TCPConnection  TCPConnection);
+    public delegate void NewConnectionHandler(TCPServer         TCPServer,
+                                              DateTime          Timestamp,
+                                              EventTracking_Id  EventTrackingId,
+                                              IPSocket          RemoteSocket,
+                                              String            ConnectionId,
+                                              TCPConnection     TCPConnection);
 
     /// <summary>
     /// Connection closed delegate.
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
     public delegate void ConnectionClosedHandler(TCPServer           TCPServer,
                                                  DateTime            Timestamp,
+                                                 EventTracking_Id    EventTrackingId,
                                                  IPSocket            RemoteSocket,
                                                  String              ConnectionId,
                                                  ConnectionClosedBy  ClosedBy);
@@ -63,10 +71,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the TCP socket detached event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="TCPSocket">The TCP socket.</param>
-    public delegate void TCPSocketDetachedHandler(ATCPServers  TCPServer,
-                                                  DateTime     Timestamp,
-                                                  IPSocket     TCPSocket,
-                                                  String?      Message   = null);
+    public delegate void TCPSocketDetachedHandler(ATCPServers       TCPServer,
+                                                  DateTime          Timestamp,
+                                                  EventTracking_Id  EventTrackingId,
+                                                  IPSocket          TCPSocket,
+                                                  String?           Message   = null);
 
 }

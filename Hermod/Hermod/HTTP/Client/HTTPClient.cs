@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -25,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A http client.
+    /// A HTTP client.
     /// </summary>
     public class HTTPClient : AHTTPClient,
                               IHTTPClientCommands
@@ -40,7 +41,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Constructor(s)
 
         #region HTTPClient(RemoteURL, ...)
 
@@ -51,8 +51,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="ContentType">An optional HTTP content type.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Connection">An optional connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -63,10 +66,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPClient(URL                              RemoteURL,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          HTTPContentType?                 ContentType              = null,
+                          AcceptTypes?                     Accept                   = null,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
+                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          ConnectionType?                  Connection               = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -84,8 +90,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    null,
                    null,
                    null,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -109,8 +118,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="ContentType">An optional HTTP content type.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Connection">An optional connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -122,10 +134,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPClient(IIPAddress                       RemoteIPAddress,
                           IPPort?                          RemotePort               = null,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          HTTPContentType?                 ContentType              = null,
+                          AcceptTypes?                     Accept                   = null,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
+                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          ConnectionType?                  Connection               = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -135,12 +150,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           HTTPClientLogger?                HTTPLogger               = null,
                           DNSClient?                       DNSClient                = null)
 
-            : this(URL.Parse("http://" + RemoteIPAddress + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
+            : this(URL.Parse($"http://{RemoteIPAddress}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")}"),
                    VirtualHostname,
                    Description,
                    PreferIPv4,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -163,8 +181,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
+        /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Connection">An optional connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -175,10 +196,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPClient(IPSocket                         RemoteSocket,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          AcceptTypes?                     Accept                   = null,
+                          HTTPContentType?                 ContentType              = null,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
+                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          ConnectionType?                  Connection               = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -188,12 +212,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           HTTPClientLogger?                HTTPLogger               = null,
                           DNSClient?                       DNSClient                = null)
 
-            : this(URL.Parse("http://" + RemoteSocket.IPAddress + ":" + RemoteSocket.Port),
+            : this(URL.Parse($"http://{RemoteSocket.IPAddress}:{RemoteSocket.Port}"),
                    VirtualHostname,
                    Description,
                    PreferIPv4,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -217,8 +244,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VirtualHostname">An optional HTTP virtual hostname.</param>
         /// <param name="Description">An optional description of this CPO client.</param>
         /// <param name="PreferIPv4">Prefer IPv4 instead of IPv6.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="ContentType">An optional HTTP content type.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Connection">An optional connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -230,10 +260,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPClient(HTTPHostname                     RemoteHost,
                           IPPort?                          RemotePort               = null,
                           HTTPHostname?                    VirtualHostname          = null,
-                          String?                          Description              = null,
+                          I18NString?                      Description              = null,
                           Boolean?                         PreferIPv4               = null,
-                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          HTTPContentType?                 ContentType              = null,
+                          AcceptTypes?                     Accept                   = null,
                           IHTTPAuthentication?             HTTPAuthentication       = null,
+                          String?                          HTTPUserAgent            = DefaultHTTPUserAgent,
+                          ConnectionType?                  Connection               = null,
                           TimeSpan?                        RequestTimeout           = null,
                           TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
                           UInt16?                          MaxNumberOfRetries       = null,
@@ -243,12 +276,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           HTTPClientLogger?                HTTPLogger               = null,
                           DNSClient?                       DNSClient                = null)
 
-            : this(URL.Parse("http://" + RemoteHost + (RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")),
+            : this(URL.Parse($"http://{RemoteHost}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")}"),
                    VirtualHostname,
                    Description,
                    PreferIPv4,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -262,7 +298,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #endregion
 
     }
 

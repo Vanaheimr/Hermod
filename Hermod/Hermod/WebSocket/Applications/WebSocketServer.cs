@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,12 +37,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// An event sent whenever a text message was received.
         /// </summary>
-        public event OnWebSocketTextMessage2Delegate?    OnTextMessage;
+        public event OnWebSocketServerTextMessageDelegate?    OnTextMessage;
 
         /// <summary>
         /// An event sent whenever a binary message was received.
         /// </summary>
-        public event OnWebSocketBinaryMessage2Delegate?  OnBinaryMessage;
+        public event OnWebSocketServerBinaryMessageDelegate?  OnBinaryMessage;
 
         #endregion
 
@@ -51,21 +51,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketServer(IPAddress = null, HTTPPort = null, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
         /// <param name="IPAddress">An optional IP address to listen on. Default: IPv4Address.Any</param>
         /// <param name="HTTPPort">An optional TCP port to listen on. Default: HTTP.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public WebSocketServer(IIPAddress?                                                     IPAddress                    = null,
                                IPPort?                                                         HTTPPort                     = null,
                                String?                                                         HTTPServiceName              = null,
                                I18NString?                                                     Description                  = null,
 
+                               Boolean?                                                        RequireAuthentication        = true,
                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                               SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                Boolean                                                         DisableWebSocketPings        = false,
                                TimeSpan?                                                       WebSocketPingEvery           = null,
                                TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -92,7 +94,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -121,19 +125,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region WebSocketServer(IPSocket, HTTPServiceName = null, ..., AutoStart = false)
 
         /// <summary>
-        /// Create a new HTTP web socket server.
+        /// Create a new HTTP WebSocket server.
         /// </summary>
         /// <param name="IPSocket">The IP socket to listen on.</param>
         /// <param name="HTTPServiceName">An optional HTTP service name.</param>
-        /// <param name="Description">An optional description of this HTTP Web Socket service.</param>
+        /// <param name="Description">An optional description of this HTTP WebSocket service.</param>
         /// 
         /// <param name="DNSClient">An optional DNS client.</param>
-        /// <param name="AutoStart">Whether to start the HTTP web socket server automatically.</param>
+        /// <param name="AutoStart">Whether to start the HTTP WebSocket server automatically.</param>
         public WebSocketServer(IPSocket                                                        IPSocket,
                                String?                                                         HTTPServiceName              = null,
                                I18NString?                                                     Description                  = null,
 
+                               Boolean?                                                        RequireAuthentication        = true,
                                IEnumerable<String>?                                            SecWebSocketProtocols        = null,
+                               SubprotocolSelectorDelegate?                                    SubprotocolSelector          = null,
                                Boolean                                                         DisableWebSocketPings        = false,
                                TimeSpan?                                                       WebSocketPingEvery           = null,
                                TimeSpan?                                                       SlowNetworkSimulationDelay   = null,
@@ -159,7 +165,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                    HTTPServiceName,
                    Description,
 
+                   RequireAuthentication,
                    SecWebSocketProtocols,
+                   SubprotocolSelector,
                    DisableWebSocketPings,
                    WebSocketPingEvery,
                    SlowNetworkSimulationDelay,
@@ -191,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region ProcessTextMessage  (RequestTimestamp, Connection, TextMessage,   EventTrackingId, CancellationToken)
 
         /// <summary>
-        /// The default HTTP web socket text message processor.
+        /// The default HTTP WebSocket text message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -214,7 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 {
 
                     responses = await Task.WhenAll(onTextMessage.GetInvocationList().
-                                                       OfType<OnWebSocketTextMessage2Delegate>().
+                                                       OfType<OnWebSocketServerTextMessageDelegate>().
                                                        Select(loggingDelegate => loggingDelegate.Invoke(
                                                                                      RequestTimestamp,
                                                                                      this,
@@ -223,8 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      RequestTimestamp,
                                                                                      TextMessage,
                                                                                      CancellationToken
-                                                                                 )).
-                                                       ToArray());
+                                                                                 )));
 
                 }
                 catch (Exception e)
@@ -237,14 +244,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                        response.ResponseMessage.IsNotNullOrEmpty()).
                                      FirstOrDefault();
 
-            //ToDo: Fix me! Why is this here?!?!
-            //response ??= new WebSocketTextMessageResponse(
-            //                 RequestTimestamp,
-            //                 TextMessage,
-            //                 Timestamp.Now,
-            //                 TextMessage.Reverse(),
-            //                 EventTrackingId
-            //             );
+            response ??= new WebSocketTextMessageResponse(
+                             RequestTimestamp,
+                             TextMessage,
+                             Timestamp.Now,
+                             "Unkown error!",
+                             EventTrackingId,
+                             CancellationToken
+                         );
 
             return response;
 
@@ -255,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         #region ProcessBinaryMessage(RequestTimestamp, Connection, BinaryMessage, EventTrackingId, CancellationToken)
 
         /// <summary>
-        /// The default HTTP web socket binary message processor.
+        /// The default HTTP WebSocket binary message processor.
         /// </summary>
         /// <param name="RequestTimestamp">The timestamp of the request message.</param>
         /// <param name="Connection">The web socket connection.</param>
@@ -271,14 +278,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var responses = Array.Empty<WebSocketBinaryMessageResponse>();
 
-            var onTextMessage = OnTextMessage;
-            if (onTextMessage is not null)
+            var onBinaryMessage = OnBinaryMessage;
+            if (onBinaryMessage is not null)
             {
                 try
                 {
 
-                    responses = await Task.WhenAll(onTextMessage.GetInvocationList().
-                                                       OfType<OnWebSocketBinaryMessage2Delegate>().
+                    responses = await Task.WhenAll(onBinaryMessage.GetInvocationList().
+                                                       OfType<OnWebSocketServerBinaryMessageDelegate>().
                                                        Select(loggingDelegate => loggingDelegate.Invoke(
                                                                                      RequestTimestamp,
                                                                                      this,
@@ -287,13 +294,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                      RequestTimestamp,
                                                                                      BinaryMessage,
                                                                                      CancellationToken
-                                                                                 )).
-                                                       ToArray());
+                                                                                 )));
 
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnBinaryMessage)}");
                 }
             }
 
@@ -306,8 +312,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                              RequestTimestamp,
                              BinaryMessage,
                              Timestamp.Now,
-                             BinaryMessage.Reverse(),
-                             EventTrackingId
+                             "Unkown error!".ToUTF8Bytes(),
+                             EventTrackingId,
+                             CancellationToken
                          );
 
             return response;

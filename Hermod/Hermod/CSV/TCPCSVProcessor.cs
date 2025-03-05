@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,14 +17,12 @@
 
 #region Usings
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -61,14 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event StartedEventHandler                                                OnStarted;
+        public event StartedEventHandler?                                                OnStarted;
 
-        public event BoomerangSenderHandler<TCPConnection, DateTime, String[], String>  OnNotification;
+        public event BoomerangSenderHandler<TCPConnection, DateTime, String[], String>?  OnNotification;
 
-        public event CompletedEventHandler                                              OnCompleted;
+        public event CompletedEventHandler?                                              OnCompleted;
 
 
-        public event ExceptionOccuredEventHandler                                       OnExceptionOccured;
+        public event ExceptionOccuredEventHandler?                                       OnExceptionOccured;
 
         #endregion
 
@@ -81,10 +79,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// end-of-line characters.
         /// </summary>
         /// <param name="SplitCharacters">The characters to split the incoming CSV text lines.</param>
-        public TCPCSVProcessor(Char[]  SplitCharacters = null)
+        public TCPCSVProcessor(Char[]?  SplitCharacters = null)
         {
 
-            this.SplitCharacters  = SplitCharacters ?? new Char[1] { '/' };
+            this.SplitCharacters  = SplitCharacters ?? ['/'];
             this.ServiceBanner    = DefaultServiceBanner;
 
         }
@@ -93,9 +91,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
 
 
-        #region ProcessArrow(TCPConnection)
+        #region ProcessArrow(EventTracking, TCPConnection)
 
-        public void ProcessArrow(TCPConnection TCPConnection)
+        public void ProcessArrow(EventTracking_Id EventTracking, TCPConnection TCPConnection)
         {
 
             #region Start
@@ -309,31 +307,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+        #region ProcessExceptionOccured(Sender, Timestamp, EventTracking, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object     Sender,
-                                            DateTime   Timestamp,
-                                            Exception  ExceptionMessage)
+        public void ProcessExceptionOccured(Object            Sender,
+                                            DateTime          Timestamp,
+                                            EventTracking_Id  EventTracking,
+                                            Exception         ExceptionMessage)
         {
 
-            OnExceptionOccured?.Invoke(Sender,
-                                       Timestamp,
-                                       ExceptionMessage);
+            OnExceptionOccured?.Invoke(
+                Sender,
+                Timestamp,
+                EventTracking,
+                ExceptionMessage
+            );
 
         }
 
         #endregion
 
-        #region ProcessCompleted(Sender, Timestamp, Message = null)
+        #region ProcessCompleted(Sender, Timestamp, EventTracking, Message = null)
 
-        public void ProcessCompleted(Object    Sender,
-                                     DateTime  Timestamp,
-                                     String    Message = null)
+        public void ProcessCompleted(Object            Sender,
+                                     DateTime          Timestamp,
+                                     EventTracking_Id  EventTracking,
+                                     String?           Message = null)
         {
 
-            OnCompleted?.Invoke(Sender,
-                                Timestamp,
-                                Message);
+            OnCompleted?.Invoke(
+                Sender,
+                Timestamp,
+                EventTracking,
+                Message
+            );
 
         }
 

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -365,15 +365,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Clone
+        #region Clone()
 
         /// <summary>
         /// Clone a password.
         /// </summary>
         public Password Clone
 
-            => new Password(Salt,
-                            InternalPassword.Copy());
+            => new (
+                   Salt,
+                   InternalPassword.Copy()
+               );
 
         #endregion
 

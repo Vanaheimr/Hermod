@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of HTTPExtAPI <https://www.github.com/Vanaheimr/HTTPExtAPI>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -737,7 +737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new user.
         /// </summary>
         /// <param name="Id">The unique identification of the user.</param>
-        /// <param name="Name">An offical (multi-language) name of the user.</param>
+        /// <param name="Name">An official (multi-language) name of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// 
         /// <param name="Description">An optional (multi-language) description of the user.</param>
@@ -1122,7 +1122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("publicKeyRing",
                                              "GPG/PGP public key ring",
-                                             txt => OpenPGP.ReadPublicKeyRing(txt.HexStringToByteArray()),
+                                             txt => OpenPGP.ReadPublicKeyRing(txt.FromHEX()),
                                              out PgpPublicKeyRing? PublicKeyRing,
                                              out ErrorResponse))
                 {
@@ -1136,7 +1136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 if (JSONObject.ParseOptional("secretKeyRing",
                                              "GPG/PGP secret key ring",
-                                             txt => OpenPGP.ReadSecretKeyRing(txt.HexStringToByteArray()),
+                                             txt => OpenPGP.ReadSecretKeyRing(txt.FromHEX()),
                                              out PgpSecretKeyRing? SecretKeyRing,
                                              out ErrorResponse))
                 {
@@ -1231,11 +1231,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Parse GeoLocation      [optional]
 
-                if (JSONObject.ParseOptionalStruct("geoLocation",
-                                                   "Geo location",
-                                                   GeoCoordinate.TryParseJSON,
-                                                   out GeoCoordinate? GeoLocation,
-                                                   out ErrorResponse))
+                if (JSONObject.ParseOptionalJSON("geoLocation",
+                                                 "Geo location",
+                                                 GeoCoordinate.TryParse,
+                                                 out GeoCoordinate? GeoLocation,
+                                                 out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
                         return false;
@@ -1452,14 +1452,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NewUserId">An optional new user identification.</param>
         public User Clone(User_Id? NewUserId = null)
 
-            => new (NewUserId ?? Id.Clone,
+            => new (NewUserId ?? Id.Clone(),
                     Name,
                     EMail.Address,
                     Description.Clone(),
                     PublicKeyRing,
                     SecretKeyRing,
                     UserLanguage,
-                    Telephone?.Clone,
+                    Telephone?.Clone(),
                     MobilePhone,
                     Use2AuthFactor,
                     Telegram,
@@ -1739,7 +1739,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (override) GetHashCode()
 
         /// <summary>
-        /// Get the hashcode of this object.
+        /// Get the hash code of this object.
         /// </summary>
         public override Int32 GetHashCode()
 
@@ -1767,7 +1767,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NewUserId">An optional new user identification.</param>
         public Builder ToBuilder(User_Id? NewUserId = null)
 
-            => new (NewUserId ?? Id.Clone,
+            => new (NewUserId ?? Id.Clone(),
                     EMail.Address,
                     Name,
                     Description,
@@ -2284,7 +2284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="Id">The unique identification of the user.</param>
             /// <param name="EMail">The primary e-mail of the user.</param>
-            /// <param name="Name">An offical (multi-language) name of the user.</param>
+            /// <param name="Name">An official (multi-language) name of the user.</param>
             /// <param name="Description">An optional (multi-language) description of the user.</param>
             /// <param name="PublicKeyRing">An optional PGP/GPG public keyring of the user.</param>
             /// <param name="SecretKeyRing">An optional PGP/GPG secret keyring of the user.</param>
@@ -2329,14 +2329,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<User2UserGroupEdge>?     User2GroupEdges          = null,
                            IEnumerable<User2OrganizationEdge>?  User2OrganizationEdges   = null,
 
-                           JObject?                             CustomData               = default,
-                           IEnumerable<AttachedFile>?           AttachedFiles            = default,
-                           JSONLDContext?                       JSONLDContext            = default,
-                           String?                              DataSource               = default,
-                           DateTime?                            LastChange               = default)
+                           JObject?                             CustomData               = null,
+                           IEnumerable<AttachedFile>?           AttachedFiles            = null,
+                           JSONLDContext?                       JSONLDContext            = null,
+                           String?                              DataSource               = null,
+                           DateTime?                            Created                  = null,
+                           DateTime?                            LastChange               = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
+                       Created,
                        LastChange,
                        null,
                        CustomData,
@@ -2365,7 +2367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.IsAuthenticated              = IsAuthenticated;
                 this.AttachedFiles                = AttachedFiles is not null && AttachedFiles.Any()
                                                         ? new HashSet<AttachedFile>(AttachedFiles)
-                                                        : new HashSet<AttachedFile>();
+                                                        : [];
 
                 this.notificationStore            = new NotificationStore(Notifications);
 
@@ -2846,7 +2848,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region (override) GetHashCode()
 
             /// <summary>
-            /// Get the hashcode of this object.
+            /// Get the hash code of this object.
             /// </summary>
             public override Int32 GetHashCode()
 

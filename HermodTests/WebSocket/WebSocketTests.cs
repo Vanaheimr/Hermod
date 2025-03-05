@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
 {
 
     /// <summary>
-    /// HTTP web socket tests.
+    /// HTTP WebSocket tests.
     /// </summary>
     [TestFixture]
     public class WebSocketTests
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
                 newWebSocketConnection  = true;
                 return Task.CompletedTask;
             };
@@ -132,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage, cancellationToken) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
                 textMessageRequests. Add(requestMessage);
                 return Task.CompletedTask;
             };
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
                 return Task.CompletedTask;
             };
 
-            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, cancellationToken) => {
+            webSocketServer.OnNewWebSocketConnection      += (timestamp, server, connection, eventTrackingId, sharedSubprotocols, selectedSubprotocol, cancellationToken) => {
                 newWebSocketConnection  = true;
                 return Task.CompletedTask;
             };
@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.WebSocket
             //    messageResponses.    Add(responseFrame);
             //};
 
-            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, eventTrackingId, requestMessage, cancellationToken) => {
+            webSocketServer.OnTextMessageReceived          += (timestamp, server, connection, frame, eventTrackingId, requestMessage, cancellationToken) => {
                 textMessageRequests. Add(requestMessage);
                 return Task.CompletedTask;
             };

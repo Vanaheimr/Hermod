@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1060,6 +1060,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Sec-WebSocket-Protocol
+
+        /// <summary>
+        /// Sec-WebSocket-Protocol
+        /// </summary>
+        public IEnumerable<String> SecWebSocketProtocol
+
+            => GetHeaderFields(HTTPHeaderField.SecWebSocketProtocol_Request) ?? [];
+
+        #endregion
+
         #endregion
 
         #region Non-standard request header fields
@@ -1244,7 +1255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
                 QueryString = QueryString.Parse(parsedURL[1]);
             else
-                QueryString = QueryString.New;
+                QueryString = QueryString.Empty;
 
             #endregion
 

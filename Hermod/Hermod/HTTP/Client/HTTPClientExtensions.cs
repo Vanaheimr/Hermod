@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,304 +26,644 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         // RFC 2616 - HTTP/1.1
 
-        #region GET    (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region GETRequest    (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP GET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder GETRequest(this AHTTPClient              HTTPClient,
-                                                     HTTPPath                      Path,
-                                                     Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                     IHTTPAuthentication?          Authentication   = null)
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.GET,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.GET,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
+
+
+        /// <summary>
+        /// Create a new HTTP GET request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="RequestURL">The request URL.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder GETRequest(this AHTTPClient              HTTPClient,
+                                                     URL                           RequestURL,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.GET,
+                   RequestURL,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region HEAD   (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region HEADRequest   (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP HEAD request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder HEADRequest(this AHTTPClient              HTTPClient,
-                                                      HTTPPath                      Path,
-                                                      Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                      IHTTPAuthentication?          Authentication   = null)
+                                                      HTTPPath                      HTTPPath,
+                                                      QueryString?                  QueryString         = null,
+                                                      AcceptTypes?                  Accept              = null,
+                                                      IHTTPAuthentication?          Authentication      = null,
+                                                      String?                       UserAgent           = null,
+                                                      ConnectionType?               Connection          = null,
+                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.HEAD,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.HEAD,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region POST   (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region POSTRequest   (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP POST request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder POSTRequest(this AHTTPClient              HTTPClient,
-                                                      HTTPPath                      Path,
-                                                      Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                      IHTTPAuthentication?          Authentication   = null)
+                                                      HTTPPath                      HTTPPath,
+                                                      QueryString?                  QueryString         = null,
+                                                      AcceptTypes?                  Accept              = null,
+                                                      IHTTPAuthentication?          Authentication      = null,
+                                                      String?                       UserAgent           = null,
+                                                      ConnectionType?               Connection          = null,
+                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.POST,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication).
-                          // Always send a Content-Length header, even when it's value is zero!
-                          SetContentLength(0);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.POST,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               ).
+               // Always send a Content-Length header, even when it's value is zero!
+               SetContentLength(0);
+
+
+        /// <summary>
+        /// Create a new HTTP POST request.
+        /// </summary>
+        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="RequestURL">The request URL.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public static HTTPRequest.Builder POSTRequest(this AHTTPClient              HTTPClient,
+                                                      URL                           RequestURL,
+                                                      AcceptTypes?                  Accept              = null,
+                                                      IHTTPAuthentication?          Authentication      = null,
+                                                      String?                       UserAgent           = null,
+                                                      ConnectionType?               Connection          = null,
+                                                      Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                      CancellationToken             CancellationToken   = default)
+
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.POST,
+                   RequestURL,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               ).
+               // Always send a Content-Length header, even when it's value is zero!
+               SetContentLength(0);
 
         #endregion
 
-        #region PUT    (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region PUTRequest    (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP PUT request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder PUTRequest(this AHTTPClient              HTTPClient,
-                                                     HTTPPath                      Path,
-                                                     Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                     IHTTPAuthentication?          Authentication   = null)
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.PUT,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.PUT,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region PATCH  (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region PATCHRequest  (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP PATCH request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder PATCHRequest(this AHTTPClient              HTTPClient,
-                                                       HTTPPath                      Path,
-                                                       Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                       IHTTPAuthentication?          Authentication   = null)
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.PATCH,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.PATCH,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region DELETE (this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region DELETERequest (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP DELETE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder DELETERequest(this AHTTPClient              HTTPClient,
-                                                        HTTPPath                      Path,
-                                                        Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                        IHTTPAuthentication?          Authentication   = null)
+                                                        HTTPPath                      HTTPPath,
+                                                        QueryString?                  QueryString         = null,
+                                                        AcceptTypes?                  Accept              = null,
+                                                        IHTTPAuthentication?          Authentication      = null,
+                                                        String?                       UserAgent           = null,
+                                                        ConnectionType?               Connection          = null,
+                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.DELETE,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.DELETE,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region OPTIONS(this AHTTPClient, Path = "/", BuilderAction = null, Authentication = null)
+        #region OPTIONSRequest(this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP OPTIONS request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder OPTIONSRequest(this AHTTPClient              HTTPClient,
-                                                         HTTPPath                      Path,
-                                                         Action<HTTPRequest.Builder>?  BuilderAction    = null,
-                                                         IHTTPAuthentication?          Authentication   = null)
+                                                         HTTPPath                      HTTPPath,
+                                                         QueryString?                  QueryString         = null,
+                                                         AcceptTypes?                  Accept              = null,
+                                                         IHTTPAuthentication?          Authentication      = null,
+                                                         String?                       UserAgent           = null,
+                                                         ConnectionType?               Connection          = null,
+                                                         Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                         CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.OPTIONS,
-                                        Path,
-                                        BuilderAction,
-                                        Authentication);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.OPTIONS,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
 
-        #region CHECK  (this AHTTPClient, Path = "/", BuilderAction = null)
+        // Inofficial HTTP methods
+
+        #region CHECKRequest  (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP CHECK request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder CHECKRequest(this AHTTPClient              HTTPClient,
-                                                       HTTPPath                      Path,
-                                                       Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.CHECK,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.CHECK,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region COUNT  (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region COUNTRequest  (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP COUNT request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder COUNTRequest(this AHTTPClient              HTTPClient,
-                                                       HTTPPath                      Path,
-                                                       Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.COUNT,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.COUNT,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region CLEAR  (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region CLEARRequest  (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP CLEAR request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder CLEARRequest(this AHTTPClient              HTTPClient,
-                                                       HTTPPath                      Path,
-                                                       Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.CLEAR,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.CLEAR,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region CREATE (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region CREATERequest (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP CREATE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder CREATERequest(this AHTTPClient              HTTPClient,
-                                                        HTTPPath                      Path,
-                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                        HTTPPath                      HTTPPath,
+                                                        QueryString?                  QueryString         = null,
+                                                        AcceptTypes?                  Accept              = null,
+                                                        IHTTPAuthentication?          Authentication      = null,
+                                                        String?                       UserAgent           = null,
+                                                        ConnectionType?               Connection          = null,
+                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.CREATE,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.CREATE,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region ADD    (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region ADDRequest    (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP ADD request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder ADDRequest(this AHTTPClient              HTTPClient,
-                                                     HTTPPath                      Path,
-                                                     Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.ADD,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.ADD,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region SET    (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region SETRequest    (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP SET request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder SETRequest(this AHTTPClient              HTTPClient,
-                                                     HTTPPath                      Path,
-                                                     Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                     HTTPPath                      HTTPPath,
+                                                     QueryString?                  QueryString         = null,
+                                                     AcceptTypes?                  Accept              = null,
+                                                     IHTTPAuthentication?          Authentication      = null,
+                                                     String?                       UserAgent           = null,
+                                                     ConnectionType?               Connection          = null,
+                                                     Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                     CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.SET,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.SET,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region TRACE  (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region TRACERequest  (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP TRACE request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
-        /// <returns>A HTTP request object.</returns>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder TRACERequest(this AHTTPClient              HTTPClient,
-                                                       HTTPPath                      Path,
-                                                       Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                       HTTPPath                      HTTPPath,
+                                                       QueryString?                  QueryString         = null,
+                                                       AcceptTypes?                  Accept              = null,
+                                                       IHTTPAuthentication?          Authentication      = null,
+                                                       String?                       UserAgent           = null,
+                                                       ConnectionType?               Connection          = null,
+                                                       Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                       CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.TRACE,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.TRACE,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 
-        #region MIRROR (this AHTTPClient, Path = "/", BuilderAction = null)
+        #region MIRRORRequest (this AHTTPClient, Path = "/", ...)
 
         /// <summary>
         /// Create a new HTTP MIRROR request.
         /// </summary>
         /// <param name="HTTPClient">A HTTP client.</param>
-        /// <param name="Path">An URL path.</param>
-        /// <param name="BuilderAction">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
         public static HTTPRequest.Builder MIRRORRequest(this AHTTPClient              HTTPClient,
-                                                        HTTPPath                      Path,
-                                                        Action<HTTPRequest.Builder>?  BuilderAction = null)
+                                                        HTTPPath                      HTTPPath,
+                                                        QueryString?                  QueryString         = null,
+                                                        AcceptTypes?                  Accept              = null,
+                                                        IHTTPAuthentication?          Authentication      = null,
+                                                        String?                       UserAgent           = null,
+                                                        ConnectionType?               Connection          = null,
+                                                        Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                        CancellationToken             CancellationToken   = default)
 
-            => HTTPClient.CreateRequest(HTTPMethod.MIRROR,
-                                        Path,
-                                        BuilderAction);
+            => HTTPClient.CreateRequest(
+                   HTTPMethod.MIRROR,
+                   HTTPPath,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   UserAgent,
+                   Connection,
+                   RequestBuilder,
+                   CancellationToken
+               );
 
         #endregion
 

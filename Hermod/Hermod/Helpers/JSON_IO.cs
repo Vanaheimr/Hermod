@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Return a JSON representation of the given IP address.
         /// </summary>
-        /// <param name="IIPAddress">An identificator.</param>
+        /// <param name="IIPAddress">An identifier.</param>
         /// <param name="JPropertyKey">The name of the JSON property key to use.</param>
         public static JProperty ToJSON(this IIPAddress IIPAddress, String JPropertyKey)
 

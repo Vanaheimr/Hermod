@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,8 +95,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LocalCertificateSelector">A delegate to select a TLS client certificate.</param>
         /// <param name="ClientCert">The TLS client certificate to use of HTTP authentication.</param>
         /// <param name="TLSProtocol">The TLS protocol to use.</param>
-        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Accept">The optional HTTP accept header.</param>
         /// <param name="HTTPAuthentication">The optional HTTP authentication to use, e.g. HTTP Basic Auth.</param>
+        /// <param name="HTTPUserAgent">The HTTP user agent identification.</param>
+        /// <param name="Connection">An optional connection type.</param>
         /// <param name="RequestTimeout">An optional request timeout.</param>
         /// <param name="TransmissionRetryDelay">The delay between transmission retries.</param>
         /// <param name="MaxNumberOfRetries">The maximum number of transmission retries for HTTP request.</param>
@@ -105,14 +107,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DNSClient">The DNS client to use.</param>
         protected AJSONClient(URL                                                        RemoteURL,
                               HTTPHostname?                                              VirtualHostname              = null,
-                              String?                                                    Description                  = null,
+                              I18NString?                                                Description                  = null,
                               Boolean?                                                   PreferIPv4                   = null,
                               RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                          LocalCertificateSelector     = null,
                               X509Certificate?                                           ClientCert                   = null,
                               SslProtocols?                                              TLSProtocol                  = null,
-                              String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
+                              HTTPContentType?                                           ContentType                  = null,
+                              AcceptTypes?                                               Accept                       = null,
                               IHTTPAuthentication?                                       HTTPAuthentication           = null,
+                              String?                                                    HTTPUserAgent                = DefaultHTTPUserAgent,
+                              ConnectionType?                                            Connection                   = null,
                               TimeSpan?                                                  RequestTimeout               = null,
                               TransmissionRetryDelayDelegate?                            TransmissionRetryDelay       = null,
                               UInt16?                                                    MaxNumberOfRetries           = null,
@@ -128,8 +133,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
-                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   ContentType ?? HTTPContentType.Application.JSON_UTF8,
+                   Accept,
                    HTTPAuthentication,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   Connection,
                    RequestTimeout,
                    TransmissionRetryDelay,
                    MaxNumberOfRetries,
@@ -176,19 +184,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (JSONRequest == null)
+            if (JSONRequest is null)
                 throw new ArgumentNullException(nameof(JSONRequest),  "The JSON request must not be null!");
 
-            if (OnSuccess   == null)
+            if (OnSuccess   is null)
                 throw new ArgumentNullException(nameof(OnSuccess),    "The 'OnSuccess'-delegate must not be null!");
 
-            if (OnJSONFault == null)
+            if (OnJSONFault is null)
                 throw new ArgumentNullException(nameof(OnJSONFault),  "The 'OnJSONFault'-delegate must not be null!");
 
-            if (OnHTTPError == null)
+            if (OnHTTPError is null)
                 throw new ArgumentNullException(nameof(OnHTTPError),  "The 'OnHTTPError'-delegate must not be null!");
 
-            if (OnException == null)
+            if (OnException is null)
                 throw new ArgumentNullException(nameof(OnException),  "The 'OnException'-delegate must not be null!");
 
             #endregion

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,6 @@
  */
 
 #region Usings
-
-using System;
-using System.Linq;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -102,15 +98,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="Timeout">The common timeout of all pings.</param>
         /// <param name="Runtime">The overall runtime of all pings.</param>
         public PingResults(IEnumerable<PingResult>  PingResults,
-                            TimeSpan                 Timeout,
-                            TimeSpan                 Runtime)
+                           TimeSpan                 Timeout,
+                           TimeSpan                 Runtime)
         {
 
             var goodResults       = PingResults.Where(failure => failure.Error == ICMPErrors.Success).ToArray();
 
             var average           = goodResults.Any()
                                         ? goodResults.Select(result => result.Runtime.TotalMilliseconds).AverageAndStdDev()
-                                        : new Illias.Collections.Tuple<Double, Double>(Timeout.TotalMilliseconds, 0);
+                                        : new Tuple<Double, Double>(Timeout.TotalMilliseconds, 0);
 
             var commonError       = ICMPErrors.Mixed;
 

@@ -1,5 +1,5 @@
 ﻿///*
-// * Copyright (c) 2010-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+// * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
 // * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
 // *
 // * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@
 //        public EMailAddress               EMail                { get; }
 
 //        ///// <summary>
-//        ///// The offical public name of the user.
+//        ///// The official public name of the user.
 //        ///// </summary>
 //        //[Optional]
 //        //public String                     Name                 { get; }

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2011-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2011-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Server          = HTTPServer.DefaultServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "no-cache",
-                               Connection      = "close",
+                               Connection      = ConnectionType.Close,
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Content         = ("Incoming http connection from '" + Request.HTTPSource + "'" +
                                                    Environment.NewLine + Environment.NewLine +
@@ -254,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                    Server           = DefaultServerName,
         //                                    Date             = Timestamp.Now,
         //                                    CacheControl     = "no-cache",
-        //                                    Connection       = "close",
+        //                                    Connection       = ConnectionType.Close,
         //                                }.AsImmutable
 
         //                              : new HTTPResponse.Builder(httpRequest) {
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                                    new JProperty("message", e.Message)
         //                                                ).ToUTF8Bytes(),
         //                              CacheControl    = "no-cache",
-        //                              Connection      = "close",
+        //                              Connection      = ConnectionType.Close,
         //                          }.AsImmutable
         //                      );
 
@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             Server           = DefaultServerName,
                                             Date             = Timestamp.Now,
                                             CacheControl     = "no-cache",
-                                            Connection       = "close",
+                                            Connection       = ConnectionType.Close,
                                         }.AsImmutable
 
                                       : new HTTPResponse.Builder(httpRequest) {
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   TimeSpan.FromMinutes(15),
                                                                   500
                                                               ),
-                                            Connection      = "Keep-Alive",
+                                            Connection      = ConnectionType.KeepAlive,
                                         }.AsImmutable
 
                               );
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             new JProperty("message", e.Message)
                                                         ).ToUTF8Bytes(),
                                       CacheControl    = "no-cache",
-                                      Connection      = "close",
+                                      Connection      = ConnectionType.Close,
                                   }.AsImmutable
                               );
 
@@ -588,6 +588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                ? "{ResourceName}"
                                                : "/{ResourceName}")
                         ],
+                        OpenEnd:            true,
 
                         HTTPDelegate:       GetFromResourceAssembly(
                                                 URLTemplate,
@@ -635,6 +636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ? "{ResourceName}"
                                                   : "/{ResourceName}")
                            ],
+                           OpenEnd:            true,
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -713,6 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                   ? "{ResourceName}"
                                                   : "/{ResourceName}")
                            ],
+                           OpenEnd:            true,
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -801,6 +804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         Hostname,
                         HTTPMethod.GET,
                         URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                        OpenEnd:            true,
 
                         HTTPDelegate:       GetFromFileSystem(
                                                 URLTemplate,
@@ -862,6 +866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Hostname,
                            HTTPMethod.GET,
                            URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                           OpenEnd:            true,
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -959,7 +964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                      ContentType     = ResponseContentType,
                                                      ContentStream   = fileStream,
                                                      CacheControl    = CacheControl,
-                                                     Connection      = "close",
+                                                     Connection      = ConnectionType.Close,
                                                  };
 
                                              else
@@ -1007,7 +1012,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          ContentType    = ResponseContentType,
                                                          ContentStream  = errorStream,
                                                          CacheControl   = "no-cache",
-                                                         Connection     = "close",
+                                                         Connection     = ConnectionType.Close,
                                                      };
 
                                                  #endregion
@@ -1020,7 +1025,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          Server          = HTTPServer.DefaultServerName,
                                                          Date            = Timestamp.Now,
                                                          CacheControl    = "no-cache",
-                                                         Connection      = "close",
+                                                         Connection      = ConnectionType.Close,
                                                      };
 
                                                  #endregion
@@ -1125,7 +1130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       ContentType     = ResponseContentType,
                                                                       ContentStream   = fileStream,
                                                                       CacheControl    = CacheControl,
-                                                                      Connection      = "close",
+                                                                      Connection      = ConnectionType.Close,
                                                                   }.AsImmutable
                                                               )
 
@@ -1135,7 +1140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       Server          = HTTPServer.DefaultServerName,
                                                                       Date            = Timestamp.Now,
                                                                       CacheControl    = "no-cache",
-                                                                      Connection      = "close",
+                                                                      Connection      = ConnectionType.Close,
                                                                   }.AsImmutable
                                                               );
 
@@ -1148,7 +1153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 Server          = HTTPServer.DefaultServerName,
                                                                 Date            = Timestamp.Now,
                                                                 CacheControl    = "no-cache",
-                                                                Connection      = "close",
+                                                                Connection      = ConnectionType.Close,
                                                             }.AsImmutable
                                                         );
 
@@ -1165,7 +1170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 ContentType     = HTTPContentType.Text.PLAIN,
                                                                 Content         = e.Message.ToUTF8Bytes(),
                                                                 CacheControl    = "no-cache",
-                                                                Connection      = "close",
+                                                                Connection      = ConnectionType.Close,
                                                             }.AsImmutable
                                                         );
 
