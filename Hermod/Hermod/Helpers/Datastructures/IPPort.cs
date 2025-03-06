@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         /// <summary>
         /// Create an automatic Internet Protocol Layer 4 Port,
-        /// which will be choosen by .NET during socket creation!
+        /// which will be chosen by .NET during socket creation!
         /// </summary>
         public static IPPort Auto
             => new (0);
