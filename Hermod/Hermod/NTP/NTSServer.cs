@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
     /// A NTP UDP server.
     /// </summary>
     /// <param name="UDPPort">The optional UDP port to listen on (default: 123).</param>
-    public class NTPServer(IPPort? UDPPort = null)
+    public class NTSServer(IPPort? UDPPort = null)
     {
 
         #region Data
