@@ -4669,7 +4669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        new JProperty("@context",      SignInOutContext),
                                                                        new JProperty("statuscode",    400),
                                                                        new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "The choosen password does not match the password quality criteria!")
+                                                                       new JProperty("description",  "The chosen password does not match the password quality criteria!")
                                                                    ).ToString().ToUTF8Bytes(),
                                                  CacheControl    = "private",
                                                  Connection      = ConnectionType.Close
@@ -6804,7 +6804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        new JProperty("@context",      SignInOutContext),
                                                                        new JProperty("statuscode",    400),
                                                                        new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "The choosen password does not match the password quality criteria!")
+                                                                       new JProperty("description",  "The chosen password does not match the password quality criteria!")
                                                                    ).ToString().ToUTF8Bytes(),
                                                  CacheControl    = "private",
                                                  Connection      = ConnectionType.Close
@@ -17493,7 +17493,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
                 return ResetPasswordResult.ArgumentError(
                            Array.Empty<IUser>(),
-                           "The choosen password does not match the password quality criteria!".ToI18NString(),
+                           "The chosen password does not match the password quality criteria!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
                            this

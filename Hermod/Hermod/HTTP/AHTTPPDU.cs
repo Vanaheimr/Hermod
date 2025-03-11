@@ -51,12 +51,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected readonly Dictionary<String, Object?>  headerFields;
         protected readonly Dictionary<String, Object>   headerFieldsParsed;
 
-        protected readonly static String[]  lineSeparator    = new[] { "\n", "\r\n" };
-        protected readonly static Char[]    colonSeparator   = new[] { ':' };
-        protected readonly static Char[]    slashSeparator   = new[] { '/' };
-        protected readonly static Char[]    spaceSeparator   = new[] { ' ' };
-        protected readonly static Char[]    urlSeparator     = new[] { '?', '!' };
-        protected readonly static Char[]    hashSeparator    = new[] { '#' };
+        protected readonly static String[]  lineSeparator    = ["\n", "\r\n"];
+        protected readonly static Char[]    colonSeparator   = [':'  ];
+        protected readonly static Char[]    slashSeparator   = [ '/' ];
+        protected readonly static Char[]    spaceSeparator   = [ ' ' ];
+        protected readonly static Char[]    urlSeparator     = [ '?', '!'];
+        protected readonly static Char[]    hashSeparator    = [ '#' ];
 
         /// <summary>
         /// The default size of the HTTP body receive buffer (==8 KByte).
@@ -895,6 +895,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => headerFields.TryGetValue(FieldName, out var httpValue)
                    ? httpValue?.ToString()
                    : null;
+
+        #endregion
+
+        #region GetHeaderField<T>     (FieldName)
+
+        /// <summary>
+        /// Return the value of the given HTTP header field.
+        /// </summary>
+        /// <param name="FieldName">The name of the header field.</param>
+        public T? GetHeaderField<T>(String FieldName)
+
+            => headerFields.TryGetValue(FieldName, out var httpValue)
+                   ? httpValue is T valueT ? valueT : default
+                   : default;
 
         #endregion
 

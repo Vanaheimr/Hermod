@@ -1996,8 +1996,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private async Task LogEvent<TDelegate>(TDelegate?                                         Logger,
                                                Func<TDelegate, Task>                              LogHandler,
-                                               [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
-                                               [CallerMemberName()]                       String  OCPPCommand   = "")
+                                               [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                               [CallerMemberName()]                       String  Command     = "")
 
             where TDelegate : Delegate
 
@@ -2016,7 +2016,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    await HandleErrors($"WebSocketClient: {OCPPCommand}.{EventName}", e);
+                    await HandleErrors($"WebSocketClient: {Command}.{EventName}", e);
                 }
             }
         }

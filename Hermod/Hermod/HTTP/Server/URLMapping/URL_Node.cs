@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A URL node which stores some childnodes and a callback
+    /// A URL node which stores some child nodes and a callback
     /// </summary>
     public class URL_Node : IEnumerable<HTTPMethodNode>
     {
@@ -277,16 +277,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => String.Concat(
 
+                   !httpMethodNodes.IsEmpty
+                       ? $"[{httpMethodNodes.Keys.AggregateWith(", ")}] "
+                       : "",
+
+                   URITemplate.ToString(),
+
                    URIAuthentication is not null
                        ? " (auth)"
                        : "",
 
                    DefaultErrorHandler is not null
                        ? " (error)"
-                       : "",
-
-                   !httpMethodNodes.IsEmpty
-                       ? $"[{httpMethodNodes.Keys.AggregateWith(", ")}]"
                        : ""
 
                );
