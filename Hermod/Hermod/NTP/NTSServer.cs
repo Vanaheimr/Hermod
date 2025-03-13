@@ -30,25 +30,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.NTP
 {
 
     /// <summary>
-    /// A NTP UDP server.
+    /// A Network Time Secure (NTS) Server.
+    /// It will serve a NTS-KeyEstablishment (NTS-KE) TLS Server and a NTP UDP Server.
     /// </summary>
-    /// <param name="UDPPort">The optional UDP port to listen on (default: 123).</param>
-    public class NTSServer(IPPort? UDPPort = null)
+    /// <param name="TCPPort">The optional TCP port for NTS-KE to listen on (default: 4460).</param>
+    /// <param name="UDPPort">The optional UDP port for NTP to listen on (default: 123).</param>
+    public class NTSServer(IPPort?  TCPPort   = null,
+                           IPPort?  UDPPort     = null)
     {
 
         #region Data
 
-        private Socket?                   udpSocket;
         private Socket?                   tcpSocket;
+        private Socket?                   udpSocket;
         private CancellationTokenSource?  cts;
 
         #endregion
 
         #region Properties
 
-        public IPPort  UDPPort       { get; } = UDPPort ?? IPPort.NTP;
+        public IPPort  TCPPort       { get; } = TCPPort ?? IPPort.NTSKE;
 
-        public IPPort  TCPPort       { get; } = UDPPort ?? IPPort.NTSKE;
+        public IPPort  UDPPort       { get; } = UDPPort ?? IPPort.NTP;
 
         public UInt32  BufferSize    { get; } = 4096;
 
