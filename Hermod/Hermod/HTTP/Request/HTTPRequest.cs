@@ -816,7 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AcceptTypes Accept
 
-            => GetHeaderField(HTTPRequestHeaderField.Accept) ?? new AcceptTypes();
+            => GetHeaderField(HTTPRequestHeaderField.Accept) ?? [];
 
         #endregion
 

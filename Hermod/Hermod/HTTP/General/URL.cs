@@ -577,11 +577,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Operator  + (URL, PathSuffix)
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a uniform resource location with a path suffix.
         /// </summary>
         /// <param name="URL">A uniform resource location.</param>
         /// <param name="PathSuffix">A path suffix which will be added to the existing path.</param>
-        /// <returns>true|false</returns>
         public static URL operator + (URL       URL,
                                       HTTPPath  PathSuffix)
 
@@ -593,15 +592,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         /// <summary>
-        /// Compares two instances of this object.
+        /// Combines a uniform resource location with a path suffix.
         /// </summary>
         /// <param name="URL">A uniform resource location.</param>
         /// <param name="PathSuffix">A path suffix which will be added to the existing path.</param>
-        /// <returns>true|false</returns>
         public static URL operator + (URL     URL,
                                       String  PathSuffix)
 
-            => PathSuffix.StartsWith("?")
+            => PathSuffix.StartsWith('?')
 
                    ? new (URL.InternalId + PathSuffix,
                           URL.Protocol,
@@ -614,6 +612,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           URL.Hostname,
                           URL.Port,
                           URL.Path + PathSuffix);
+
+
+        /// <summary>
+        /// Combines a uniform resource location with a path suffix.
+        /// </summary>
+        /// <param name="URL">A uniform resource location.</param>
+        /// <param name="PathSuffix">A path suffix which will be added to the existing path.</param>
+        public static URL? operator + (URL?    URL,
+                                       String  PathSuffix)
+
+            => URL.HasValue
+                   ? PathSuffix.StartsWith('?')
+
+                       ? new (URL.Value.InternalId + PathSuffix,
+                              URL.Value.Protocol,
+                              URL.Value.Hostname,
+                              URL.Value.Port,
+                              URL.Value.Path + PathSuffix)
+
+                       : new (URL.Value.InternalId + "/" + PathSuffix,
+                              URL.Value.Protocol,
+                              URL.Value.Hostname,
+                              URL.Value.Port,
+                              URL.Value.Path + PathSuffix)
+
+                   : null;
 
         #endregion
 

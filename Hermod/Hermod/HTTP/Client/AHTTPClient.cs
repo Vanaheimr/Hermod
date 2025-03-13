@@ -1953,7 +1953,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => $"{GetType().Name} {RemoteURL}:{RemotePort}";
+            => $"{GetType().Name} {RemoteURL}";
 
         #endregion
 
