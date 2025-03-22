@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Name    = Name;
-            this.crumbs  = new Dictionary<String, String>();
+            this.crumbs  = [];
             this.parts   = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var crumb in Crumbs)

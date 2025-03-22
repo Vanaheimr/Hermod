@@ -1101,6 +1101,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region GetSecurityTokenFromCookie(this Request, SessionCookieName)
+
+        public static SecurityToken_Id? GetSecurityTokenIdFromCookie(this HTTPRequest  Request,
+                                                                     HTTPCookieName    SessionCookieName)
+        {
+
+            if (Request.Cookies  is not null &&
+                Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
+                SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out var securityTokenId))
+            {
+                return securityTokenId;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
     }
 
 
@@ -3406,6 +3426,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (protected) GetSecurityTokenFromCookie(Request)
+
+        protected SecurityToken_Id? GetSecurityTokenIdFromCookie(HTTPRequest Request)
+        {
+
+            if (Request.Cookies  is not null &&
+                Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
+                SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out var securityTokenId))
+            {
+                return securityTokenId;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
         #region (protected) TryGetSecurityTokenFromCookie(Request, SecurityTokenId)
 
         protected Boolean TryGetSecurityTokenFromCookie(HTTPRequest Request, out SecurityToken_Id SecurityTokenId)
@@ -3413,7 +3451,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.Cookies  is not null &&
                 Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
-                cookie is not null &&
                 SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out     SecurityTokenId))
             {
                 return true;
@@ -14359,12 +14396,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected internal async Task<AddUserResult>
 
             addUser(IUser                 User,
-                     Boolean               SkipDefaultNotifications   = false,
-                     Boolean               SkipNewUserEMail           = false,
-                     Boolean               SkipNewUserNotifications   = false,
-                     OnUserAddedDelegate?  OnAdded                    = null,
-                     EventTracking_Id?     EventTrackingId            = null,
-                     User_Id?              CurrentUserId              = null)
+                    Boolean               SkipDefaultNotifications   = false,
+                    Boolean               SkipNewUserEMail           = false,
+                    Boolean               SkipNewUserNotifications   = false,
+                    OnUserAddedDelegate?  OnAdded                    = null,
+                    EventTracking_Id?     EventTrackingId            = null,
+                    User_Id?              CurrentUserId              = null)
 
         {
 

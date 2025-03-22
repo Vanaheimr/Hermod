@@ -39,9 +39,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// Extentions methods for HTTP WebSocket servers.
+    /// Extensions methods for HTTP WebSocket servers.
     /// </summary>
-    public static class AWebSocketServerExtentions
+    public static class AWebSocketServerExtensions
     {
 
         #region BroadcastTextMessage   (this WebSocketServer, Message,                    EventTrackingId = null, CancellationToken = default)
