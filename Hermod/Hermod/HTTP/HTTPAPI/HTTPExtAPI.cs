@@ -16517,7 +16517,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        protected internal Boolean _TryGetUser(User_Id UserId, out IUser? User)
+        protected internal Boolean _TryGetUser(User_Id                         UserId,
+                                               [NotNullWhen(true)] out IUser?  User)
         {
 
             if (!UserId.IsNullOrEmpty &&
@@ -16537,7 +16538,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        protected internal Boolean _TryGetUser(User_Id? UserId, out IUser? User)
+        protected internal Boolean _TryGetUser(User_Id?                        UserId,
+                                               [NotNullWhen(true)] out IUser?  User)
         {
 
             if (UserId.HasValue &&
@@ -16559,7 +16561,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        public Boolean TryGetUser(User_Id UserId, out IUser? User)
+        public Boolean TryGetUser(User_Id                         UserId,
+                                  [NotNullWhen(true)] out IUser?  User)
         {
 
             if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
@@ -16595,7 +16598,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        public Boolean TryGetUser(User_Id? UserId, out IUser? User)
+        public Boolean TryGetUser(User_Id?                        UserId,
+                                  [NotNullWhen(true)] out IUser?  User)
         {
 
             if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
