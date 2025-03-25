@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
             try
             {
 
-                clientData = ClientData.Parse(JObject.Parse(Encoding.UTF8.GetString(RegistrationData.Response.ClientDataJSON.FromBASE64())));
+                clientData = ClientData.Parse(JObject.Parse(Encoding.UTF8.GetString(RegistrationData.Response.ClientDataJSON)));
 
                 // {
                 //   "type":        "webauthn.create",
@@ -258,17 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
             #region AttestationObject CBOR
 
-            byte[] attestationObjectBytes;
-            try
-            {
-                attestationObjectBytes = Convert.FromBase64String(RegistrationData.Response.AttestationObject);
-            }
-            catch (Exception e)
-            {
-                return VerificationResult.Failed("Could not decode attestation object: " + e.Message);
-            }
-
-            var attestationObjectJSON = CborToJsonConverter.CBOR2JSON(attestationObjectBytes) ?? [];
+            var attestationObjectJSON = CborToJsonConverter.CBOR2JSON(RegistrationData.Response.AttestationObject) ?? [];
 
             // {
             //   "fmt":       "none",

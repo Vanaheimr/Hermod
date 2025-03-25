@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                        : null,
 
                    Attestation.HasValue
-                       ? new JProperty("attestation",          Attestation)
+                       ? new JProperty("attestation",          Attestation.Value.ToString())
                        : null
 
                );

@@ -17,38 +17,23 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
+    // https://w3c.github.io/webauthn/#authenticatorresponse
 
-    // Liste der unterstützten kryptografischen Algorithmen
-    public class PublicKeyCredentialParameters(PublicKeyCredentialType   Type,
-                                               COSEAlgorithmIdentifiers  Alg)
+    public interface IAuthenticatorResponse
     {
-
-        /// <summary>
-        /// Meist "public-key"
-        /// </summary>
-        public PublicKeyCredentialType   Type    { get; } = Type;
-
-        /// <summary>
-        /// COSE-Algorithmus-ID, z.B. -7 für ES256
-        /// </summary>
-        public COSEAlgorithmIdentifiers  Alg     { get; } = Alg;
-
-
-        public JObject ToJSON()
-
-            => new (
-                   new JProperty("type",  Type.ToString()),
-                   new JProperty("alg",   Alg)
-               );
+        public Byte[]  ClientDataJSON    { get; }
 
     }
 

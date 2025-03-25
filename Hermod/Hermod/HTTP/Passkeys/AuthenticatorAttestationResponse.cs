@@ -29,27 +29,34 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
+    // https://w3c.github.io/webauthn/#iface-authenticatorattestationresponse
 
-    public class AuthenticatorAttestationResponse
+    public class AuthenticatorAttestationResponse : IAuthenticatorAttestationResponse
     {
 
         #region Properties
 
-        public String   ClientDataJSON               { get; }
+        public Byte[]                               ClientDataJSON               { get; }
 
-        public String   AttestationObject            { get; }
+        public Byte[]                               AttestationObject            { get; }
 
 
-        public JObject  ParsedClientData             { get; }
-        public JObject  ParsedAttestation            { get; }
-        public JObject  ParsedAttestationAuthData    { get; }
+        public IEnumerable<AuthenticatorTransport>  Transports                   { get; set; }   // ???
+        public Byte[]                               AuthenticatorData            { get; set; }   // ???
+        public Byte[]                               PublicKey                    { get; set; }   // ???
+        public COSEAlgorithmIdentifiers             PublicKeyAlgorithm           { get; set; }   // ???
+
+
+        public JObject                              ParsedClientData             { get; }
+        public JObject                              ParsedAttestation            { get; }
+        public JObject                              ParsedAttestationAuthData    { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        public AuthenticatorAttestationResponse(String  ClientDataJSON,
-                                                String  AttestationObject)
+        public AuthenticatorAttestationResponse(Byte[]  ClientDataJSON,
+                                                Byte[]  AttestationObject)
         {
 
             this.ClientDataJSON     = ClientDataJSON;
@@ -66,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
             try
             {
-                this.ParsedClientData  = JObject.Parse(ClientDataJSON.FromBASE64().ToUTF8String());
+                this.ParsedClientData  = JObject.Parse(ClientDataJSON.ToUTF8String());
             }
             catch (Exception e)
             {
@@ -82,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
             try
             {
-                this.ParsedAttestation = CborToJsonConverter.CBOR2JSON(AttestationObject.FromBASE64()) ?? [];
+                this.ParsedAttestation = CborToJsonConverter.CBOR2JSON(AttestationObject) ?? [];
             }
             catch (Exception e)
             {
@@ -94,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
             // {
             //   "rpIdHash": "49960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d9763",        // A SHA‑256 hash of the relying party identifier
-            //   "flags": 69,                                                                           // ToDO: Decode flags
+            //   "flags":     69,                                                                       // ToDO: Decode flags
             //   "signCount": 0,                                                                        // A big‑endian unsigned integer
             //   "attestedCredentialData": {                                                            // only present when the attested flag is set!
             //     "aaguid":       "08987058cadc4b81b6e130de50dcbe96",                                  // In many authenticators this is all zeros!
@@ -114,11 +121,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
                 var authData = this.ParsedAttestation["authData"]?.Value<Byte[]>() ?? [];
 
-                // Parse the authenticator data per WebAuthn spec.
-                // authData layout:
-                //   - rpIdHash (32 bytes)
-                //   - flags (1 byte)
-                //   - signCount (4 bytes)
+                // Parse the authenticator data:
+                //   - rpIdHash  (32 bytes)
+                //   - flags     ( 1 byte )
+                //   - signCount ( 4 bytes)
                 //   - If (flags & 0x40 != 0) then attestedCredentialData follows.
                 var rpIdHash   = new Byte[32];
                 Buffer.BlockCopy(authData, 0, rpIdHash, 0, 32);
@@ -146,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                     offset += credIdLen;
 
                     // The remainder is the credential public key (CBOR encoded)
-                    var publicKeyLen = authData.Length - offset;
+                    var publicKeyLen            = authData.Length - offset;
                     var credentialPublicKeyCbor = new Byte[publicKeyLen];
                     Buffer.BlockCopy(authData, offset, credentialPublicKeyCbor, 0, publicKeyLen);
 
@@ -155,15 +161,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                     var credentialPublicKey = CborToJsonConverter.DecodeCborMap(credentialPublicKeyCbor);
 
                     attestedCredentialData = new JObject {
-                                                 { "aaguid",               BitConverter.ToString(aaguid).      Replace("-", "").ToLower() },
-                                                 { "credentialId",         BitConverter.ToString(credentialId).Replace("-", "").ToLower() },
+                                                 { "aaguid",               Convert.ToHexStringLower(aaguid) },
+                                                 { "credentialId",         Convert.ToHexStringLower(credentialId) },
                                                  { "credentialPublicKey",  credentialPublicKey }
                                              };
 
                 }
 
                 this.ParsedAttestationAuthData = new JObject {
-                                                     { "rpIdHash",   BitConverter.ToString(rpIdHash).Replace("-", "").ToLower() },
+                                                     { "rpIdHash",   Convert.ToHexStringLower(rpIdHash) },
                                                      { "flags",      flags },
                                                      { "signCount",  signCount }
                                                  };
@@ -205,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
                 //     "attestationObject": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVikSZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2NFAAAAAAiYcFjK3EuBtuEw3lDcvpYAIHLYhSZ224oCzezMt1Q8r5mVgKCdEOk8kAHdKBonl400pQECAyYgASFYIA7O5OEOUJ0qVZ10C1es7irN1gOtY8pH1NqKoSrWl3bUIlggP8OlK5dOLp9XUOZsNFnTeQ5ZZLYLVrLhot2QTc2ecPs="
                 // }
 
-                #region Parse ClientDataJSON          [mandatory]
+                #region Parse ClientDataJSON       [mandatory]
 
                 if (!JSON.ParseMandatoryText("clientDataJSON",
                                              "clientDataJSON",
@@ -217,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
                 #endregion
 
-                #region Parse AttestationObject       [mandatory]
+                #region Parse AttestationObject    [mandatory]
 
                 if (!JSON.ParseMandatoryText("attestationObject",
                                              "attestationObject",
@@ -231,8 +237,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
 
                 AuthenticatorAttestationResponse = new AuthenticatorAttestationResponse(
-                                                       clientDataJSON,
-                                                       attestationObject
+                                                       clientDataJSON.   FromBASE64URL(),
+                                                       attestationObject.FromBASE64URL()
                                                    );
 
                 return true;
@@ -253,8 +259,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
         public JObject ToJSON()
 
             => new (
-                   new JProperty("clientDataJSON",     ClientDataJSON),
-                   new JProperty("attestationObject",  AttestationObject)
+                   new JProperty("clientDataJSON",     ClientDataJSON.   ToBase64URL()),
+                   new JProperty("attestationObject",  AttestationObject.ToBase64URL())
                );
 
     }

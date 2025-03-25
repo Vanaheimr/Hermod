@@ -17,43 +17,40 @@
 
 #region Usings
 
+using System.Diagnostics.CodeAnalysis;
+
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#webauthn-extensions
+    // https://w3c.github.io/webauthn/#iface-authenticatorattestationresponse
 
-    /// <summary>
-    /// An Authentication Extension
-    /// </summary>
-    public class AuthenticationExtension(String                      Name,
-                                         Dictionary<String, Object>  Map)
+    public interface IAuthenticatorAttestationResponse : IAuthenticatorResponse
     {
 
-        /// <summary>
-        /// An "entry key" identifying the extension.
-        /// </summary>
-        public String                      Name    { get; } = Name;
-
-        /// <summary>
-        /// Parameters of the extension.
-        /// </summary>
-        public Dictionary<String, Object>  Map     { get; } = Map;
+        Byte[]                               AttestationObject     { get; }
 
 
-        public JObject ToJSON()
+        IEnumerable<AuthenticatorTransport>  Transports            { get; }
 
-            => JSONObject.Create(
-                   Map.Select(extEntry => new JProperty(
-                                              extEntry.Key,
-                                              extEntry.Value
-                                          ))
-               );
+        Byte[]                               AuthenticatorData     { get; }
+
+        Byte[]                               PublicKey             { get; }
+
+        COSEAlgorithmIdentifiers             PublicKeyAlgorithm    { get; }
+
+
+
+        JObject                              ParsedClientData             { get; }
+        JObject                              ParsedAttestation            { get; }
+        JObject                              ParsedAttestationAuthData    { get; }
+
 
     }
 
