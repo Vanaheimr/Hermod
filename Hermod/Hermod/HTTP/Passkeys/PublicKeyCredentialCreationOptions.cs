@@ -26,38 +26,58 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
+    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialcreationoptions
 
-    public class PublicKeyCredentialCreationOptions(Byte[]                                Challenge,
-                                                    PublicKeyCredentialRpEntity           Rp,
-                                                    PublicKeyCredentialUserEntity         User,
-                                                    List<PublicKeyCredentialParameters>   PubKeyCredParams,
-                                                    TimeSpan                              Timeout,
-                                                    String                                Attestation,
-                                                    List<PublicKeyCredentialDescriptor>?  ExcludeCredentials   = null)
+    public class PublicKeyCredentialCreationOptions(PublicKeyCredentialRpEntity                  RelyingParty,
+                                                    PublicKeyCredentialUserEntity                User,
+                                                    Byte[]                                       Challenge,
+                                                    IEnumerable<PublicKeyCredentialParameters>   PubKeyCredParams,
+
+                                                    TimeSpan?                                    Timeout              = null,
+                                                    IEnumerable<PublicKeyCredentialDescriptor>?  ExcludeCredentials   = null,
+                                                    IEnumerable<PublicKeyCredentialHint>?        Hints                = null,
+                                                    AttestationConveyancePreference?             Attestation          = null,
+                                                    IEnumerable<String>?                         AttestationFormats   = null,
+                                                    IEnumerable<String>?                         Extensions           = null)
     {
 
-        public Byte[]                               Challenge             { get; } = Challenge;
-        public PublicKeyCredentialRpEntity          Rp                    { get; } = Rp;
-        public PublicKeyCredentialUserEntity        User                  { get; } = User;
-        public List<PublicKeyCredentialParameters>  PubKeyCredParams      { get; } = PubKeyCredParams;
-        public TimeSpan                             Timeout               { get; } = Timeout;
-        public String                               Attestation           { get; } = Attestation;
-        public List<PublicKeyCredentialDescriptor>  ExcludeCredentials    { get; } = ExcludeCredentials ?? [];
+        public PublicKeyCredentialRpEntity                 RelyingParty          { get; } = RelyingParty;
+        public PublicKeyCredentialUserEntity               User                  { get; } = User;
+        public Byte[]                                      Challenge             { get; } = Challenge;
+        public IEnumerable<PublicKeyCredentialParameters>  PubKeyCredParams      { get; } = PubKeyCredParams.   Distinct();
+
+        public TimeSpan?                                   Timeout               { get; } = Timeout;
+        public IEnumerable<PublicKeyCredentialDescriptor>  ExcludeCredentials    { get; } = ExcludeCredentials?.Distinct() ?? [];
+        public IEnumerable<PublicKeyCredentialHint>        Hints                 { get; } = Hints?.             Distinct() ?? [];
+        public AttestationConveyancePreference?            Attestation           { get; } = Attestation;
+        public IEnumerable<String>                         AttestationFormats    { get; } = AttestationFormats?.Distinct() ?? [];
+
+        public IEnumerable<String>                         Extensions            { get; } = Extensions?.        Distinct() ?? [];
 
 
         public JObject ToJSON()
 
             => JSONObject.Create(
 
-                         new JProperty("challenge",            Convert.ToBase64String(Challenge)),
-                         new JProperty("rp",                   Rp.  ToJSON()),
+                         new JProperty("rp",                   RelyingParty.  ToJSON()),
                          new JProperty("user",                 User.ToJSON()),
-                         new JProperty("pubKeyCredParams",     new JArray(PubKeyCredParams.Select(xx => xx.ToJSON()))),
-                         new JProperty("timeout",              (Int32) Timeout.TotalMilliseconds),
-                         new JProperty("attestation",          Attestation),
+                         new JProperty("challenge",            Convert.ToBase64String(Challenge)),
+                         new JProperty("pubKeyCredParams",     new JArray(PubKeyCredParams.Select(publicKeyCredentialParameters => publicKeyCredentialParameters.ToJSON()))),
 
-                   ExcludeCredentials.Count > 0
-                       ? new JProperty("excludeCredentials",   new JArray(ExcludeCredentials.Select(ec => ec.ToJSON())))
+                   Timeout.HasValue
+                       ? new JProperty("timeout",              (Int32) Timeout.Value.TotalMilliseconds)
+                       : null,
+
+                   ExcludeCredentials.Any()
+                       ? new JProperty("excludeCredentials",   new JArray(ExcludeCredentials.Select(publicKeyCredentialDescriptor => publicKeyCredentialDescriptor.ToJSON())))
+                       : null,
+
+                   Hints.             Any()
+                       ? new JProperty("hints",                new JArray(Hints.             Select(publicKeyCredentialHint       => publicKeyCredentialHint.      ToString())))
+                       : null,
+
+                   Attestation.HasValue
+                       ? new JProperty("attestation",          Attestation)
                        : null
 
                );

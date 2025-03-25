@@ -15,40 +15,18 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using Newtonsoft.Json.Linq;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialrpentity
+    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialentity
 
-
-    /// <summary>
-    /// Informationen über den Relying Party (RP)
-    /// </summary>
-    public class PublicKeyCredentialRpEntity(String Id,
-                                             String Name)
-
-        : PublicKeyCredentialEntity(Name)
-
+    public abstract class PublicKeyCredentialEntity(String Name)
     {
 
         /// <summary>
-        /// z. B. die Domain (z.B. "example.com")
+        /// z. B. "Meine WebAuthn Anwendung"
         /// </summary>
-        public String  Id    { get; } = Id;
-
-
-        public JObject ToJSON()
-
-            => new (
-                   new JProperty("id",    Id),
-                   new JProperty("name",  Name)
-               );
+        public String  Name    { get; } = Name;
 
     }
 

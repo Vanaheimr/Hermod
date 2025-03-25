@@ -19,35 +19,41 @@
 
 using Newtonsoft.Json.Linq;
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialrpentity
+    // https://w3c.github.io/webauthn/#webauthn-extensions
 
 
     /// <summary>
-    /// Informationen über den Relying Party (RP)
+    /// An Authentication Extension
     /// </summary>
-    public class PublicKeyCredentialRpEntity(String Id,
-                                             String Name)
-
-        : PublicKeyCredentialEntity(Name)
-
+    public class AuthenticationExtension(String                      Name,
+                                         Dictionary<String, Object>  Map)
     {
 
         /// <summary>
-        /// z. B. die Domain (z.B. "example.com")
+        /// An "entry key" identifying the extension.
         /// </summary>
-        public String  Id    { get; } = Id;
+        public String                      Name    { get; } = Name;
+
+        /// <summary>
+        /// Parameters of the extension.
+        /// </summary>
+        public Dictionary<String, Object>  Map     { get; } = Map;
 
 
         public JObject ToJSON()
 
-            => new (
-                   new JProperty("id",    Id),
-                   new JProperty("name",  Name)
+            => JSONObject.Create(
+                   Map.Select(extEntry => new JProperty(
+                                              extEntry.Key,
+                                              extEntry.Value
+                                          ))
                );
 
     }

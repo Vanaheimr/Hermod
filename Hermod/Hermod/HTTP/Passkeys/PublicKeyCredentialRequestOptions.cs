@@ -32,14 +32,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
     /// Options for creating a new PublicKeyCredential.
     /// </summary>
     /// <param name="Challenge">The challenge that will be used for signing.</param>
-    /// <param name="RpId">An optional relying party identification (e.g. the domainname).</param>
+    /// <param name="RelyingPartyId">An optional relying party identification (e.g. the domainname).</param>
     /// <param name="UserVerification"></param>
     /// <param name="Timeout">An optional timeout for the operation.</param>
     /// <param name="AllowCredentials">An optional enumeration of allowed credentials when the user is already known.</param>
     /// <param name="Hints"></param>
     /// <param name="Extensions"></param>
     public class PublicKeyCredentialRequestOptions(Byte[]                                       Challenge,
-                                                   String?                                      RpId               = null,
+                                                   String?                                      RelyingPartyId     = null,
                                                    UserVerificationRequirement?                 UserVerification   = null,
                                                    TimeSpan?                                    Timeout            = null,
                                                    IEnumerable<PublicKeyCredentialDescriptor>?  AllowCredentials   = null,
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
     {
 
         public Byte[]                                      Challenge           { get; } = Challenge;
-        public String?                                     RpId                { get; } = RpId;
+        public String?                                     RelyingPartyId      { get; } = RelyingPartyId;
         public UserVerificationRequirement?                UserVerification    { get; } = UserVerification;
         public TimeSpan?                                   Timeout             { get; } = Timeout;
         public IEnumerable<PublicKeyCredentialDescriptor>  AllowCredentials    { get; } = AllowCredentials?.Distinct() ?? [];
@@ -62,8 +62,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
                          new JProperty("challenge",          Challenge.ToBase64()),
 
-                   RpId.IsNotNullOrEmpty()
-                       ? new JProperty("rpId",               RpId)
+                   RelyingPartyId.IsNotNullOrEmpty()
+                       ? new JProperty("rpId",               RelyingPartyId)
                        : null,
 
                    UserVerification.IsNotNullOrEmpty()

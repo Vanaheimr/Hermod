@@ -28,26 +28,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
 
     // Liste der unterstützten kryptografischen Algorithmen
-    public class PublicKeyCredentialParameters(String  Type,
-                                               Int32   Alg)
+    public class PublicKeyCredentialParameters(PublicKeyCredentialType   Type,
+                                               COSEAlgorithmIdentifiers  Alg)
     {
 
         /// <summary>
         /// Meist "public-key"
         /// </summary>
-        public String  Type    { get; } = Type;
+        public PublicKeyCredentialType   Type    { get; } = Type;
 
         /// <summary>
         /// COSE-Algorithmus-ID, z.B. -7 für ES256
         /// </summary>
-        public Int32   Alg     { get; } = Alg;
+        public COSEAlgorithmIdentifiers  Alg     { get; } = Alg;
 
 
         public JObject ToJSON()
 
             => new (
-                   new JProperty("type",  Type),
-                   new JProperty("alg",   Alg)
+                   new JProperty("type",  Type.ToString()),
+                   new JProperty("alg",   Alg. ToString())
                );
 
     }

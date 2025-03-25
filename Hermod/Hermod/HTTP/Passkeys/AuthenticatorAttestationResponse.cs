@@ -35,14 +35,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 
         #region Properties
 
-        public String  ClientDataJSON               { get; }
+        public String   ClientDataJSON               { get; }
 
-        public String  AttestationObject            { get; }
+        public String   AttestationObject            { get; }
 
 
-        public JObject ParsedClientData             { get; }
-        public JObject ParsedAttestation            { get; }
-        public JObject ParsedAttestationAuthData    { get; }
+        public JObject  ParsedClientData             { get; }
+        public JObject  ParsedAttestation            { get; }
+        public JObject  ParsedAttestationAuthData    { get; }
 
         #endregion
 
@@ -100,9 +100,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
             //     "aaguid":       "08987058cadc4b81b6e130de50dcbe96",                                  // In many authenticators this is all zeros!
             //     "credentialId": "52de645182399a0702e71a8bf4612c09f34d9999b4c12ece49166dfed8f53d71",  // The unique identifier for the credential
             //     "credentialPublicKey": {
-            //       "1": 2,                                                                            // "kty" => EC2
-            //       "3": -7,                                                                           // "alg" => ES256
-            //       "-1": 1,                                                                           // "crv" => P-256
+            //        "1":  2,                                                                          // "kty" => EC2
+            //        "3": -7,                                                                          // "alg" => ES256
+            //       "-1":  1,                                                                          // "crv" => P-256
             //       "-2": "6cca17b38ad29e7362637d5709ba5ee2ff14dc679ffa8a2d02e273b001167315",          // Elliptic curve public key x-coordinate
             //       "-3": "476c0b30ed56e603ebf983bc9284ed482acca54e8c10379c73bb0f01c9a76b28"           // Elliptic curve public key y-coordinate
             //     }

@@ -44,12 +44,16 @@ using Org.BouncyCastle.Asn1.X9;
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    public class WebAuthnService(String Hostname)
+    public class WebAuthnService(String  Name,
+                                 String  Hostname)
     {
 
         #region Properties
 
+        public String  Name        { get; } = Name;
+
         public String  Hostname    { get; } = Hostname;
+
 
         #endregion
 
@@ -141,46 +145,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
         public PublicKeyCredentialCreationOptions GenerateRegistrationOptions(IUser User)
         {
 
-            var challenge           = new Byte[32];
+            var challenge  = new Byte[32];
             RandomNumberGenerator.Fill(challenge);
-
-            var rp                  = new PublicKeyCredentialRpEntity(
-                                          Id:          Hostname,
-                                          Name:        "Meine WebAuthn Anwendung"
-                                      );
-
-            var userEntity          = new PublicKeyCredentialUserEntity(
-                                          Id:           Encoding.UTF8.GetBytes(User.Id.ToString()),
-                                          Name:         User.Id.  ToString(),
-                                          DisplayName:  User.Name.FirstText()
-                                      );
-
-            var pubKeyCredParams    = new List<PublicKeyCredentialParameters> {
-                                          new (
-                                              Type:  "public-key",
-                                              Alg:    -7   // ES256;
-                                          ),
-                                          new (
-                                              Type:  "public-key",
-                                              Alg:    -257 // RS256
-                                          )
-                                      };
-
-            // (Optional) Hole bereits registrierte Credentials des Nutzers, um Doppelregistrierungen zu vermeiden.
-            var excludeCredentials  = GetRegisteredCredentialsForUser(User);
-
 
             StoreChallengeForLogin(User.Id, challenge);
 
-            var options             = new PublicKeyCredentialCreationOptions(
-                                          Challenge:            challenge,
-                                          Rp:                   rp,
-                                          User:                 userEntity,
-                                          PubKeyCredParams:     pubKeyCredParams,
-                                          Timeout:              TimeSpan.FromSeconds(60),
-                                          Attestation:          "direct", // oder "none" bzw. "indirect"
-                                          ExcludeCredentials:   excludeCredentials
-                                      );
+            var options    = new PublicKeyCredentialCreationOptions(
+                                 Challenge:            challenge,
+                                 RelyingParty:         new PublicKeyCredentialRpEntity(
+                                                           Id:          Hostname,
+                                                           Name:        Name
+                                                       ),
+                                 User:                 new PublicKeyCredentialUserEntity(
+                                                           Id:           Encoding.UTF8.GetBytes(User.Id.ToString()),
+                                                           Name:         User.Id.  ToString(),
+                                                           DisplayName:  User.Name.FirstText()
+                                                       ),
+                                 PubKeyCredParams:     [
+                                                           new (
+                                                               PublicKeyCredentialType. PublicKey,
+                                                               COSEAlgorithmIdentifiers.ES256
+                                                           ),
+                                                           new (
+                                                               PublicKeyCredentialType. PublicKey,
+                                                               COSEAlgorithmIdentifiers.ES384
+                                                           ),
+                                                           new (
+                                                               PublicKeyCredentialType. PublicKey,
+                                                               COSEAlgorithmIdentifiers.ES512
+                                                           )
+                                                       ],
+                                 Timeout:              TimeSpan.FromSeconds(60),
+                                 Attestation:          AttestationConveyancePreference.Direct,
+                                 ExcludeCredentials:   GetRegisteredCredentialsForUser(User) // Avoid duplicates!
+                             );
 
             return options;
 
@@ -191,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
         /// Dummy-Implementierung: Gibt eine leere Liste zurück.
         /// Hier solltest du in einer echten Anwendung aus deiner Datenbank alle bereits registrierten Credentials des Benutzers abrufen.
         /// </summary>
-        private List<PublicKeyCredentialDescriptor> GetRegisteredCredentialsForUser(IUser currentUser)
+        private IEnumerable<PublicKeyCredentialDescriptor> GetRegisteredCredentialsForUser(IUser currentUser)
         {
             // Beispiel: Wenn du bereits gespeicherte Credentials hast, kannst du diese hier konvertieren:
             // return _credentialRepository.GetCredentialsByUserId(currentUser.Id)

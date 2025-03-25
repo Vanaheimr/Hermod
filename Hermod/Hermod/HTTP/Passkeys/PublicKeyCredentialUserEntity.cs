@@ -26,6 +26,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
+    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialuserentity
 
     /// <summary>
     /// Informationen über den Benutzer, der den Passkey registriert
@@ -33,17 +34,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
     public class PublicKeyCredentialUserEntity(Byte[]  Id,
                                                String  Name,
                                                String  DisplayName)
+
+        : PublicKeyCredentialEntity(Name)
+
     {
 
         /// <summary>
         /// Eindeutige ID als Byte-Array
         /// </summary>
         public Byte[]  Id             { get; } = Id;
-
-        /// <summary>
-        /// Benutzername (z. B. E-Mail oder Loginname)
-        /// </summary>
-        public String  Name           { get; } = Name;
 
         /// <summary>
         /// Anzeigename (vollständiger Name, etc.)

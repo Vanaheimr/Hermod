@@ -19,45 +19,43 @@
 
 using Newtonsoft.Json.Linq;
 
-using org.GraphDefined.Vanaheimr.Illias;
-
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-
+    // https://w3c.github.io/webauthn/#dictionary-credential-descriptor
 
     /// <summary>
     /// Beschreibung bereits vorhandener Credentials (um Duplikate zu verhindern)
     /// </summary>
-    public class PublicKeyCredentialDescriptor(String                Type,
-                                               Byte[]                Id,
-                                               IEnumerable<String>?  Transports   = null)
+    public class PublicKeyCredentialDescriptor(Byte[]                                Id,
+                                               PublicKeyCredentialType               Type,
+                                               IEnumerable<AuthenticatorTransport>?  Transports   = null)
     {
 
         /// <summary>
-        /// Meist "public-key"
+        /// The unique credential identification.
         /// </summary>
-        public String               Type          { get; } = Type;
+        public Byte[]                               Id            { get; } = Id;
 
         /// <summary>
-        /// Die registrierte Credential-ID
+        /// The type of the credential (default: "public-key").
         /// </summary>
-        public Byte[]               Id            { get; } = Id;
+        public PublicKeyCredentialType              Type          { get; } = Type;
 
         /// <summary>
-        /// Optional: z. B. ["ble", "hybrid", "internal", "nfc", and "usb".]
+        /// Optional transports for the credential, e.g. "ble", "hybrid", "internal", "nfc", "usb", ...
         /// </summary>
-        public IEnumerable<String>  Transports    { get; } = Transports?.Distinct() ?? [];
+        public IEnumerable<AuthenticatorTransport>  Transports    { get; } = Transports?.Distinct() ?? [];
 
 
         public JObject ToJSON()
 
             => new (
-                   new JProperty("type",         Type),
                    new JProperty("id",           Convert.ToBase64String(Id)),
-                   new JProperty("transports",   new JArray(Transports))
+                   new JProperty("type",         Type.ToString()),
+                   new JProperty("transports",   new JArray(Transports.Select(transport => transport.ToString())))
                );
 
     }

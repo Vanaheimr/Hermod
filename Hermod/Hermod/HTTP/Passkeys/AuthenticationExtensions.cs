@@ -18,36 +18,36 @@
 #region Usings
 
 using Newtonsoft.Json.Linq;
+using org.GraphDefined.Vanaheimr.Illias;
+using System.Text.Json.Nodes;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialrpentity
+    // https://w3c.github.io/webauthn/#webauthn-extensions
 
 
     /// <summary>
-    /// Informationen über den Relying Party (RP)
+    /// Authentication Extensions
     /// </summary>
-    public class PublicKeyCredentialRpEntity(String Id,
-                                             String Name)
-
-        : PublicKeyCredentialEntity(Name)
-
+    public class AuthenticationExtensions(IEnumerable<AuthenticationExtension>  List)
     {
 
         /// <summary>
-        /// z. B. die Domain (z.B. "example.com")
+        /// The list of authentication extensions.
         /// </summary>
-        public String  Id    { get; } = Id;
+        public IEnumerable<AuthenticationExtension>  List    { get; } = List;
 
 
         public JObject ToJSON()
 
-            => new (
-                   new JProperty("id",    Id),
-                   new JProperty("name",  Name)
+            => JSONObject.Create(
+                   List.Select(entry => new JProperty(
+                                           entry.Name,
+                                           entry.ToJSON()
+                                        ))
                );
 
     }
