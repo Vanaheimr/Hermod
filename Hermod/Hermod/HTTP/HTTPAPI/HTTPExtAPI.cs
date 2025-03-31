@@ -2121,11 +2121,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="RemoteAuthServers">Servers for remote authorization.</param>
         /// <param name="RemoteAuthAPIKeys">API keys for incoming remote authorizations.</param>
@@ -2422,11 +2422,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
         /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
@@ -2670,10 +2670,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// 
         ///// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         ///// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        ///// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        ///// <param name="MaintenanceEvery">The maintenance interval.</param>
         ///// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         ///// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        ///// <param name="WardenCheckEvery">The warden intervall.</param>
+        ///// <param name="WardenCheckEvery">The warden interval.</param>
         ///// 
         ///// <param name="SkipURLTemplates">Skip URL templates.</param>
         ///// <param name="DisableNotifications">Disable external notifications.</param>
@@ -3782,7 +3782,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                                           AppendLine(httpEvent.SerializedData).
                                                                                                                           AppendLine()).
                                                                     Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
                                                                     Append(Environment.NewLine).
                                                                     Append(Environment.NewLine).
                                                                     ToString();
@@ -3794,7 +3794,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
@@ -3849,7 +3849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = (httpEvents.Length > 1
                                                                      ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
                                                                      : "]").ToUTF8Bytes()
@@ -3930,7 +3930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                                           AppendLine(httpEvent.SerializedData).
                                                                                                                           AppendLine()).
                                                                     Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
                                                                     Append(Environment.NewLine).
                                                                     Append(Environment.NewLine).
                                                                     ToString();
@@ -3942,7 +3942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
@@ -3998,7 +3998,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = (httpEvents.Length > 1
                                                                      ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
                                                                      : "]").ToUTF8Bytes()

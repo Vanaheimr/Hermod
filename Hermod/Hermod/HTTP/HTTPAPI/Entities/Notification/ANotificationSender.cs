@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         #region Data
 
         /// <summary>
-        /// The default service check intervall.
+        /// The default service check interval.
         /// </summary>
         public readonly static TimeSpan       DefaultSendNotificationsEvery   = TimeSpan.FromSeconds(31);
 

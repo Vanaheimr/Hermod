@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         HTTPEventSource_Id              EventIdentification        { get; }
         Func<String, DateTime, String>  LogfileName                { get; }
         UInt64                          MaxNumberOfCachedEvents    { get; }
-        TimeSpan                        RetryIntervall             { get; set; }
+        TimeSpan                        RetryInterval              { get; set; }
 
         String ToString();
 

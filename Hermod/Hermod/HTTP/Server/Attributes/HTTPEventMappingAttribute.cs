@@ -55,9 +55,9 @@
 //        public UInt32      MaxNumberOfCachedEvents  { get; private set; }
 
 //        /// <summary>
-//        /// Retry intervall.
+//        /// Retry interval.
 //        /// </summary>
-//        public TimeSpan    RetryIntervall           { get; private set; }
+//        public TimeSpan    RetryInterval            { get; private set; }
 
 //        /// <summary>
 //        /// The event source may be accessed via multiple URI templates.
@@ -68,7 +68,7 @@
 
 //        #region Constructor(s)
 
-//        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, MaxNumberOfCachedEvents = 0, RetryIntervallSeconds = 30, IsSharedEventSource = false)
+//        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, MaxNumberOfCachedEvents = 0, RetryInterval Seconds = 30, IsSharedEventSource = false)
 
 //        /// <summary>
 //        /// Creates a new HTTP event mapping.
@@ -76,12 +76,12 @@
 //        /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
 //        /// <param name="UriTemplate">The URI template of this HTTP event mapping.</param>
 //        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
-//        /// <param name="RetryIntervallSeconds">The retry intervall in seconds.</param>
+//        /// <param name="RetryInterval Seconds">The retry interval in seconds.</param>
 //        /// <param name="IsSharedEventSource">The event source may be accessed via multiple URI templates.</param>
 //        public HTTPEventMappingAttribute(String   EventIdentification,
 //                                         String   UriTemplate,
 //                                         UInt32   MaxNumberOfCachedEvents  = 0,
-//                                         UInt64   RetryIntervallSeconds    = 30,
+//                                         UInt64   RetryInterval Seconds    = 30,
 //                                         Boolean  IsSharedEventSource      = false)
 
 //        {
@@ -90,14 +90,14 @@
 //            this.UriTemplate              = UriTemplate;
 //            this.HTTPMethod               = HTTPMethod.GET;
 //            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
-//            this.RetryIntervall           = TimeSpan.FromSeconds(RetryIntervallSeconds);
+//            this.RetryInterval            = TimeSpan.FromSeconds(RetryInterval Seconds);
 //            this.IsSharedEventSource      = IsSharedEventSource;
 
 //        }
 
 //        #endregion
 
-//        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, HTTPMethod, MaxNumberOfCachedEvents = 0, RetryIntervallSeconds = 30, IsSharedEventSource = false)
+//        #region HTTPEventMappingAttribute(EventIdentification, UriTemplate, HTTPMethod, MaxNumberOfCachedEvents = 0, RetryInterval Seconds = 30, IsSharedEventSource = false)
 
 //        /// <summary>
 //        /// Creates a new HTTP event mapping.
@@ -106,13 +106,13 @@
 //        /// <param name="UriTemplate">The URI template of this HTTP event mapping.</param>
 //        /// <param name="HTTPMethod">The HTTP method to use.</param>
 //        /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events (0 means infinite).</param>
-//        /// <param name="RetryIntervallSeconds">The retry intervall in seconds.</param>
+//        /// <param name="RetryInterval Seconds">The retry interval in seconds.</param>
 //        /// <param name="IsSharedEventSource">The event source may be accessed via multiple URI templates.</param>
 //        public HTTPEventMappingAttribute(String       EventIdentification,
 //                                         String       UriTemplate,
 //                                         HTTPMethods  HTTPMethod,
 //                                         UInt32       MaxNumberOfCachedEvents  = 0,
-//                                         UInt64       RetryIntervallSeconds    = 30,
+//                                         UInt64       RetryInterval Seconds    = 30,
 //                                         Boolean      IsSharedEventSource      = false)
 
 //        {
@@ -121,7 +121,7 @@
 //            this.UriTemplate              = UriTemplate;
 //            this.HTTPMethod               = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.Parse(HTTPMethod);
 //            this.MaxNumberOfCachedEvents  = MaxNumberOfCachedEvents;
-//            this.RetryIntervall           = TimeSpan.FromSeconds(RetryIntervallSeconds);
+//            this.RetryInterval            = TimeSpan.FromSeconds(RetryInterval Seconds);
 //            this.IsSharedEventSource      = IsSharedEventSource;
 
 //        }

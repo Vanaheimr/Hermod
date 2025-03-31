@@ -94,6 +94,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<String>  FileExtensions
             => fileExtensions;
 
+
+        /// <summary>
+        /// The constructed media type.
+        /// </summary>
+        public String               MediaType
+            => $"{MediaMainType}/{MediaSubType}";
+
         #endregion
 
 

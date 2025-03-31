@@ -140,9 +140,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => QueueOfEvents.MaxNumberOfElements;
 
         /// <summary>
-        /// The retry intervall of this HTTP event.
+        /// The retry interval of this HTTP event.
         /// </summary>
-        public TimeSpan                         RetryIntervall             { get; set; }
+        public TimeSpan                         RetryInterval              { get; set; }
 
         /// <summary>
         /// The path to the log file.
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventIdentification">The internal identification of the HTTP event.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
         /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
         /// <param name="EnableLogging">Whether to enable event logging.</param>
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPEventSource(HTTPEventSource_Id               EventIdentification,
                                HTTPAPI                          HTTPAPI,
                                UInt64                           MaxNumberOfCachedEvents      = 500,
-                               TimeSpan?                        RetryIntervall               = null,
+                               TimeSpan?                        RetryInterval                = null,
                                Func<T, String>?                 DataSerializer               = null,
                                Func<String, T?>?                DataDeserializer             = null,
                                Boolean                          EnableLogging                = true,
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.HTTPAPI              = HTTPAPI;
             this.EventIdentification  = EventIdentification;
             this.QueueOfEvents        = new LockFreeQueue<HTTPEvent<T>>(MaxNumberOfCachedEvents);
-            this.RetryIntervall       = RetryIntervall   ?? TimeSpan.FromSeconds(30);
+            this.RetryInterval        = RetryInterval    ?? TimeSpan.FromSeconds(30);
             this.DataSerializer       = DataSerializer   ?? (data => data?.ToString() ?? "");
             this.DataDeserializer     = DataDeserializer ?? (data => default);
             this.LogfilePath          = LogfilePath      ?? AppContext.BaseDirectory;
