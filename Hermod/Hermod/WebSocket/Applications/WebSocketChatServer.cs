@@ -279,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                              RequestTimestamp,
                              BinaryMessage,
                              Timestamp.Now,
-                             "Unkown error!".ToUTF8Bytes(),
+                             "Unknown error!".ToUTF8Bytes(),
                              EventTrackingId,
                              CancellationToken
                          );

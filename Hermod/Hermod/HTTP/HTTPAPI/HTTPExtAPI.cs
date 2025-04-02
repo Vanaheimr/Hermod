@@ -5291,7 +5291,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         organizationId.ToString()),
-                                                                                              new JProperty("description",  $"Unkown organization identification '{organizationId}'!")
+                                                                                              new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
                                                                                           ).ToUTF8Bytes()
                                                          };
 
@@ -5778,7 +5778,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           responseBuilder.Content = JSONObject.Create(
                                                                         new JProperty("data",         organizationId.ToString()),
-                                                                        new JProperty("description",  $"Unkown organization identification '{organizationId}'!")
+                                                                        new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
                                                                     ).ToUTF8Bytes();
 
                                           return responseBuilder;
