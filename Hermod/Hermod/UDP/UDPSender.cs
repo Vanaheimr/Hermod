@@ -389,7 +389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -399,12 +399,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 DotNetSocket.Send(UDPPacketData, 0, UDPPacketData.Length, UDPSocketFlags, out SocketErrorCode);
 
                 if (SocketErrorCode != SocketError.Success)
-                    ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
+                    ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error: " + SocketErrorCode.ToString()));
 
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -441,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
+                ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The MessageProcessor lead to an error!", e));
             }
 
             try
@@ -455,7 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             }
             catch (Exception e)
             {
-                ProcessExceptionOccured(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error!", e));
+                ProcessExceptionOccurred(this, Timestamp.Now, EventTracking_Id.New, new Exception("The UDP packet transmission lead to an error!", e));
             }
 
         }
@@ -476,7 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         #endregion
 
 
-        #region ProcessExceptionOccured(Sender, Timestamp, ExceptionMessage)
+        #region ProcessExceptionOccurred(Sender, Timestamp, ExceptionMessage)
 
         /// <summary>
         /// An error occured at the arrow sender.
@@ -484,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="ExceptionMessage">The exception leading to this error.</param>
-        public virtual void ProcessExceptionOccured(dynamic Sender, DateTime Timestamp, EventTracking_Id EventTrackingId, Exception ExceptionMessage)
+        public virtual void ProcessExceptionOccurred(dynamic Sender, DateTime Timestamp, EventTracking_Id EventTrackingId, Exception ExceptionMessage)
         {
             // Error handling should better be part of the application logic!
             // Overwrite this method to signal the error, e.g. by sending a nice UDP packet.

@@ -1251,7 +1251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             await DetachTCPPorts(
                       tcpServer => {
                           tcpServer.OnNotification     -= ProcessArrow;
-                          tcpServer.OnExceptionOccured -= ProcessExceptionOccured;
+                          tcpServer.OnExceptionOccurred -= ProcessExceptionOccurred;
                           tcpServer.OnCompleted        -= ProcessCompleted;
                       },
                       Ports
@@ -1770,17 +1770,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, EventTracking, ExceptionMessage)
+        #region ProcessExceptionOccurred(Sender, Timestamp, EventTracking, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object            Sender,
+        public void ProcessExceptionOccurred(Object            Sender,
                                             DateTime          Timestamp,
                                             EventTracking_Id  EventTracking,
                                             Exception         ExceptionMessage)
         {
 
-            //var OnExceptionOccuredLocal = OnExceptionOccured;
-            //if (OnExceptionOccuredLocal != null)
-            //    OnExceptionOccuredLocal(Sender,
+            //var OnExceptionOccurredLocal = OnExceptionOccurred;
+            //if (OnExceptionOccurredLocal != null)
+            //    OnExceptionOccurredLocal(Sender,
             //                            Timestamp,
             //                            ExceptionMessage);
 

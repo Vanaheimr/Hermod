@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler?                OnExceptionOccured;
+        public event ExceptionOccurredEventHandler?                OnExceptionOccurred;
 
         /// <summary>
         /// An event fired when the UDP receiver stopped.
@@ -545,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                         }
                         catch (Exception e)
                         {
-                            OnExceptionOccured?.Invoke(this, Timestamp.Now, EventTrackingId, e);
+                            OnExceptionOccurred?.Invoke(this, Timestamp.Now, EventTrackingId, e);
                         }
 
                     }
@@ -562,7 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             catch (Exception e)
             {
 
-                OnExceptionOccured?.Invoke(
+                OnExceptionOccurred?.Invoke(
                     this,
                     Timestamp.Now,
                     EventTrackingId,

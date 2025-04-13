@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         InvalidRemoteHost,
         NoIPAddressFound,
         UnknownError,
-        ExceptionOccured
+        ExceptionOccurred
     }
 
 }

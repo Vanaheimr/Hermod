@@ -373,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler?  OnExceptionOccured;
+        public event ExceptionOccurredEventHandler?  OnExceptionOccurred;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
@@ -512,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     tcpServer.OnNewConnection    += SendNewConnection;
                     tcpServer.OnConnectionClosed += SendConnectionClosed;
                     tcpServer.OnCompleted        += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
-                    tcpServer.OnExceptionOccured += SendExceptionOccured;
+                    tcpServer.OnExceptionOccurred += SendExceptionOccurred;
 
                     Action(tcpServer);
 
@@ -568,7 +568,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     tcpServer.OnNewConnection    += SendNewConnection;
                     tcpServer.OnConnectionClosed += SendConnectionClosed;
                     tcpServer.OnCompleted        += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
-                    tcpServer.OnExceptionOccured += SendExceptionOccured;
+                    tcpServer.OnExceptionOccurred += SendExceptionOccurred;
 
                     Action(tcpServer);
 
@@ -613,7 +613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                             tcpServer.OnNewConnection     -= SendNewConnection;
                             tcpServer.OnConnectionClosed  -= SendConnectionClosed;
                             tcpServer.OnCompleted         -= SendCompleted;
-                            tcpServer.OnExceptionOccured  -= SendExceptionOccured;
+                            tcpServer.OnExceptionOccurred  -= SendExceptionOccurred;
 
                             Action(tcpServer);
 
@@ -794,15 +794,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region (protected) SendExceptionOccured  (Sender, Timestamp, EventTrackingId, Exception)
+        #region (protected) SendExceptionOccurred  (Sender, Timestamp, EventTrackingId, Exception)
 
-        protected void SendExceptionOccured(Object            Sender,
+        protected void SendExceptionOccurred(Object            Sender,
                                             DateTime          Timestamp,
                                             EventTracking_Id  EventTrackingId,
                                             Exception         Exception)
         {
 
-            OnExceptionOccured?.Invoke(
+            OnExceptionOccurred?.Invoke(
                 Sender,
                 Timestamp,
                 EventTrackingId,

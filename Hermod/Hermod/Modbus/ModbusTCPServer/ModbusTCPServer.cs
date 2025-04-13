@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        //public event ExceptionOccuredEventHandler?                  OnExceptionOccured;
+        //public event ExceptionOccurredEventHandler?                  OnExceptionOccurred;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
