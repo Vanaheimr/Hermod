@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         internal event InternalErrorLogHandler?                        ErrorLog;
 
-        public   event ExceptionOccuredEventHandler?                   OnExceptionOccured;
+        public   event ExceptionOccurredEventHandler?                   OnExceptionOccurred;
 
         #endregion
 
@@ -707,15 +707,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, EventTrackingId, ExceptionMessage)
+        #region ProcessExceptionOccurred(Sender, Timestamp, EventTrackingId, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object            Sender,
+        public void ProcessExceptionOccurred(Object            Sender,
                                             DateTime          Timestamp,
                                             EventTracking_Id  EventTrackingId,
                                             Exception         ExceptionMessage)
         {
 
-            OnExceptionOccured?.Invoke(
+            OnExceptionOccurred?.Invoke(
                 Sender,
                 Timestamp,
                 EventTrackingId,

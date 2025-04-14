@@ -2023,13 +2023,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (private) HandleErrors(Caller, ExceptionOccured)
+        #region (private) HandleErrors(Caller, ExceptionOccurred)
 
         private Task HandleErrors(String     Caller,
-                                  Exception  ExceptionOccured)
+                                  Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccured, Caller);
+            DebugX.LogException(ExceptionOccurred, Caller);
 
             return Task.CompletedTask;
 

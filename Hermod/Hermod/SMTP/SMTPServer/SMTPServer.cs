@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             await base.DetachTCPPorts(
                       tcpServer => {
                           tcpServer.OnNotification      -= _SMTPConnection.ProcessArrow;
-                          tcpServer.OnExceptionOccured  -= _SMTPConnection.ProcessExceptionOccured;
+                          tcpServer.OnExceptionOccurred  -= _SMTPConnection.ProcessExceptionOccurred;
                           tcpServer.OnCompleted         -= _SMTPConnection.ProcessCompleted;
                       },
                       Ports

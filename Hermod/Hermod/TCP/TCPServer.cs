@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccuredEventHandler?               OnExceptionOccured;
+        public event ExceptionOccurredEventHandler?               OnExceptionOccurred;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
@@ -471,10 +471,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                     try
                                     {
 
-                                        #region Copy ExceptionOccured event handlers
+                                        #region Copy ExceptionOccurred event handlers
 
-                                        //foreach (var ExceptionOccuredHandler in MyEventStorage)
-                                        //    _TCPConnection.Value.OnExceptionOccured += ExceptionOccuredHandler;
+                                        //foreach (var ExceptionOccurredHandler in MyEventStorage)
+                                        //    _TCPConnection.Value.OnExceptionOccurred += ExceptionOccurredHandler;
 
                                         #endregion
 
@@ -502,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         while (e.InnerException is not null)
                                             e = e.InnerException;
 
-                                        OnExceptionOccured?.Invoke(
+                                        OnExceptionOccurred?.Invoke(
                                             this,
                                             Timestamp.Now,
                                             EventTracking_Id.New,
@@ -551,7 +551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     DebugX.Log(" [", nameof(TCPServer), "] Exception occurred: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
 
-                    var OnExceptionLocal = OnExceptionOccured;
+                    var OnExceptionLocal = OnExceptionOccurred;
                     if (OnExceptionLocal is not null)
                         OnExceptionLocal(
                             this,

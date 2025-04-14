@@ -1815,15 +1815,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (private)   HandleErrors (Caller, ExceptionOccured)
+        #region (private)   HandleErrors (Caller, ExceptionOccurred)
 
         private Task HandleErrors(String     Caller,
-                                  Exception  ExceptionOccured)
+                                  Exception  ExceptionOccurred)
 
             => HandleErrors(
                    nameof(WebSocketClient),
                    Caller,
-                   ExceptionOccured
+                   ExceptionOccurred
                );
 
         #endregion
@@ -1876,14 +1876,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         #endregion
 
-        #region (protected) HandleErrors (Module, Caller, ExceptionOccured)
+        #region (protected) HandleErrors (Module, Caller, ExceptionOccurred)
 
         protected Task HandleErrors(String     Module,
                                     String     Caller,
-                                    Exception  ExceptionOccured)
+                                    Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccured, $"{Module}.{Caller}");
+            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
 
             return Task.CompletedTask;
 

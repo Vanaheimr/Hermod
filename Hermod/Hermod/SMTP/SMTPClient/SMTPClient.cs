@@ -768,7 +768,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 catch (Exception e)
                 {
                     DebugX.LogException(e);
-                    result = MailSentStatus.ExceptionOccured;
+                    result = MailSentStatus.ExceptionOccurred;
                 }
                 finally
                 {
