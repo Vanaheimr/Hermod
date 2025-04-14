@@ -1,6 +1,6 @@
 ﻿/*
- * Copyright (c) 2014-2016, Achim 'ahzf' Friedland <achim.friedland@graphdefined.com>
- * This file is part of Vanaheimr BouncyCastle <http://www.github.com/Vanaheimr/BouncyCastle>
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ using Org.BouncyCastle.Security;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.BouncyCastle
+namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     public static class OpenPGP
