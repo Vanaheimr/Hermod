@@ -629,6 +629,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region GetByte  (ParameterName)
+
+        public Byte? GetByte(String ParameterName)
+        {
+
+            if (internalDictionary.TryGetValue(ParameterName, out var values) &&
+                values is not null &&
+                values.Count > 0 &&
+                Byte.TryParse(values.LastOrDefault()?.ToString(), out var number))
+            {
+                return number;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+
         #region GetInt16 (ParameterName)
 
         public Int16? GetInt16(String ParameterName)

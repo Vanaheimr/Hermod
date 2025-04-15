@@ -2405,7 +2405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPAPI(HTTPServer, HTTPHostname = null, ...)
+        #region HTTPExtAPI(HTTPServer, HTTPHostname = null, ...)
 
         /// <summary>
         /// Create a new HTTP API.
@@ -2637,7 +2637,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        public HTTPExtAPI(HTTPServer               HTTPServer,
+                          HTTPHostname?            HTTPHostname              = null,
+                          String?                  ExternalDNSName           = "",
+                          String?                  HTTPServiceName           = DefaultHTTPServiceName,
+                          HTTPPath?                BasePath                  = null,
+
+                          HTTPPath?                URLPathPrefix             = null,
+                          String?                  HTMLTemplate              = null,
+                          JObject?                 APIVersionHashes          = null,
+
+                          Boolean?                 DisableMaintenanceTasks   = false,
+                          TimeSpan?                MaintenanceInitialDelay   = null,
+                          TimeSpan?                MaintenanceEvery          = null,
+
+                          Boolean?                 DisableWardenTasks        = false,
+                          TimeSpan?                WardenInitialDelay        = null,
+                          TimeSpan?                WardenCheckEvery          = null,
+
+                          Boolean?                 IsDevelopment             = false,
+                          IEnumerable<String>?     DevelopmentServers        = null,
+                          Boolean?                 DisableLogging            = false,
+                          String?                  LoggingPath               = null,
+                          String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
+                          LogfileCreatorDelegate?  LogfileCreator            = null,
+
+                          Boolean                  AutoStart                 = false)
+
+            : base(HTTPServer,
+                   HTTPHostname,
+                   ExternalDNSName,
+                   HTTPServiceName,
+                   BasePath,
+
+                   URLPathPrefix,
+                   HTMLTemplate,
+                   APIVersionHashes,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
+
+                   IsDevelopment,
+                   DevelopmentServers,
+                   DisableLogging,
+                   LoggingPath,
+                   LogfileName,
+                   LogfileCreator,
+
+                   AutoStart)
+
+        { }
+
         #endregion
+
 
         #region (static) AttachToHTTPAPI(HTTPServer, URLPrefix = "/", ...)
 
