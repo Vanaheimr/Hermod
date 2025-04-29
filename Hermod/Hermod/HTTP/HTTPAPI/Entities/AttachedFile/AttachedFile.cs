@@ -490,9 +490,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(AttachedFile)
 
         /// <summary>
-        /// Compares two defibrillator identifications for equality.
+        /// Compares two remote party identifications for equality.
         /// </summary>
-        /// <param name="AttachedFile">A defibrillator identification to compare with.</param>
+        /// <param name="AttachedFile">A remote party identification to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(AttachedFile AttachedFile)
 

@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="Embedded">Whether this data is embedded into another data structure, e.g. into a defibrillator.</param>
+        /// <param name="Embedded">Whether this data is embedded into another data structure, e.g. into a remote party.</param>
         public JObject ToJSON(Boolean     Embedded           = false,
                               InfoStatus  ExpandDescription  = InfoStatus.Hidden)
 
