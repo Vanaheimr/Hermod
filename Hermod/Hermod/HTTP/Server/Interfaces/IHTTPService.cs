@@ -45,7 +45,7 @@
 //        IEnumerable<HTTPContentType>    HTTPContentTypes    { get; }
 
 //        /// <summary>
-//        /// All embedded ressources.
+//        /// All embedded resources.
 //        /// </summary>
 //        IDictionary<String, Assembly>   AllResources        { get; set; }
 

@@ -1020,7 +1020,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  static readonly    HTTPPath                DefaultURLPathPrefix            = HTTPPath.Parse("/");
 
         /// <summary>
-        /// The HTTP root for embedded ressources.
+        /// The HTTP root for embedded resources.
         /// </summary>
         public  const              String                  HTTPRoot                        = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 

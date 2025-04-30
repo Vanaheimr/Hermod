@@ -499,20 +499,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             var SignTheMail     = false;
             var EncryptTheMail  = false;
 
-            EMailBodypart BodypartToBeSecured = null;
+            EMailBodypart? bodypartToBeSecured = null;
 
             #region Add attachments, if available...
 
             if (_Attachments       == null ||
                 _Attachments.Count == 0)
-                BodypartToBeSecured  = _EncodeBodyparts();
+                bodypartToBeSecured  = _EncodeBodyparts();
 
             else
-                BodypartToBeSecured  = new EMailBodypart(ContentTypeBuilder:       AEMail => new MailContentType(AEMail, MailContentTypes.multipart_mixed) { CharSet = "utf-8" }.GenerateMIMEBoundary(),
-                                                         ContentTransferEncoding:  "8bit",
-                                                         Content:                  new String[] { "This is a multi-part message in MIME format." },
-                                                         NestedBodyparts:          new EMailBodypart[] { _EncodeBodyparts() }.
-                                                                                       Concat(_Attachments));
+                bodypartToBeSecured  = new EMailBodypart(
+                                           ContentTypeBuilder:       AEMail => new MailContentType(AEMail, MailContentTypes.multipart_mixed) { CharSet = "utf-8" }.GenerateMIMEBoundary(),
+                                           ContentTransferEncoding:  "8bit",
+                                           Content:                  [ "This is a multi-part message in MIME format." ],
+                                           NestedBodyparts:          new EMailBodypart[] {
+                                                                         _EncodeBodyparts()
+                                                                     }.Concat(_Attachments)
+                                       );
 
             #endregion
 
@@ -581,7 +584,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             if (SignTheMail & !EncryptTheMail)
             {
 
-                var dataToBeSigned      = BodypartToBeSecured.
+                var dataToBeSigned      = bodypartToBeSecured.
 
                                               // Include headers of this MIME body
                                               // https://tools.ietf.org/html/rfc1847 Security Multiparts for MIME:
@@ -605,15 +608,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                            CharSet   = "utf-8",
                                                                        },
                                           ContentTransferEncoding:     "8bit",
-                                          NestedBodyparts:             new EMailBodypart[] {
+                                          NestedBodyparts:             [
 
-                                                                           BodypartToBeSecured,
+                                                                           bodypartToBeSecured,
 
                                                                            new EMailBodypart(ContentTypeBuilder:       AMail => new MailContentType(AMail, MailContentTypes.application_pgp__signature) { CharSet = "utf-8" },
                                                                                          //    ContentTransferEncoding:  "8bit",
                                                                                              ContentDescription:       "OpenPGP digital signature",
                                                                                              ContentDisposition:       ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
-                                                                                             Content:                  new String[] {
+                                                                                             Content:                  [
 
                                                                                                                            OpenPGP.CreateSignature(new MemoryStream(dataToBeSigned.ToUTF8Bytes()),
                                                                                                                                                    From.SecretKeyRing?.GetSecretKeys().Cast<PgpSecretKey>().ToList().First(),
@@ -623,9 +626,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                                                                                    WriteTo(new MemoryStream(), CloseOutputStream: false).
                                                                                                                                        ToUTF8String()
 
-                                                                                                                       })
+                                                                                                                       ])
 
-                                                                       }
+                                                                       ]
                                          );
 
             }
@@ -637,7 +640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             else if (SignTheMail & EncryptTheMail)
             {
 
-                var Plaintext   = BodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
+                var Plaintext   = bodypartToBeSecured.ToText().Aggregate((a, b) => a + "\r\n" + b).ToUTF8Bytes();
                 var Ciphertext  = new MemoryStream();
 
                 OpenPGP.EncryptSignAndZip(InputStream:            new MemoryStream(Plaintext),
@@ -660,19 +663,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                                                            CharSet  = "utf-8",
                                                                        },
                                           ContentTransferEncoding:     "8bit",
-                                          NestedBodyparts:             new EMailBodypart[] {
+                                          NestedBodyparts:             [
 
                                                                            new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(AMail, MailContentTypes.application_pgp__encrypted) { CharSet = "utf-8" },
                                                                                              ContentDescription:   "PGP/MIME version identification",
                                                                                              ContentDisposition:   ContentDispositions.attachment.ToString() + "; filename=\"signature.asc\"",
-                                                                                             Content:              new String[] { "Version: 1" }),
+                                                                                             Content:              [ "Version: 1" ]),
 
                                                                            new EMailBodypart(ContentTypeBuilder:   AMail => new MailContentType(AMail, MailContentTypes.application_octet__stream) { CharSet = "utf-8" },
                                                                                              ContentDescription:   "OpenPGP encrypted message",
                                                                                              ContentDisposition:   ContentDispositions.inline.ToString() + "; filename=\"encrypted.asc\"",
-                                                                                             Content:              new String[] { Ciphertext.ToArray().ToUTF8String() }),
+                                                                                             Content:              [ Ciphertext.ToArray().ToUTF8String() ]),
 
-                                                                       }
+                                                                       ]
                                          );
 
             }
@@ -681,7 +684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
             else
-                this._Body = BodypartToBeSecured;
+                this._Body = bodypartToBeSecured;
 
             return this;
 
