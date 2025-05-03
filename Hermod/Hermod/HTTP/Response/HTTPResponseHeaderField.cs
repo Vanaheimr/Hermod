@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPResponseHeaderField<DateTime> LastModified = new ("Last-Modified",
                                                                                      RequestPathSemantic.EndToEnd,
                                                                                      StringParser:     DateTime.TryParse,
-                                                                                     ValueSerializer:  dateTime => dateTime.ToIso8601());
+                                                                                     ValueSerializer:  dateTime => dateTime.ToISO8601());
 
         #endregion
 

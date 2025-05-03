@@ -3254,7 +3254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     Logfile.WriteLine(
                         String.Concat(Request.HTTPSource.ToString(), Environment.NewLine,
-                                      Request.Timestamp.ToIso8601(), Environment.NewLine,
+                                      Request.Timestamp.ToISO8601(), Environment.NewLine,
                                       Request.EventTrackingId, Environment.NewLine,
                                       Request.EntirePDU, Environment.NewLine,
                                       "======================================================================================"));
@@ -3449,7 +3449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private String GenerateCookieSettings(DateTime Expires)
 
-            => String.Concat("; Expires=",  Expires.ToRfc1123(),
+            => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
                                  : "",
@@ -4515,7 +4515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            expires));
 
                                       File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                         securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
+                                                         securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
 
                                   }
 
@@ -4833,7 +4833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                 ).ToUTF8Bytes(),
                                                    SetCookie                  = new HTTPCookies(
                                                                                     HTTPCookie.Parse(
-                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                                   HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                                       ? "; Domain=" + HTTPCookieDomain
                                                                                                       : "",
@@ -4856,7 +4856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                 ).ToUTF8Bytes(),
                                                    SetCookie                  = new HTTPCookies(
                                                                                     HTTPCookie.Parse(
-                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                                       HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                                           ? "; Domain=" + HTTPCookieDomain
                                                                                                           : "",
@@ -5017,7 +5017,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Content                     = JSONObject.Create(
 
                                                                                    new JProperty("userId",   securityToken.UserId. ToString()),
-                                                                                   new JProperty("expires",  securityToken.Expires.ToIso8601()),
+                                                                                   new JProperty("expires",  securityToken.Expires.ToISO8601()),
 
                                                                                    securityToken.SuperUserId.HasValue
                                                                                        ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
@@ -5578,13 +5578,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            CacheControl    = "private",
                                            SetCookie       = HTTPCookies.Parse(
 
-                                                                 String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                 String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                    ? "; Domain=" + HTTPCookieDomain
                                                                                    : "",
                                                                                "; Path=", URLPathPrefix),
 
-                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                    ? "; Domain=" + HTTPCookieDomain
                                                                                    : "",
@@ -6484,7 +6484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        expires));
 
                                   await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
+                                                                securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
 
                                   #endregion
 
@@ -6531,13 +6531,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           CacheControl    = "private",
                                           SetCookie       = HTTPCookies.Parse(
 
-                                                                String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
                                                                                   : "",
                                                                               "; Path=", URLPathPrefix),
 
-                                                                String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
                                                                                   : "",
@@ -6635,7 +6635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        superUser.Id));
 
                                   await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                $"{securityTokenId};{userURL.Id};{expires.ToIso8601()};{superUser.Id}{Environment.NewLine}");
+                                                                $"{securityTokenId};{userURL.Id};{expires.ToISO8601()};{superUser.Id}{Environment.NewLine}");
 
                                   #endregion
 
@@ -6738,7 +6738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        expires));
 
                                   await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                $"{securityTokenId};{superUser.Id};{expires.ToIso8601()}{Environment.NewLine}");
+                                                                $"{securityTokenId};{superUser.Id};{expires.ToISO8601()}{Environment.NewLine}");
 
                                   #endregion
 
@@ -12819,7 +12819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
                                            new JProperty("userId",                (CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot.Id).ToString()),
                                            new JProperty("systemId",              SystemId.ToString()),
-                                           new JProperty("timestamp",             Now.ToIso8601()),
+                                           new JProperty("timestamp",             Now.ToISO8601()),
                                            new JProperty("sha256hash",            new JObject(
                                                new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
                                                new JProperty("parentHash",            CurrentDatabaseHashValue)
@@ -14077,7 +14077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userCreated",
                                                                  User.ToJSON()
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
                         }
 
@@ -14088,7 +14088,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userUpdated",
                                                                  User.ToJSON()
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
                         }
 
@@ -14330,7 +14330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userDeleted",
                                                                  User.ToJSON()
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -19793,7 +19793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userGroupDeleted",
                                                                  UserGroup.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -23888,7 +23888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("organizationCreated",
                                                                  Organization.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         if (messageTypes.Contains(updateOrganization_MessageType))
@@ -23897,7 +23897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("organizationUpdated",
                                                                  Organization.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -24122,7 +24122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("organizationDeleted",
                                                                  Organization.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -28566,7 +28566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("user",         User.        ToJSON())
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         if (MessageTypes.Contains(removeUserFromOrganization_MessageType))
@@ -28578,7 +28578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("user",         User.        ToJSON())
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -29391,7 +29391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("parentOrganization", OrganizationIn. ToJSON(true))
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         }
@@ -29407,7 +29407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("parentOrganization", OrganizationIn. ToJSON(true))
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         }

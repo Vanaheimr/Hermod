@@ -481,7 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
         private String GenerateCookieSettings(DateTime Expires)
 
-            => String.Concat("; Expires=",  Expires.ToRfc1123(),
+            => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
                                  : "",

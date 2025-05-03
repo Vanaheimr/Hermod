@@ -158,7 +158,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        ? null
                        : new JProperty("@context",        JSONLDContext.       ToString()),
 
-                   new JProperty("timestamp",             Timestamp.           ToIso8601()),
+                   new JProperty("timestamp",             Timestamp.           ToISO8601()),
                    new JProperty("userIds",               new JArray(Users.Select(user => user.Id.ToString()))),
                    new JProperty("securityToken1",        SecurityToken1.      ToString()),
 

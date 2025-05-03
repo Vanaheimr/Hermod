@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                        ? new JProperty("@context",   JSONLDContext.ToString())
                        : null,
 
-                   new JProperty("timestamp",  Timestamp.ToIso8601()),
+                   new JProperty("timestamp",  Timestamp.ToISO8601()),
                    new JProperty("type",       Type.ToString()),
                    new JProperty("data",       Data),
                    new JProperty("ownerIds",   new JArray(Owners.Select(orgId => orgId.ToString()))),

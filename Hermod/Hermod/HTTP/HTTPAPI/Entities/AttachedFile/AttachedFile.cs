@@ -143,11 +143,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                : null,
 
                            Created.HasValue
-                               ? new JProperty("created",             Created.     Value.ToIso8601())
+                               ? new JProperty("created",             Created.     Value.ToISO8601())
                                : null,
 
                            LastModified.HasValue
-                               ? new JProperty("lastModified",        LastModified.Value.ToIso8601())
+                               ? new JProperty("lastModified",        LastModified.Value.ToISO8601())
                                : null,
 
                            Size.HasValue
