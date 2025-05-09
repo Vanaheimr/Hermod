@@ -40,7 +40,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The extended HTTP API.
         /// </summary>
-        public THTTPAPI  HTTPBaseAPI    { get; }
+        public THTTPAPI  HTTPBaseAPI       { get; }
+
+        /// <summary>
+        /// The optional API version hash (git commit hash value).
+        /// </summary>
+        public String?   APIVersionHash    { get; }
 
         #endregion
 
@@ -51,12 +56,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPAPI">A HTTP API.</param>
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
+        /// <param name="APIVersionHash">An optional API version hash (git commit hash value).</param>
         public AHTTPAPIExtension(THTTPAPI                 HTTPAPI,
                                  String?                  HTTPServerName       = null,
                                  HTTPPath?                URLPathPrefix        = null,
                                  HTTPPath?                BasePath             = null,
                                  String?                  HTMLTemplate         = null,
 
+                                 String?                  APIVersionHash       = null,
                                  Boolean?                 IsDevelopment        = false,
                                  IEnumerable<String>?     DevelopmentServers   = null,
                                  Boolean?                 DisableLogging       = false,
@@ -78,7 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this.HTTPBaseAPI  = HTTPAPI;
+            this.HTTPBaseAPI     = HTTPAPI;
+            this.APIVersionHash  = APIVersionHash;
 
         }
 
