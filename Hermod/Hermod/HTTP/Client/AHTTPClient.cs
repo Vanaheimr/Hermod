@@ -191,12 +191,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname?                                              VirtualHostname               { get; }
 
         /// <summary>
-        /// The Remote X.509 certifcate.
+        /// The Remote X.509 certificate.
         /// </summary>
         public X509Certificate2?                                          RemoteCertificate             { get; private set; }
 
         /// <summary>
-        /// The Remote X.509 certifcate chain.
+        /// The Remote X.509 certificate chain.
         /// </summary>
         public X509Chain?                                                 RemoteCertificateChain        { get; private set; }
 
