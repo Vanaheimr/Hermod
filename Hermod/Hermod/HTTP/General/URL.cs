@@ -57,24 +57,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         /// <summary>
-        /// HTTP
+        /// Hypertext Transfer Protocol (HTTP)
         /// </summary>
         http,
 
         /// <summary>
-        /// HTTPS
+        /// Hypertext Transfer Protocol Secure (HTTPS)
         /// </summary>
         https,
 
         /// <summary>
-        /// WebSockets
+        /// WebSocket Protocol (WS)
         /// </summary>
         ws,
 
         /// <summary>
-        /// WebSockets Secure
+        /// WebSocket Secure Protocol (WSS)
         /// </summary>
         wss,
+
+        /// <summary>
+        /// User Datagram Protocol (UDP)
+        /// </summary>
+        udp,
 
         /// <summary>
         /// Modbus/TCP
@@ -215,16 +220,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Parse     (Text)
+        #region (static) Parse     (Text, URLProtocol = null)
 
         /// <summary>
         /// Parse the given string as an uniform resource location.
         /// </summary>
         /// <param name="Text">A text representation of an uniform resource location.</param>
-        public static URL Parse(String Text)
+        /// <param name="URLProtocol">An optional URL protocol.</param>
+        public static URL Parse(String         Text,
+                                URLProtocols?  URLProtocol   = null)
         {
 
-            if (TryParse(Text, out var url))
+            if (TryParse(Text, out var url, URLProtocol))
                 return url;
 
             throw new ArgumentException("The given text representation of an uniform resource location is invalid: " + Text,
@@ -234,16 +241,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse  (Text)
+        #region (static) TryParse  (Text, URLProtocol = null)
 
         /// <summary>
         /// Try to parse the given text as an uniform resource location.
         /// </summary>
         /// <param name="Text">A text representation of an uniform resource location.</param>
         public static URL? TryParse(String Text)
+            => TryParse(Text, null);
+
+
+        /// <summary>
+        /// Try to parse the given text as an uniform resource location.
+        /// </summary>
+        /// <param name="Text">A text representation of an uniform resource location.</param>
+        /// <param name="URLProtocol">An optional URL protocol.</param>
+        public static URL? TryParse(String         Text,
+                                    URLProtocols?  URLProtocol   = null)
         {
 
-            if (TryParse(Text, out var url))
+            if (TryParse(Text, out var url, URLProtocol))
                 return url;
 
             return null;
@@ -252,7 +269,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse  (Text, out URL)
+        #region (static) TryParse  (Text, out URL, URLProtocol = null)
 
         /// <summary>
         /// Try to parse the given text as an uniform resource location.
@@ -260,6 +277,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Text">A text representation of an uniform resource location.</param>
         /// <param name="URL">The parsed uniform resource location.</param>
         public static Boolean TryParse(String Text, out URL URL)
+            => TryParse(Text, out URL, null);
+
+
+        /// <summary>
+        /// Try to parse the given text as an uniform resource location.
+        /// </summary>
+        /// <param name="Text">A text representation of an uniform resource location.</param>
+        /// <param name="URL">The parsed uniform resource location.</param>
+        /// <param name="URLProtocol">An optional URL protocol.</param>
+        public static Boolean TryParse(String         Text,
+                                       out URL        URL,
+                                       URLProtocols?  URLProtocol)
         {
 
             Text  = Text.Trim();
@@ -271,7 +300,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     if (!Text.Contains("://"))
-                        Text = "https://" + Text;
+                        Text = (URLProtocol.HasValue
+                                   ? $"{URLProtocol.Value}://"
+                                   : "https://") + Text;
 
                     var elements = Text.Split('/');
 
@@ -295,6 +326,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         case "wss:":
                             protocol = URLProtocols.wss;
+                            break;
+
+                        case "udp:":
+                            protocol = URLProtocols.udp;
+                            break;
+
+                        case "modbus:":
+                            protocol = URLProtocols.modbus;
+                            break;
+
+                        case "smodbus:":
+                            protocol = URLProtocols.smodbus;
                             break;
 
                         default:
