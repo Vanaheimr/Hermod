@@ -17,25 +17,38 @@
 
 #region Usings
 
-using System.Security.Cryptography;
-using System.Diagnostics.CodeAnalysis;
-
-using org.GraphDefined.Vanaheimr.Illias;
+using Newtonsoft.Json.Linq;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.NTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    public class UniqueIdentifierExtension(Byte[]   UniqueIdentifier,
-                                           Boolean  Authenticated   = false,
-                                           Boolean  Encrypted       = false) : NTPExtension(ExtensionTypes.UniqueIdentifier,
-                                                                                            UniqueIdentifier,
-                                                                                            Authenticated,
-                                                                                            Encrypted)
+    // https://w3c.github.io/webauthn/#dictdef-publickeycredentialrpentity
+
+
+    /// <summary>
+    /// Informationen über den Relying Party (RP)
+    /// </summary>
+    public class PublicKeyCredentialRpEntity(String Id,
+                                             String Name)
+
+        : PublicKeyCredentialEntity(Name)
+
     {
 
+        /// <summary>
+        /// z. B. die Domain (z.B. "example.com")
+        /// </summary>
+        public String  Id    { get; } = Id;
 
+
+        public JObject ToJSON()
+
+            => new (
+                   new JProperty("id",    Id),
+                   new JProperty("name",  Name)
+               );
 
     }
 

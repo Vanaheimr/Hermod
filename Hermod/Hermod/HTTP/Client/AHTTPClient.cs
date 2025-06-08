@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
 
             => String.Concat(
-                    "RequestTimestamp: ",     RequestTimestamp.                     ToIso8601(),                             " > ",
+                    "RequestTimestamp: ",     RequestTimestamp.                     ToISO8601(),                             " > ",
                     "Start: ",                Start.                                TotalMilliseconds.ToString("F2")       , " > ",
                     "RequestLogging1: ",      RequestLogging1?.                     TotalMilliseconds.ToString("F2") ?? "-", " > ",
                     "RequestLogging2: ",      RequestLogging2?.                     TotalMilliseconds.ToString("F2") ?? "-", " > ",
@@ -191,12 +191,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname?                                              VirtualHostname               { get; }
 
         /// <summary>
-        /// The Remote X.509 certifcate.
+        /// The Remote X.509 certificate.
         /// </summary>
         public X509Certificate2?                                          RemoteCertificate             { get; private set; }
 
         /// <summary>
-        /// The Remote X.509 certifcate chain.
+        /// The Remote X.509 certificate chain.
         /// </summary>
         public X509Chain?                                                 RemoteCertificateChain        { get; private set; }
 
@@ -1953,7 +1953,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public override String ToString()
 
-            => $"{GetType().Name} {RemoteURL}:{RemotePort}";
+            => $"{GetType().Name} {RemoteURL}";
 
         #endregion
 

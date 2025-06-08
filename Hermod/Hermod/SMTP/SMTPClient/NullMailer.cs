@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var hashedBytes  = SHA256.Create().ComputeHash(randomBytes.
                                                                Concat(Mail.From.   ToString(). ToUTF8Bytes()).
                                                                Concat(Mail.Subject.            ToUTF8Bytes()).
-                                                               Concat(Mail.Date.   ToIso8601().ToUTF8Bytes()).
+                                                               Concat(Mail.Date.   ToISO8601().ToUTF8Bytes()).
                                                                ToArray());
 
             return Message_Id.Parse(hashedBytes.ToHexString()[..24],
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 catch (Exception e)
                 {
                     DebugX.LogException(e);
-                    result = MailSentStatus.ExceptionOccured;
+                    result = MailSentStatus.ExceptionOccurred;
                 }
                 finally
                 {

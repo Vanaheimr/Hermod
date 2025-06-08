@@ -18,7 +18,8 @@
 #region Usings
 
 using System.Collections;
-
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -37,9 +38,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private readonly Dictionary<HTTPCookieName, HTTPCookie> cookies;
+        private readonly ConcurrentDictionary<HTTPCookieName, HTTPCookie> cookies = [];
 
-        private static readonly Char[] multipleCookiesSplitter = new[] { ';' };
+        private static readonly Char[] multipleCookiesSplitter = [ ';' ];
 
         #endregion
 
@@ -53,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Cookies">An enumeration of HTTP cookies.</param>
         public HTTPCookies(IEnumerable<HTTPCookie> Cookies)
 
-            : this(Cookies.ToArray())
+            : this([.. Cookies])
 
         { }
 
@@ -68,18 +69,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPCookies(params HTTPCookie[] Cookies)
         {
 
-            this.cookies = new Dictionary<HTTPCookieName, HTTPCookie>();
-
-            // There is no gurantee, that cookie.Name is unquie within a HTTP request!
+            // There is no guarantee, that cookie.Name is unique within a HTTP request!
             // Therefore use the latest cookie having this id/name!
             foreach (var cookie in Cookies)
             {
 
-                if (!this.cookies.ContainsKey(cookie.Name))
-                    this.cookies.Add(cookie.Name, cookie);
-
-                else
-                    this.cookies[cookie.Name] = cookie;
+                if (!cookies.TryAdd(cookie.Name, cookie))
+                    cookies[cookie.Name] = cookie;
 
             }
 
@@ -88,6 +84,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+        public static HTTPCookies Create(params HTTPCookie[] Cookies)
+            => new (Cookies);
 
 
         #region Parse   (Texts)
@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         parsedCookie is not null)
                     {
 
-                        // There is no gurantee, that cookie.Name is unquie within a HTTP request!
+                        // There is no guarantee, that cookie.Name is unique within a HTTP request!
                         // Therefore use the latest cookie having this id/name!
                         if (!parsedCookies.ContainsKey(parsedCookie.Name))
                             parsedCookies.Add(parsedCookie.Name, parsedCookie);
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region Contains(CookieName)
+        #region Contains (CookieName)
 
         public Boolean Contains(HTTPCookieName CookieName)
 
@@ -221,10 +221,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryGet(CookieName, Cookie)
+        #region Get      (CookieName)
 
-        public Boolean TryGet(HTTPCookieName   CookieName,
-                              out HTTPCookie?  Cookie)
+        public HTTPCookie? Get(HTTPCookieName CookieName)
+        {
+
+            if (cookies.TryGetValue(CookieName, out var cookie))
+                return cookie;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryGet   (CookieName, Cookie)
+
+        public Boolean TryGet(HTTPCookieName                       CookieName,
+                              [NotNullWhen(true)] out HTTPCookie?  Cookie)
 
             => cookies.TryGetValue(CookieName, out Cookie);
 

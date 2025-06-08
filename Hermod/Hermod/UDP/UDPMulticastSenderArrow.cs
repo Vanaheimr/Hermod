@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 var sent = multicastSocket.SendTo(data, ipEndPoint);
 
                 //if (data.Length != sent)
-                    //OnExceptionOccured?.Invoke(this, new Exception("Not all data was sent!"));
+                    //OnExceptionOccurred?.Invoke(this, new Exception("Not all data was sent!"));
 
             }
         }

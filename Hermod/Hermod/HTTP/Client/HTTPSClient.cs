@@ -22,6 +22,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using System.Net.Security;
 
 #endregion
 
@@ -97,7 +98,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    VirtualHostname,
                    Description,
                    PreferIPv4,
-                   RemoteCertificateValidator,
+                   RemoteCertificateValidator ?? ((sender,
+                                                   certificate,
+                                                   certificateChain,
+                                                   tlsClient,
+                                                   policyErrors) => DefaultCertificateValidator(
+                                                                        sender,
+                                                                        certificate,
+                                                                        certificateChain,
+                                                                        tlsClient,
+                                                                        policyErrors
+                                                                    )),
                    LocalCertificateSelector,
                    ClientCert,
                    TLSProtocol,
@@ -342,6 +353,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    DNSClient)
 
         { }
+
+        #endregion
+
+
+        #region (private) DefaultCertificateValidator<T>(Sender, Certificate, CertificateChain, TLSClient, PolicyErrors)
+
+
+        private static (Boolean, IEnumerable<String>)
+
+            DefaultCertificateValidator<T>(Object             Sender,
+                                           X509Certificate2?  Certificate,
+                                           X509Chain?         CertificateChain,
+                                           T                  TLSClient,
+                                           SslPolicyErrors    PolicyErrors)
+
+        {
+
+            if (Certificate is null)
+                return (false, []);
+
+            if (PolicyErrors != SslPolicyErrors.None)
+                return (false, []);
+
+            using var chain = CertificateChain ?? new X509Chain();
+
+            chain.ChainPolicy = new X509ChainPolicy {
+                                    RevocationMode       = X509RevocationMode.Online,
+                                    RevocationFlag       = X509RevocationFlag.ExcludeRoot,
+                                    VerificationFlags    = X509VerificationFlags.NoFlag,
+                                    VerificationTime     = Timestamp.Now,
+                                    UrlRetrievalTimeout  = TimeSpan.FromSeconds(15),
+                                };
+
+            return chain.Build(Certificate)
+                       ? (true,  [])
+                       : (false, chain.ChainStatus.Select(status => $"{status.Status}: {status.StatusInformation.Trim()}"));
+
+        }
 
         #endregion
 

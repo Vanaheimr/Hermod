@@ -1101,6 +1101,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+
+        #region GetSecurityTokenFromCookie(this Request, SessionCookieName)
+
+        public static SecurityToken_Id? GetSecurityTokenIdFromCookie(this HTTPRequest  Request,
+                                                                     HTTPCookieName    SessionCookieName)
+        {
+
+            if (Request.Cookies  is not null &&
+                Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
+                SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out var securityTokenId))
+            {
+                return securityTokenId;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
     }
 
 
@@ -2101,11 +2121,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="RemoteAuthServers">Servers for remote authorization.</param>
         /// <param name="RemoteAuthAPIKeys">API keys for incoming remote authorizations.</param>
@@ -2385,7 +2405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region HTTPAPI(HTTPServer, HTTPHostname = null, ...)
+        #region HTTPExtAPI(HTTPServer, HTTPHostname = null, ...)
 
         /// <summary>
         /// Create a new HTTP API.
@@ -2402,11 +2422,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
         /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
@@ -2617,7 +2637,64 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        public HTTPExtAPI(HTTPServer               HTTPServer,
+                          HTTPHostname?            HTTPHostname              = null,
+                          String?                  ExternalDNSName           = "",
+                          String?                  HTTPServiceName           = DefaultHTTPServiceName,
+                          HTTPPath?                BasePath                  = null,
+
+                          HTTPPath?                URLPathPrefix             = null,
+                          String?                  HTMLTemplate              = null,
+                          JObject?                 APIVersionHashes          = null,
+
+                          Boolean?                 DisableMaintenanceTasks   = false,
+                          TimeSpan?                MaintenanceInitialDelay   = null,
+                          TimeSpan?                MaintenanceEvery          = null,
+
+                          Boolean?                 DisableWardenTasks        = false,
+                          TimeSpan?                WardenInitialDelay        = null,
+                          TimeSpan?                WardenCheckEvery          = null,
+
+                          Boolean?                 IsDevelopment             = false,
+                          IEnumerable<String>?     DevelopmentServers        = null,
+                          Boolean?                 DisableLogging            = false,
+                          String?                  LoggingPath               = null,
+                          String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
+                          LogfileCreatorDelegate?  LogfileCreator            = null,
+
+                          Boolean                  AutoStart                 = false)
+
+            : base(HTTPServer,
+                   HTTPHostname,
+                   ExternalDNSName,
+                   HTTPServiceName,
+                   BasePath,
+
+                   URLPathPrefix,
+                   HTMLTemplate,
+                   APIVersionHashes,
+
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
+
+                   IsDevelopment,
+                   DevelopmentServers,
+                   DisableLogging,
+                   LoggingPath,
+                   LogfileName,
+                   LogfileCreator,
+
+                   AutoStart)
+
+        { }
+
         #endregion
+
 
         #region (static) AttachToHTTPAPI(HTTPServer, URLPrefix = "/", ...)
 
@@ -2650,10 +2727,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// 
         ///// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         ///// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        ///// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        ///// <param name="MaintenanceEvery">The maintenance interval.</param>
         ///// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         ///// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        ///// <param name="WardenCheckEvery">The warden intervall.</param>
+        ///// <param name="WardenCheckEvery">The warden interval.</param>
         ///// 
         ///// <param name="SkipURLTemplates">Skip URL templates.</param>
         ///// <param name="DisableNotifications">Disable external notifications.</param>
@@ -3177,7 +3254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     Logfile.WriteLine(
                         String.Concat(Request.HTTPSource.ToString(), Environment.NewLine,
-                                      Request.Timestamp.ToIso8601(), Environment.NewLine,
+                                      Request.Timestamp.ToISO8601(), Environment.NewLine,
                                       Request.EventTrackingId, Environment.NewLine,
                                       Request.EntirePDU, Environment.NewLine,
                                       "======================================================================================"));
@@ -3372,7 +3449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         private String GenerateCookieSettings(DateTime Expires)
 
-            => String.Concat("; Expires=",  Expires.ToRfc1123(),
+            => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
                                  : "",
@@ -3406,6 +3483,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (protected) GetSecurityTokenFromCookie(Request)
+
+        protected SecurityToken_Id? GetSecurityTokenIdFromCookie(HTTPRequest Request)
+        {
+
+            if (Request.Cookies  is not null &&
+                Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
+                SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out var securityTokenId))
+            {
+                return securityTokenId;
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
         #region (protected) TryGetSecurityTokenFromCookie(Request, SecurityTokenId)
 
         protected Boolean TryGetSecurityTokenFromCookie(HTTPRequest Request, out SecurityToken_Id SecurityTokenId)
@@ -3413,7 +3508,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             if (Request.Cookies  is not null &&
                 Request.Cookies. TryGet  (SessionCookieName,           out var cookie) &&
-                cookie is not null &&
                 SecurityToken_Id.TryParse(cookie.FirstOrDefault().Key, out     SecurityTokenId))
             {
                 return true;
@@ -3566,7 +3660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
-                                        ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
+                                        ? [.. User.Organizations(AccessLevel, Recursive)]
                                         : [];
 
             if (User is not null &&
@@ -3606,7 +3700,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
-                                        ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
+                                        ? [.. User.Organizations(AccessLevel, Recursive)]
                                         : [];
 
             if (Organizations.Count == 0)
@@ -3745,7 +3839,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                                           AppendLine(httpEvent.SerializedData).
                                                                                                                           AppendLine()).
                                                                     Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
                                                                     Append(Environment.NewLine).
                                                                     Append(Environment.NewLine).
                                                                     ToString();
@@ -3757,7 +3851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
@@ -3812,7 +3906,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = (httpEvents.Length > 1
                                                                      ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
                                                                      : "]").ToUTF8Bytes()
@@ -3893,7 +3987,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                                                           AppendLine(httpEvent.SerializedData).
                                                                                                                           AppendLine()).
                                                                     Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryIntervall.TotalMilliseconds).
+                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
                                                                     Append(Environment.NewLine).
                                                                     Append(Environment.NewLine).
                                                                     ToString();
@@ -3905,7 +3999,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Text.EVENTSTREAM,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = httpEvents.ToUTF8Bytes()
                                           }.AsImmutable);
 
@@ -3961,7 +4055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               CacheControl    = "no-cache",
                                               Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryIntervall.TotalSeconds)),
+                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
                                               Content         = (httpEvents.Length > 1
                                                                      ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
                                                                      : "]").ToUTF8Bytes()
@@ -4421,7 +4515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            expires));
 
                                       File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                         securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
+                                                         securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
 
                                   }
 
@@ -4669,7 +4763,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        new JProperty("@context",      SignInOutContext),
                                                                        new JProperty("statuscode",    400),
                                                                        new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "The choosen password does not match the password quality criteria!")
+                                                                       new JProperty("description",  "The chosen password does not match the password quality criteria!")
                                                                    ).ToString().ToUTF8Bytes(),
                                                  CacheControl    = "private",
                                                  Connection      = ConnectionType.Close
@@ -4739,7 +4833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                 ).ToUTF8Bytes(),
                                                    SetCookie                  = new HTTPCookies(
                                                                                     HTTPCookie.Parse(
-                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                                   HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                                       ? "; Domain=" + HTTPCookieDomain
                                                                                                       : "",
@@ -4762,7 +4856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                 ).ToUTF8Bytes(),
                                                    SetCookie                  = new HTTPCookies(
                                                                                     HTTPCookie.Parse(
-                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                                       HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                                           ? "; Domain=" + HTTPCookieDomain
                                                                                                           : "",
@@ -4923,7 +5017,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Content                     = JSONObject.Create(
 
                                                                                    new JProperty("userId",   securityToken.UserId. ToString()),
-                                                                                   new JProperty("expires",  securityToken.Expires.ToIso8601()),
+                                                                                   new JProperty("expires",  securityToken.Expires.ToISO8601()),
 
                                                                                    securityToken.SuperUserId.HasValue
                                                                                        ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
@@ -5254,7 +5348,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              ContentType                = HTTPContentType.Application.JSON_UTF8,
                                                              Content                    = JSONObject.Create(
                                                                                               new JProperty("data",         organizationId.ToString()),
-                                                                                              new JProperty("description",  $"Unkown organization identification '{organizationId}'!")
+                                                                                              new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
                                                                                           ).ToUTF8Bytes()
                                                          };
 
@@ -5484,13 +5578,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            CacheControl    = "private",
                                            SetCookie       = HTTPCookies.Parse(
 
-                                                                 String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                 String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                    ? "; Domain=" + HTTPCookieDomain
                                                                                    : "",
                                                                                "; Path=", URLPathPrefix),
 
-                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                    ? "; Domain=" + HTTPCookieDomain
                                                                                    : "",
@@ -5520,7 +5614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
-                                          AccessControlAllowHeaders  = new[] { "X-PINGOTHER", "Content-Type", "Accept", "Authorization", "X-App-Version" },
+                                          AccessControlAllowHeaders  = [ "X-PINGOTHER", "Content-Type", "Accept", "Authorization", "X-App-Version" ],
                                           AccessControlMaxAge        = 3600,
                                           //ETag                       = "1",
                                           CacheControl               = "public",
@@ -5741,7 +5835,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           responseBuilder.Content = JSONObject.Create(
                                                                         new JProperty("data",         organizationId.ToString()),
-                                                                        new JProperty("description",  $"Unkown organization identification '{organizationId}'!")
+                                                                        new JProperty("description",  $"Unknown organization identification '{organizationId}'!")
                                                                     ).ToUTF8Bytes();
 
                                           return responseBuilder;
@@ -6390,7 +6484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        expires));
 
                                   await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                securityTokenId + ";" + validUser.Id + ";" + expires.ToIso8601() + Environment.NewLine);
+                                                                securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
 
                                   #endregion
 
@@ -6437,13 +6531,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                           CacheControl    = "private",
                                           SetCookie       = HTTPCookies.Parse(
 
-                                                                String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
                                                                                   : "",
                                                                               "; Path=", URLPathPrefix),
 
-                                                                String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+                                                                String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
                                                                                   : "",
@@ -6541,7 +6635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        superUser.Id));
 
                                   await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                $"{securityTokenId};{userURL.Id};{expires.ToIso8601()};{superUser.Id}{Environment.NewLine}");
+                                                                $"{securityTokenId};{userURL.Id};{expires.ToISO8601()};{superUser.Id}{Environment.NewLine}");
 
                                   #endregion
 
@@ -6644,7 +6738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        expires));
 
                                   await File.AppendAllTextAsync(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                                $"{securityTokenId};{superUser.Id};{expires.ToIso8601()}{Environment.NewLine}");
+                                                                $"{securityTokenId};{superUser.Id};{expires.ToISO8601()}{Environment.NewLine}");
 
                                   #endregion
 
@@ -6804,7 +6898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                        new JProperty("@context",      SignInOutContext),
                                                                        new JProperty("statuscode",    400),
                                                                        new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "The choosen password does not match the password quality criteria!")
+                                                                       new JProperty("description",  "The chosen password does not match the password quality criteria!")
                                                                    ).ToString().ToUTF8Bytes(),
                                                  CacheControl    = "private",
                                                  Connection      = ConnectionType.Close
@@ -12725,7 +12819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            new JProperty("eventTrackingId",       (EventTrackingId ?? EventTracking_Id.New).ToString()),
                                            new JProperty("userId",                (CurrentUserId ?? CurrentAsyncLocalUserId.Value ?? Robot.Id).ToString()),
                                            new JProperty("systemId",              SystemId.ToString()),
-                                           new JProperty("timestamp",             Now.ToIso8601()),
+                                           new JProperty("timestamp",             Now.ToISO8601()),
                                            new JProperty("sha256hash",            new JObject(
                                                new JProperty("nonce",                 Guid.NewGuid().ToString().Replace("-", "")),
                                                new JProperty("parentHash",            CurrentDatabaseHashValue)
@@ -13983,7 +14077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userCreated",
                                                                  User.ToJSON()
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
                         }
 
@@ -13994,7 +14088,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userUpdated",
                                                                  User.ToJSON()
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
                         }
 
@@ -14005,7 +14099,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         //                                     new JProperty("userRemoved",
                         //                                         User.ToJSON()
                         //                                     ),
-                        //                                     new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                        //                                     new JProperty("timestamp", Timestamp.Now.ToISO8601())
                         //                                 ));
                         //}
 
@@ -14236,7 +14330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userDeleted",
                                                                  User.ToJSON()
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -14359,12 +14453,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected internal async Task<AddUserResult>
 
             addUser(IUser                 User,
-                     Boolean               SkipDefaultNotifications   = false,
-                     Boolean               SkipNewUserEMail           = false,
-                     Boolean               SkipNewUserNotifications   = false,
-                     OnUserAddedDelegate?  OnAdded                    = null,
-                     EventTracking_Id?     EventTrackingId            = null,
-                     User_Id?              CurrentUserId              = null)
+                    Boolean               SkipDefaultNotifications   = false,
+                    Boolean               SkipNewUserEMail           = false,
+                    Boolean               SkipNewUserNotifications   = false,
+                    OnUserAddedDelegate?  OnAdded                    = null,
+                    EventTracking_Id?     EventTrackingId            = null,
+                    User_Id?              CurrentUserId              = null)
 
         {
 
@@ -16480,7 +16574,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        protected internal Boolean _TryGetUser(User_Id UserId, out IUser? User)
+        protected internal Boolean _TryGetUser(User_Id                         UserId,
+                                               [NotNullWhen(true)] out IUser?  User)
         {
 
             if (!UserId.IsNullOrEmpty &&
@@ -16500,7 +16595,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        protected internal Boolean _TryGetUser(User_Id? UserId, out IUser? User)
+        protected internal Boolean _TryGetUser(User_Id?                        UserId,
+                                               [NotNullWhen(true)] out IUser?  User)
         {
 
             if (UserId.HasValue &&
@@ -16522,7 +16618,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        public Boolean TryGetUser(User_Id UserId, out IUser? User)
+        public Boolean TryGetUser(User_Id                         UserId,
+                                  [NotNullWhen(true)] out IUser?  User)
         {
 
             if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
@@ -16558,7 +16655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="UserId">The unique identification of an user.</param>
         /// <param name="User">The user.</param>
-        public Boolean TryGetUser(User_Id? UserId, out IUser? User)
+        public Boolean TryGetUser(User_Id?                        UserId,
+                                  [NotNullWhen(true)] out IUser?  User)
         {
 
             if (UsersSemaphore.Wait(SemaphoreSlimTimeout))
@@ -17493,7 +17591,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
                 return ResetPasswordResult.ArgumentError(
                            Array.Empty<IUser>(),
-                           "The choosen password does not match the password quality criteria!".ToI18NString(),
+                           "The chosen password does not match the password quality criteria!".ToI18NString(),
                            eventTrackingId,
                            SystemId,
                            this
@@ -19695,7 +19793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("userGroupDeleted",
                                                                  UserGroup.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -23790,7 +23888,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("organizationCreated",
                                                                  Organization.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         if (messageTypes.Contains(updateOrganization_MessageType))
@@ -23799,7 +23897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("organizationUpdated",
                                                                  Organization.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -24024,7 +24122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                              new JProperty("organizationDeleted",
                                                                  Organization.ToJSON(true)
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -27532,7 +27630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //                                                 new JProperty("user",      User.     ToJSON())
                     //                                             )
                     //                                         ),
-                    //                                         new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                    //                                         new JProperty("timestamp", Timestamp.Now.ToISO8601())
                     //                                     ));
 
                     //    if (MessageTypes.Contains(removeUserFromUserGroup_MessageType))
@@ -27544,7 +27642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //                                                 new JProperty("user",      User.     ToJSON())
                     //                                             )
                     //                                         ),
-                    //                                         new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                    //                                         new JProperty("timestamp", Timestamp.Now.ToISO8601())
                     //                                     ));
 
                     //}
@@ -28468,7 +28566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("user",         User.        ToJSON())
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         if (MessageTypes.Contains(removeUserFromOrganization_MessageType))
@@ -28480,7 +28578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("user",         User.        ToJSON())
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                     }
@@ -29293,7 +29391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("parentOrganization", OrganizationIn. ToJSON(true))
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         }
@@ -29309,7 +29407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                      new JProperty("parentOrganization", OrganizationIn. ToJSON(true))
                                                                  )
                                                              ),
-                                                             new JProperty("timestamp", Timestamp.Now.ToIso8601())
+                                                             new JProperty("timestamp", Timestamp.Now.ToISO8601())
                                                          ));
 
                         }
@@ -29769,6 +29867,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+        #region FileMappers
+
+        private readonly ConcurrentDictionary<FileMapper_Id, IFileMapper> fileMappers = [];
+
+
+        #region AddTOTPFileMapper(Hostname, URLTemplate, FileSystemPath, TOTPSharedSecret, ...)
+
+        public IFileMapper AddTOTPFileMapper(HTTPHostname    Hostname,
+                                             HTTPPath        URLTemplate,
+                                             String          FileSystemPath,
+                                             String          TOTPSharedSecret,
+
+                                             FileMapper_Id?  FileMapperId            = null,
+                                             String?         FileMapperName          = null,
+                                             I18NString?     FileMapperDescription   = null,
+                                             TimeSpan?       TOTPValidityTime        = null,
+                                             UInt32?         TOTPLength              = 12,
+                                             String?         TOTPAlphabet            = null)
+        {
+
+            var fileMapperId = FileMapperId ?? FileMapper_Id.Random();
+
+            if (fileMappers.ContainsKey(fileMapperId))
+                throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
+
+            var fileMapper  = new TOTPFileMapper(
+                                  this,
+                                  Hostname,
+                                  URLTemplate,
+                                  FileSystemPath,
+                                  TOTPSharedSecret,
+
+                                  fileMapperId,
+                                  FileMapperName,
+                                  FileMapperDescription,
+                                  TOTPValidityTime,
+                                  TOTPLength,
+                                  TOTPAlphabet
+                              );
+
+            if (!fileMappers.TryAdd(fileMapper.Id, fileMapper))
+                throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
+
+            return fileMapper;
+
+        }
+
+        #endregion
+
+
+        public T? GetFileMapper<T>(FileMapper_Id FileMapperId)
+            where T: FileMapper
+        {
+
+            if (fileMappers.TryGetValue(FileMapperId, out var fileMapper))
+                return fileMapper as T;
+
+            return null;
+
+        }
+
+        #endregion
+
 
 
     }

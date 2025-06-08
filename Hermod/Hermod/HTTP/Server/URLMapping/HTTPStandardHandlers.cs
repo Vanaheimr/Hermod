@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpEventSource is not null)
                 await httpEventSource.SubmitEvent(
                                           ChangeType,
-                                          @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() + @""", ""fileName"": """ + FileName + @""" }"
+                                          @"{ ""timestamp"": """ + Timestamp.Now.ToISO8601() + @""", ""fileName"": """ + FileName + @""" }"
                                       );
 
         }
@@ -431,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpEventSource is not null)
                 await httpEventSource.SubmitEvent(
                                           "Renamed",
-                                          @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() + @""", ""newFileName"": """ + NewFileName + @""", ""oldFileName"": """ + OldFileName + @""" }"
+                                          @"{ ""timestamp"": """ + Timestamp.Now.ToISO8601() + @""", ""newFileName"": """ + NewFileName + @""", ""oldFileName"": """ + OldFileName + @""" }"
                                       );
 
         }
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpEventSource is not null)
                 await httpEventSource.SubmitEvent(
                                           "Error",
-                                          @"{ ""timestamp"": """ + Timestamp.Now.ToIso8601() + @""", ""message"": """ + Error.GetException().Message + @""" }"
+                                          @"{ ""timestamp"": """ + Timestamp.Now.ToISO8601() + @""", ""message"": """ + Error.GetException().Message + @""" }"
                                       );
 
         }
@@ -916,6 +916,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region MapFileSystemFolderTOTP     (this HTTPExtAPI, Hostname, URLTemplate, ResourcePath, ...)
+
+        /// <summary>
+        /// Returns resources from the given file system location, but requires TOTP information
+        /// attached to the URL via query parameters. By this files can be exposed for a limited
+        /// time. This avoids the need for an user management and HTTP authentication when trying
+        /// to inhibit unauthorized access to files via deep links.
+        /// </summary>
+        /// <param name="HTTPExtAPI">The HTTP API.</param>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="FileSystemPath">The path to the file within the local file system.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
+        public static void MapFileSystemFolderTOTP(this HTTPExtAPI  HTTPExtAPI,
+                                                   HTTPHostname     Hostname,
+                                                   HTTPPath         URLTemplate,
+
+                                                   String           FileSystemPath,
+                                                   String           TOTPSharedSecret,
+
+                                                   TimeSpan?        TOTPValidityTime        = null,
+                                                   UInt32?          TOTPLength              = 12,
+                                                   String?          TOTPAlphabet            = null,
+
+                                                   FileMapper_Id?   FileMapperId            = null,
+                                                   String?          FileMapperName          = null,
+                                                   I18NString?      FileMapperDescription   = null
+                                                   //                 String                         DefaultFilename          = "index.html",
+                                                   //                 Func<String, String, String>?  HTMLTemplateHandler      = null,
+                                                   //                 HTTPEventSource_Id?            EventSourceId            = null,
+                                                   //                 HTTPPath?                      EventSourceURLTemplate   = null,
+                                                   //Boolean          RequireAuthentication   = true
+                                                   )
+        {
+
+            var fileMapper = HTTPExtAPI.AddTOTPFileMapper(
+                                 Hostname,
+                                 URLTemplate,
+                                 FileSystemPath,
+                                 TOTPSharedSecret,
+                                 FileMapperId,
+                                 FileMapperName,
+                                 FileMapperDescription,
+                                 TOTPValidityTime,
+                                 TOTPLength,
+                                 TOTPAlphabet
+                             );
+
+            #region Setup file system watcher
+
+            //if (EventSourceId.         HasValue &&
+            //    EventSourceURLTemplate.HasValue)
+            //{
+            //    HTTPExtAPI.WatchFileSystemFolder(
+            //        Hostname,
+            //        EventSourceURLTemplate.        Value,
+            //        ResourcePath,
+            //        EventSourceId.Value,
+            //        RequireAuthentication
+            //    );
+            //}
+
+            #endregion
+
+            HTTPExtAPI.AddMethodCallback(
+
+                Hostname,
+                HTTPMethod.GET,
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                    ? "{ResourceName}"
+                    : "/{ResourceName}"),
+                OpenEnd:           true,
+                HTTPDelegate:      fileMapper.GetFile,
+                AllowReplacement:  URLReplacement.Fail
+
+            );
+
+        }
+
+        #endregion
 
 
         // Map a single file

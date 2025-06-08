@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         public event CompletedEventHandler?                                                  OnCompleted;
 
 
-        public event ExceptionOccuredEventHandler?                                           OnExceptionOccured;
+        public event ExceptionOccurredEventHandler?                                           OnExceptionOccurred;
 
         #endregion
 
@@ -193,15 +193,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #endregion
 
-        #region ProcessExceptionOccured(Sender, Timestamp, EventTracking, ExceptionMessage)
+        #region ProcessExceptionOccurred(Sender, Timestamp, EventTracking, ExceptionMessage)
 
-        public void ProcessExceptionOccured(Object            Sender,
+        public void ProcessExceptionOccurred(Object            Sender,
                                             DateTime          Timestamp,
                                             EventTracking_Id  EventTracking,
                                             Exception         ExceptionMessage)
         {
 
-            OnExceptionOccured?.Invoke(
+            OnExceptionOccurred?.Invoke(
                 Sender,
                 Timestamp,
                 EventTracking,

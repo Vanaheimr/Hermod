@@ -775,7 +775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public HTTPPath            Path                    { get; }
+        public HTTPPath            Path                    { get; private set; }
 
         /// <summary>
         /// The parsed URL parameters of the best matching URL template.
@@ -816,7 +816,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public AcceptTypes Accept
 
-            => GetHeaderField(HTTPRequestHeaderField.Accept) ?? new AcceptTypes();
+            => GetHeaderField(HTTPRequestHeaderField.Accept) ?? [];
 
         #endregion
 
@@ -1145,6 +1145,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
+        #region HTTPRequest(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, HTTPServer = null, ...)
+
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the request.</param>
+        /// <param name="HTTPSource">The HTTP source.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPServer">An optional HTTP server that has received this request.</param>
+        /// 
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public HTTPRequest(DateTime                     Timestamp,
+                           HTTPSource                   HTTPSource,
+                           IPSocket                     LocalSocket,
+                           IPSocket                     RemoteSocket,
+
+                           String                       HTTPHeader,
+                           HTTPMethod                   HTTPMethod,
+                           HTTPPath                     Path,
+                           String                       ProtocolName,
+                           HTTPVersion                  ProtocolVersion,
+                           Dictionary<String, Object?>  HTTPHeaderFields,
+
+                           QueryString?                 QueryString                 = null,
+                           Byte[]?                      HTTPBody                    = null,
+                           Stream?                      HTTPBodyStream              = null,
+                           HTTPServer?                  HTTPServer                  = null,
+                           X509Certificate2?            ServerCertificate           = null,
+                           X509Certificate2?            ClientCertificate           = null,
+
+                           UInt32                       HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                           EventTracking_Id?            EventTrackingId             = null,
+                           CancellationToken            CancellationToken           = default)
+
+            : base(Timestamp,
+                   HTTPSource,
+                   LocalSocket,
+                   RemoteSocket,
+                   HTTPHeader,
+                   HTTPBody,
+                   HTTPBodyStream,
+                   HTTPBodyReceiveBufferSize,
+
+                   EventTrackingId,
+                   CancellationToken)
+
+        {
+
+            this.HTTPServer         = HTTPServer;
+            this.ServerCertificate  = ServerCertificate;
+            this.ClientCertificate  = ClientCertificate;
+
+            this.HTTPMethod         = HTTPMethod;
+            this.Path               = Path;
+            this.ProtocolName       = ProtocolName;
+            this.ProtocolVersion    = ProtocolVersion;
+            this.QueryString        = QueryString ?? QueryString.Empty;
+
+            this.headerFields.Clear();
+            foreach (var kvp in HTTPHeaderFields)
+                this.headerFields.Add(kvp.Key, kvp.Value);
+
+        }
+
+        #endregion
+
+
         #region (internal) HTTPRequest(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, HTTPServer = null, ...)
 
         /// <summary>
@@ -1209,7 +1282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new Exception("Invalid first HTTP PDU line!");
 
             // Parse HTTP method
-            // Propably not usefull to define here, as we can not send a response having an "Allow-header" here!
+            // Probably not useful to define here, as we can not send a response having an "Allow-header" here!
             this.HTTPMethod = HTTPMethod.TryParse(httpMethodHeader[0]) ??
                                   throw new Exception("Invalid HTTP method!");
 
@@ -1231,7 +1304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            #region Parse URL
+            #region Parse Path
 
             var rawURL      = httpMethodHeader[1];
             var parsedURL   = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
@@ -1329,6 +1402,280 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+        #endregion
+
+
+        public static HTTPRequest ChangePath(HTTPRequest             Request,
+                                             HTTPPath                NewPath,
+                                             Tuple<String, Object>?  SetHeaderField = null)
+        {
+
+            var headerFields = Request.headerFields;
+
+            if (SetHeaderField is not null)
+                headerFields[SetHeaderField.Item1] = SetHeaderField.Item2;
+
+
+            return new (Request.Timestamp,
+                        Request.HTTPSource,
+                        Request.LocalSocket,
+                        Request.RemoteSocket,
+
+                        Request.RawHTTPHeader,
+                        Request.HTTPMethod,
+                        NewPath,
+                        Request.ProtocolName,
+                        Request.ProtocolVersion,
+                        headerFields,
+
+                        Request.QueryString,
+                        Request.HTTPBody,
+                        Request.HTTPBodyStream,
+                        Request.HTTPServer,
+                        Request.ServerCertificate,
+                        Request.ClientCertificate,
+
+                        Request.HTTPBodyReceiveBufferSize,
+                        Request.EventTrackingId,
+                        Request.CancellationToken);
+
+        }
+
+
+        #region Parse(Timestamp, HTTPSource, LocalSocket, RemoteSocket, HTTPHeader, HTTPBody = null, HTTPBodyStream = null, HTTPServer = null, ...)
+
+        /// <summary>
+        /// Create a new http request header based on the given string representation.
+        /// </summary>
+        /// <param name="Timestamp">The timestamp of the request.</param>
+        /// <param name="HTTPSource">The HTTP source.</param>
+        /// <param name="LocalSocket">The local TCP/IP socket.</param>
+        /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
+        /// <param name="HTTPHeader">A valid string representation of a http request header.</param>
+        /// <param name="HTTPBody">The HTTP body as an array of bytes.</param>
+        /// <param name="HTTPBodyStream">The HTTP body as an stream of bytes.</param>
+        /// <param name="HTTPServer">An optional HTTP server that has received this request.</param>
+        /// 
+        /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
+        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
+        public static HTTPRequest Parse(DateTime           Timestamp,
+                                        HTTPSource         HTTPSource,
+                                        IPSocket           LocalSocket,
+                                        IPSocket           RemoteSocket,
+
+                                        String             HTTPHeader,
+                                        Byte[]?            HTTPBody                    = null,
+                                        Stream?            HTTPBodyStream              = null,
+                                        HTTPServer?        HTTPServer                  = null,
+                                        X509Certificate2?  ServerCertificate           = null,
+                                        X509Certificate2?  ClientCertificate           = null,
+
+                                        UInt32             HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
+                                        EventTracking_Id?  EventTrackingId             = null,
+                                        CancellationToken  CancellationToken           = default)
+        {
+
+            #region Process first line...
+
+            var allLines = HTTPHeader.Split(lineSeparator,
+                                            StringSplitOptions.RemoveEmptyEntries);
+
+            if (allLines is null || allLines.Length < 2)
+                throw new Exception("Bad request");
+
+            var firstPDULine = allLines.First();
+            if (firstPDULine.IsNullOrEmpty())
+                throw new Exception("Bad request");
+
+            #endregion
+
+            #region ...process all other header lines
+
+            var headerFields = new Dictionary<String, Object?>();
+
+            foreach (var headerLine in allLines.Skip(1))
+            {
+
+                if (headerLine.IsNullOrEmpty())
+                    break;
+
+                var keyValuePair = headerLine.Split(colonSeparator, 2);
+
+                // Not valid for every HTTP header... but at least for most...
+                if (keyValuePair.Length == 1)
+                    headerFields.Add(keyValuePair[0].Trim(), String.Empty);
+
+                else
+                {
+
+                    var key = keyValuePair[0].Trim();
+
+                    if (key.IsNotNullOrEmpty())
+                    {
+
+                        if (!headerFields.ContainsKey(key))
+                            headerFields.Add(key, keyValuePair[1].Trim());
+
+                        else
+                        {
+
+                            if (headerFields[key] is String existingValue)
+                                headerFields[key] = new[] { existingValue, keyValuePair[1].Trim() };
+
+                            else if (headerFields[key] is String[] existingValues)
+                                headerFields[key] = existingValues.Append(keyValuePair[1].Trim()).ToArray();
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            #endregion
+
+
+            // 1st line of the request
+
+            #region Parse method
+
+            var httpMethodHeader    = firstPDULine.Split(spaceSeparator,
+                                                         StringSplitOptions.RemoveEmptyEntries);
+
+            // e.g: PROPFIND /file/file Name HTTP/1.1
+            if (httpMethodHeader.Length != 3)
+                throw new Exception("Invalid first HTTP PDU line!");
+
+            // Parse HTTP method
+            // Probably not useful to define here, as we can not send a response having an "Allow-header" here!
+            var httpMethod = HTTPMethod.TryParse(httpMethodHeader[0]) ??
+                                  throw new Exception("Invalid HTTP method!");
+
+            #endregion
+
+            #region Parse protocol name and -version
+
+            var protocolArray      = httpMethodHeader[2].Split(slashSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
+            var protocolName       = protocolArray[0].ToUpper();
+
+            if (!String.Equals(protocolName, "HTTP", StringComparison.CurrentCultureIgnoreCase))
+                throw new Exception("Invalid protocol!");
+
+            if (!HTTPVersion.TryParse(protocolArray[1], out var httpProtocolVersion))
+                throw new Exception("Invalid HTTP version!");
+
+            if (httpProtocolVersion != HTTPVersion.HTTP_1_0 && httpProtocolVersion != HTTPVersion.HTTP_1_1)
+                throw new Exception("HTTP version not supported!");
+
+            #endregion
+
+            #region Parse Path
+
+            var rawURL     = httpMethodHeader[1];
+            var parsedURL  = rawURL.Split(urlSeparator, 2, StringSplitOptions.None);
+            var path       = HTTPPath.Parse(parsedURL[0]);
+
+            //if (URL.StartsWith("http", StringComparison.Ordinal) || URL.StartsWith("https", StringComparison.Ordinal))
+            if (path.Contains("://"))
+            {
+                path = path.Substring(path.IndexOf("://", StringComparison.Ordinal) + 3);
+                path = path.Substring(path.IndexOf("/",   StringComparison.Ordinal));
+            }
+
+            if (path == "")
+                path = HTTPPath.Root;
+
+            #endregion
+
+            #region Parse QueryString (optional)
+
+            QueryString? queryString = null;
+
+            // Parse QueryString after '?'
+            if (rawURL.IndexOf('?') > -1 && parsedURL[1].IsNeitherNullNorEmpty())
+                queryString = QueryString.Parse(parsedURL[1]);
+            else
+                queryString = QueryString.Empty;
+
+            #endregion
+
+
+            // 2nd line of the request
+
+            #region Check Host header
+
+            // rfc 2616 - Section 19.6.1.1
+            // A client that sends an HTTP/1.1 request MUST send a Host header.
+
+            // rfc 2616 - Section 14.23
+            // All Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request)
+            // status code to any HTTP/1.1 request message which lacks a Host header field.
+
+            // rfc 2616 - Section 5.2 The Resource Identified by a Request
+            // 1. If Request-URL is an absoluteURL, the host is part of the Request-URL.
+            //    Any Host header field value in the request MUST be ignored.
+            // 2. If the Request-URL is not an absoluteURL, and the request includes a
+            //    Host header field, the host is determined by the Host header field value.
+            // 3. If the host as determined by rule 1 or 2 is not a valid host on the server,
+            //    the response MUST be a 400 (Bad Request) error message. (Not valid for proxies?!)
+            if (!headerFields.TryGetValue(HTTPRequestHeaderField.Host.Name, out var hostHeaderRAW) ||
+                hostHeaderRAW is not String hostHeaderString)
+            {
+                throw new Exception("The HTTP request must have have a valid HOST header!");
+            }
+
+            // rfc 2616 - 3.2.2
+            // If the port is empty or not given, port 80 is assumed.
+            var hostHeader   = hostHeaderString.
+                                   Replace(":*", "").
+                                   Split  (colonSeparator, StringSplitOptions.RemoveEmptyEntries).
+                                   Select (v => v.Trim()).
+                                   ToArray();
+
+
+            //if (hostHeader.Length == 1)
+            //    headerFields[HTTPRequestHeaderField.Host.Name] = headerFields[HTTPRequestHeaderField.Host.Name].ToString();// + ":80"; ":80" will cause side effects!
+
+            if (hostHeader.Length == 2 && !UInt16.TryParse(hostHeader[1], out var hostPort))
+                throw new Exception("Invalid HTTP port in host header!");
+
+            if (hostHeader.Length  > 2)
+                throw new Exception("Invalid HTTP host header!");
+
+            #endregion
+
+
+            return new HTTPRequest(
+
+                       Timestamp,
+                       HTTPSource,
+                       LocalSocket,
+                       RemoteSocket,
+
+                       HTTPHeader,
+                       httpMethod,
+                       path,
+                       protocolName,
+                       httpProtocolVersion,
+                       headerFields,
+
+                       queryString,
+                       HTTPBody,
+                       HTTPBodyStream,
+                       HTTPServer,
+                       ServerCertificate,
+                       ClientCertificate,
+
+                       //HTTPBodyReceiveBufferSize,
+                       EventTrackingId:    EventTrackingId,
+                       CancellationToken:  CancellationToken
+
+                   );
+
+        }
 
         #endregion
 

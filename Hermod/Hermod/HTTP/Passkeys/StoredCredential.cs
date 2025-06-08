@@ -17,26 +17,27 @@
 
 #region Usings
 
-using System.Security.Cryptography;
-using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.NTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    public class NTSCookieExtension(Byte[]   Cookie,
-                                    Boolean  Authenticated   = false,
-                                    Boolean  Encrypted       = false) : NTPExtension(ExtensionTypes.NTSCookie,
-                                                                                     Cookie,
-                                                                                     Authenticated,
-                                                                                     Encrypted)
+
+    public class StoredCredential(String  CredentialId,
+                                  Byte[]  PublicKey,
+                                  UInt32  SignCount)
     {
 
-
+        public String  CredentialId    { get; } = CredentialId;
+        public Byte[]  PublicKey       { get; } = PublicKey;
+        public UInt32  SignCount       { get; } = SignCount;
 
     }
+
+
 
 }

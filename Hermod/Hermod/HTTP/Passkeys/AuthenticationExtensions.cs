@@ -17,25 +17,38 @@
 
 #region Usings
 
-using System.Security.Cryptography;
-using System.Diagnostics.CodeAnalysis;
-
+using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Text.Json.Nodes;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.NTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    public class NTSCookiePlaceholderExtension(UInt16   CookieLength,
-                                               Boolean  Authenticated   = false,
-                                               Boolean  Encrypted       = false) : NTPExtension(ExtensionTypes.NTSCookiePlaceholder,
-                                                                                                new Byte[CookieLength],
-                                                                                                Authenticated,
-                                                                                                Encrypted)
+    // https://w3c.github.io/webauthn/#webauthn-extensions
+
+
+    /// <summary>
+    /// Authentication Extensions
+    /// </summary>
+    public class AuthenticationExtensions(IEnumerable<AuthenticationExtension>  List)
     {
 
+        /// <summary>
+        /// The list of authentication extensions.
+        /// </summary>
+        public IEnumerable<AuthenticationExtension>  List    { get; } = List;
 
+
+        public JObject ToJSON()
+
+            => JSONObject.Create(
+                   List.Select(entry => new JProperty(
+                                           entry.Name,
+                                           entry.ToJSON()
+                                        ))
+               );
 
     }
 

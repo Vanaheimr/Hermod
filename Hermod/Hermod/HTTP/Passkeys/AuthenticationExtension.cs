@@ -17,37 +17,43 @@
 
 #region Usings
 
-using Org.BouncyCastle.Tls;
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.NTP
+namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
+    // https://w3c.github.io/webauthn/#webauthn-extensions
+
     /// <summary>
-    /// No TLS Client Authentication
+    /// An Authentication Extension
     /// </summary>
-    public class NoTLSClientAuthentication : TlsAuthentication
+    public class AuthenticationExtension(String                      Name,
+                                         Dictionary<String, Object>  Map)
     {
 
         /// <summary>
-        /// Called by the protocol handler to report the server certificate.
+        /// An "entry key" identifying the extension.
         /// </summary>
-        /// <param name="ServerCertificate">The received server certificate.</param>
-        public void NotifyServerCertificate(TlsServerCertificate ServerCertificate)
-        {
-            // Check server certificate for validity/pinning
-        }
+        public String                      Name    { get; } = Name;
 
         /// <summary>
-        /// Return the client credentials in response to server's certificate request.
+        /// Parameters of the extension.
         /// </summary>
-        /// <param name="CertificateRequest">Details of the certificate request.</param>
-        public TlsCredentials GetClientCredentials(CertificateRequest CertificateRequest)
-        {
-            // If no client cert needed, return null
-            return null;
-        }
+        public Dictionary<String, Object>  Map     { get; } = Map;
+
+
+        public JObject ToJSON()
+
+            => JSONObject.Create(
+                   Map.Select(extEntry => new JProperty(
+                                              extEntry.Key,
+                                              extEntry.Value
+                                          ))
+               );
 
     }
 

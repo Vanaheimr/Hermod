@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.IsDevelopment       = IsDevelopment ?? false;
             this.DevelopmentServers  = DevelopmentServers is not null
-                                           ? new HashSet<String>(DevelopmentServers)
+                                           ? [.. DevelopmentServers]
                                            : [];
 
             if (this.DevelopmentServers.Contains(Environment.MachineName))

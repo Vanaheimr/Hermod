@@ -15,40 +15,40 @@
  * limitations under the License.
  */
 
-namespace org.GraphDefined.Vanaheimr.Hermod.NTP
+#region Usings
+
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
+namespace org.GraphDefined.Vanaheimr.Hermod.Passkeys
 {
 
-    /// <summary>
-    /// Common NTP Extension Types
-    /// </summary>
-    public enum ExtensionTypes : UInt16
+
+    // Liste der unterstützten kryptografischen Algorithmen
+    public class PublicKeyCredentialParameters(PublicKeyCredentialType   Type,
+                                               COSEAlgorithmIdentifiers  Alg)
     {
 
         /// <summary>
-        /// Unique Identifier
+        /// Meist "public-key"
         /// </summary>
-        UniqueIdentifier            = 0x0104,
+        public PublicKeyCredentialType   Type    { get; } = Type;
 
         /// <summary>
-        /// NTS Cookie
+        /// COSE-Algorithmus-ID, z.B. -7 für ES256
         /// </summary>
-        NTSCookie                   = 0x0204,
-
-        /// <summary>
-        /// NTS Cookie Placeholder
-        /// </summary>
-        NTSCookiePlaceholder        = 0x0304,
-
-        /// <summary>
-        /// Authenticator and Encrypted
-        /// </summary>
-        AuthenticatorAndEncrypted   = 0x0404,
+        public COSEAlgorithmIdentifiers  Alg     { get; } = Alg;
 
 
-        /// <summary>
-        /// Debug (just for testing)
-        /// </summary>
-        Debug                       = 0xffff
+        public JObject ToJSON()
+
+            => new (
+                   new JProperty("type",  Type.ToString()),
+                   new JProperty("alg",   Alg)
+               );
 
     }
 

@@ -143,11 +143,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                : null,
 
                            Created.HasValue
-                               ? new JProperty("created",             Created.     Value.ToIso8601())
+                               ? new JProperty("created",             Created.     Value.ToISO8601())
                                : null,
 
                            LastModified.HasValue
-                               ? new JProperty("lastModified",        LastModified.Value.ToIso8601())
+                               ? new JProperty("lastModified",        LastModified.Value.ToISO8601())
                                : null,
 
                            Size.HasValue
@@ -490,9 +490,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Equals(AttachedFile)
 
         /// <summary>
-        /// Compares two defibrillator identifications for equality.
+        /// Compares two remote party identifications for equality.
         /// </summary>
-        /// <param name="AttachedFile">A defibrillator identification to compare with.</param>
+        /// <param name="AttachedFile">A remote party identification to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(AttachedFile AttachedFile)
 
@@ -516,7 +516,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
 
             => Id.GetHashCode();

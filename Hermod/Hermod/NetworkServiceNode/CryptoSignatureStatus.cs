@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
     /// <summary>
-    /// Extension methods for crypto signature statuss.
+    /// Extension methods for crypto signature status.
     /// </summary>
     public static class CryptoSignatureStatusExtensions
     {
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Operator == (CryptoKeyUsage1, CryptoKeyUsage2)
 
         /// <summary>
-        /// Compares two crypto signature statuss for equality.
+        /// Compares two crypto signature status for equality.
         /// </summary>
         /// <param name="CryptoKeyUsage1">A crypto signature status.</param>
         /// <param name="CryptoKeyUsage2">Another crypto signature status.</param>
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Operator != (CryptoKeyUsage1, CryptoKeyUsage2)
 
         /// <summary>
-        /// Compares two crypto signature statuss for inequality.
+        /// Compares two crypto signature status for inequality.
         /// </summary>
         /// <param name="CryptoKeyUsage1">A crypto signature status.</param>
         /// <param name="CryptoKeyUsage2">Another crypto signature status.</param>
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Operator <  (CryptoKeyUsage1, CryptoKeyUsage2)
 
         /// <summary>
-        /// Compares two crypto signature statuss.
+        /// Compares two crypto signature status.
         /// </summary>
         /// <param name="CryptoKeyUsage1">A crypto signature status.</param>
         /// <param name="CryptoKeyUsage2">Another crypto signature status.</param>
@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Operator <= (CryptoKeyUsage1, CryptoKeyUsage2)
 
         /// <summary>
-        /// Compares two crypto signature statuss.
+        /// Compares two crypto signature status.
         /// </summary>
         /// <param name="CryptoKeyUsage1">A crypto signature status.</param>
         /// <param name="CryptoKeyUsage2">Another crypto signature status.</param>
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Operator >  (CryptoKeyUsage1, CryptoKeyUsage2)
 
         /// <summary>
-        /// Compares two crypto signature statuss.
+        /// Compares two crypto signature status.
         /// </summary>
         /// <param name="CryptoKeyUsage1">A crypto signature status.</param>
         /// <param name="CryptoKeyUsage2">Another crypto signature status.</param>
@@ -307,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Operator >= (CryptoKeyUsage1, CryptoKeyUsage2)
 
         /// <summary>
-        /// Compares two crypto signature statuss.
+        /// Compares two crypto signature status.
         /// </summary>
         /// <param name="CryptoKeyUsage1">A crypto signature status.</param>
         /// <param name="CryptoKeyUsage2">Another crypto signature status.</param>
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(Object)
 
         /// <summary>
-        /// Compares two crypto signature statuss.
+        /// Compares two crypto signature status.
         /// </summary>
         /// <param name="Object">A crypto signature status to compare with.</param>
         public Int32 CompareTo(Object? Object)
@@ -341,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region CompareTo(CryptoKeyUsage)
 
         /// <summary>
-        /// Compares two crypto signature statuss.
+        /// Compares two crypto signature status.
         /// </summary>
         /// <param name="CryptoKeyUsage">A crypto signature status to compare with.</param>
         public Int32 CompareTo(CryptoSignatureStatus CryptoKeyUsage)
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two crypto signature statuss for equality.
+        /// Compares two crypto signature status for equality.
         /// </summary>
         /// <param name="Object">A crypto signature status to compare with.</param>
         public override Boolean Equals(Object? Object)
@@ -372,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Equals(CryptoKeyUsage)
 
         /// <summary>
-        /// Compares two crypto signature statuss for equality.
+        /// Compares two crypto signature status for equality.
         /// </summary>
         /// <param name="CryptoKeyUsage">A crypto signature status to compare with.</param>
         public Boolean Equals(CryptoSignatureStatus CryptoKeyUsage)
@@ -390,7 +390,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The hash code of this object.</returns>
         public override Int32 GetHashCode()
 
             => InternalId?.ToLower().GetHashCode() ?? 0;

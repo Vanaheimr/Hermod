@@ -30,6 +30,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Collections.Concurrent;
 
 #endregion
 
@@ -863,7 +864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
@@ -871,7 +872,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                     HTTPAPI,
                                                                   HTTPEventSource_Id               EventIdentification,
                                                                   UInt32                           MaxNumberOfCachedEvents      = 500,
-                                                                  TimeSpan?                        RetryIntervall               = null,
+                                                                  TimeSpan?                        RetryInterval                = null,
                                                                   Boolean                          EnableLogging                = true,
                                                                   String?                          LogfilePath                  = null,
                                                                   String?                          LogfilePrefix                = null,
@@ -879,9 +880,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   String?                          LogfileReloadSearchPattern   = null)
 
             => HTTPAPI.AddEventSource(
+
                    EventIdentification,
                    MaxNumberOfCachedEvents,
-                   RetryIntervall,
+                   RetryInterval ,
                    data => data.ToString(Newtonsoft.Json.Formatting.None),
                    JObject.Parse,
                    EnableLogging,
@@ -889,6 +891,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    LogfilePrefix,
                    LogfileName,
                    LogfileReloadSearchPattern
+
                );
 
         #endregion
@@ -903,7 +906,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
-        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
@@ -923,7 +926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                                   UInt32                              MaxNumberOfCachedEvents      = 500,
                                                                   Func<HTTPEvent<JObject>, Boolean>?  IncludeFilterAtRuntime       = null,
-                                                                  TimeSpan?                           RetryIntervall               = null,
+                                                                  TimeSpan?                           RetryInterval                = null,
                                                                   Boolean                             EnableLogging                = false,
                                                                   String?                             LogfilePath                  = null,
                                                                   String?                             LogfilePrefix                = null,
@@ -940,12 +943,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                   HTTPDelegate?                       DefaultErrorHandler          = null)
 
             => HTTPAPI.AddEventSource(
+
                    EventIdentification,
                    URLTemplate,
 
                    MaxNumberOfCachedEvents,
                    IncludeFilterAtRuntime,
-                   RetryIntervall,
+                   RetryInterval ,
                    data => data.ToString(Newtonsoft.Json.Formatting.None),
                    JObject.Parse,
                    EnableLogging,
@@ -963,6 +967,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    HTTPMethodAuthentication,
 
                    DefaultErrorHandler
+
                );
 
         #endregion
@@ -1016,7 +1021,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public  static readonly    HTTPPath                DefaultURLPathPrefix            = HTTPPath.Parse("/");
 
         /// <summary>
-        /// The HTTP root for embedded ressources.
+        /// The HTTP root for embedded resources.
         /// </summary>
         public  const              String                  HTTPRoot                        = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
@@ -1172,11 +1177,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
         /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
@@ -1305,11 +1310,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
         /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance intervall.</param>
+        /// <param name="MaintenanceEvery">The maintenance interval.</param>
         /// 
         /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
         /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden intervall.</param>
+        /// <param name="WardenCheckEvery">The warden interval.</param>
         /// 
         /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
         /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
@@ -1432,7 +1437,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                                              ".log")))
             //                            {
 
-            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToISO8601(), ";",
             //                                                                          process.VirtualMemorySize64, ";",
             //                                                                          process.WorkingSet64, ";",
             //                                                                          process.TotalProcessorTime, ";",
@@ -1460,7 +1465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
             //                                var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
 
-            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToIso8601(), ";",
+            //                                await writer.WriteLineAsync(String.Concat(timestamp.ToISO8601(), ";",
             //                                                                          MBytesFree, ";",
             //                                                                          HDPercentageFree)).
             //                                             ConfigureAwait(false);
@@ -1786,14 +1791,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTP Server Sent Events
 
-        #region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null)
+        #region AddEventSource(EventIdentification,              MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source.
         /// </summary>
         /// <param name="EventIdentification">The unique identification of the event source.</param>
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
-        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
         /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
         /// <param name="EnableLogging">Enables storing and reloading events </param>
@@ -1802,7 +1807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
         public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
                                                             UInt32                           MaxNumberOfCachedEvents      = 500,
-                                                            TimeSpan?                        RetryIntervall               = null,
+                                                            TimeSpan?                        RetryInterval                = null,
                                                             Func<TData, String>?             DataSerializer               = null,
                                                             Func<String, TData>?             DataDeserializer             = null,
                                                             Boolean                          EnableLogging                = true,
@@ -1815,7 +1820,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    EventIdentification,
                    this,
                    MaxNumberOfCachedEvents,
-                   RetryIntervall,
+                   RetryInterval ,
                    DataSerializer,
                    DataDeserializer,
                    EnableLogging,
@@ -1827,7 +1832,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryIntervall = null, LogfileName = null, ...)
+        #region AddEventSource(EventIdentification, URITemplate, MaxNumberOfCachedEvents = 500, RetryInterval  = null, LogfileName = null, ...)
 
         /// <summary>
         /// Add a HTTP Sever Sent Events source and a method call back for the given URI template.
@@ -1837,7 +1842,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// 
         /// <param name="MaxNumberOfCachedEvents">Maximum number of cached events.</param>
         /// <param name="IncludeFilterAtRuntime">Include this events within the HTTP SSE output. Can e.g. be used to filter events by HTTP users.</param>
-        /// <param name="RetryIntervall">The retry intervall.</param>
+        /// <param name="RetryInterval ">The retry interval.</param>
         /// <param name="DataSerializer">A delegate to serialize the stored events.</param>
         /// <param name="DataDeserializer">A delegate to deserialize stored events.</param>
         /// <param name="EnableLogging">Whether to enable event logging.</param>
@@ -1858,7 +1863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                     UInt32                           MaxNumberOfCachedEvents      = 500,
                                                     Func<HTTPEvent<T>, Boolean>?     IncludeFilterAtRuntime       = null,
-                                                    TimeSpan?                        RetryIntervall               = null,
+                                                    TimeSpan?                        RetryInterval                = null,
                                                     Func<T, String>?                 DataSerializer               = null,
                                                     Func<String, T>?                 DataDeserializer             = null,
                                                     Boolean                          EnableLogging                = true,
@@ -1884,7 +1889,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    MaxNumberOfCachedEvents,
                    IncludeFilterAtRuntime,
-                   RetryIntervall,
+                   RetryInterval ,
                    DataSerializer,
                    DataDeserializer,
                    EnableLogging,

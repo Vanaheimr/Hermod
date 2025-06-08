@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Name    = Name;
-            this.crumbs  = new Dictionary<String, String>();
+            this.crumbs  = [];
             this.parts   = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var crumb in Crumbs)
@@ -475,7 +475,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
         {
             unchecked

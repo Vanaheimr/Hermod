@@ -39,9 +39,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// Extentions methods for HTTP WebSocket servers.
+    /// Extensions methods for HTTP WebSocket servers.
     /// </summary>
-    public static class AWebSocketServerExtentions
+    public static class AWebSocketServerExtensions
     {
 
         #region BroadcastTextMessage   (this WebSocketServer, Message,                    EventTrackingId = null, CancellationToken = default)
@@ -1996,8 +1996,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
         private async Task LogEvent<TDelegate>(TDelegate?                                         Logger,
                                                Func<TDelegate, Task>                              LogHandler,
-                                               [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
-                                               [CallerMemberName()]                       String  OCPPCommand   = "")
+                                               [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                               [CallerMemberName()]                       String  Command     = "")
 
             where TDelegate : Delegate
 
@@ -2016,20 +2016,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    await HandleErrors($"WebSocketClient: {OCPPCommand}.{EventName}", e);
+                    await HandleErrors($"WebSocketClient: {Command}.{EventName}", e);
                 }
             }
         }
 
         #endregion
 
-        #region (private) HandleErrors(Caller, ExceptionOccured)
+        #region (private) HandleErrors(Caller, ExceptionOccurred)
 
         private Task HandleErrors(String     Caller,
-                                  Exception  ExceptionOccured)
+                                  Exception  ExceptionOccurred)
         {
 
-            DebugX.LogException(ExceptionOccured, Caller);
+            DebugX.LogException(ExceptionOccurred, Caller);
 
             return Task.CompletedTask;
 

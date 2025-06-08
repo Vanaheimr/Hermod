@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 var JSON = new JObject(
                                new JProperty("messages",    new JArray(JSONData)),
                                new JProperty("writer",      HTTPExtAPI.SystemId),
-                               new JProperty("timestamp",   Timestamp.Now.ToIso8601()),
+                               new JProperty("timestamp",   Timestamp.Now.ToISO8601()),
                                new JProperty("nonce",       Guid.NewGuid().ToString().Replace("-", "")),
                                new JProperty("parentHash",  CurrentDatabaseHashValue)
                            );
