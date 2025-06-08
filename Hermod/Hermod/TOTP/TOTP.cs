@@ -262,18 +262,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateTOTP (DateTime   Timestamp,
-                          String     SharedSecret,
-                          TimeSpan?  ValidityTime   = null,
-                          UInt32?    TOTPLength     = 12,
-                          String?    Alphabet       = null)
+            GenerateTOTP (DateTimeOffset  Timestamp,
+                          String          SharedSecret,
+                          TimeSpan?       ValidityTime   = null,
+                          UInt32?         TOTPLength     = 12,
+                          String?         Alphabet       = null)
 
                 => GenerateTOTP(
                        SharedSecret,
                        ValidityTime,
                        TOTPLength,
                        Alphabet,
-                       new DateTimeOffset(Timestamp)
+                       Timestamp
                    );
 
         #endregion
@@ -294,18 +294,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateTOTPs(DateTime   Timestamp,
-                          String     SharedSecret,
-                          TimeSpan?  ValidityTime   = null,
-                          UInt32?    TOTPLength     = 12,
-                          String?    Alphabet       = null)
+            GenerateTOTPs(DateTimeOffset  Timestamp,
+                          String          SharedSecret,
+                          TimeSpan?       ValidityTime   = null,
+                          UInt32?         TOTPLength     = 12,
+                          String?         Alphabet       = null)
 
                 => GenerateTOTPs(
                        SharedSecret,
                        ValidityTime,
                        TOTPLength,
                        Alphabet,
-                       new DateTimeOffset(Timestamp)
+                       Timestamp
                    );
 
         #endregion
@@ -478,12 +478,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURL(DateTime   Timestamp,
-                        URL        URLTemplate,
-                        String     SharedSecret,
-                        TimeSpan?  ValidityTime   = null,
-                        UInt32?    TOTPLength     = 12,
-                        String?    Alphabet       = null)
+            GenerateURL(DateTimeOffset  Timestamp,
+                        URL             URLTemplate,
+                        String          SharedSecret,
+                        TimeSpan?       ValidityTime   = null,
+                        UInt32?         TOTPLength     = 12,
+                        String?         Alphabet       = null)
 
         {
 
@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 ValidityTime,
                                 TOTPLength,
                                 Alphabet,
-                                new DateTimeOffset(Timestamp)
+                                Timestamp
                             );
 
             return (
@@ -523,12 +523,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TimeSpan        RemainingTime,
                        DateTimeOffset  EndTime)
 
-            GenerateURLs(DateTime   Timestamp,
-                         URL        URLTemplate,
-                         String     SharedSecret,
-                         TimeSpan?  ValidityTime   = null,
-                         UInt32?    TOTPLength     = 12,
-                         String?    Alphabet       = null)
+            GenerateURLs(DateTimeOffset  Timestamp,
+                         URL             URLTemplate,
+                         String          SharedSecret,
+                         TimeSpan?       ValidityTime   = null,
+                         UInt32?         TOTPLength     = 12,
+                         String?         Alphabet       = null)
 
         {
 
@@ -541,7 +541,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 ValidityTime,
                                 TOTPLength,
                                 Alphabet,
-                                new DateTimeOffset(Timestamp)
+                                Timestamp
                             );
 
             return (

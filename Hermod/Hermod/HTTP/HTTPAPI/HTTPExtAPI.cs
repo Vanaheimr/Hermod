@@ -3660,7 +3660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
-                                        ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
+                                        ? [.. User.Organizations(AccessLevel, Recursive)]
                                         : [];
 
             if (User is not null &&
@@ -3700,7 +3700,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             Organizations         = TryGetHTTPUser(Request, out User) && User is not null
-                                        ? new HashSet<IOrganization>(User.Organizations(AccessLevel, Recursive))
+                                        ? [.. User.Organizations(AccessLevel, Recursive)]
                                         : [];
 
             if (Organizations.Count == 0)
@@ -29867,6 +29867,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+        #region FileMappers
+
+        private readonly ConcurrentDictionary<FileMapper_Id, IFileMapper> fileMappers = [];
+
+
+        #region AddTOTPFileMapper(Hostname, URLTemplate, FileSystemPath, TOTPSharedSecret, ...)
+
+        public IFileMapper AddTOTPFileMapper(HTTPHostname    Hostname,
+                                             HTTPPath        URLTemplate,
+                                             String          FileSystemPath,
+                                             String          TOTPSharedSecret,
+
+                                             FileMapper_Id?  FileMapperId            = null,
+                                             String?         FileMapperName          = null,
+                                             I18NString?     FileMapperDescription   = null,
+                                             TimeSpan?       TOTPValidityTime        = null,
+                                             UInt32?         TOTPLength              = 12,
+                                             String?         TOTPAlphabet            = null)
+        {
+
+            var fileMapperId = FileMapperId ?? FileMapper_Id.Random();
+
+            if (fileMappers.ContainsKey(fileMapperId))
+                throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
+
+            var fileMapper  = new TOTPFileMapper(
+                                  this,
+                                  Hostname,
+                                  URLTemplate,
+                                  FileSystemPath,
+                                  TOTPSharedSecret,
+
+                                  fileMapperId,
+                                  FileMapperName,
+                                  FileMapperDescription,
+                                  TOTPValidityTime,
+                                  TOTPLength,
+                                  TOTPAlphabet
+                              );
+
+            if (!fileMappers.TryAdd(fileMapper.Id, fileMapper))
+                throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
+
+            return fileMapper;
+
+        }
+
+        #endregion
+
+
+        public T? GetFileMapper<T>(FileMapper_Id FileMapperId)
+            where T: FileMapper
+        {
+
+            if (fileMappers.TryGetValue(FileMapperId, out var fileMapper))
+                return fileMapper as T;
+
+            return null;
+
+        }
+
+        #endregion
+
 
 
     }
