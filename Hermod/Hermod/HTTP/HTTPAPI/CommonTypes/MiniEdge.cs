@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             // Overflow is fine, just wrap
-            // http://stackoverflow.com/questions/263400/what-is-the-best-algorithm-for-an-overridden-system-object-gethashcode
+            // http://stackoverflow.com/questions/263400/what-is-the-best-algorithm-for-an-overridden-system-object-gethash code
 
             unchecked
             {
