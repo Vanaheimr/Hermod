@@ -19,6 +19,7 @@
 
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 
 #endregion
@@ -164,13 +165,208 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+        #region StartCheckAll (Checks, DelayBetweenIterations, HandleCheckResult, ConcurrencyLimit = 10, ...)
 
-        #region (private) CheckHTTPS (Check)
-
-        private static async Task<CheckResult> CheckHTTPS(Check Check)
+        public static void StartCheckAll(IEnumerable<Check>   Checks,
+                                         TimeSpan             DelayBetweenIterations,
+                                         Action<CheckResult>  HandleCheckResult,
+                                         UInt16               ConcurrencyLimit    = 10,
+                                         CancellationToken    CancellationToken   = default)
         {
 
-            var checkResult = new CheckResult(Check.URL, Check.ExpireOk);
+            _ = Task.Run(async () => {
+
+                try
+                {
+                    await foreach (var checkResult in CheckAllAsync(
+                                                          Checks,
+                                                          DelayBetweenIterations,
+                                                          ConcurrencyLimit,
+                                                          CancellationToken
+                                                      ))
+                    {
+
+                        if (checkResult is not null)
+                            HandleCheckResult(checkResult);
+
+                        // else logger?.LogWarning("Null check result for task.");
+
+                    }
+                }
+                catch (Exception e)
+                {
+                    // logger?.LogError(ex, "Error in RepeatCheckAllAsync background task.");
+                }
+
+            }, CancellationToken);
+
+        }
+
+        #endregion
+
+        #region CheckAllAsync (Checks, DelayBetweenIterations, ConcurrencyLimit = 10, ...)
+
+        public static async IAsyncEnumerable<CheckResult> CheckAllAsync(IEnumerable<Check>                          Checks,
+                                                                        TimeSpan                                    DelayBetweenIterations,
+                                                                        UInt16                                      ConcurrencyLimit    = 10,
+                                                                        [EnumeratorCancellation] CancellationToken  CancellationToken   = default)
+        {
+            while (!CancellationToken.IsCancellationRequested)
+            {
+
+                await foreach (var checkResult in CheckAllAsync(
+                                                      Checks,
+                                                      ConcurrencyLimit,
+                                                      CancellationToken
+                                                  ))
+                {
+                    yield return checkResult;
+                }
+
+                if (DelayBetweenIterations > TimeSpan.Zero &&
+                   !CancellationToken.IsCancellationRequested)
+                {
+
+                    await Task.Delay(
+                              DelayBetweenIterations,
+                              CancellationToken
+                          );
+
+                }
+
+            }
+        }
+
+        #endregion
+
+        #region CheckAllAsync (Checks, ConcurrencyLimit = 10, ...)
+
+        public static async IAsyncEnumerable<CheckResult> CheckAllAsync(IEnumerable<Check>                          Checks,
+                                                                        UInt16                                      ConcurrencyLimit    = 10,
+                                                                        [EnumeratorCancellation] CancellationToken  CancellationToken   = default)
+        {
+
+            using var semaphore = new SemaphoreSlim(ConcurrencyLimit);
+
+            await foreach (var task in Task.WhenEach(
+                                           Checks.Select(async check => {
+                                               await semaphore.WaitAsync(CancellationToken);
+                                               try
+                                               {
+                                                   return await Check(check, CancellationToken);
+                                               }
+                                               catch (Exception ex)
+                                               {
+                                                   return new CheckResult(check.URL) {
+                                                              ErrorMessages = [ $"Error processing check for {check.URL}: {ex.Message}" ]
+                                                          };
+                                               }
+                                               finally
+                                               {
+                                                   semaphore.Release();
+                                               }
+                                           })
+                                       ).
+                                       WithCancellation(CancellationToken))
+            {
+
+                var checkResult = await task;
+
+                if (checkResult is not null)
+                    yield return checkResult;
+
+            }
+
+        }
+
+        #endregion
+
+        #region CheckAll      (Checks, ConcurrencyLimit = 10, ...)
+
+        public static async Task<IEnumerable<CheckResult>> CheckAll(IEnumerable<Check>  Checks,
+                                                                    UInt16              ConcurrencyLimit    = 10,
+                                                                    CancellationToken   CancellationToken   = default)
+        {
+
+            var checkResults = new List<CheckResult>(Checks.Count());
+
+            using var semaphore = new SemaphoreSlim(ConcurrencyLimit);
+
+            await foreach (var task in Task.WhenEach(
+                Checks.Select(async check => {
+
+                    await semaphore.WaitAsync();
+
+                    try
+                    {
+                        return await Check(check, CancellationToken);
+                    }
+
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+
+                })))
+            {
+
+                try
+                {
+
+                    var checkResult = await task;
+
+                    if (checkResult is not null)
+                        checkResults.Add(checkResult);
+
+                    else {
+                        // logger.LogError(ex, "Error processing task.");
+                        continue;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    // logger.LogError(ex, "Error processing task.");
+                    continue;
+                }
+
+            }
+
+            return checkResults;
+
+        }
+
+        #endregion
+
+        #region Check         (Check, ...)
+
+        public static Task<CheckResult> Check(Check              Check,
+                                              CancellationToken  CancellationToken   = default)
+        {
+
+            if      (Check.URL.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return CheckHTTPS(Check, CancellationToken);
+
+            else if (Check.URL.StartsWith("smtp://",  StringComparison.OrdinalIgnoreCase))
+                return CheckSMTP (Check, CancellationToken);
+
+            else
+                throw new ArgumentException($"Unsupported URL scheme in {Check.URL}", nameof(Check));
+
+        }
+
+        #endregion
+
+        #region CheckHTTPS    (Check, ...)
+
+        public static async Task<CheckResult> CheckHTTPS(Check              Check,
+                                                         CancellationToken  CancellationToken   = default)
+        {
+
+            var checkResult = new CheckResult(
+                                  Check.URL,
+                                  Check.ExpireOk
+                              );
 
             try
             {
@@ -178,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 using (var certClient = new HttpClient(CreateHTTPClientHandler(checkResult)))
                 {
 
-                    var response = await certClient.GetAsync(Check.URL);
+                    var response = await certClient.GetAsync(Check.URL, CancellationToken);
 
                     if (response.IsSuccessStatusCode)
                         checkResult.Messages.Add($"HTTPS check successful for {Check.URL}");
@@ -204,9 +400,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (private) CheckSMTP  (Check)
+        #region CheckSMTP     (Check, ...)
 
-        private static async Task<CheckResult> CheckSMTP(Check Check)
+        public static async Task<CheckResult> CheckSMTP(Check              Check,
+                                                        CancellationToken  CancellationToken   = default)
         {
 
             var checkResult = new CheckResult(Check.URL, Check.ExpireOk);
@@ -229,7 +426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     using (var writer = new StreamWriter(stream) { AutoFlush = true })
                     {
 
-                        var response = await reader.ReadLineAsync();
+                        var response = await reader.ReadLineAsync(CancellationToken);
                         if (response?.StartsWith("220") == false)
                         {
                             checkResult.ErrorMessages.Add($"SMTP connection to {Check.URL} failed: {response}");
@@ -238,7 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         await writer.WriteLineAsync($"EHLO {Environment.MachineName}");
 
-                        // Alle 250-Antwortzeilen lesen
+                        // Read all 250-Response lines
                         var isLastLine       = false;
                         var supportsStartTls = false;
                         while (!isLastLine)
@@ -280,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         }
 
                         await writer.WriteLineAsync("STARTTLS");
-                        response = await reader.ReadLineAsync();
+                        response = await reader.ReadLineAsync(CancellationToken);
                         if (response?.StartsWith("220") == false)
                         {
                             checkResult.ErrorMessages.Add($"STARTTLS for {Check.URL} failed: {response}");
@@ -308,9 +505,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (private) GetCertificateDisplayName (Certificate, IsLeaf)
+        #region GetCertificateDisplayName (Certificate, IsLeaf)
 
-        private static String GetCertificateDisplayName(X509Certificate2  Certificate,
+        public static String GetCertificateDisplayName(X509Certificate2  Certificate,
                                                         Boolean           IsLeaf)
         {
             if (IsLeaf)
@@ -350,9 +547,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (private) GetCommonName   (DistinguishedName)
+        #region GetCommonName             (DistinguishedName)
 
-        private static String? GetCommonName(String DistinguishedName)
+        public static String? GetCommonName(String DistinguishedName)
         {
 
             if (string.IsNullOrEmpty(DistinguishedName))
@@ -371,9 +568,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (private) GetOrganization (DistinguishedName)
+        #region GetOrganization           (DistinguishedName)
 
-        private static String? GetOrganization(String DistinguishedName)
+        public static String? GetOrganization(String DistinguishedName)
         {
 
             if (string.IsNullOrEmpty(DistinguishedName))
