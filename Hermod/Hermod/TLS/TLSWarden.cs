@@ -350,6 +350,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             else if (Check.URL.StartsWith("smtp://",  StringComparison.OrdinalIgnoreCase))
                 return CheckSMTP (Check, CancellationToken);
 
+            else if (Check.URL.StartsWith("imap://",  StringComparison.OrdinalIgnoreCase))
+                return CheckIMAP (Check, CancellationToken);
+
             else
                 throw new ArgumentException($"Unsupported URL scheme in {Check.URL}", nameof(Check));
 
@@ -496,6 +499,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             catch (Exception ex)
             {
                 checkResult.ErrorMessages.Add($"SMTP check for {Check.URL} failed: {ex.Message}");
+            }
+
+            return checkResult;
+
+        }
+
+        #endregion
+
+        #region CheckIMAP     (Check, ...)
+
+        public static async Task<CheckResult> CheckIMAP(Check              Check,
+                                                        CancellationToken  CancellationToken   = default)
+        {
+
+            var checkResult = new CheckResult(Check.URL, Check.ExpireOk);
+
+            try
+            {
+
+                var cleanUrl  = Check.URL.Replace("imap://", "");
+                var parts     = cleanUrl.Split(':');
+                var host      = parts[0];
+                var port      = UInt16.Parse(parts[1]);
+
+                using (var client = new TcpClient())
+                {
+
+                    await client.ConnectAsync(host, port);
+
+                    using (var stream = client.GetStream())
+                    using (var reader = new StreamReader(stream))
+                    using (var writer = new StreamWriter(stream) { AutoFlush = true })
+                    {
+
+                        var response = await reader.ReadLineAsync(CancellationToken) ?? "";
+                        // * OK [CAPABILITY IMAP4rev1 LITERAL+ ID ENABLE STARTTLS AUTH=DIGEST-MD5 AUTH=NTLM AUTH=CRAM-MD5 AUTH=LOGIN AUTH=PLAIN SASL-IR] mail Cyrus IMAP 3.4.2-dirty-Debian-3.4.2-2 server ready
+                        if (response.StartsWith("* OK") == false)
+                        {
+                            checkResult.ErrorMessages.Add($"IMAP connection to {Check.URL} failed: {response}");
+                            return checkResult;
+                        }
+
+                        if (response.Contains(" STARTTLS ") == false)
+                        {
+                            checkResult.ErrorMessages.Add($"Server {Check.URL} does not support the 'STARTTLS' command!");
+                            return checkResult;
+                        }
+
+                        // "a1" is a tag to correlate requests and responses
+                        await writer.WriteLineAsync("a1 STARTTLS");
+
+                        response = await reader.ReadLineAsync(CancellationToken) ?? "";
+                        if (response.StartsWith("a1 OK") == false)
+                        {
+                            checkResult.ErrorMessages.Add($"STARTTLS for {Check.URL} failed: {response}");
+                            return checkResult;
+                        }
+
+                        using (var sslStream = new SslStream(stream, false, CreateRemoteCertificateValidationCallback(checkResult)))
+                        {
+                            await sslStream.AuthenticateAsClientAsync(host);
+                            checkResult.Messages.Add($"IMAP STARTTLS connection successful for {Check.URL}");
+                        }
+
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                checkResult.ErrorMessages.Add($"IMAP check for {Check.URL} failed: {ex.Message}");
             }
 
             return checkResult;
