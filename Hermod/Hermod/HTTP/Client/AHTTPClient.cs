@@ -1042,7 +1042,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 }
                                 catch (Exception e)
                                 {
-                                    timings.AddError($"TCP.Connect: {e.Message}");
+                                    DebugX.Log($"TCP Connection to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
+                                    timings.AddError($"TCP Connection to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
                                     tcpSocket  = null;
                                     restart    = true;
                                 }
@@ -1147,7 +1148,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             catch (Exception e)
                             {
 
-                                timings.AddError($"TLS.AuthenticateAsClientAsync: {e.Message}");
+                                DebugX.Log($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}")
+                                timings.AddError($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
 
                                 foreach (var error in remoteCertificateValidatorErrors)
                                     timings.AddError(error);
