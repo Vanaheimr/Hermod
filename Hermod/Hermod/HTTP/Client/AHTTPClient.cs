@@ -1148,7 +1148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             catch (Exception e)
                             {
 
-                                DebugX.Log($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}")
+                                DebugX.Log($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
                                 timings.AddError($"TLS AuthenticateAsClientAsync to {RemoteURL.Hostname} ({RemoteIPAddress}) : {RemotePort} failed: {e.Message}");
 
                                 foreach (var error in remoteCertificateValidatorErrors)
