@@ -1069,7 +1069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public ApplicationRunTypes      RunType                     { get; }
 
         /// <summary>
-        /// The unqiue identification of this HTTP API instance.
+        /// The unique identification of this HTTP API instance.
         /// </summary>
         public System_Id                SystemId                    { get; }
 
