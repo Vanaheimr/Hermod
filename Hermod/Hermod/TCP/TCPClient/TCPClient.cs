@@ -71,13 +71,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Data
 
-        private readonly List<IPSocket>         _IPSocketList;
-
-#if __MonoCS__
-        public const SslProtocols DefaultSslProtocols = SslProtocols.Tls;
-#else
-        public const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
-#endif
+        private readonly List<IPSocket>  _IPSocketList;
+        public const     SslProtocols    DefaultSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
         #endregion
 

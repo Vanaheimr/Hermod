@@ -21,6 +21,7 @@ using System.Text.RegularExpressions;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -54,23 +55,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (TryParse(Text, out var ipAddress))
-                return ipAddress!;
+                return ipAddress;
 
-            throw new ArgumentException($"Invalid text representation of an IP address: '" + Text + "'!",
+            throw new ArgumentException($"Invalid text representation of an IP address: '{Text}'!",
                                         nameof(Text));
 
         }
 
         #endregion
 
-        #region (static) TryParse(Text, out IPAddress)
+        #region (static) Parse   (Bytes)
+
+        /// <summary>
+        /// Parse the given byte array as an IP address.
+        /// </summary>
+        /// <param name="Bytes">A binary representation of an IP address.</param>
+        public static IIPAddress Parse(Byte[] Bytes)
+        {
+
+            if (TryParse(Bytes, out var ipAddress))
+                return ipAddress;
+
+            throw new ArgumentException($"Invalid binary representation of an IP address: '{Bytes.ToHexString()}'!",
+                                        nameof(Bytes));
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(Text,  out IPAddress)
 
         /// <summary>
         /// Try to parse the given text as an IP address.
         /// </summary>
         /// <param name="Text">A text representation of an IP address.</param>
         /// <param name="IPAddress">The parsed IP address.</param>
-        public static Boolean TryParse(String Text, out IIPAddress? IPAddress)
+        public static Boolean TryParse(String                               Text,
+                                       [NotNullWhen(true)] out IIPAddress?  IPAddress)
         {
 
             Text = Text.Trim();
@@ -99,7 +120,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region (static) TryParse(Bytes, out IPAddress)
 
+        /// <summary>
+        /// Try to parse the given byte array as an IP address.
+        /// </summary>
+        /// <param name="Bytes">A binary representation of an IP address.</param>
+        /// <param name="IPAddress">The parsed IP address.</param>
+        public static Boolean TryParse(Byte[]                               Bytes,
+                                       [NotNullWhen(true)] out IIPAddress?  IPAddress)
+        {
+
+            if (Bytes.Length == 4)
+            {
+                IPAddress = new IPv4Address(Bytes);
+                return true;
+            }
+
+            if (Bytes.Length == 16)
+            {
+                IPAddress = new IPv6Address(Bytes);
+                return true;
+            }
+
+            IPAddress = null;
+            return false;
+
+        }
+
+        #endregion
 
 
         public static Boolean IsIPv4(String IPAddress)
@@ -136,6 +185,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public static Boolean IsIPv6Localhost(HTTPHostname Hostname)
             => Hostname.IsNotNullOrEmpty && IsIPv6Localhost(Hostname.ToString());
+
+
+        /// <summary>
+        /// Convert this IP address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPAddress">An IP address.</param>
+        public static System.Net.IPAddress ToDotNet(this IIPAddress IPAddress)
+
+            => new (IPAddress.GetBytes());
+
 
     }
 
