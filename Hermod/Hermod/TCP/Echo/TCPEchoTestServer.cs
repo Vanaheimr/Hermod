@@ -195,11 +195,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public static async Task StartNew(IPPort                   TCPPort,
-                                          UInt32?                  BufferSize       = null,
-                                          TimeSpan?                ReceiveTimeout   = null,
-                                          TimeSpan?                SendTimeout      = null,
-                                          TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        public static async Task<TCPEchoTestServer>
+
+            StartNew(IPPort                   TCPPort,
+                     UInt32?                  BufferSize       = null,
+                     TimeSpan?                ReceiveTimeout   = null,
+                     TimeSpan?                SendTimeout      = null,
+                     TCPEchoLoggingDelegate?  LoggingHandler   = null)
+
         {
 
             var server = new TCPEchoTestServer(
@@ -211,6 +214,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                          );
 
             await server.Start();
+
+            return server;
 
         }
 
@@ -227,12 +232,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public static async Task StartNew(IIPAddress               IPAddress,
-                                          IPPort                   TCPPort,
-                                          UInt32?                  BufferSize       = null,
-                                          TimeSpan?                ReceiveTimeout   = null,
-                                          TimeSpan?                SendTimeout      = null,
-                                          TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        public static async Task<TCPEchoTestServer>
+
+            StartNew(IIPAddress               IPAddress,
+                     IPPort                   TCPPort,
+                     UInt32?                  BufferSize       = null,
+                     TimeSpan?                ReceiveTimeout   = null,
+                     TimeSpan?                SendTimeout      = null,
+                     TCPEchoLoggingDelegate?  LoggingHandler   = null)
+
         {
 
             var server = new TCPEchoTestServer(
@@ -245,6 +253,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                          );
 
             await server.Start();
+
+            return server;
 
         }
 
