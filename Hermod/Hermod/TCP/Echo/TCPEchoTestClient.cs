@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        TCPEchoLoggingDelegate?  LoggingHandler   = null)
 
                 => await ConnectNew(
-                             IPv6Address.Localhost,
+                             IPvXAddress.Localhost,
                              TCPPort,
                              ConnectTimeout,
                              ReceiveTimeout,

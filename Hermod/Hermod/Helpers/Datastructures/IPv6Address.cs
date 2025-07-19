@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private const            Byte    length = 16;
 
-        private static readonly  Char[]  splitter = new Char[1] { ':' };
+        private static readonly  Char[]  splitter = [':'];
 
         private readonly         Byte[]  ipAddressArray;
 
@@ -50,28 +50,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The length of an IPv6 address.
         /// </summary>
-        public Byte Length
+        public Byte     Length
             => length;
 
         /// <summary>
         /// Whether the IP address is an IPv6 multicast address.
         /// </summary>
-        public Boolean IsMulticast
+        public Boolean  IsMulticast
             => new System.Net.IPAddress(ipAddressArray).IsIPv6Multicast;
 
         /// <summary>
         /// The interface identification for local IPv6 addresses, e.g. .
         /// </summary>
-        public String InterfaceId { get; }
+        public String   InterfaceId { get; }
 
-        public Boolean IsIPv4
+        public Boolean  IsIPv4
             => false;
 
-        public Boolean IsIPv6
+        public Boolean  IsIPv6
             => true;
 
-        public Boolean IsLocalhost
-            => ToString() == "::1";
+        public Boolean  IsLocalhost
+            => ipAddressArray[ 0] == 0 &&
+               ipAddressArray[ 1] == 0 &&
+               ipAddressArray[ 2] == 0 &&
+               ipAddressArray[ 3] == 0 &&
+               ipAddressArray[ 4] == 0 &&
+               ipAddressArray[ 5] == 0 &&
+               ipAddressArray[ 6] == 0 &&
+               ipAddressArray[ 7] == 0 &&
+               ipAddressArray[ 8] == 0 &&
+               ipAddressArray[ 9] == 0 &&
+               ipAddressArray[10] == 0 &&
+               ipAddressArray[11] == 0 &&
+               ipAddressArray[12] == 0 &&
+               ipAddressArray[13] == 0 &&
+               ipAddressArray[14] == 0 &&
+               ipAddressArray[15] == 1;
+
+        public Boolean  IsAny
+            => ipAddressArray.All(b => b == 0);
 
         #endregion
 
@@ -563,16 +581,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>A string representation of this object.</returns>
         public override String ToString()
 
-            => String.Format("{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
-                             ipAddressArray[ 0].ToString("x2") + ipAddressArray[ 1].ToString("x2"),
-                             ipAddressArray[ 2].ToString("x2") + ipAddressArray[ 3].ToString("x2"),
-                             ipAddressArray[ 4].ToString("x2") + ipAddressArray[ 5].ToString("x2"),
-                             ipAddressArray[ 6].ToString("x2") + ipAddressArray[ 7].ToString("x2"),
-                             ipAddressArray[ 8].ToString("x2") + ipAddressArray[ 9].ToString("x2"),
-                             ipAddressArray[10].ToString("x2") + ipAddressArray[11].ToString("x2"),
-                             ipAddressArray[12].ToString("x2") + ipAddressArray[13].ToString("x2"),
-                             ipAddressArray[14].ToString("x2") + ipAddressArray[15].ToString("x2"),
-                             InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : "");
+            => IsAny
+                   ? "[::]"
+                   : IsLocalhost
+                         ? "[::1]"
+                         : String.Format(
+                               "{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}{8}",
+                               ipAddressArray[ 0].ToString("x2") + ipAddressArray[ 1].ToString("x2"),
+                               ipAddressArray[ 2].ToString("x2") + ipAddressArray[ 3].ToString("x2"),
+                               ipAddressArray[ 4].ToString("x2") + ipAddressArray[ 5].ToString("x2"),
+                               ipAddressArray[ 6].ToString("x2") + ipAddressArray[ 7].ToString("x2"),
+                               ipAddressArray[ 8].ToString("x2") + ipAddressArray[ 9].ToString("x2"),
+                               ipAddressArray[10].ToString("x2") + ipAddressArray[11].ToString("x2"),
+                               ipAddressArray[12].ToString("x2") + ipAddressArray[13].ToString("x2"),
+                               ipAddressArray[14].ToString("x2") + ipAddressArray[15].ToString("x2"),
+                               InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : ""
+                           );
 
         #endregion
 

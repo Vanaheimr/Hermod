@@ -160,6 +160,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             => (UInt32) tcpConnections.Count;
 
         /// <summary>
+        /// Return an enumeration of sockets of all currently connected clients.
+        /// </summary>
+        public IEnumerable<IPSocket>             ClientSockets
+            => [.. tcpConnections
+                   .Select(connection => connection.Key)
+                   .Distinct()];
+
+        /// <summary>
         /// True while the TCPServer is listening for new clients
         /// </summary>
         public Boolean                           IsRunning
@@ -173,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         //    => _StopRequested;
 
 
-        public RemoteTLSClientCertificateValidationHandler<TCPServer>? ClientCertificateValidator { get; set; }
+        public RemoteTLSClientCertificateValidationHandler<ITCPServer>? ClientCertificateValidator { get; set; }
 
         #endregion
 
@@ -236,25 +244,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IPPort                                                   Port,
-                         String?                                                  ServiceName                  = null,
-                         String?                                                  ServiceBanner                = null,
+        public TCPServer(IPPort                                                    Port,
+                         String?                                                   ServiceName                  = null,
+                         String?                                                   ServiceBanner                = null,
 
-                         ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
-                         RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
-                         LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
-                         SslProtocols?                                            AllowedTLSProtocols          = null,
-                         Boolean?                                                 ClientCertificateRequired    = null,
-                         Boolean?                                                 CheckCertificateRevocation   = null,
+                         ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                         RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                         LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                         SslProtocols?                                             AllowedTLSProtocols          = null,
+                         Boolean?                                                  ClientCertificateRequired    = null,
+                         Boolean?                                                  CheckCertificateRevocation   = null,
 
-                         ServerThreadNameCreatorDelegate?                         ServerThreadNameCreator      = null,
-                         ServerThreadPriorityDelegate?                            ServerThreadPrioritySetter   = null,
-                         Boolean?                                                 ServerThreadIsBackground     = null,
-                         ConnectionIdBuilder?                                     ConnectionIdBuilder          = null,
-                         TimeSpan?                                                ConnectionTimeout            = null,
-                         UInt32?                                                  MaxClientConnections         = null,
+                         ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                         ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                         Boolean?                                                  ServerThreadIsBackground     = null,
+                         ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                         TimeSpan?                                                 ConnectionTimeout            = null,
+                         UInt32?                                                   MaxClientConnections         = null,
 
-                         Boolean                                                  AutoStart                    = false)
+                         Boolean                                                   AutoStart                    = false)
 
             : this(IPv4Address.Any,
                    Port,
@@ -303,26 +311,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IIPAddress                                               IPAddress,
-                         IPPort                                                   Port,
-                         String?                                                  ServiceName                  = null,
-                         String?                                                  ServiceBanner                = null,
+        public TCPServer(IIPAddress                                                IPAddress,
+                         IPPort                                                    Port,
+                         String?                                                   ServiceName                  = null,
+                         String?                                                   ServiceBanner                = null,
 
-                         ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
-                         RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
-                         LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
-                         SslProtocols?                                            AllowedTLSProtocols          = null,
-                         Boolean?                                                 ClientCertificateRequired    = null,
-                         Boolean?                                                 CheckCertificateRevocation   = null,
+                         ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                         RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                         LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                         SslProtocols?                                             AllowedTLSProtocols          = null,
+                         Boolean?                                                  ClientCertificateRequired    = null,
+                         Boolean?                                                  CheckCertificateRevocation   = null,
 
-                         ServerThreadNameCreatorDelegate?                         ServerThreadNameCreator      = null,
-                         ServerThreadPriorityDelegate?                            ServerThreadPrioritySetter   = null,
-                         Boolean?                                                 ServerThreadIsBackground     = null,
-                         ConnectionIdBuilder?                                     ConnectionIdBuilder          = null,
-                         TimeSpan?                                                ConnectionTimeout            = null,
-                         UInt32?                                                  MaxClientConnections         = null,
+                         ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                         ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                         Boolean?                                                  ServerThreadIsBackground     = null,
+                         ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                         TimeSpan?                                                 ConnectionTimeout            = null,
+                         UInt32?                                                   MaxClientConnections         = null,
 
-                         Boolean                                                  AutoStart                    = false)
+                         Boolean                                                   AutoStart                    = false)
 
         {
 
@@ -433,7 +441,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                     TCPServer:                    this,
                                                     TCPClient:                    newTCPClient,
                                                     ServerCertificateSelector:    ServerCertificateSelector,
-                                                    ClientCertificateValidator:   this.ClientCertificateValidator,
+                                                    ClientCertificateValidator:   ClientCertificateValidator,
                                                     LocalCertificateSelector:     LocalCertificateSelector,
                                                     AllowedTLSProtocols:          AllowedTLSProtocols,
                                                     ReadTimeout:                  ConnectionTimeout,
@@ -594,25 +602,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="AutoStart">Start the TCP server thread immediately (default: no).</param>
-        public TCPServer(IPSocket                                                 IPSocket,
-                         String                                                   ServiceName                  = __DefaultServiceName,
-                         String                                                   ServiceBanner                = __DefaultServiceBanner,
+        public TCPServer(IPSocket                                                  IPSocket,
+                         String                                                    ServiceName                  = __DefaultServiceName,
+                         String                                                    ServiceBanner                = __DefaultServiceBanner,
 
-                         ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
-                         RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
-                         LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
-                         SslProtocols?                                            AllowedTLSProtocols          = null,
-                         Boolean?                                                 ClientCertificateRequired    = null,
-                         Boolean?                                                 CheckCertificateRevocation   = null,
+                         ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                         RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                         LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                         SslProtocols?                                             AllowedTLSProtocols          = null,
+                         Boolean?                                                  ClientCertificateRequired    = null,
+                         Boolean?                                                  CheckCertificateRevocation   = null,
 
-                         ServerThreadNameCreatorDelegate?                         ServerThreadNameCreator      = null,
-                         ServerThreadPriorityDelegate?                            ServerThreadPrioritySetter   = null,
-                         Boolean?                                                 ServerThreadIsBackground     = null,
-                         ConnectionIdBuilder?                                     ConnectionIdBuilder          = null,
-                         TimeSpan?                                                ConnectionTimeout            = null,
-                         UInt32?                                                  MaxClientConnections         = null,
+                         ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                         ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                         Boolean?                                                  ServerThreadIsBackground     = null,
+                         ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                         TimeSpan?                                                 ConnectionTimeout            = null,
+                         UInt32?                                                   MaxClientConnections         = null,
 
-                         Boolean                                                  AutoStart                    = false)
+                         Boolean                                                   AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
                    IPSocket.Port,

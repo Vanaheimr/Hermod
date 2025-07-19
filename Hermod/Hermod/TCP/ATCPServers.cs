@@ -53,37 +53,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The DNS defines which DNS servers to use.
         /// </summary>
-        public DNSClient                                                DNSClient                       { get; }
+        public DNSClient                                                 DNSClient                       { get; }
 
         /// <summary>
         /// The optional delegate to select a TLS server certificate.
         /// </summary>
-        public ServerCertificateSelectorDelegate?                       ServerCertificateSelector       { get; }
+        public ServerCertificateSelectorDelegate?                        ServerCertificateSelector       { get; }
 
         /// <summary>
         /// The optional delegate to verify the TLS client certificate used for authentication.
         /// </summary>
-        public RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator      { get; set; }
+        public RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator      { get; set; }
 
         /// <summary>
         /// The optional delegate to select the TLS client certificate used for authentication.
         /// </summary>
-        public LocalCertificateSelectionHandler?                        LocalCertificateSelector       { get; }
+        public LocalCertificateSelectionHandler?                         LocalCertificateSelector       { get; }
 
         /// <summary>
         /// The TLS protocol(s) allowed for this connection.
         /// </summary>
-        public SslProtocols                                             AllowedTLSProtocols             { get; }
+        public SslProtocols                                              AllowedTLSProtocols             { get; }
 
         /// <summary>
         /// Whether a TLS client certificate is required.
         /// </summary>
-        public Boolean                                                  ClientCertificateRequired       { get; }
+        public Boolean                                                   ClientCertificateRequired       { get; }
 
         /// <summary>
         /// Whether the TLS client certificate should be checked for revocation.
         /// </summary>
-        public Boolean                                                  CheckCertificateRevocation      { get; }
+        public Boolean                                                   CheckCertificateRevocation      { get; }
 
 
         #region ServiceName
@@ -400,8 +400,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ClientCertificateRequired">Whether a TLS client certificate is required.</param>
         /// <param name="CheckCertificateRevocation">Whether the TLS client certificate should be checked for revocation.</param>
         /// 
-        /// <param name="ServerThreadName">An optional name of the TCP server threads.</param>
-        /// <param name="ServerThreadPriority">An optional priority of the TCP server threads (default: AboveNormal).</param>
         /// <param name="ServerThreadIsBackground">Whether the TCP server threads are a background thread or not (default: yes).</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
@@ -409,25 +407,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// 
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the TCP server threads immediately (default: no).</param>
-        public ATCPServers(String?                                                  ServiceName                  = null,
-                           String?                                                  ServiceBanner                = null,
+        public ATCPServers(String?                                                   ServiceName                  = null,
+                           String?                                                   ServiceBanner                = null,
 
-                           ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
-                           RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
-                           LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
-                           SslProtocols?                                            AllowedTLSProtocols          = null,
-                           Boolean?                                                 ClientCertificateRequired    = null,
-                           Boolean?                                                 CheckCertificateRevocation   = null,
+                           ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                           RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                           LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                           SslProtocols?                                             AllowedTLSProtocols          = null,
+                           Boolean?                                                  ClientCertificateRequired    = null,
+                           Boolean?                                                  CheckCertificateRevocation   = null,
 
-                           ServerThreadNameCreatorDelegate?                         ServerThreadNameCreator      = null,
-                           ServerThreadPriorityDelegate?                            ServerThreadPrioritySetter   = null,
-                           Boolean?                                                 ServerThreadIsBackground     = null,
-                           ConnectionIdBuilder?                                     ConnectionIdBuilder          = null,
-                           TimeSpan?                                                ConnectionTimeout            = null,
-                           UInt32?                                                  MaxClientConnections         = null,
+                           ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
+                           ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
+                           Boolean?                                                  ServerThreadIsBackground     = null,
+                           ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                           TimeSpan?                                                 ConnectionTimeout            = null,
+                           UInt32?                                                   MaxClientConnections         = null,
 
-                           DNSClient?                                               DNSClient                    = null,
-                           Boolean                                                  AutoStart                    = false)
+                           DNSClient?                                                DNSClient                    = null,
+                           Boolean                                                   AutoStart                    = false)
 
         {
 

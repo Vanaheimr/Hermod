@@ -69,18 +69,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The maximum number of concurrent TCP client connections (default: 4096).
         /// </summary>
-        public UInt32                            MaxClientConnections                   { get; set; }
+        public UInt32                            MaxClientConnections                   { get; }
 
         /// <summary>
         /// The current number of connected clients
         /// </summary>
         public UInt32                            NumberOfConnectedClients               { get; }
 
+        /// <summary>
+        /// Return an enumeration of sockets of all currently connected clients.
+        /// </summary>
+        public IEnumerable<IPSocket>             ClientSockets                          { get; }
 
         /// <summary>
         /// True while the TCPServer is listening for new clients
         /// </summary>
-        public Boolean                           IsRunning                 { get; }
+        public Boolean                           IsRunning                              { get; }
 
         #endregion
 

@@ -32,6 +32,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region Properties
+
+        /// <summary>
+        /// Whether this IP port is ZERO.
+        /// This means that this port will be chosen randomly by .NET during socket creation!
+        /// </summary>
+        public Boolean IsZero
+            => InternalId == 0;
+
+        #endregion
+
         #region Constructor(s)
 
         /// <summary>

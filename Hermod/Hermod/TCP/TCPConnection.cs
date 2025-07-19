@@ -233,14 +233,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
         /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
-        public TCPConnection(ITCPServer                                               TCPServer,
-                             TcpClient                                                TCPClient,
-                             ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
-                             RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,
-                             LocalCertificateSelectionHandler?                        LocalCertificateSelector     = null,
-                             SslProtocols?                                            AllowedTLSProtocols          = null,
-                             TimeSpan?                                                ReadTimeout                  = null,
-                             TimeSpan?                                                WriteTimeout                 = null)
+        public TCPConnection(ITCPServer                                                TCPServer,
+                             TcpClient                                                 TCPClient,
+                             ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                             RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                             LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                             SslProtocols?                                             AllowedTLSProtocols          = null,
+                             TimeSpan?                                                 ReadTimeout                  = null,
+                             TimeSpan?                                                 WriteTimeout                 = null)
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             : base(new IPSocket(IPAddress.Convert((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),

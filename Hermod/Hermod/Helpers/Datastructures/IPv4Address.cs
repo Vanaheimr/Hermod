@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private const            Byte    length = 4;
 
-        private static readonly  Char[]  splitter = new Char[1] { '.' };
+        private static readonly  Char[]  splitter = ['.'];
 
         private readonly         Byte[]  ipAddressArray;
 
@@ -47,31 +47,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The length of an IPv4 address.
         /// </summary>
-        public Byte Length
+        public Byte     Length
             => length;
 
         /// <summary>
         /// Whether the IP address is an IPv4 multicast address.
         /// 224.0.0.0 - 239.255.255.255
         /// </summary>
-        public Boolean IsMulticast
+        public Boolean  IsMulticast
 
             => ipAddressArray[0] >= 224 && ipAddressArray[0] <= 239;
 
-        public Boolean IsIPv4
+        public Boolean  IsIPv4
             => true;
 
-        public Boolean IsIPv6
+        public Boolean  IsIPv6
             => false;
 
-        public Boolean IsLocalhost
+        public Boolean  IsLocalhost
 
             => ipAddressArray[0] == 127 &&
                ipAddressArray[1] ==   0 &&
                ipAddressArray[2] ==   0 &&
                ipAddressArray[3] ==   1;
 
-        public Boolean IsLocalNet
+        public Boolean  IsAny
+
+            => ipAddressArray[0] == 0 &&
+               ipAddressArray[1] == 0 &&
+               ipAddressArray[2] == 0 &&
+               ipAddressArray[3] == 0;
+
+        public Boolean  IsLocalNet
 
             => ipAddressArray[0] == 127;
 

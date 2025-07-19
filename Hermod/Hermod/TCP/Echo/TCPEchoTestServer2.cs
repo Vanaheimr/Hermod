@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Buffers;
 
 #endregion
 
@@ -27,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple echo test server that listens for incoming TCP echo connections.
     /// </summary>
-    public class TCPEchoTestServer : ATCPTestServer
+    public class TCPEchoTestServer2 : ATCPTestServer
     {
 
         #region Data
@@ -48,16 +49,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new EchoTestServer that listens on the specified IP address and TCP port.
+        /// Create a new EchoTestServer that listens on the loopback address and the given TCP port.
         /// </summary>
-        /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
         /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public TCPEchoTestServer(IIPAddress?              IPAddress        = null,
-                                 IPPort?                  TCPPort          = null,
+        public TCPEchoTestServer2(IIPAddress?              IPAddress     = null,
+                                 IPPort?                  TCPPort        = null,
                                  UInt32?                  BufferSize       = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public static async Task<TCPEchoTestServer>
+        public static async Task<TCPEchoTestServer2>
 
             StartNew(IIPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            var server = new TCPEchoTestServer(
+            var server = new TCPEchoTestServer2(
                              IPAddress,
                              TCPPort,
                              BufferSize,
@@ -124,8 +124,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public override async Task HandleConnection(TCPConnection Connection, CancellationToken Token)
         {
+
             await using var stream = Connection.TCPClient.GetStream();
-            await stream.CopyToAsync(stream, bufferSize: (Int32) BufferSize, Token).ConfigureAwait(false);
+
+            //var buffer = new byte[BufferSize];  // Or use ArrayPool.Shared.Rent(BufferSize) for pooling (see performance section)
+            //int bytesRead;
+
+            //while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, Token).ConfigureAwait(false)) > 0)
+            //{
+            //    await stream.WriteAsync(buffer, 0, bytesRead, Token).ConfigureAwait(false);
+            //    await stream.FlushAsync(Token).                      ConfigureAwait(false);
+            //}
+
+            using var bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize);
+            var buffer = bufferOwner.Memory;
+            int bytesRead;
+
+            while ((bytesRead = await stream.ReadAsync(buffer.Slice(0, (Int32) BufferSize), Token).ConfigureAwait(false)) > 0)
+            {
+                await stream.WriteAsync(buffer[..bytesRead], Token).ConfigureAwait(false);
+                await stream.FlushAsync(Token).                     ConfigureAwait(false);
+            }
+
         }
 
 
@@ -136,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(TCPEchoTestServer)}: {IPAddress}:{TCPPort} (BufferSize: {BufferSize}, ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
+            => $"{nameof(TCPEchoTestServer2)}: {IPAddress}:{TCPPort} (BufferSize: {BufferSize}, ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
 
         #endregion
 

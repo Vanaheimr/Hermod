@@ -41,15 +41,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
 
     /// <summary>
-    /// New connection filtered delegate.
+    /// New connection rejected delegate.
     /// </summary>
     /// <param name="TCPServer">The sender of this event.</param>
     /// <param name="Timestamp">The timestamp of the new TCP connection event.</param>
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
-    /// <param name="Reason">An optional multi-language reason why this connection was filtered.</param>
-    public delegate Task NewConnectionFilteredDelegate(ITCPServer        TCPServer,
+    /// <param name="Reason">An optional multi-language reason why this connection was rejected.</param>
+    public delegate Task NewConnectionRejectedDelegate(ITCPServer        TCPServer,
                                                        DateTimeOffset    Timestamp,
                                                        EventTracking_Id  EventTrackingId,
                                                        IPSocket          RemoteSocket,

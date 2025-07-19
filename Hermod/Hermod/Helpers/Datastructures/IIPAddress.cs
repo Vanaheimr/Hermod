@@ -188,6 +188,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
 
+        public static IIPAddress Any
+            => IPvXAddress.Any;
+
+        public static IIPAddress Localhost
+            => IPvXAddress.Localhost;
+
+
         /// <summary>
         /// Convert this IP address into a System.Net.IPAddress.
         /// </summary>
@@ -215,9 +222,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="IPAddress">An IP address.</param>
         public static System.Net.IPAddress Convert(this IIPAddress IPAddress)
+        {
 
-            => new (IPAddress.GetBytes());
+            // IPv4/IPv6 dual mode...
+            if (IPAddress.IsIPv4 && IPAddress.IsIPv6)
+            {
 
+                if (IPAddress.IsLocalhost)
+                    return System.Net.IPAddress.IPv6Loopback;
+
+                return System.Net.IPAddress.IPv6Any;
+
+            }
+
+            return new (IPAddress.GetBytes());
+
+        }
 
     }
 
@@ -245,6 +265,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         Boolean  IsIPv6         { get; }
 
         Boolean  IsLocalhost    { get; }
+
+        Boolean  IsAny          { get; }
 
 
         /// <summary>
