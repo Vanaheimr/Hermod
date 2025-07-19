@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     await connectTask; // Await to throw if failed
                     tcpClient.ReceiveTimeout = (Int32) ReceiveTimeout.TotalMilliseconds;
                     tcpClient.SendTimeout    = (Int32) SendTimeout.TotalMilliseconds;
-                    tcpClient.LingerState    = new LingerOption(true, 0);
+                    tcpClient.LingerState    = new LingerOption(true, 1);
                     await Log("Client connected!");
                 }
                 else

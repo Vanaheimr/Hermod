@@ -364,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public event OnNewWebSocketConnectionDelegate?                  OnNewWebSocketConnection;
 
         /// <summary>
-        /// An event sent whenever a reponse to a HTTP request was sent.
+        /// An event sent whenever a response to a HTTP request was sent.
         /// </summary>
         public event HTTPResponseLogDelegate?                           OnHTTPResponse;
 
@@ -1155,7 +1155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                 #region Config web socket connection
 
-                                                webSocketConnection.ReadTimeout = TimeSpan.FromSeconds(20);
+                                                webSocketConnection.ReadTimeout  = TimeSpan.FromSeconds(20);
                                                 webSocketConnection.WriteTimeout = TimeSpan.FromSeconds(3);
 
                                                 if (!webSocketConnections.TryAdd(webSocketConnection.RemoteSocket,

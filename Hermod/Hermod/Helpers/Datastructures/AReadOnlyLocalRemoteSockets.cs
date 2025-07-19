@@ -21,7 +21,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <summary>
     /// An abstract local/remote socket combination.
     /// </summary>
-    public abstract class AReadOnlyLocalRemoteSockets
+    /// <param name="LocalSocket">The local socket.</param>
+    /// <param name="RemoteSocket">The remote socket.</param>
+    public abstract class AReadOnlyLocalRemoteSockets(IPSocket  LocalSocket,
+                                                      IPSocket  RemoteSocket)
     {
 
         #region Properties
@@ -41,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// <summary>
         /// The local socket.
         /// </summary>
-        public IPSocket     LocalSocket     { get; }
+        public IPSocket     LocalSocket { get; } = LocalSocket;
 
 
 
@@ -60,26 +63,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         /// <summary>
         /// The remote socket.
         /// </summary>
-        public IPSocket     RemoteSocket    { get; }
+        public IPSocket     RemoteSocket { get; } = RemoteSocket;
 
         #endregion
-
-        #region Constructor(s)
-
-        /// <summary>
-        /// Create a new abstract local/remote socket combination.
-        /// </summary>
-        /// <param name="LocalSocket">The local socket.</param>
-        /// <param name="RemoteSocket">The remote socket.</param>
-        public AReadOnlyLocalRemoteSockets(IPSocket LocalSocket,
-                                           IPSocket RemoteSocket)
-        {
-            this.LocalSocket   = LocalSocket;
-            this.RemoteSocket  = RemoteSocket;
-        }
-
-        #endregion
-
 
         #region (override) ToString()
 
@@ -92,7 +78,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
         }
 
         #endregion
-
 
     }
 
