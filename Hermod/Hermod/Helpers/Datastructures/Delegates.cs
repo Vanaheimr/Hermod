@@ -39,10 +39,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets
     /// <param name="Timestamp">The timestamp of the event.</param>
     /// <param name="LocalSocket">The local TCP/IP socket.</param>
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    public delegate String          ConnectionIdBuilder(Object    Sender,
-                                                        DateTime  Timestamp,
-                                                        IPSocket  LocalSocket,
-                                                        IPSocket  RemoteSocket);
+    public delegate String          ConnectionIdBuilder(Object          Sender,
+                                                        DateTimeOffset  Timestamp,
+                                                        IPSocket        LocalSocket,
+                                                        IPSocket        RemoteSocket);
 
     /// <summary>
     /// A delegate to generate a thread name for a connection.

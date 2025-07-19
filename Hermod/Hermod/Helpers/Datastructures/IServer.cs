@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The listening IP port.
         /// </summary>
-        IPPort      Port             { get; }
+        IPPort      TCPPort             { get; }
 
         /// <summary>
         /// The listening IP socket.

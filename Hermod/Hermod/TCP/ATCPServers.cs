@@ -333,21 +333,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        #region NumberOfClients
+        #region NumberOfConnectedClients
 
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
-        public UInt64 NumberOfClients
-        {
-            get
-            {
-                lock (tcpServers)
-                {
-                    return tcpServers.Sum(tcpServer => tcpServer.NumberOfClients);
-                }
-            }
-        }
+        public UInt32 NumberOfConnectedClients
+
+            => (UInt32) tcpServers.Sum(tcpServer => tcpServer.NumberOfConnectedClients);
 
         #endregion
 
@@ -358,17 +351,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever the TCP servers instance was started.
         /// </summary>
-        public event StartedEventHandler?           OnStarted;
+        public event StartedEventHandler?            OnStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP socket was attached.
         /// </summary>
-        public event TCPSocketAttachedHandler?      OnTCPSocketAttached;
+        public event TCPSocketAttachedHandler?       OnTCPSocketAttached;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionHandler?          OnNewConnection;
+        public event NewConnectionDelegate?           OnNewConnection;
 
         /// <summary>
         /// An event fired whenever an exception occured.
@@ -378,17 +371,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedHandler?       OnConnectionClosed;
+        public event ConnectionClosedDelegate?        OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever a new TCP socket was detached.
         /// </summary>
-        public event TCPSocketDetachedHandler?      OnTCPSocketDetached;
+        public event TCPSocketDetachedHandler?       OnTCPSocketDetached;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.
         /// </summary>
-        public event CompletedEventHandler?         OnCompleted;
+        public event CompletedEventHandler?          OnCompleted;
 
         #endregion
 
@@ -606,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                     foreach (var tcpServer in tcpServers)
                     {
                         if ((IPv4Address) tcpServer.IPAddress == IPv4Address.Any &&
-                                          tcpServer.Port      == Port)
+                                          tcpServer.TCPPort      == Port)
                         {
 
                             tcpServer.OnStarted           -= SendStarted;
@@ -639,7 +632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         public IEnumerable<IPPort> IPPorts
 
-            => tcpServers.Select(tcpServer => tcpServer.Port);
+            => tcpServers.Select(tcpServer => tcpServer.TCPPort);
 
         #endregion
 
@@ -711,8 +704,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendNewConnection     (TCPServer, Timestamp, EventTrackingId, RemoteSocket, ConnectionId, TCPConnection)
 
-        protected void SendNewConnection(TCPServer         TCPServer,
-                                         DateTime          Timestamp,
+        protected Task SendNewConnection(ITCPServer        TCPServer,
+                                         DateTimeOffset    Timestamp,
                                          EventTracking_Id  EventTrackingId,
                                          IPSocket          RemoteSocket,
                                          String            ConnectionId,
@@ -728,14 +721,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 TCPConnection
             );
 
+            return Task.CompletedTask;
+
         }
 
         #endregion
 
         #region (protected) SendConnectionClosed  (TCPServer, Timestamp, EventTrackingId, RemoteSocket, ConnectionId, ClosedBy)
 
-        protected void SendConnectionClosed(TCPServer           TCPServer,
-                                            DateTime            Timestamp,
+        protected Task SendConnectionClosed(ITCPServer          TCPServer,
+                                            DateTimeOffset      Timestamp,
                                             EventTracking_Id    EventTrackingId,
                                             IPSocket            RemoteSocket,
                                             String              ConnectionId,
@@ -750,6 +745,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 ConnectionId,
                 ClosedBy
             );
+
+            return Task.CompletedTask;
 
         }
 

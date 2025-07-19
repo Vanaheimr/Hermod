@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// Gets the port on which the UDP receiver listens.
         /// </summary>
-        public IPPort Port
+        public IPPort TCPPort
             => IPSocket.Port;
 
         /// <summary>
@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             this.PacketThreadsPriority        = PacketThreadsPriority;
             this.PacketThreadsAreBackground   = PacketThreadsAreBackground;
 
-            var LocalIPEndPoint               = new IPEndPoint(new System.Net.IPAddress(this.IPAddress.GetBytes()), this.Port.ToInt32());
+            var LocalIPEndPoint               = new IPEndPoint(new System.Net.IPAddress(this.IPAddress.GetBytes()), this.TCPPort.ToInt32());
             this.LocalSocket                  = IPSocket.FromIPEndPoint(LocalIPEndPoint);
             this.LocalDotNetSocket            = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             this.LocalDotNetSocket.Bind(LocalIPEndPoint);

@@ -109,8 +109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
-        public UInt64                                                     NumberOfClients
-            => httpServer.NumberOfClients;
+        public UInt32                                                     NumberOfConnectedClients
+            => httpServer.NumberOfConnectedClients;
 
         /// <summary>
         /// The DNS defines which DNS servers to use.
