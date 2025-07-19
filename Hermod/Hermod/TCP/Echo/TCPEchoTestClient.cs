@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             try
             {
 
-                var connectTask = tcpClient.ConnectAsync(ipAddress.ToDotNet(), tcpPort.ToUInt16());
+                var connectTask = tcpClient.ConnectAsync(ipAddress.Convert(), tcpPort.ToUInt16());
 
                 if (await Task.WhenAny(connectTask, Task.Delay(ConnectTimeout, cts.Token)) == connectTask)
                 {

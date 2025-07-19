@@ -34,42 +34,6 @@ using System.Security.Authentication;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    public delegate Task TCPEchoServerStartedDelegate(TCPEchoTestServer Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null);
-    public delegate Task TCPEchoServerStoppedDelegate(TCPEchoTestServer Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null);
-
-    ///// <summary>
-    ///// New connection delegate.
-    ///// </summary>
-    ///// <param name="TCPServer">The sender of this event.</param>
-    ///// <param name="Timestamp">The timestamp of the new TCP connection event.</param>
-    ///// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-    ///// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    ///// <param name="ConnectionId">The identification of this connection.</param>
-    ///// <param name="TCPConnection">The new TCP connection.</param>
-    //public delegate Task TCPEchoServerNewConnectionDelegate(TCPEchoTestServer  TCPServer,
-    //                                                        DateTimeOffset     Timestamp,
-    //                                                        EventTracking_Id   EventTrackingId,
-    //                                                        IPSocket           RemoteSocket,
-    //                                                        String             ConnectionId,
-    //                                                        TCPConnection      TCPConnection);
-
-    ///// <summary>
-    ///// Connection closed delegate.
-    ///// </summary>
-    ///// <param name="TCPServer">The sender of this event.</param>
-    ///// <param name="Timestamp">The timestamp of the event.</param>
-    ///// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-    ///// <param name="RemoteSocket">The remote TCP/IP socket.</param>
-    ///// <param name="ConnectionId">The identification of this connection.</param>
-    ///// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
-    //public delegate Task TCPEchoServerConnectionClosedDelegate(TCPEchoTestServer   TCPServer,
-    //                                                           DateTimeOffset      Timestamp,
-    //                                                           EventTracking_Id    EventTrackingId,
-    //                                                           IPSocket            RemoteSocket,
-    //                                                           String              ConnectionId,
-    //                                                           ConnectionClosedBy  ClosedBy);
-
-
 
     public delegate Task TCPEchoLoggingDelegate(String Message);
 
@@ -84,11 +48,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Data
 
         public const           Int32                                  DefaultBufferSize      = 81920; // .NET default for CopyToAsync!
-        public static readonly TimeSpan                               DefaultReceiveTimeout  = TimeSpan.FromSeconds(5);
-        public static readonly TimeSpan                               DefaultSendTimeout     = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan                               DefaultReceiveTimeout  = TimeSpan.FromSeconds(30);
+        public static readonly TimeSpan                               DefaultSendTimeout     = TimeSpan.FromSeconds(30);
 
         private readonly       TcpListener                            tcpListener;
-        private readonly       ConnectionIdBuilder                    connectionIdBuilder;
         private readonly       TCPEchoLoggingDelegate?                loggingHandler;
         private readonly       CancellationTokenSource                cts;
         private                Task?                                  serverTask;
@@ -171,22 +134,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// An event fired whenever the TCP EchoTest server started.
         /// </summary>
-        public event TCPEchoServerStartedDelegate?   OnStarted;
+        public event TCPServerStartedDelegate?   OnStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionDelegate?          OnNewConnection;
+        public event NewConnectionDelegate?      OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedDelegate?       OnConnectionClosed;
+        public event ConnectionClosedDelegate?   OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever the TCP EchoTest server stopped.
         /// </summary>
-        public event TCPEchoServerStoppedDelegate?   OnStopped;
+        public event TCPServerStoppedDelegate?   OnStopped;
 
         #endregion
 
@@ -221,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
             this.IPAddress                   = IPAddress ?? IPv6Address.Localhost;
-            this.tcpListener                 = new TcpListener(this.IPAddress.ToDotNet(), TCPPort.ToUInt16());
+            this.tcpListener                 = new TcpListener(this.IPAddress.Convert(), TCPPort.ToUInt16());
             var localEndpoint                = tcpListener.LocalEndpoint as IPEndPoint ?? throw new Exception("The TCP listener's local endpoint is not an IPEndPoint!");
             this.TCPPort                     = IPPort.Parse(localEndpoint.Port);
             this.IPSocket                    = new IPSocket(
@@ -235,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    : DefaultBufferSize;
             this.ReceiveTimeout              = ReceiveTimeout      ?? DefaultReceiveTimeout;
             this.SendTimeout                 = SendTimeout         ?? DefaultSendTimeout;
-            this.connectionIdBuilder         = ConnectionIdBuilder ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");
+            this.ConnectionIdBuilder         = ConnectionIdBuilder ?? ((sender, timestamp, localSocket, remoteSocket) => $"{remoteSocket} -> {localSocket}");
             this.loggingHandler              = LoggingHandler;
             this.cts                         = new CancellationTokenSource();
 
@@ -585,8 +548,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var eventTrackingId2  = EventTracking_Id.New;
             var remoteIPEndPoint  = (client.Client.RemoteEndPoint as IPEndPoint)!;
-            var remoteSocket      = IPSocket.AnyV6(IPPort.Auto);
-            var connectionId      = this.connectionIdBuilder(this, Timestamp.Now, IPSocket, remoteSocket);
+            var remoteSocket      = IPSocket.FromIPEndPoint(remoteIPEndPoint);
+            var connectionId      = "";
 
             try
             {
@@ -596,15 +559,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 client.LingerState     = new LingerOption(true, 0);
 
                 tcpConnection          = new TCPConnection(
-                                             TCPServer:                    null,
-                                             TCPClient:                    client,
-                                             ServerCertificateSelector:    ServerCertificateSelector,
-                                             ClientCertificateValidator:   ClientCertificateValidator,
-                                             LocalCertificateSelector:     LocalCertificateSelector,
-                                             AllowedTLSProtocols:          AllowedTLSProtocols,
-                                             ReadTimeout:                  ReceiveTimeout,
-                                             WriteTimeout:                 SendTimeout
+                                             TCPServer:                   this,
+                                             TCPClient:                   client,
+                                             ServerCertificateSelector:   ServerCertificateSelector,
+                                             ClientCertificateValidator:  ClientCertificateValidator,
+                                             LocalCertificateSelector:    LocalCertificateSelector,
+                                             AllowedTLSProtocols:         AllowedTLSProtocols,
+                                             ReadTimeout:                 ReceiveTimeout,
+                                             WriteTimeout:                SendTimeout
                                          );
+
+                connectionId           = tcpConnection.ConnectionId;
 
                 await LogEvent(
                           OnNewConnection,
@@ -614,21 +579,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               eventTrackingId2,
                               remoteSocket,
                               connectionId,
-                              new TCPConnection(
-                                  null,
-                                  client,
-                                  null,
-                                  null,
-                                  null,
-                                  null,
-                                  ReceiveTimeout,
-                                  SendTimeout
-                              )
+                              tcpConnection
                           )
                       );
 
                 await using var stream = client.GetStream();
                 await stream.CopyToAsync(stream, bufferSize: (Int32) BufferSize, cts.Token).ConfigureAwait(false);
+
+                try
+                {
+                    // Graceful shutdown after echo completes (client EOF received)
+                    client.Client.Shutdown(SocketShutdown.Both);
+                }
+                catch (Exception)
+                { }
 
             }
             catch (OperationCanceledException)
@@ -653,10 +617,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 try
                 {
-                    client.Client.Shutdown(SocketShutdown.Send);
+                    client.Close();
                 }
-                catch (SocketException) { }
-                client.Close();
+                catch (Exception)
+                { }
 
                 await LogEvent(
                           OnConnectionClosed,
@@ -727,7 +691,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-
         #region (protected internal) SendConnectionClosed(ServerTimestamp, RemoteSocket, ConnectionId, ClosedBy)
 
         /// <summary>
@@ -738,32 +701,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="RemoteSocket">The remote socket that was closed.</param>
         /// <param name="ConnectionId">The internal connection identification.</param>
         /// <param name="ClosedBy">Whether it was closed by us or by the client.</param>
-        public Task SendConnectionClosed(DateTimeOffset      ServerTimestamp,
-                                         EventTracking_Id    EventTrackingId,
-                                         IPSocket            RemoteSocket,
-                                         String              ConnectionId,
-                                         ConnectionClosedBy  ClosedBy)
+        public async Task SendConnectionClosed(DateTimeOffset      ServerTimestamp,
+                                               EventTracking_Id    EventTrackingId,
+                                               IPSocket            RemoteSocket,
+                                               String              ConnectionId,
+                                               ConnectionClosedBy  ClosedBy)
         {
 
-            //try
-            //{
-
-            //    OnConnectionClosed?.Invoke(
-            //        this,
-            //        ServerTimestamp,
-            //        EventTrackingId,
-            //        RemoteSocket,
-            //        ConnectionId,
-            //        ClosedBy
-            //    );
-
-            //}
-            //catch (Exception e)
-            //{
-            //    DebugX.LogException(e);
-            //}
-
-            return Task.CompletedTask;
+            await LogEvent(
+                          OnConnectionClosed,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              DateTimeOffset.UtcNow,
+                              EventTrackingId,
+                              RemoteSocket,
+                              ConnectionId,
+                              ClosedBy
+                          )
+                      );
 
         }
 

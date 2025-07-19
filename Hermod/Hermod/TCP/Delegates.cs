@@ -34,6 +34,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                   IPSocket          TCPSocket,
                                                   String?           Message   = null);
 
+
+    public delegate Task TCPServerStartedDelegate(ITCPServer Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null);
+    public delegate Task TCPServerStoppedDelegate(ITCPServer Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null);
+
+
+
     /// <summary>
     /// New connection delegate.
     /// </summary>

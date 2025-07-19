@@ -189,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// If this event closes the TCP connection the OnNotification event will never be fired!
         /// Therefore you can use this event for filtering connection initiation requests.
         /// </summary>
-        public event NewConnectionDelegate?                       OnNewConnection;
+        public event NewConnectionDelegate?                      OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
@@ -199,12 +199,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever an exception occured.
         /// </summary>
-        public event ExceptionOccurredEventHandler?               OnExceptionOccurred;
+        public event ExceptionOccurredEventHandler?              OnExceptionOccurred;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedDelegate?                    OnConnectionClosed;
+        public event ConnectionClosedDelegate?                   OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.

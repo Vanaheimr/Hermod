@@ -187,11 +187,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => Hostname.IsNotNullOrEmpty && IsIPv6Localhost(Hostname.ToString());
 
 
+
         /// <summary>
         /// Convert this IP address into a System.Net.IPAddress.
         /// </summary>
         /// <param name="IPAddress">An IP address.</param>
-        public static System.Net.IPAddress ToDotNet(this IIPAddress IPAddress)
+        public static IIPAddress Convert(System.Net.IPAddress IPAddress)
+        {
+
+            var bytes = IPAddress.GetAddressBytes();
+
+            if (bytes.Length == 4)
+                return new IPv4Address(bytes);
+
+            else if (bytes.Length == 16)
+                return new IPv6Address(bytes);
+
+            else
+                throw new ArgumentException($"Invalid byte array length for an IP address: {bytes.Length}!",
+                                            nameof(IPAddress));
+
+        }
+
+
+        /// <summary>
+        /// Convert this IP address into a System.Net.IPAddress.
+        /// </summary>
+        /// <param name="IPAddress">An IP address.</param>
+        public static System.Net.IPAddress Convert(this IIPAddress IPAddress)
 
             => new (IPAddress.GetBytes());
 
