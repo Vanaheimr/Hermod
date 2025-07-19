@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     }
 
 
-    public delegate void NewSMTPConnectionHandler     (SMTPServer SMTPServer, DateTime Timestamp, IPSocket RemoteSocket, TCPConnection TCPConnection);
+    public delegate void NewSMTPConnectionHandler     (SMTPServer SMTPServer, DateTimeOffset Timestamp, IPSocket RemoteSocket, TCPConnection TCPConnection);
     public delegate void IncomingEMailEnvelopeHandler (SMTPServer SMTPServer, IEnumerable<String> MAIL_FROM, IEnumerable<String> RCPT_TO);
 
 
@@ -359,14 +359,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         // Events
 
-        private void ProcessTCPServerOnNewConnection(TCPServer         TCPServer,
-                                                     DateTime          Timestamp,
+        private Task ProcessTCPServerOnNewConnection(ITCPServer        TCPServer,
+                                                     DateTimeOffset    Timestamp,
                                                      EventTracking_Id  EventTrackingId,
                                                      IPSocket          RemoteSocket,
                                                      String            ConnectionId,
                                                      TCPConnection     TCPConnection)
         {
+
             OnNewConnection?.Invoke(this, Timestamp, RemoteSocket, TCPConnection);
+
+            return Task.CompletedTask;
+
         }
 
         private MAIL_FROM_FilterResponse Process_MAIL_FROMFilter(String MAIL_FROM)

@@ -36,7 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// A multi-threaded Styx arrow sender that listens on a TCP
     /// socket and notifies about incoming TCP connections.
     /// </summary>
-    public class TCPServer : IArrowSender<TCPConnection>,
+    public class TCPServer : ITCPServer,
+                             IArrowSender<TCPConnection>,
                              IServer
     {
 
@@ -91,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// Gets the port on which the TCP server listens.
         /// </summary>
-        public IPPort                            Port                                   { get; private set; }
+        public IPPort                            TCPPort                                   { get; private set; }
 
         /// <summary>
         /// Gets the IP socket on which the TCP server listens.
@@ -109,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         public Boolean                           ClientCertificateRequired              { get; }
 
         /// <summary>
-        /// Whether TLS client certificate revokation should be verified.
+        /// Whether TLS client certificate revocation should be verified.
         /// </summary>
         public Boolean                           CheckCertificateRevocation             { get; }
 
@@ -155,8 +156,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The current number of connected clients
         /// </summary>
-        public UInt64                            NumberOfClients
-            => (UInt64) tcpConnections.Count;
+        public UInt32                            NumberOfConnectedClients
+            => (UInt32) tcpConnections.Count;
 
         /// <summary>
         /// True while the TCPServer is listening for new clients
@@ -188,7 +189,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// If this event closes the TCP connection the OnNotification event will never be fired!
         /// Therefore you can use this event for filtering connection initiation requests.
         /// </summary>
-        public event NewConnectionHandler?                       OnNewConnection;
+        public event NewConnectionDelegate?                       OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
@@ -203,7 +204,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedHandler?                    OnConnectionClosed;
+        public event ConnectionClosedDelegate?                    OnConnectionClosed;
 
         /// <summary>
         /// An event fired whenever the TCP servers instance was stopped.
@@ -327,21 +328,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             // TCP Socket
             this.IPAddress                   = IPAddress;
-            this.Port                        = Port;
+            this.TCPPort                        = Port;
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
             this.ClientCertificateValidator  = ClientCertificateValidator;
             this.CheckCertificateRevocation  = CheckCertificateRevocation ?? false;
 
             this.IPSocket                    = new IPSocket   (
                                                    this.IPAddress,
-                                                   this.Port
+                                                   this.TCPPort
                                                );
 
             this.tcpListener                 = new TcpListener(
                                                    new System.Net.IPAddress(
                                                        this.IPAddress.GetBytes()
                                                    ),
-                                                   this.Port.ToInt32()
+                                                   this.TCPPort.ToInt32()
                                                );
 
             // TCP Server
@@ -704,11 +705,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="RemoteSocket">The remote socket that was closed.</param>
         /// <param name="ConnectionId">The internal connection identification.</param>
         /// <param name="ClosedBy">Whether it was closed by us or by the client.</param>
-        protected internal void SendConnectionClosed(DateTime            ServerTimestamp,
-                                                     EventTracking_Id    EventTrackingId,
-                                                     IPSocket            RemoteSocket,
-                                                     String              ConnectionId,
-                                                     ConnectionClosedBy  ClosedBy)
+        public Task SendConnectionClosed(DateTimeOffset      ServerTimestamp,
+                                         EventTracking_Id    EventTrackingId,
+                                         IPSocket            RemoteSocket,
+                                         String              ConnectionId,
+                                         ConnectionClosedBy  ClosedBy)
         {
 
             try
@@ -728,6 +729,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             {
                 DebugX.LogException(e);
             }
+
+            return Task.CompletedTask;
 
         }
 
@@ -813,14 +816,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 tcpListener.Start((Int32) this.MaxClientConnections);
 
-                Port      = IPPort.Parse(((IPEndPoint) tcpListener.LocalEndpoint).Port);
+                TCPPort      = IPPort.Parse(((IPEndPoint) tcpListener.LocalEndpoint).Port);
 
                 IPSocket  = new IPSocket(
                                 IPAddress,
-                                Port
+                                TCPPort
                             );
 
-                DebugX.LogT($"Started '{ServiceName}' on TCP port {Port} ({EventTrackingId})...");
+                DebugX.LogT($"Started '{ServiceName}' on TCP port {TCPPort} ({EventTrackingId})...");
 
             }
             catch (Exception e)

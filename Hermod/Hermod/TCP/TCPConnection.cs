@@ -31,7 +31,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
-    public delegate X509Certificate2 ServerCertificateSelectorDelegate(TCPServer TCPServer, TcpClient TCPClient);
+    public delegate X509Certificate2 ServerCertificateSelectorDelegate(ITCPServer TCPServer, TcpClient TCPClient);
 
     /// <summary>
     /// An abstract class for all TCP connections.
@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The associated TCP server.
         /// </summary>
-        public TCPServer          TCPServer            { get; }
+        public ITCPServer         TCPServer            { get; }
 
         /// <summary>
         /// The associated TCP client.
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
         /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
-        public TCPConnection(TCPServer                                                TCPServer,
+        public TCPConnection(ITCPServer                                               TCPServer,
                              TcpClient                                                TCPClient,
                              ServerCertificateSelectorDelegate?                       ServerCertificateSelector    = null,
                              RemoteTLSClientCertificateValidationHandler<TCPServer>?  ClientCertificateValidator   = null,

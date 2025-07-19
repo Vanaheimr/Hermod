@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The current number of attached TCP clients.
         /// </summary>
-        UInt64                                                     NumberOfClients               { get; }
+        UInt32                                                     NumberOfConnectedClients      { get; }
 
         DNSClient                                                  DNSClient                     { get; }
 

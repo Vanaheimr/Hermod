@@ -43,12 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="TCPConnection">The new TCP connection.</param>
-    public delegate void NewConnectionHandler(TCPServer         TCPServer,
-                                              DateTime          Timestamp,
-                                              EventTracking_Id  EventTrackingId,
-                                              IPSocket          RemoteSocket,
-                                              String            ConnectionId,
-                                              TCPConnection     TCPConnection);
+    public delegate Task NewConnectionDelegate(ITCPServer        TCPServer,
+                                               DateTimeOffset    Timestamp,
+                                               EventTracking_Id  EventTrackingId,
+                                               IPSocket          RemoteSocket,
+                                               String            ConnectionId,
+                                               TCPConnection     TCPConnection);
 
     /// <summary>
     /// Connection closed delegate.
@@ -59,12 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="ClosedBy">Whether the connection was closed by the client or the server.</param>
-    public delegate void ConnectionClosedHandler(TCPServer           TCPServer,
-                                                 DateTime            Timestamp,
-                                                 EventTracking_Id    EventTrackingId,
-                                                 IPSocket            RemoteSocket,
-                                                 String              ConnectionId,
-                                                 ConnectionClosedBy  ClosedBy);
+    public delegate Task ConnectionClosedDelegate(ITCPServer          TCPServer,
+                                                  DateTimeOffset      Timestamp,
+                                                  EventTracking_Id    EventTrackingId,
+                                                  IPSocket            RemoteSocket,
+                                                  String              ConnectionId,
+                                                  ConnectionClosedBy  ClosedBy);
 
     /// <summary>
     /// TCP socket detached delegate.
