@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Connection
+        #region Connection (close | keep-alive | upgrade)
 
         /// <summary>
         /// The Connection general-header field allows the sender
@@ -360,9 +360,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPHeaderField<ConnectionType> Connection = new ("Connection",
                                                                                  HeaderFieldType.General,
                                                                                  RequestPathSemantic.EndToEnd,
-                                                                                 MultipleValuesAsList:   false,
-                                                                                 StringParser:           ConnectionType.TryParse,
-                                                                                 ValueSerializer:        ct => ct.ToString());
+                                                                                 MultipleValuesAsList:  false,
+                                                                                 StringParser:          ConnectionType.TryParse,
+                                                                                 ValueSerializer:       ct => ct.ToString());
+
+        #endregion
+
+        #region Keep-Alive (timeout=5, max=1000)
+
+        /// <summary>
+        /// The Keep-Alive general-header field allows the sender to
+        /// keep a connection open for further requests.
+        /// </summary>
+        /// <example>
+        /// Connection: keep-alive
+        /// Keep-Alive: timeout=5, max=1000
+        /// </example>
+        /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
+        public static readonly HTTPHeaderField<KeepAliveType> KeepAlive = new ("Keep-Alive",
+                                                                               HeaderFieldType.General,
+                                                                               RequestPathSemantic.EndToEnd,
+                                                                               MultipleValuesAsList:  false,
+                                                                               StringParser:          KeepAliveType.TryParse,
+                                                                               ValueSerializer:       ka => ka.ToString());
 
         #endregion
 

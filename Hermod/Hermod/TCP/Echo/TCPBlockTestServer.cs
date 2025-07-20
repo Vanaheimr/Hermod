@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        public override async Task HandleConnection(TCPConnection Connection, CancellationToken Token)
+        protected override async Task HandleConnection(TCPConnection Connection, CancellationToken Token)
         {
 
             var bufferSize = (Int32)BufferSize;

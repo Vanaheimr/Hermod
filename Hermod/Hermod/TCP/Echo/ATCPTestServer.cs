@@ -298,88 +298,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (protected) LogEvent     (Module, Logger, LogHandler, ...)
-
-        protected async Task LogEvent<TDelegate>(String                                             Module,
-                                                 TDelegate?                                         Logger,
-                                                 Func<TDelegate, Task>                              LogHandler,
-                                                 [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
-                                                 [CallerMemberName()]                       String  Command     = "")
-
-            where TDelegate : Delegate
-
-        {
-            if (Logger is not null)
-            {
-                try
-                {
-
-                    await Task.WhenAll(
-                              Logger.GetInvocationList().
-                                     OfType<TDelegate>().
-                                     Select(LogHandler)
-                          );
-
-                }
-                catch (Exception e)
-                {
-                    await HandleErrors(Module, $"{Command}.{EventName}", e);
-                }
-            }
-        }
-
-        #endregion
-
-        #region (virtual)   HandleErrors (Module, Caller, ErrorResponse)
-
-        public virtual Task HandleErrors(String  Module,
-                                         String  Caller,
-                                         String  ErrorResponse)
-        {
-
-            DebugX.Log($"{Module}.{Caller}: {ErrorResponse}");
-
-            return Task.CompletedTask;
-
-        }
-
-        #endregion
-
-        #region (virtual)   HandleErrors (Module, Caller, ExceptionOccurred)
-
-        public virtual Task HandleErrors(String     Module,
-                                         String     Caller,
-                                         Exception  ExceptionOccurred)
-        {
-
-            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
-
-            return Task.CompletedTask;
-
-        }
-
-        #endregion
-
-        #region (private)   LogEvent     (Logger, LogHandler, ...)
-
-        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
-                                         Func<TDelegate, Task>                              LogHandler,
-                                         [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
-                                         [CallerMemberName()]                       String  OICPCommand   = "")
-
-            where TDelegate : Delegate
-
-            => LogEvent(
-                   nameof(ATCPTestServer),
-                   Logger,
-                   LogHandler,
-                   EventName,
-                   OICPCommand
-               );
-
-        #endregion
-
-
         #region Start     (EventTrackingId = null)
 
         /// <summary>
@@ -688,12 +606,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (abstract) HandleConnection(TCPConnection, CancellationToken)
 
-        public abstract Task HandleConnection(TCPConnection      Connection,
-                                              CancellationToken  Token);
+        protected abstract Task HandleConnection(TCPConnection      Connection,
+                                                 CancellationToken  Token);
 
-        #endregion
 
         #region Stop (EventTrackingId = null)
 
@@ -782,6 +698,90 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+
+        #region (protected) LogEvent     (Module, Logger, LogHandler, ...)
+
+        protected async Task LogEvent<TDelegate>(String                                             Module,
+                                                 TDelegate?                                         Logger,
+                                                 Func<TDelegate, Task>                              LogHandler,
+                                                 [CallerArgumentExpression(nameof(Logger))] String  EventName   = "",
+                                                 [CallerMemberName()]                       String  Command     = "")
+
+            where TDelegate : Delegate
+
+        {
+            if (Logger is not null)
+            {
+                try
+                {
+
+                    await Task.WhenAll(
+                              Logger.GetInvocationList().
+                                     OfType<TDelegate>().
+                                     Select(LogHandler)
+                          );
+
+                }
+                catch (Exception e)
+                {
+                    await HandleErrors(Module, $"{Command}.{EventName}", e);
+                }
+            }
+        }
+
+        #endregion
+
+        #region (virtual)   HandleErrors (Module, Caller, ErrorResponse)
+
+        public virtual Task HandleErrors(String  Module,
+                                         String  Caller,
+                                         String  ErrorResponse)
+        {
+
+            DebugX.Log($"{Module}.{Caller}: {ErrorResponse}");
+
+            return Task.CompletedTask;
+
+        }
+
+        #endregion
+
+        #region (virtual)   HandleErrors (Module, Caller, ExceptionOccurred)
+
+        public virtual Task HandleErrors(String     Module,
+                                         String     Caller,
+                                         Exception  ExceptionOccurred)
+        {
+
+            DebugX.LogException(ExceptionOccurred, $"{Module}.{Caller}");
+
+            return Task.CompletedTask;
+
+        }
+
+        #endregion
+
+
+        #region (private)   LogEvent     (Logger, LogHandler, ...)
+
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
+                                         [CallerMemberName()]                       String  OICPCommand   = "")
+
+            where TDelegate : Delegate
+
+            => LogEvent(
+                   nameof(ATCPTestServer),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   OICPCommand
+               );
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
@@ -792,7 +792,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => $"{nameof(ATCPTestServer)}: {IPAddress}:{TCPPort} (ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
 
         #endregion
-
 
         #region Dispose/Async()
 

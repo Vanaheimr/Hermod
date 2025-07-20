@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (static) Parse   (Text)
+        #region (static) Parse    (Text)
 
         /// <summary>
         /// Parse the given text as a connection type.
@@ -117,7 +117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text)
+        #region (static) TryParse (Text)
 
         /// <summary>
         /// Try to parse the given text as a connection type.
@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) TryParse(Text, out ConnectionType)
+        #region (static) TryParse (Text, out ConnectionType)
 
         /// <summary>
         /// Try to parse the given text as a connection type.

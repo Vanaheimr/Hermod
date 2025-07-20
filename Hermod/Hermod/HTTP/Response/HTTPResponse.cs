@@ -430,17 +430,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region Transfer-Encoding
-
-        /// <summary>
-        /// Transfer-Encoding
-        /// </summary>
-        public String? TransferEncoding
-
-            => GetHeaderField(HTTPResponseHeaderField.TransferEncoding);
-
-        #endregion
-
 
         // WebSockets
 

@@ -345,6 +345,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region Transfer-Encoding
+
+        /// <summary>
+        /// Transfer-Encoding
+        /// </summary>
+        public String? TransferEncoding
+
+            => GetHeaderField(HTTPResponseHeaderField.TransferEncoding);
+
+        /// <summary>
+        /// Whether this HTTP PDU uses chunked transfer encoding.
+        /// </summary>
+        public Boolean IsChunkedTransferEncoding
+
+            => TransferEncoding is not null &&
+               TransferEncoding.Equals("chunked", StringComparison.OrdinalIgnoreCase);
+
+        #endregion
+
+        #region Keep-Alive
+
+        public KeepAliveType? KeepAlive
+        {
+            get
+            {
+
+                var connection = Connection;
+
+                if (connection.HasValue && connection.Value == ConnectionType.KeepAlive)
+                    return GetHeaderField(HTTPHeaderField.KeepAlive);
+
+                return null;
+
+            }
+        }
+
+        public Boolean IsKeepAlive
+        {
+            get
+            {
+
+                var connection = Connection;
+
+                if (connection.HasValue && connection.Value == ConnectionType.KeepAlive)
+                    return true;
+
+                return false;
+
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region HTTPBody
