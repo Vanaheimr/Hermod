@@ -358,11 +358,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             get
             {
-
                 TryReadHTTPBodyStream();
-
                 return httpBody;
-
             }
         }
 
@@ -468,8 +465,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP body as a stream of bytes.
         /// </summary>
         public Stream? HTTPBodyStream
-
-            => httpBodyStream;
+        {
+            get
+            {
+                return httpBodyStream;
+            }
+            set
+            {
+                httpBodyStream = value;
+            }
+        }
 
         #endregion
 

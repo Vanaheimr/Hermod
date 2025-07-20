@@ -28,12 +28,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple echo test server that listens for incoming TCP echo connections.
     /// </summary>
-    public class TCPEchoTestServer2 : ATCPTestServer
+    public class TCPBlockTestServer : ATCPTestServer
     {
 
         #region Data
 
-        public const Int32 DefaultBufferSize = 81920; // .NET default for CopyToAsync!
+        public const Int32 DefaultBufferSize = 32768;
+
+        private static readonly Byte[] Delimiter = "\r\n\r\n"u8.ToArray();
 
         #endregion
 
@@ -46,17 +48,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region Events
+
+        /// <summary>
+        /// An event fired whenever a block of data (without the delimiter) is ready for processing.
+        /// </summary>
+        public event Func<Byte[], Task>? OnDataBlockReceived;
+
+        #endregion
+
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new EchoTestServer that listens on the loopback address and the given TCP port.
+        /// Create a new BlockTestServer that listens on the loopback address and the given TCP port.
         /// </summary>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
         /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public TCPEchoTestServer2(IIPAddress?              IPAddress     = null,
+        public TCPBlockTestServer(IIPAddress?              IPAddress     = null,
                                  IPPort?                  TCPPort        = null,
                                  UInt32?                  BufferSize       = null,
                                  TimeSpan?                ReceiveTimeout   = null,
@@ -85,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region StartNew (Address, TCPPort, BufferSize = null, ReceiveTimeout = null, SendTimeout = null, LoggingHandler = null)
 
         /// <summary>
-        /// Start a new EchoTestServer that listens on the specified IP address and TCP port.
+        /// Start a new BlockTestServer that listens on the specified IP address and TCP port.
         /// </summary>
         /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
@@ -93,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public static async Task<TCPEchoTestServer2>
+        public static async Task<TCPBlockTestServer>
 
             StartNew(IIPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
@@ -104,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            var server = new TCPEchoTestServer2(
+            var server = new TCPBlockTestServer(
                              IPAddress,
                              TCPPort,
                              BufferSize,
@@ -125,16 +136,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public override async Task HandleConnection(TCPConnection Connection, CancellationToken Token)
         {
 
-            var bufferSize          = (Int32) BufferSize;
-            await using var stream  = Connection.TCPClient.GetStream();
-            using var bufferOwner   = MemoryPool<Byte>.Shared.Rent(bufferSize);
-            var buffer              = bufferOwner.Memory;
-            Int32 bytesRead;
+            var bufferSize = (Int32)BufferSize;
+            await using var stream = Connection.TCPClient.GetStream();
+            using var bufferOwner = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);  // Larger buffer to handle carry-over data
+            var buffer = bufferOwner.Memory;
+            var dataLength = 0;  // Current length of accumulated data in buffer
+            var delimiterLength = Delimiter.Length;
 
-            while ((bytesRead = await stream.ReadAsync(buffer[..bufferSize], Token).ConfigureAwait(false)) > 0)
+            while (true)
             {
-                await stream.WriteAsync(buffer[..bytesRead], Token).ConfigureAwait(false);
-                await stream.FlushAsync(Token).                     ConfigureAwait(false);
+
+                var bytesRead = await stream.ReadAsync(buffer[dataLength..(dataLength + bufferSize)], Token).ConfigureAwait(false);
+
+                if (bytesRead == 0)
+                    break;
+
+                dataLength += bytesRead;
+
+                // Search for delimiter in the accumulated data
+                var delimiterIndex = buffer[..dataLength].Span.IndexOf(Delimiter.AsSpan());
+
+                while (delimiterIndex >= 0)
+                {
+
+                    // Extract the block before the delimiter
+                    var block = new byte[delimiterIndex];
+                    buffer[..delimiterIndex].CopyTo(block);
+
+                    if (OnDataBlockReceived is not null)
+                        await OnDataBlockReceived(block).ConfigureAwait(false);
+
+                    // Shift remaining data left (after delimiter)
+                    var remainingLength = dataLength - (delimiterIndex + delimiterLength);
+                    buffer.Slice(delimiterIndex + delimiterLength, remainingLength).CopyTo(buffer);
+                    dataLength = remainingLength;
+
+                    // Search for next delimiter in remaining data
+                    delimiterIndex = buffer[..dataLength].Span.IndexOf(Delimiter.AsSpan());
+
+                }
+
             }
 
         }
@@ -147,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(TCPEchoTestServer2)}: {IPAddress}:{TCPPort} (BufferSize: {BufferSize}, ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
+            => $"{nameof(TCPBlockTestServer)}: {IPAddress}:{TCPPort} (BufferSize: {BufferSize}, ReceiveTimeout: {ReceiveTimeout}, SendTimeout: {SendTimeout})";
 
         #endregion
 
