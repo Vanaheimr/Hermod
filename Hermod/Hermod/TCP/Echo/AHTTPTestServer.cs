@@ -282,6 +282,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    CancellationToken  CancellationToken   = default);
 
 
+        protected static async Task SendResponse(NetworkStream      Stream,
+                                                 HTTPResponse       Response,
+                                                 CancellationToken  CancellationToken   = default)
+        {
+
+            try
+            {
+
+                await Stream.WriteAsync(
+                          Response.ToString().ToUTF8Bytes(),
+                          CancellationToken
+                      );
+
+                await Stream.FlushAsync(CancellationToken);
+
+                if (Response.Connection == ConnectionType.Close)
+                    await Stream.DisposeAsync();
+
+            }
+            catch (Exception e)
+            {
+            }
+
+        }
+
+
+
         #region (private) LogEvent (Logger, LogHandler, ...)
 
         private Task LogEvent<TDelegate>(TDelegate?                                         Logger,

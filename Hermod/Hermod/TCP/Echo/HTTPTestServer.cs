@@ -27,6 +27,11 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    public delegate Task OnHTTPRequestDelegate(HTTPRequest        Request,
+                                               NetworkStream      Stream,
+                                               CancellationToken  CancellationToken);
+
+
     /// <summary>
     /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
     /// </summary>
@@ -61,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The handler must consume the entire body stream if present to support pipelining.
         /// Use the provided NetworkStream to send the response.
         /// </summary>
-        public event Func<HTTPRequest, NetworkStream, CancellationToken, Task>? OnHTTPRequest;
+        public event OnHTTPRequestDelegate? OnHTTPRequest;
 
         #endregion
 
