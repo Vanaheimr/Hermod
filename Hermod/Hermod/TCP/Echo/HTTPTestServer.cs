@@ -17,17 +17,10 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Illias;
-using Org.BouncyCastle.Asn1.Ocsp;
-using Org.BouncyCastle.Tls;
-using System.Buffers;
-using System.IO;
-using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Text;
+
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
