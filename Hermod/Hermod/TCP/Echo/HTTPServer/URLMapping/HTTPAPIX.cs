@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             var parameters  = new Dictionary<String, String>();
             ErrorResponse   = null;
 
-            if (!routeNodes.TryGetValue(segments[0], out var next))
+            if (!routeNodes.TryGetValue(segments[0], out var routeNode))
             {
 
                 var parameterCatcher = routeNodes.Values.FirstOrDefault(routeNode => routeNode.ParamName is not null);
@@ -254,11 +254,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
             else
             {
-                if (next.ParamName is not null)
+                if (routeNode.ParamName is not null)
                 {
                     parameters.Add(
-                        next.ParamName,
-                        next.CatchRestOfPath
+                        routeNode.ParamName,
+                        routeNode.CatchRestOfPath
                             ? segments.Skip(1).AggregateWith('/')
                             : segments[0]
                     );
@@ -266,16 +266,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             if (segments.Length > 1)
-                foreach (var segment in segments.Skip(1))
+                for (var i = 1; i < segments.Length; i++)
                 {
 
-                    if (!next.Children.TryGetValue(segment, out var xxxx))
+                    if (!routeNode.Children.TryGetValue(segments[i], out var routeNode2))
                     {
-                        ErrorResponse = "Unknown path segment!";
-                        return (null, parameters);
+
+                        var parameterCatcher = routeNode.Children.Values.FirstOrDefault(routeNode => routeNode.ParamName is not null);
+                        if (parameterCatcher is not null && parameterCatcher.ParamName is not null)
+                        {
+
+                            parameters.Add(
+                                parameterCatcher.ParamName,
+                                parameterCatcher.CatchRestOfPath
+                                    ? segments.Skip(i).AggregateWith('/')
+                                    : segments[i]
+                            );
+
+                            return (parameterCatcher.RequestHandle, parameters);
+
+                        }
+                        else
+                        {
+                            ErrorResponse = $"Unknown path {Path}!";
+                            return (null, parameters);
+                        }
+
                     }
 
-                    next = xxxx;
+                    routeNode = routeNode2;
 
                 }
 

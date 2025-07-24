@@ -1542,6 +1542,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+
+        public Task<IEnumerable<(String, String)>>
+
+            ReadAllChunks(Action<HTTPResponseChunk>  OnChunkReceived,
+                          CancellationToken          CancellationToken   = default)
+
+        {
+
+            if (HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                return chunkedStream.ReadAllChunks(
+                           (timestamp, elapsed, counter, data) => OnChunkReceived(new HTTPResponseChunk(this, timestamp, elapsed, counter, data)),
+                           CancellationToken
+                       );
+
+            return Task.FromResult<IEnumerable<(String, String)>>([]);
+
+        }
+
         public JObject ToJSON()
         {
 

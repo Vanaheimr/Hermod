@@ -20,6 +20,7 @@
 using org.GraphDefined.Vanaheimr.Illias;
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -366,8 +367,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public async Task<IEnumerable<(String, String)>>
 
-            ReadAllChunks(Action<Byte[]>     OnChunkReceived,
-                          CancellationToken  CancellationToken   = default)
+            ReadAllChunks(Action<DateTimeOffset, TimeSpan, UInt64,  Byte[]>  OnChunkReceived,
+                          CancellationToken                                  CancellationToken   = default)
 
         {
 
@@ -388,6 +389,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var       buffer       = bufferOwner.Memory;
             var       dataLength   = 0;
             var       trailers     = new List<(String, String)>();
+            var       counter      = 1UL;
+            var       sw           = Stopwatch.StartNew();
 
             while (!CancellationToken.IsCancellationRequested && !done)
             {
@@ -397,7 +400,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 var sizeStr           = sizeLine.Split(';')[0].Trim();  // Ignore extensions
                 var currentChunkSize  = Int64.Parse(sizeStr, NumberStyles.HexNumber);
                 var currentChunkRead  = 0;
-
 
                 if (currentChunkSize == 0)
                 {
@@ -439,36 +441,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var chunkData = ms.ToArray();
 
-                await innerStream.ReadExactlyAsync(new Byte[2], CancellationToken);
+                OnChunkReceived?.Invoke(
+                    Timestamp.Now,
+                    sw.Elapsed,
+                    counter++,
+                    chunkData
+                );
 
-                OnChunkReceived?.Invoke(chunkData);
-
-                //if (currentChunkSize > 0)
-                //{
-
-                //    do
-                //    {
-
-                //        var bytesRead = await innerStream.ReadAsync(buffer.Slice(currentChunkRead, (Int32) currentChunkSize), CancellationToken);
-                //        if (bytesRead == 0)
-                //            break;
-
-                //        await innerStream.ReadExactlyAsync(new Byte[2], CancellationToken);
-
-                //        currentChunkRead += bytesRead;
-
-                //    }
-                //    while (currentChunkRead < currentChunkSize);
-
-                //    var bytes = buffer.ToArray();
-                //    Array.Resize(ref bytes, (Int32) currentChunkSize);
-                //    OnChunkReceived?.Invoke(bytes);
-
-                //}
-
-
+                // Read \r\n after each chunk...
+                await ReadCRLFAsync(CancellationToken);
 
             }
+
+            sw.Stop();
 
             return trailers;
 

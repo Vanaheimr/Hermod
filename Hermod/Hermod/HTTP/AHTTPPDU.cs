@@ -248,6 +248,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => GetHeaderField(HTTPHeaderField.Connection);
 
+
+        public Boolean IsConnectionClose
+        {
+            get
+            {
+
+                var connection = Connection;
+
+                if (connection.HasValue && connection.Value == ConnectionType.Close)
+                    return true;
+
+                return false;
+
+            }
+        }
+
         #endregion
 
         #region Upgrade
@@ -511,22 +527,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region HTTPBodyStream
 
-        private Stream? httpBodyStream;
-
         /// <summary>
         /// The HTTP body as a stream of bytes.
         /// </summary>
-        public Stream? HTTPBodyStream
-        {
-            get
-            {
-                return httpBodyStream;
-            }
-            set
-            {
-                httpBodyStream = value;
-            }
-        }
+        public Stream? HTTPBodyStream { get; protected internal set; }
 
         #endregion
 
@@ -582,7 +586,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RawHTTPHeader              = HTTPPDU.RawHTTPHeader;
             this.RawPDU                     = HTTPPDU.RawPDU;
             this.httpBody                   = HTTPPDU.HTTPBody;
-            this.httpBodyStream             = HTTPPDU.HTTPBodyStream;
+            this.HTTPBodyStream             = HTTPPDU.HTTPBodyStream;
             this.HTTPBodyReceiveBufferSize  = DefaultHTTPBodyReceiveBufferSize;
             this.CancellationToken          = HTTPPDU.CancellationToken;
             this.EventTrackingId            = HTTPPDU.EventTrackingId;
@@ -633,7 +637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteSocket               = RemoteSocket;
             this.RawHTTPHeader              = HTTPHeader.Trim();
             this.httpBody                   = HTTPBody;
-            this.httpBodyStream             = HTTPBodyStream;
+            this.HTTPBodyStream             = HTTPBodyStream;
             this.HTTPBodyReceiveBufferSize  = HTTPBodyReceiveBufferSize.HasValue
                                                   ? HTTPBodyReceiveBufferSize.Value < MaxHTTPBodyReceiveBufferSize
                                                         ? HTTPBodyReceiveBufferSize.Value
@@ -1326,25 +1330,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
-        public Task<IEnumerable<(String, String)>>
-
-            ReadAllChunks(Action<Byte[]>     OnChunkReceived,
-                          CancellationToken  CancellationToken   = default)
-
-        {
-
-            if (httpBodyStream is ChunkedTransferEncodingStream chunkedStream)
-                return chunkedStream.ReadAllChunks(
-                           OnChunkReceived,
-                           CancellationToken
-                       );
-
-            return Task.FromResult<IEnumerable<(String, String)>>([]);
-
-        }
-
-
         #region TryReadHTTPBodyStream()
 
         public Boolean TryReadHTTPBodyStream()
@@ -1356,7 +1341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (httpBody is not null)
                     return true;
 
-                if (httpBodyStream is null ||
+                if (HTTPBodyStream is null ||
                    !ContentLength.HasValue ||
                     ContentLength.Value == 0)
                 {
@@ -1376,9 +1361,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     try
                     {
 
-                        read = httpBodyStream.Read(httpBody,
-                                                   position,
-                                                   httpBody.Length - position);
+                        read = HTTPBodyStream.Read(
+                                   httpBody,
+                                   position,
+                                   httpBody.Length - position
+                               );
 
                         if (read == 0) {
                             Thread.Sleep(5);
@@ -1435,7 +1422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var memoryStream = new MemoryStream();
 
-            httpBodyStream = memoryStream;
+            HTTPBodyStream = memoryStream;
 
             return memoryStream;
 
@@ -1469,8 +1456,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public void Dispose()
         {
 
-            httpBodyStream?.Dispose();
-            httpBodyStream = null;
+            HTTPBodyStream?.Dispose();
+            HTTPBodyStream = null;
 
             GC.SuppressFinalize(this);
 

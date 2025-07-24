@@ -1413,6 +1413,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        public Task<IEnumerable<(String, String)>>
+
+            ReadAllChunks(Action<HTTPRequestChunk>  OnChunkReceived,
+                          CancellationToken         CancellationToken   = default)
+
+        {
+
+            if (HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                return chunkedStream.ReadAllChunks(
+                           (timestamp, elapsed, counter, data) => OnChunkReceived(new HTTPRequestChunk(this, timestamp, elapsed, counter, data)),
+                           CancellationToken
+                       );
+
+            return Task.FromResult<IEnumerable<(String, String)>>([]);
+
+        }
+
+
         public static HTTPRequest ChangePath(HTTPRequest             Request,
                                              HTTPPath                NewPath,
                                              Tuple<String, Object>?  SetHeaderField = null)
