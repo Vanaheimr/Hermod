@@ -453,8 +453,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                  HTTPAPI,
@@ -503,8 +503,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                  HTTPAPI,
@@ -553,8 +553,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                        HTTPAPI,
@@ -603,8 +603,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                       HTTPAPI,
@@ -966,7 +966,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A HTTP/1.1 server.
+    /// An HTTP/1.1 server.
     /// </summary>
     public class HTTPServer : ATCPServers,
                               IHTTPServer,
@@ -1955,8 +1955,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void AddHandler(HTTPAPI                  HTTPAPI,
                                  HTTPDelegate             HTTPDelegate,
@@ -2036,8 +2036,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname             Hostname,
@@ -2096,8 +2096,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                  HTTPAPI,
@@ -2161,8 +2161,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                  HTTPAPI,
@@ -2224,8 +2224,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                       HTTPAPI,
@@ -2290,8 +2290,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                       HTTPAPI,
@@ -2358,8 +2358,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         internal void ReplaceHandler(HTTPAPI                  HTTPAPI,
                                      HTTPDelegate             HTTPDelegate,
@@ -2430,7 +2430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         internal HTTPRequestHandle? GetRequestHandle(HTTPRequest Request,
                                                      out String? ErrorResponse)
 

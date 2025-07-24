@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A HTTP connection type.
+    /// An HTTP connection type.
     /// </summary>
     public readonly struct ConnectionType : IId<ConnectionType>
     {

@@ -215,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="RequestDelegate">A delegate to call.</param>
-            /// <returns>A HTTP request logger.</returns>
+            /// <returns>An HTTP request logger.</returns>
             public ServerRequestLogger RegisterLogTarget(LogTargets             LogTarget,
                                                          RequestLoggerDelegate  RequestDelegate)
             {
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="ResponseDelegate">A delegate to call.</param>
-            /// <returns>A HTTP response logger.</returns>
+            /// <returns>An HTTP response logger.</returns>
             public ServerResponseLogger RegisterLogTarget(LogTargets              LogTarget,
                                                           ResponseLoggerDelegate  ResponseDelegate)
             {

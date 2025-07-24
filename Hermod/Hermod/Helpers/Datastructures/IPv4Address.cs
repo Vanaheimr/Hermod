@@ -304,7 +304,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Parsed the given HTTP hostname as an IPv4 address.
         /// </summary>
-        /// <param name="Hostname">A HTTP hostname.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
         public static IPv4Address Parse(HTTPHostname Hostname)
         {
 
@@ -398,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given HTTP hostname as an IPv4 address.
         /// </summary>
-        /// <param name="Hostname">A HTTP hostname.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
         /// <param name="IPv4Address">The parsed IPv4 address.</param>
         public static Boolean TryParse(HTTPHostname Hostname, out IPv4Address IPv4Address)
 

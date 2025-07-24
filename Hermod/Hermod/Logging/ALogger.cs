@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             }
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context is not null ? context + "_" : "",
+                                                                                                           context is not null ? context + "_" : String.Empty,
                                                                                                            logfileName, "_",
                                                                                                            Timestamp.Now.Year, "-",
                                                                                                            Timestamp.Now.Month.ToString("D2"),

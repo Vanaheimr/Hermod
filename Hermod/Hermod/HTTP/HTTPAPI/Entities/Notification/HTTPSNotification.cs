@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
 
     /// <summary>
-    /// A HTTPS notification.
+    /// An HTTPS notification.
     /// </summary>
     public class HTTPSNotification : ANotification,
                                      IEquatable<HTTPSNotification>,

@@ -17,7 +17,9 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -37,6 +39,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         #region Data
+
+        private static readonly Byte[] endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
+        const                   Byte   endOfHTTPHeaderDelimiterLength   = 4;
 
         public static readonly TimeSpan  DefaultConnectTimeout  = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan  DefaultReceiveTimeout  = TimeSpan.FromSeconds(5);
@@ -254,6 +259,199 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
+
+        #region CreateRequest (HTTPMethod, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
+                                                 HTTPPath                      HTTPPath,
+                                                 QueryString?                  QueryString         = null,
+                                                 AcceptTypes?                  Accept              = null,
+                                                 IHTTPAuthentication?          Authentication      = null,
+                                                 String?                       UserAgent           = null,
+                                                 ConnectionType?               Connection          = null,
+                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+                                                 CancellationToken             CancellationToken   = default)
+{
+
+            var builder = new HTTPRequest.Builder(null, CancellationToken) {
+                              Host           = HTTPHostname.Localhost, // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
+                              HTTPMethod     = HTTPMethod,
+                              Path           = HTTPPath,
+                              QueryString    = QueryString ?? QueryString.Empty,
+                              Authorization  = Authentication,
+                            //  UserAgent      = UserAgent   ?? HTTPUserAgent,
+                              Connection     = Connection
+                          };
+
+            if (Accept is not null)
+                builder.Accept = Accept;
+
+            RequestBuilder?.Invoke(builder);
+
+            return builder;
+
+        }
+
+        #endregion
+
+
+        #region SendText   (Text)
+
+        /// <summary>
+        /// Send the given message to the echo server and receive the echoed response.
+        /// </summary>
+        /// <param name="Text">The text message to send and echo.</param>
+        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)> SendRequest(HTTPRequest Request)
+        {
+
+            if (!IsConnected)
+                return (false, null, "Client is not connected.", TimeSpan.Zero);
+
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+
+                var stream     = tcpClient.GetStream();
+
+                #region Send HTTP Request
+
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
+
+                if (Request.HTTPBody is not null && Request.ContentLength > 0)
+                    await stream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
+
+                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+
+                #endregion
+
+                using var       bufferOwner   = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
+                var             buffer        = bufferOwner.Memory;
+                var             dataLength    = 0;
+
+                //while (true)
+                //{
+
+                    #region Read data if no delimiter found yet
+
+                    if (dataLength < endOfHTTPHeaderDelimiterLength ||
+                        buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
+                    {
+
+                        if (dataLength >= buffer.Length - bufferSize)
+                        {
+                            // Buffer nearly full, shift or error
+                            throw new Exception("Header too large.");
+                        }
+
+                        // Will read data, or wait until read timeout...
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, bufferSize), Request.CancellationToken);
+                        if (bytesRead == 0)
+                            return (false, null, "Timeout!", stopwatch.Elapsed);
+
+                        dataLength += bytesRead;
+
+                    }
+
+                    #endregion
+
+                    #region Search for End-of-HTTPHeader
+
+                    var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
+                    if (endOfHTTPHeaderIndex < 0)
+                        return (false, null, "No HTTP response header found!", stopwatch.Elapsed);
+
+                    #endregion
+
+                    #region Parse HTTP Response
+
+                    var response = HTTPResponse.Parse(
+                                       //Timestamp.Now,
+                                       //httpSource,
+                                       //localSocket,
+                                       //remoteSocket,
+                                       Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
+                                       CancellationToken: Request.CancellationToken
+                                   );
+
+                    #endregion
+
+
+                    #region Shift remaining data
+
+                    var remainingStart = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                    var remainingLength = dataLength - remainingStart;
+                    buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
+                    dataLength = remainingLength;
+
+                    #endregion
+
+                    #region Setup HTTP body stream
+
+                    Stream? bodyDataStream = null;
+                    Stream? bodyStream = null;
+
+                    var prefix = buffer[..dataLength];
+                    if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
+                    {
+
+                        bodyDataStream = new PrefixStream(
+                                             prefix,
+                                             stream,
+                                             LeaveInnerStreamOpen: true
+                                         );
+
+                        if (response.IsChunkedTransferEncoding)
+                            bodyStream = new ChunkedTransferEncodingStream(
+                                             bodyDataStream,
+                                             LeaveInnerStreamOpen: true
+                                         );
+
+                        else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
+                            bodyStream = new LengthLimitedStream(
+                                             bodyDataStream,
+                                             response.ContentLength.Value,
+                                             LeaveInnerStreamOpen: true
+                                         );
+
+                    }
+
+                    response.HTTPBodyStream = bodyStream;
+
+                    #endregion
+
+
+                //}
+
+                return (true, response, null, stopwatch.Elapsed);
+
+            }
+            catch (Exception ex)
+            {
+                await Log($"Error in SendBinary: {ex.Message}");
+                return (false, null, ex.Message, TimeSpan.Zero);
+            }
+            finally {
+                stopwatch.Stop();
+            }
+
+        }
+
+        #endregion
+
         #region SendText   (Text)
 
         /// <summary>
@@ -287,7 +485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (!IsConnected)
-                return (false, [], "Client is not connected.", TimeSpan.Zero);
+                return (false, Array.Empty<byte>(), "Client is not connected.", TimeSpan.Zero);
 
             try
             {
@@ -295,35 +493,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 var stopwatch = Stopwatch.StartNew();
                 var stream    = tcpClient.GetStream();
 
+                // Send the data
                 await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
-                await stream.FlushAsync(cts.Token).       ConfigureAwait(false);
+                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
-                //var buffer    = new Byte[Bytes.Length];
-                //var offset    = 0;
-                //while (offset < buffer.Length)
-                //{
-                //    var read = await stream.ReadAsync(buffer.AsMemory(offset), cts.Token);
-                //    if (read == 0)
-                //        return (false, [], "Connection closed before full echo received.", stopwatch.Elapsed);
-                //    offset += read;
-                //}
+                using var responseStream = new MemoryStream();
+                var buffer = new Byte[8192];
+                int bytesRead;
 
-                //if (offset != Bytes.Length)
-                //    return (false, [], "Echoed response length mismatch.",  stopwatch.Elapsed);
-
-                //if (!Bytes.SequenceEqual(buffer))
-                //    return (false, [], "Echoed response content mismatch.", stopwatch.Elapsed);
+                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+                {
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
+                }
 
                 stopwatch.Stop();
 
-                //return (true, buffer, null, stopwatch.Elapsed);
-                return (true, [], null, stopwatch.Elapsed);
+                return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
 
             }
             catch (Exception ex)
             {
-                await Log($"Error in SendAndEchoAsync: {ex.Message}");
-                throw;
+                await Log($"Error in SendBinary: {ex.Message}");
+                return (false, Array.Empty<byte>(), ex.Message, TimeSpan.Zero);
             }
 
         }

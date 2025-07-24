@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                 {
                     return Data != null
                                ? System.Text.Encoding.UTF8.GetString(Data)
-                               : "";
+                               : String.Empty;
                 }
                 catch
                 {

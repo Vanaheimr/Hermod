@@ -21,15 +21,20 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
-    public delegate Task OnHTTPRequestDelegate(HTTPRequest        Request,
-                                               NetworkStream      Stream,
-                                               CancellationToken  CancellationToken);
+    public delegate Task OnHTTPRequestDelegate (HTTPRequest        Request,
+                                                NetworkStream      Stream,
+                                                CancellationToken  CancellationToken);
+
+    public delegate Task OnHTTPResponseDelegate(HTTPResponse       Response,
+                                                NetworkStream      Stream,
+                                                CancellationToken  CancellationToken);
 
 
     /// <summary>
@@ -37,12 +42,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// </summary>
     /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
     /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
+    /// <param name="HTTPServerName">An optional HTTP server name. If null or empty, the default HTTP server name will be used.</param>
     /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
     /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
     /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
     /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
     public class HTTPTestServer(IIPAddress?              IPAddress        = null,
                                 IPPort?                  TCPPort          = null,
+                                String?                  HTTPServerName   = null,
                                 UInt32?                  BufferSize       = null,
                                 TimeSpan?                ReceiveTimeout   = null,
                                 TimeSpan?                SendTimeout      = null,
@@ -51,6 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         : AHTTPTestServer(
               IPAddress,
               TCPPort,
+              HTTPServerName,
               BufferSize,
               ReceiveTimeout,
               SendTimeout,
@@ -62,11 +70,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Events
 
         /// <summary>
-        /// An event fired whenever an HTTP request is ready for processing.
-        /// The handler must consume the entire body stream if present to support pipelining.
-        /// Use the provided NetworkStream to send the response.
+        /// An event fired whenever an HTTP request was received.
         /// </summary>
-        public event OnHTTPRequestDelegate? OnHTTPRequest;
+        public event OnHTTPRequestDelegate?   OnHTTPRequest;
+
+        /// <summary>
+        /// An event fired whenever an HTTP request shall be processed.
+        /// </summary>
+        public event HTTPDelegate?            ProcessHTTP;
+
+        /// <summary>
+        /// An event fired whenever an HTTP response was sent.
+        /// </summary>
+        public event OnHTTPResponseDelegate?  OnHTTPResponse;
 
         #endregion
 
@@ -77,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             StartNew(IIPAddress?              IPAddress        = null,
                      IPPort?                  TCPPort          = null,
+                     String?                  HTTPServerName   = null,
                      UInt32?                  BufferSize       = null,
                      TimeSpan?                ReceiveTimeout   = null,
                      TimeSpan?                SendTimeout      = null,
@@ -87,6 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var server = new HTTPTestServer(
                              IPAddress,
                              TCPPort,
+                             HTTPServerName,
                              BufferSize,
                              ReceiveTimeout,
                              SendTimeout,
@@ -104,18 +122,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (override) ProcessHTTPRequest(Request, Stream, CancellationToken = default)
 
-        protected override Task ProcessHTTPRequest(HTTPRequest        Request,
-                                                   NetworkStream      Stream,
-                                                   CancellationToken  CancellationToken   = default)
+        protected override async Task<HTTPResponse>
 
-            => LogEvent(
-                   OnHTTPRequest,
-                   loggingDelegate => loggingDelegate.Invoke(
-                       Request,
-                       Stream,
-                       CancellationToken
-                   )
-               );
+            ProcessHTTPRequest(HTTPRequest        Request,
+                               NetworkStream      Stream,
+                               CancellationToken  CancellationToken   = default)
+        {
+
+            await LogEvent(
+                      OnHTTPRequest,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          Request,
+                          Stream,
+                          CancellationToken
+                      )
+                  );
+
+
+            HTTPResponse? response = null;
+
+            if (ProcessHTTP is not null)
+            {
+                try
+                {
+
+                    response = await await Task.WhenAny(
+                                   ProcessHTTP.GetInvocationList().
+                                          OfType<HTTPDelegate>().
+                                          Select(xxx => xxx.Invoke(Request))
+                               ).ConfigureAwait(false);
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log(e, nameof(HTTPTestServer) + "." + nameof(ProcessHTTPRequest));
+                }
+            }
+
+            response ??= new HTTPResponse.Builder(Request) {
+                             HTTPStatusCode = HTTPStatusCode.BadRequest
+                         };
+
+
+            await LogEvent(
+                      OnHTTPResponse,
+                      loggingDelegate => loggingDelegate.Invoke(
+                          response,
+                          Stream,
+                          CancellationToken
+                      )
+                  );
+
+            return response;
+
+        }
 
         #endregion
 

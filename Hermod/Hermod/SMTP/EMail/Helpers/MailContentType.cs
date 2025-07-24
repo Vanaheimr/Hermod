@@ -304,10 +304,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         {
 
             return _ContentType.ToString().Replace("__", "-").Replace("_", "/") +
-                   (CharSet.     IsNotNullOrEmpty() ?        "; charset=\""  + CharSet      + "\"" : "") +
-                   (MIMEBoundary.IsNotNullOrEmpty() ? ";\r\n    boundary=\"" + MIMEBoundary + "\"" : "") +
-                   (MicAlg.      IsNotNullOrEmpty() ? ";\r\n    micalg=\""   + MicAlg       + "\"" : "") +
-                   (Protocol.    IsNotNullOrEmpty() ? ";\r\n    protocol=\"" + Protocol     + "\"" : "");
+                   (CharSet.     IsNotNullOrEmpty() ?        "; charset=\""  + CharSet      + "\"" : String.Empty) +
+                   (MIMEBoundary.IsNotNullOrEmpty() ? ";\r\n    boundary=\"" + MIMEBoundary + "\"" : String.Empty) +
+                   (MicAlg.      IsNotNullOrEmpty() ? ";\r\n    micalg=\""   + MicAlg       + "\"" : String.Empty) +
+                   (Protocol.    IsNotNullOrEmpty() ? ";\r\n    protocol=\"" + Protocol     + "\"" : String.Empty);
 
         }
 

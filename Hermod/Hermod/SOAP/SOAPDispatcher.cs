@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// Invoke this SOAP endpoint and choose a matching dispatcher.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         public async Task<HTTPResponse> Invoke(HTTPRequest Request)
         {
 
@@ -186,7 +186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// Return a short information text about this endpoint.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         public Task<HTTPResponse> EndpointTextInfo(HTTPRequest Request)
 
             => Task.FromResult(new HTTPResponse.Builder(Request) {
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         public override String ToString()
 
-            => soapDispatches.Select(item => item.Description).AggregateWith(", ");
+            => soapDispatches.Select(item => item.Description).AggregateCSV();
 
         #endregion
 

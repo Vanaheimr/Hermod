@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         public override String ToString()
         {
-            return StatusCode.ToString() + " -" + (MoreDataAvailable ? "more" : "") + "-> " + Response;
+            return StatusCode.ToString() + " -" + (MoreDataAvailable ? "more" : String.Empty) + "-> " + Response;
         }
 
         #endregion

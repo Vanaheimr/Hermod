@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP Basic Authentication.
+    /// An HTTP Basic Authentication.
     /// </summary>
     public sealed class HTTPBasicAuthentication : IHTTPAuthentication,
                                                   IEquatable<HTTPBasicAuthentication>,
@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">An HTTP Basic Authentication.</param>
         /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPBasicAuthentication HTTPBasicAuthentication1,
@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">An HTTP Basic Authentication.</param>
         /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPBasicAuthentication HTTPBasicAuthentication1,
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">An HTTP Basic Authentication.</param>
         /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPBasicAuthentication HTTPBasicAuthentication1,
@@ -309,7 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">An HTTP Basic Authentication.</param>
         /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPBasicAuthentication HTTPBasicAuthentication1,
@@ -324,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">An HTTP Basic Authentication.</param>
         /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPBasicAuthentication HTTPBasicAuthentication1,
@@ -341,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication1">A HTTP Basic Authentication.</param>
+        /// <param name="HTTPBasicAuthentication1">An HTTP Basic Authentication.</param>
         /// <param name="HTTPBasicAuthentication2">Another HTTP Basic Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPBasicAuthentication HTTPBasicAuthentication1,
@@ -360,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Basic Authentications.
         /// </summary>
-        /// <param name="Object">A HTTP Basic Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Basic Authentication to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPBasicAuthentication httpBasicAuthentication
@@ -375,7 +375,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Basic Authentications.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication">A HTTP Basic Authentication to compare with.</param>
+        /// <param name="HTTPBasicAuthentication">An HTTP Basic Authentication to compare with.</param>
         public Int32 CompareTo(HTTPBasicAuthentication? HTTPBasicAuthentication)
         {
 
@@ -407,7 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Basic Authentications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP Basic Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Basic Authentication to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPBasicAuthentication httpBasicAuthentication &&
@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Basic Authentications for equality.
         /// </summary>
-        /// <param name="HTTPBasicAuthentication">A HTTP Basic Authentication to compare with.</param>
+        /// <param name="HTTPBasicAuthentication">An HTTP Basic Authentication to compare with.</param>
         public Boolean Equals(HTTPBasicAuthentication? HTTPBasicAuthentication)
 
             => HTTPBasicAuthentication is not null &&

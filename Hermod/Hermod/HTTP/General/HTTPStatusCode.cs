@@ -862,7 +862,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns the appropriate HTTPStatusCode for the given integer.
         /// </summary>
-        /// <param name="StatusCode">A HTTP status code</param>
+        /// <param name="StatusCode">An HTTP status code</param>
         public static HTTPStatusCode ParseUInt16(UInt16 StatusCode)
         {
 
@@ -898,7 +898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Tries to find the appropriate HTTP status code for the given integer.
         /// </summary>
-        /// <param name="StatusCode">A HTTP status code code</param>
+        /// <param name="StatusCode">An HTTP status code code</param>
         /// <param name="HTTPStatusCode">The parsed HTTP status code</param>
         public static Boolean TryParseUInt16(UInt16 StatusCode, out HTTPStatusCode HTTPStatusCode)
         {
@@ -929,7 +929,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Tries to find the appropriate HTTP status code for the given string.
         /// </summary>
-        /// <param name="StatusCode">A HTTP status code code</param>
+        /// <param name="StatusCode">An HTTP status code code</param>
         /// <param name="HTTPStatusCode">The parsed HTTP status code</param>
         public static Boolean TryParseString(String StatusCode, out HTTPStatusCode? HTTPStatusCode)
         {
@@ -952,7 +952,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode1">A HTTP status code.</param>
+        /// <param name="HTTPStatusCode1">An HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPStatusCode? HTTPStatusCode1,
@@ -978,7 +978,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode1">A HTTP status code.</param>
+        /// <param name="HTTPStatusCode1">An HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPStatusCode? HTTPStatusCode1,
@@ -993,7 +993,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode1">A HTTP status code.</param>
+        /// <param name="HTTPStatusCode1">An HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPStatusCode? HTTPStatusCode1,
@@ -1010,7 +1010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode1">A HTTP status code.</param>
+        /// <param name="HTTPStatusCode1">An HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPStatusCode? HTTPStatusCode1,
@@ -1025,7 +1025,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode1">A HTTP status code.</param>
+        /// <param name="HTTPStatusCode1">An HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPStatusCode? HTTPStatusCode1,
@@ -1042,7 +1042,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPStatusCode1">A HTTP status code.</param>
+        /// <param name="HTTPStatusCode1">An HTTP status code.</param>
         /// <param name="HTTPStatusCode2">Another HTTP status code.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPStatusCode? HTTPStatusCode1,
@@ -1061,7 +1061,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP status codes.
         /// </summary>
-        /// <param name="Object">A HTTP status code to compare with.</param>
+        /// <param name="Object">An HTTP status code to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPStatusCode httpStatusCode
@@ -1076,7 +1076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP status codes.
         /// </summary>
-        /// <param name="HTTPStatusCode">A HTTP status code to compare with.</param>
+        /// <param name="HTTPStatusCode">An HTTP status code to compare with.</param>
         public Int32 CompareTo(HTTPStatusCode? HTTPStatusCode)
         {
 
@@ -1098,7 +1098,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP status codes for equality.
         /// </summary>
-        /// <param name="Object">A HTTP status code to compare with.</param>
+        /// <param name="Object">An HTTP status code to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPStatusCode httpStatusCode &&
@@ -1111,7 +1111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP status codes for equality.
         /// </summary>
-        /// <param name="HTTPStatusCode">A HTTP status code to compare with.</param>
+        /// <param name="HTTPStatusCode">An HTTP status code to compare with.</param>
         public Boolean Equals(HTTPStatusCode? HTTPStatusCode)
 
             => HTTPStatusCode is not null &&

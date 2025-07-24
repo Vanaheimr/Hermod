@@ -946,7 +946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields.
         /// </summary>
-        /// <param name="Object">A HTTP header field to compare with.</param>
+        /// <param name="Object">An HTTP header field to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPHeaderField httpHeaderField
@@ -961,7 +961,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields.
         /// </summary>
-        /// <param name="HTTPHeaderField">A HTTP header field to compare with.</param>
+        /// <param name="HTTPHeaderField">An HTTP header field to compare with.</param>
         public Int32 CompareTo(HTTPHeaderField? HTTPHeaderField)
         {
 
@@ -986,7 +986,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields for equality.
         /// </summary>
-        /// <param name="Object">A HTTP header field to compare with.</param>
+        /// <param name="Object">An HTTP header field to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPHeaderField httpHeaderField &&
@@ -999,7 +999,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields for equality.
         /// </summary>
-        /// <param name="HTTPHeaderField">A HTTP header field to compare with.</param>
+        /// <param name="HTTPHeaderField">An HTTP header field to compare with.</param>
         public Boolean Equals(HTTPHeaderField? HTTPHeaderField)
 
             => HTTPHeaderField is not null &&
@@ -1222,7 +1222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields.
         /// </summary>
-        /// <param name="Object">A HTTP header field to compare with.</param>
+        /// <param name="Object">An HTTP header field to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPHeaderField<T> httpHeaderField
@@ -1237,7 +1237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields.
         /// </summary>
-        /// <param name="HTTPHeaderField">A HTTP header field to compare with.</param>
+        /// <param name="HTTPHeaderField">An HTTP header field to compare with.</param>
         public Int32 CompareTo(HTTPHeaderField<T>? HTTPHeaderField)
         {
 
@@ -1262,7 +1262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields for equality.
         /// </summary>
-        /// <param name="Object">A HTTP header field to compare with.</param>
+        /// <param name="Object">An HTTP header field to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPHeaderField<T> httpHeaderField &&
@@ -1275,7 +1275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP header fields for equality.
         /// </summary>
-        /// <param name="HTTPHeaderField">A HTTP header field to compare with.</param>
+        /// <param name="HTTPHeaderField">An HTTP header field to compare with.</param>
         public Boolean Equals(HTTPHeaderField<T>? HTTPHeaderField)
 
             => HTTPHeaderField is not null &&

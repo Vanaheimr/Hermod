@@ -17,8 +17,12 @@
 
 #region Usings
 
-using System.Text;
+using org.GraphDefined.Vanaheimr.Illias;
+using System;
+using System.Buffers;
 using System.Globalization;
+using System.IO;
+using System.Text;
 
 #endregion
 
@@ -270,6 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+
         #region ReadAsync  (Destination, CancellationToken = default)
 
         public override async ValueTask<Int32> ReadAsync(Memory<Byte>       Destination,
@@ -334,6 +339,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     currentChunkRead += read;
                     totalRead += read;
+
+                    var bytes = currentDestination.ToArray();
+                    Array.Resize(ref bytes, read);
+                    //OnChunkReceived?.Invoke(bytes);
+
                     currentDestination = currentDestination[read..];
 
                 }
@@ -349,6 +359,124 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         }
 
         #endregion
+
+
+
+        #region ReadChunks  (OnChunkReceived, CancellationToken = default)
+
+        public async Task<IEnumerable<(String, String)>>
+
+            ReadAllChunks(Action<Byte[]>     OnChunkReceived,
+                          CancellationToken  CancellationToken   = default)
+
+        {
+
+            if (done)
+                return [];
+
+            // 5\r\n
+            // Hello\r\n
+            // 5\r\n
+            // World\r\n
+            // 0\r\n
+            // Expires: Wed, 21 Oct 2025 07:28:00 GMT\r\n
+            // ETag: "abc123"\r\n
+            // \r\n
+
+            Int32 bufferSize       = 8192;
+            using var bufferOwner  = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
+            var       buffer       = bufferOwner.Memory;
+            var       dataLength   = 0;
+            var       trailers     = new List<(String, String)>();
+
+            while (!CancellationToken.IsCancellationRequested && !done)
+            {
+
+                // Ignore extensions after ;
+                var sizeLine          = await ReadLineAsync(CancellationToken);
+                var sizeStr           = sizeLine.Split(';')[0].Trim();  // Ignore extensions
+                var currentChunkSize  = Int64.Parse(sizeStr, NumberStyles.HexNumber);
+                var currentChunkRead  = 0;
+
+
+                if (currentChunkSize == 0)
+                {
+
+                    while (true)
+                    {
+
+                        var line = await ReadLineAsync(CancellationToken);
+
+                        if (String.IsNullOrWhiteSpace(line))
+                            break;
+
+                        var parts = line.Split(':', 2);
+                        trailers.Add((
+                            parts[0].Trim(),
+                            parts.Length > 1
+                                ? parts[1].Trim()
+                                : String.Empty
+                        ));
+
+                    }
+
+                    done = true;
+                    break;
+
+                }
+
+                using var ms = new MemoryStream((Int32) currentChunkSize);
+                while (currentChunkRead < currentChunkSize)
+                {
+                    var remaining = (int) Math.Min(buffer.Length, currentChunkSize - currentChunkRead);
+                    var bytesRead = await innerStream.ReadAsync(buffer[..remaining], CancellationToken);
+                    if (bytesRead == 0)
+                        throw new Exception("Unexpected end of stream during chunk data");
+
+                    await ms.WriteAsync(buffer[..bytesRead], CancellationToken);
+                    currentChunkRead += bytesRead;
+                }
+
+                var chunkData = ms.ToArray();
+
+                await innerStream.ReadExactlyAsync(new Byte[2], CancellationToken);
+
+                OnChunkReceived?.Invoke(chunkData);
+
+                //if (currentChunkSize > 0)
+                //{
+
+                //    do
+                //    {
+
+                //        var bytesRead = await innerStream.ReadAsync(buffer.Slice(currentChunkRead, (Int32) currentChunkSize), CancellationToken);
+                //        if (bytesRead == 0)
+                //            break;
+
+                //        await innerStream.ReadExactlyAsync(new Byte[2], CancellationToken);
+
+                //        currentChunkRead += bytesRead;
+
+                //    }
+                //    while (currentChunkRead < currentChunkSize);
+
+                //    var bytes = buffer.ToArray();
+                //    Array.Resize(ref bytes, (Int32) currentChunkSize);
+                //    OnChunkReceived?.Invoke(bytes);
+
+                //}
+
+
+
+            }
+
+            return trailers;
+
+        }
+
+        #endregion
+
+
 
 
         #region Write      (Buffer, Offset, Count)
@@ -390,6 +518,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
+        #region Finish (Trailers = null, CancellationToken = default)
+
+        public async ValueTask Finish(Dictionary<String, String>?  Trailers            = null,
+                                      CancellationToken            CancellationToken   = default)
+        {
+
+            await innerStream.WriteAsync(Encoding.ASCII.GetBytes($"0\r\n"), CancellationToken);
+
+            foreach (var trailer in Trailers ?? [])
+            {
+                await innerStream.WriteAsync(
+                          Encoding.ASCII.GetBytes($"{trailer.Key}: {trailer.Value}\r\n"),
+                          CancellationToken
+                      );
+            }
+
+            await innerStream.WriteAsync(crlfBytes, CancellationToken);
+
+        }
+
+        #endregion
+
 
         #region Seek       (Offset, Origin)
 
@@ -406,6 +556,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
         #region Flush()
+
+        public override Task FlushAsync(CancellationToken CancellationToken)
+        {
+            return base.FlushAsync(CancellationToken);
+        }
 
         public override void Flush()
         {

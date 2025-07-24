@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         ///// </summary>
         //public override String ToString()
         //{
-        //    return String.Concat(ServiceBanner, " on ", IPSocket.ToString() + ((IsRunning) ? " (running)" : ""));
+        //    return String.Concat(ServiceBanner, " on ", IPSocket.ToString() + ((IsRunning) ? " (running)" : String.Empty));
         //}
 
         //#endregion

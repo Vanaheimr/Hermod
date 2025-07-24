@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP Time-based One-Time Password Authentication.
+    /// An HTTP Time-based One-Time Password Authentication.
     /// </summary>
     public sealed class HTTPTOTPAuthentication : IHTTPAuthentication,
                                                  IEquatable<HTTPTOTPAuthentication>,
@@ -256,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication1">A HTTP TOTP Authentication.</param>
+        /// <param name="HTTPTOTPAuthentication1">An HTTP TOTP Authentication.</param>
         /// <param name="HTTPTOTPAuthentication2">Another HTTP TOTP Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPTOTPAuthentication HTTPTOTPAuthentication1,
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication1">A HTTP TOTP Authentication.</param>
+        /// <param name="HTTPTOTPAuthentication1">An HTTP TOTP Authentication.</param>
         /// <param name="HTTPTOTPAuthentication2">Another HTTP TOTP Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPTOTPAuthentication HTTPTOTPAuthentication1,
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication1">A HTTP TOTP Authentication.</param>
+        /// <param name="HTTPTOTPAuthentication1">An HTTP TOTP Authentication.</param>
         /// <param name="HTTPTOTPAuthentication2">Another HTTP TOTP Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPTOTPAuthentication HTTPTOTPAuthentication1,
@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication1">A HTTP TOTP Authentication.</param>
+        /// <param name="HTTPTOTPAuthentication1">An HTTP TOTP Authentication.</param>
         /// <param name="HTTPTOTPAuthentication2">Another HTTP TOTP Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPTOTPAuthentication HTTPTOTPAuthentication1,
@@ -327,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication1">A HTTP TOTP Authentication.</param>
+        /// <param name="HTTPTOTPAuthentication1">An HTTP TOTP Authentication.</param>
         /// <param name="HTTPTOTPAuthentication2">Another HTTP TOTP Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPTOTPAuthentication HTTPTOTPAuthentication1,
@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication1">A HTTP TOTP Authentication.</param>
+        /// <param name="HTTPTOTPAuthentication1">An HTTP TOTP Authentication.</param>
         /// <param name="HTTPTOTPAuthentication2">Another HTTP TOTP Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPTOTPAuthentication HTTPTOTPAuthentication1,
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP TOTP Authentications.
         /// </summary>
-        /// <param name="Object">A HTTP TOTP Authentication to compare with.</param>
+        /// <param name="Object">An HTTP TOTP Authentication to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPTOTPAuthentication httpTOTPAuthentication
@@ -378,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP TOTP Authentications.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication">A HTTP TOTP Authentication to compare with.</param>
+        /// <param name="HTTPTOTPAuthentication">An HTTP TOTP Authentication to compare with.</param>
         public Int32 CompareTo(HTTPTOTPAuthentication? HTTPTOTPAuthentication)
         {
 
@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP TOTP Authentications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP TOTP Authentication to compare with.</param>
+        /// <param name="Object">An HTTP TOTP Authentication to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPTOTPAuthentication httpTOTPAuthentication &&
@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP TOTP Authentications for equality.
         /// </summary>
-        /// <param name="HTTPTOTPAuthentication">A HTTP TOTP Authentication to compare with.</param>
+        /// <param name="HTTPTOTPAuthentication">An HTTP TOTP Authentication to compare with.</param>
         public Boolean Equals(HTTPTOTPAuthentication? HTTPTOTPAuthentication)
 
             => HTTPTOTPAuthentication is not null &&

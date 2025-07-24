@@ -125,15 +125,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A HTTP delegate.
+    /// An HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
-    /// <returns>A HTTP response task.</returns>
+    /// <returns>An HTTP response task.</returns>
     public delegate Task<HTTPResponse> HTTPDelegate(HTTPRequest Request);
 
 
     /// <summary>
-    /// A HTTP delegate for HTTP authentication.
+    /// An HTTP delegate for HTTP authentication.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
     public delegate Boolean HTTPAuthentication(HTTPRequest Request);

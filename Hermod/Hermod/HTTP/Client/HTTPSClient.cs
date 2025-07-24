@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTPS client.
+    /// An HTTPS client.
     /// </summary>
     public class HTTPSClient : AHTTPClient,
                                IHTTPClientCommands
@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(URL                                                        RemoteURL,
                            HTTPHostname?                                              VirtualHostname              = null,
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(IIPAddress                                                 RemoteIPAddress,
                            IPPort?                                                    RemotePort                   = null,
@@ -180,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            HTTPClientLogger?                                          HTTPLogger                   = null,
                            DNSClient?                                                 DNSClient                    = null)
 
-            : this(URL.Parse($"https://{RemoteIPAddress}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")}"),
+            : this(URL.Parse($"https://{RemoteIPAddress}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : String.Empty)}"),
                    VirtualHostname,
                    Description,
                    PreferIPv4,
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(IPSocket                                                   RemoteSocket,
                            HTTPHostname?                                              VirtualHostname              = null,
@@ -305,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public HTTPSClient(HTTPHostname                                               RemoteHost,
                            IPPort?                                                    RemotePort                   = null,
@@ -330,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            HTTPClientLogger?                                          HTTPLogger                   = null,
                            DNSClient?                                                 DNSClient                    = null)
 
-            : this(URL.Parse($"https://{RemoteHost}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : "")}"),
+            : this(URL.Parse($"https://{RemoteHost}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : String.Empty)}"),
                    VirtualHostname,
                    Description,
                    PreferIPv4,

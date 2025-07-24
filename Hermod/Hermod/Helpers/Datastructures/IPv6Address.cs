@@ -225,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Parsed the given HTTP hostname as an IPv6 address.
         /// </summary>
-        /// <param name="Hostname">A HTTP hostname.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
         public static IPv6Address Parse(HTTPHostname Hostname)
         {
 
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Try to parse the given HTTP hostname as an IPv6 address.
         /// </summary>
-        /// <param name="Hostname">A HTTP hostname.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
         /// <param name="IPv6Address">The parsed IPv6 address.</param>
         public static Boolean TryParse(HTTPHostname Hostname, out IPv6Address IPv6Address)
 
@@ -595,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                ipAddressArray[10].ToString("x2") + ipAddressArray[11].ToString("x2"),
                                ipAddressArray[12].ToString("x2") + ipAddressArray[13].ToString("x2"),
                                ipAddressArray[14].ToString("x2") + ipAddressArray[15].ToString("x2"),
-                               InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : ""
+                               InterfaceId.IsNotNullOrEmpty() ? "%" + InterfaceId : String.Empty
                            );
 
         #endregion

@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP method.
+    /// An HTTP method.
     /// </summary>
     [DebuggerDisplay("{DebugView}")]
     public class HTTPMethod : IEquatable<HTTPMethod>,
@@ -151,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="MethodName">A HTTP method name.</param>
+        /// <param name="MethodName">An HTTP method name.</param>
         /// <param name="IsSafe">The HTTP method does not cause any changes or side-effects on the server-side.</param>
         /// <param name="IsIdempotent">The HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
         /// <param name="Description">An optional description of this HTTP method.</param>
@@ -512,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Tries to find the appropriate HTTPMethod for the given string.
         /// </summary>
-        /// <param name="Text">A HTTP method name.</param>
+        /// <param name="Text">An HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
         public static Boolean TryParse(String           Text,
                                        out HTTPMethod?  HTTPMethod)
@@ -527,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Tries to find the appropriate HTTPMethod for the given string.
         /// </summary>
-        /// <param name="Text">A HTTP method name.</param>
+        /// <param name="Text">An HTTP method name.</param>
         /// <param name="HTTPMethod">The parsed HTTP method.</param>
         /// <param name="IsSafe">Whether the HTTP method does not cause any changes or side-effects on the server-side.</param>
         /// <param name="IsIdempotent">Whether the HTTP methods has no side-effects for multiple identical requests other as for a single request.</param>
@@ -569,7 +569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod1">An HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPMethod? HTTPMethod1,
@@ -595,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod1">An HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPMethod? HTTPMethod1,
@@ -610,7 +610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod1">An HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPMethod? HTTPMethod1,
@@ -631,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod1">An HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPMethod? HTTPMethod1,
@@ -646,7 +646,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod1">An HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPMethod? HTTPMethod1,
@@ -667,7 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPMethod1">A HTTP method.</param>
+        /// <param name="HTTPMethod1">An HTTP method.</param>
         /// <param name="HTTPMethod2">Another HTTP method.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPMethod? HTTPMethod1,
@@ -686,7 +686,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP methods.
         /// </summary>
-        /// <param name="Object">A HTTP method to compare with.</param>
+        /// <param name="Object">An HTTP method to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPMethod httpMethod
@@ -701,7 +701,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP methods.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTP method to compare with.</param>
+        /// <param name="HTTPMethod">An HTTP method to compare with.</param>
         public Int32 CompareTo(HTTPMethod? HTTPMethod)
         {
 
@@ -737,7 +737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP methods for equality.
         /// </summary>
-        /// <param name="Object">A HTTP method to compare with.</param>
+        /// <param name="Object">An HTTP method to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPMethod httpMethod &&
@@ -750,7 +750,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP methods for equality.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTP method to compare with.</param>
+        /// <param name="HTTPMethod">An HTTP method to compare with.</param>
         public Boolean Equals(HTTPMethod? HTTPMethod)
 
             => HTTPMethod is not null &&
@@ -794,15 +794,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    IsSafe
                        ? " (safe)"
-                       : "",
+                       : String.Empty,
 
                    IsIdempotent
                        ? " (idempotent)"
-                       : "",
+                       : String.Empty,
 
                    Description.IsNotNullOrEmpty()
                        ? $": '{Description}'"
-                       : ""
+                       : String.Empty
 
                );
 

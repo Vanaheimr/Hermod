@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// </summary>
         public override String ToString()
         {
-            return (TransactionId != 1) ? "TransactionId: + "   + TransactionId + ", " : "" +
+            return (TransactionId != 1) ? "TransactionId: + "   + TransactionId + ", " : String.Empty +
                                           "NumberOfRegisters: " + NumberOfRegisters +
                                           ", UnitAddress: "    + UnitAddress +
                                           ", FunctionCode: "    + FunctionCode +

@@ -18,7 +18,7 @@
 #region Usings
 
 using System.Text;
-
+using System.Xml.Schema;
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -56,11 +56,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public DateTime           Timestamp              { get; set; }
 
             /// <summary>
-            /// The cancellation token.
-            /// </summary>
-            public CancellationToken  CancellationToken      { get; set; }
-
-            /// <summary>
             /// The runtime of the HTTP request/response pair.
             /// </summary>
             public TimeSpan?          Runtime                { get; set; }
@@ -77,6 +72,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                        Environment.NewLine,
                        Environment.NewLine
                    );
+
+
+            public Func<HTTPResponse, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (response, stream) => Task.CompletedTask;
 
             #endregion
 
@@ -497,7 +495,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.Date               = Illias.Timestamp.Now;
                 this.ProtocolName       = "HTTP";
                 this.ProtocolVersion    = new HTTPVersion(1, 1);
-                this.CancellationToken  = HTTPRequest?.CancellationToken ?? CancellationToken.None;
                 base.EventTrackingId    = HTTPRequest?.EventTrackingId   ?? EventTracking_Id.New;
                 this.Runtime            = HTTPRequest is not null
                                               ? Illias.Timestamp.Now - HTTPRequest.Timestamp
@@ -548,7 +545,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// An implicit conversion of a HTTPResponseBuilder into a HTTPResponse.
             /// </summary>
-            /// <param name="HTTPResponseBuilder">A HTTP response builder.</param>
+            /// <param name="HTTPResponseBuilder">An HTTP response builder.</param>
             public static implicit operator HTTPResponse(Builder HTTPResponseBuilder)
                 => HTTPResponseBuilder.AsImmutable;
 
@@ -562,7 +559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Set the HTTP status code.
             /// </summary>
-            /// <param name="HTTPStatusCode">A HTTP status code.</param>
+            /// <param name="HTTPStatusCode">An HTTP status code.</param>
             public Builder SetHTTPStatusCode(HTTPStatusCode HTTPStatusCode)
             {
                 this.HTTPStatusCode = HTTPStatusCode;
@@ -811,7 +808,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 0-ClientError HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder ClientError(HTTPRequest       Request,
                                               Action<Builder>?  Configurator = null)
@@ -830,7 +827,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 0-ClientError HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder ClientError(HTTPRequest             Request,
                                               Func<Builder, Builder>  Configurator)
@@ -854,7 +851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 200-OK HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder OK(HTTPRequest       Request,
                                      Action<Builder>?  Configurator = null)
@@ -873,7 +870,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 200-OK HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder OK(HTTPRequest             Request,
                                      Func<Builder, Builder>  Configurator)
@@ -896,7 +893,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 400-BadRequest HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             /// <param name="CloseConnection">Whether to close to connection (default: true)</param>
             public static Builder BadRequest(HTTPRequest       Request,
@@ -920,7 +917,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 400-BadRequest HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             /// <param name="CloseConnection">Whether to close to connection (default: true)</param>
             public static Builder BadRequest(HTTPRequest             Request,
@@ -948,7 +945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder ServiceUnavailable(HTTPRequest       Request,
                                                      Action<Builder>?  Configurator = null)
@@ -967,7 +964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 503-ServiceUnavailable HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder ServiceUnavailable(HTTPRequest             Request,
                                                      Func<Builder, Builder>  Configurator)
@@ -990,7 +987,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder FailedDependency(HTTPRequest       Request,
                                                    Action<Builder>?  Configurator = null)
@@ -1009,7 +1006,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 424-FailedDependency HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder FailedDependency(HTTPRequest             Request,
                                                    Func<Builder, Builder>  Configurator)
@@ -1032,7 +1029,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder GatewayTimeout(HTTPRequest       Request,
                                                  Action<Builder>?  Configurator = null)
@@ -1051,7 +1048,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Create a new 504-GatewayTimeout HTTP response and apply the given delegate.
             /// </summary>
-            /// <param name="Request">A HTTP request.</param>
+            /// <param name="Request">An HTTP request.</param>
             /// <param name="Configurator">A delegate to configure the HTTP response.</param>
             public static Builder GatewayTimeout(HTTPRequest             Request,
                                                  Func<Builder, Builder>  Configurator)
@@ -1194,14 +1191,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     PrepareImmutability();
 
+                    HTTPResponse httpResponse;
+
                     if      (Content       is not null)
-                        return Parse(HTTPHeader, Content,       HTTPRequest, SubprotocolResponse);
+                        httpResponse = Parse(HTTPHeader, Content,       HTTPRequest, SubprotocolResponse);
 
                     else if (ContentStream is not null)
-                        return Parse(HTTPHeader, ContentStream, HTTPRequest, SubprotocolResponse);
+                        httpResponse = Parse(HTTPHeader, ContentStream, HTTPRequest, SubprotocolResponse);
 
                     else
-                        return Parse(HTTPHeader,                HTTPRequest, SubprotocolResponse);
+                        httpResponse = Parse(HTTPHeader,                HTTPRequest, SubprotocolResponse);
+
+                    httpResponse.ChunkWorker = ChunkWorker;
+
+                    return httpResponse;
 
                 }
             }

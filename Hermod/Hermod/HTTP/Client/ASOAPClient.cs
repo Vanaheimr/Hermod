@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="InternalBufferSize">The internal buffer size.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable HTTP logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         protected ASOAPClient(URL                                                        RemoteURL,
                               HTTPHostname?                                              VirtualHostname              = null,

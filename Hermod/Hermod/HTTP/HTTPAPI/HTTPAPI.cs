@@ -976,7 +976,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A HTTP API.
+    /// An HTTP API.
     /// </summary>
     public class HTTPAPI : AHTTPAPIBase,
                            IServerStartStop
@@ -1298,7 +1298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP API.
         /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="HTTPServer">An HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
         /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
@@ -1539,8 +1539,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname             Hostname,
@@ -1602,8 +1602,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPHostname             Hostname,
@@ -1665,8 +1665,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                       HTTPAPI,
@@ -1732,8 +1732,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="URLAuthentication">Whether this method needs explicit uri authentication or not.</param>
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// <param name="ContentTypeAuthentication">Whether this method needs explicit HTTP content type authentication or not.</param>
-        /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
-        /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+        /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
+        /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
         public void AddMethodCallback(HTTPAPI                       HTTPAPI,

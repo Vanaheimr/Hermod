@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP uniform resource identifier.
+    /// An HTTP uniform resource identifier.
     /// </summary>
     public struct HTTPURI2 : IEquatable<HTTPURI2>,
                              IComparable<HTTPURI2>,
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="Text">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPURI2 HTTPURI21, String Text)
@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -325,7 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="Text">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPURI2 HTTPURI21, String Text)
@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -358,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -371,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -405,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="Text">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static HTTPURI2 operator + (HTTPURI2 HTTPURI21, String Text)
@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPURI21">A HTTP uniform resource identifier.</param>
+        /// <param name="HTTPURI21">An HTTP uniform resource identifier.</param>
         /// <param name="HTTPURI22">Another HTTP uniform resource identifier.</param>
         /// <returns>true|false</returns>
         public static HTTPURI2 operator + (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
@@ -510,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTPURI2s for equality.
         /// </summary>
-        /// <param name="HTTPURI2">A HTTPURI2 to compare with.</param>
+        /// <param name="HTTPURI2">An HTTPURI2 to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPURI2 HTTPURI2)
         {

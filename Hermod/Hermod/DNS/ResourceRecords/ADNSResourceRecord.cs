@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                    Source is not null
                        ? $"Source = {Source}"
-                       : ""
+                       : String.Empty
 
                );
 

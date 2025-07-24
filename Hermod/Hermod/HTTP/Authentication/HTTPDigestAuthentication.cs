@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP Digest Authentication.
+    /// An HTTP Digest Authentication.
     /// </summary>
     public sealed class HTTPDigestAuthentication : IHTTPAuthentication,
                                                    IEquatable<HTTPDigestAuthentication>,
@@ -256,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication1">A HTTP Digest Authentication.</param>
+        /// <param name="HTTPDigestAuthentication1">An HTTP Digest Authentication.</param>
         /// <param name="HTTPDigestAuthentication2">Another HTTP Digest Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPDigestAuthentication HTTPDigestAuthentication1,
@@ -280,7 +280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication1">A HTTP Digest Authentication.</param>
+        /// <param name="HTTPDigestAuthentication1">An HTTP Digest Authentication.</param>
         /// <param name="HTTPDigestAuthentication2">Another HTTP Digest Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPDigestAuthentication HTTPDigestAuthentication1,
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication1">A HTTP Digest Authentication.</param>
+        /// <param name="HTTPDigestAuthentication1">An HTTP Digest Authentication.</param>
         /// <param name="HTTPDigestAuthentication2">Another HTTP Digest Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPDigestAuthentication HTTPDigestAuthentication1,
@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication1">A HTTP Digest Authentication.</param>
+        /// <param name="HTTPDigestAuthentication1">An HTTP Digest Authentication.</param>
         /// <param name="HTTPDigestAuthentication2">Another HTTP Digest Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPDigestAuthentication HTTPDigestAuthentication1,
@@ -327,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication1">A HTTP Digest Authentication.</param>
+        /// <param name="HTTPDigestAuthentication1">An HTTP Digest Authentication.</param>
         /// <param name="HTTPDigestAuthentication2">Another HTTP Digest Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPDigestAuthentication HTTPDigestAuthentication1,
@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication1">A HTTP Digest Authentication.</param>
+        /// <param name="HTTPDigestAuthentication1">An HTTP Digest Authentication.</param>
         /// <param name="HTTPDigestAuthentication2">Another HTTP Digest Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPDigestAuthentication HTTPDigestAuthentication1,
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Digest Authentications.
         /// </summary>
-        /// <param name="Object">A HTTP Digest Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Digest Authentication to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPDigestAuthentication httpDigestAuthentication
@@ -378,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Digest Authentications.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication">A HTTP Digest Authentication to compare with.</param>
+        /// <param name="HTTPDigestAuthentication">An HTTP Digest Authentication to compare with.</param>
         public Int32 CompareTo(HTTPDigestAuthentication? HTTPDigestAuthentication)
         {
 
@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Digest Authentications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP Digest Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Digest Authentication to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPDigestAuthentication httpDigestAuthentication &&
@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Digest Authentications for equality.
         /// </summary>
-        /// <param name="HTTPDigestAuthentication">A HTTP Digest Authentication to compare with.</param>
+        /// <param name="HTTPDigestAuthentication">An HTTP Digest Authentication to compare with.</param>
         public Boolean Equals(HTTPDigestAuthentication? HTTPDigestAuthentication)
 
             => HTTPDigestAuthentication is not null &&

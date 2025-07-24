@@ -624,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                    Description.IsNotNullOrEmpty()
                        ? $": {Description}"
-                       : ""
+                       : String.Empty
 
                );
 

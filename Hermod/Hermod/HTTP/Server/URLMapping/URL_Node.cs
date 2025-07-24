@@ -74,12 +74,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt16                                    ParameterCount         { get; }
 
         /// <summary>
-        /// The lenght of the minimalized URL template for shorting best-matching URLs.
+        /// The length of the minimalized URL template for shorting best-matching URLs.
         /// </summary>
         public UInt16                                    SortLength             { get; }
 
         /// <summary>
-        /// A HTTP request logger.
+        /// An HTTP request logger.
         /// </summary>
         public HTTPRequestLogHandler?                    HTTPRequestLogger      { get; private set; }
 
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPAuthentication?                       URIAuthentication      { get; }
 
         /// <summary>
-        /// A HTTP delegate.
+        /// An HTTP delegate.
         /// </summary>
         public HTTPDelegate?                             RequestHandler         { get; private set; }
 
@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers          { get; } = [];
 
         /// <summary>
-        /// A HTTP response logger.
+        /// An HTTP response logger.
         /// </summary>
         public HTTPResponseLogHandler?                   HTTPResponseLogger     { get; private set; }
 
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Determines whether the given HTTP method is defined.
         /// </summary>
-        /// <param name="Method">A HTTP method.</param>
+        /// <param name="Method">An HTTP method.</param>
         public Boolean Contains(HTTPMethod Method)
 
             => httpMethodNodes.ContainsKey(Method);
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP method node for the given HTTP method.
         /// </summary>
-        /// <param name="Method">A HTTP method.</param>
+        /// <param name="Method">An HTTP method.</param>
         public HTTPMethodNode? Get(HTTPMethod Method)
         {
 
@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP method node for the given HTTP method.
         /// </summary>
-        /// <param name="Method">A HTTP method.</param>
+        /// <param name="Method">An HTTP method.</param>
         /// <param name="MethodNode">The attached HTTP method node.</param>
         public Boolean TryGet(HTTPMethod Method, out HTTPMethodNode? MethodNode)
 
@@ -278,18 +278,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat(
 
                    !httpMethodNodes.IsEmpty
-                       ? $"[{httpMethodNodes.Keys.AggregateWith(", ")}] "
-                       : "",
+                       ? $"[{httpMethodNodes.Keys.AggregateCSV()}] "
+                       : String.Empty,
 
                    URITemplate.ToString(),
 
                    URIAuthentication is not null
                        ? " (auth)"
-                       : "",
+                       : String.Empty,
 
                    DefaultErrorHandler is not null
                        ? " (error)"
-                       : ""
+                       : String.Empty
 
                );
 

@@ -189,10 +189,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);
@@ -395,10 +395,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);
@@ -598,10 +598,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);
@@ -803,10 +803,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);
@@ -1007,10 +1007,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);
@@ -1227,10 +1227,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);
@@ -1448,10 +1448,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(0, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(0, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, httpRequests.          Count);
             ClassicAssert.AreEqual(1, httpResponses.         Count);

@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{Result}{(Reason is not null ? Reason : "")}";
+            => $"{Result}{(Reason is not null ? Reason : String.Empty)}";
 
         #endregion
 

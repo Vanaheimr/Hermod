@@ -1,0 +1,311 @@
+﻿/*
+ * Copyright (c) 2010-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of Vanaheimr Hermod <https://www.github.com/Vanaheimr/Hermod>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#region Usings
+
+using System.Collections;
+using System.Collections.Concurrent;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
+{
+
+    /// <summary>
+    /// A URL node which stores some child nodes and a callback
+    /// </summary>
+    public class HTTPMethodNodeX : IEnumerable<ContentTypeNodeX>
+    {
+
+        #region Data
+
+        /// <summary>
+        /// A mapping from HTTPContentTypes to HTTPContentTypeNodeXs.
+        /// </summary>
+        private readonly ConcurrentDictionary<HTTPContentType, ContentTypeNodeX> contentTypeNodes = [];
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The hosting HTTP API.
+        /// </summary>
+        public HTTPAPIX                                  HTTPAPI                     { get; }
+
+        /// <summary>
+        /// The http method for this service.
+        /// </summary>
+        public HTTPMethod                                HTTPMethod                  { get; }
+
+        /// <summary>
+        /// Whether this HTTP method node HTTP handler can be replaced/overwritten.
+        /// </summary>
+        public URLReplacement                            AllowReplacement            { get; }
+
+        /// <summary>
+        /// An HTTP request logger.
+        /// </summary>
+        public OnHTTPRequestLogDelegate?                 HTTPRequestLogger           { get; private set; }
+
+        /// <summary>
+        /// This and all subordinated nodes demand an explicit HTTP method authentication.
+        /// </summary>
+        public HTTPAuthentication?                       HTTPMethodAuthentication    { get; }
+
+        /// <summary>
+        /// An HTTP delegate.
+        /// </summary>
+        public HTTPDelegate?                             RequestHandler              { get; private set; }
+
+        /// <summary>
+        /// A general error handling method.
+        /// </summary>
+        public HTTPDelegate?                             DefaultErrorHandler         { get; private set; }
+
+        /// <summary>
+        /// Error handling methods for specific http status codes.
+        /// </summary>
+        public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers               { get; } = [];
+
+        /// <summary>
+        /// An HTTP response logger.
+        /// </summary>
+        public OnHTTPResponseLogDelegate?                HTTPResponseLogger          { get; private set; }
+
+
+        /// <summary>
+        /// Return all defined HTTP content types.
+        /// </summary>
+        public IEnumerable<HTTPContentType>              ContentTypes
+            => contentTypeNodes.Keys;
+
+        /// <summary>
+        /// Return all HTTP content type nodes.
+        /// </summary>
+        public IEnumerable<ContentTypeNodeX>              ContentTypeNodeXs
+            => contentTypeNodes.Values;
+
+        #endregion
+
+        #region (internal) Constructor(s)
+
+        /// <summary>
+        /// Create a new HTTP method node.
+        /// </summary>
+        /// <param name="HTTPAPI">An HTTP API.</param>
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an optional explicit HTTP method authentication.</param>
+        internal HTTPMethodNodeX(HTTPAPIX             HTTPAPI,
+                                 HTTPMethod           HTTPMethod,
+                                 HTTPAuthentication?  HTTPMethodAuthentication   = null)
+        {
+
+            this.HTTPAPI                   = HTTPAPI;
+            this.HTTPMethod                = HTTPMethod;
+            this.HTTPMethodAuthentication  = HTTPMethodAuthentication;
+
+        }
+
+        #endregion
+
+
+        #region AddHandler(...)
+
+        public void AddHandler(HTTPAPIX                    HTTPAPI,
+                               HTTPDelegate?               RequestHandler,
+                               HTTPContentType?            HTTPContentType             = null,
+                               HTTPAuthentication?         ContentTypeAuthentication   = null,
+                               OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
+                               HTTPDelegate?               DefaultErrorHandler         = null,
+                               URLReplacement              AllowReplacement            = URLReplacement.Fail)
+
+        {
+
+            #region For ANY content type...
+
+            if (HTTPContentType is null)
+            {
+
+                if (this.RequestHandler is null || AllowReplacement == URLReplacement.Allow)
+                {
+                    this.HTTPRequestLogger    = HTTPRequestLogger;
+                    this.RequestHandler       = RequestHandler;
+                    this.DefaultErrorHandler  = DefaultErrorHandler;
+                    this.HTTPResponseLogger   = HTTPResponseLogger;
+                }
+
+                else if (AllowReplacement == URLReplacement.Fail)
+                    throw new ArgumentException("Replacing this URL template is not allowed!");
+
+                else
+                    throw new ArgumentException("An URL template without a content type? Does this make sense here!");
+
+            }
+
+            #endregion
+
+            #region ...or for a specific content type
+
+            else
+            {
+
+                #region The content type already exists...
+
+                if (contentTypeNodes.TryGetValue(HTTPContentType, out var contentTypeNode))
+                {
+
+                    if (contentTypeNode.AllowReplacement == URLReplacement.Allow)
+                        contentTypeNodes[HTTPContentType] = new ContentTypeNodeX(
+                                                                HTTPAPI,
+                                                                HTTPContentType,
+                                                                ContentTypeAuthentication,
+                                                                HTTPRequestLogger,
+                                                                RequestHandler,
+                                                                HTTPResponseLogger,
+                                                                DefaultErrorHandler,
+                                                                AllowReplacement
+                                                            );
+
+                    else if (contentTypeNode.AllowReplacement == URLReplacement.Ignore)
+                    {
+                        DebugX.Log("HTTP API definition replaced!");
+                    }
+
+                    else
+                        throw new ArgumentException("Duplicate HTTP API definition!");
+
+                }
+
+                #endregion
+
+                #region ...or a new content type to add
+
+                    else
+                    {
+
+                        if (!contentTypeNodes.TryAdd(
+                                                  HTTPContentType,
+                                                  new ContentTypeNodeX(
+                                                      HTTPAPI,
+                                                      HTTPContentType,
+                                                      ContentTypeAuthentication,
+                                                      HTTPRequestLogger,
+                                                      RequestHandler,
+                                                      HTTPResponseLogger,
+                                                      DefaultErrorHandler,
+                                                      AllowReplacement
+                                                  )
+                                              ))
+                        {
+                            throw new ArgumentException("Could not add the given HTTP API definition!");
+                        }
+
+                    }
+
+                    #endregion
+
+            }
+
+            #endregion
+
+        }
+
+        #endregion
+
+
+        #region Contains(ContentType)
+
+        /// <summary>
+        /// Determines whether the given HTTP content type is defined.
+        /// </summary>
+        /// <param name="ContentType">An HTTP content type.</param>
+        public Boolean Contains(HTTPContentType ContentType)
+
+            => contentTypeNodes.ContainsKey(ContentType);
+
+        #endregion
+
+        #region Get     (ContentType)
+
+        /// <summary>
+        /// Return the HTTP content type node for the given HTTP content type.
+        /// </summary>
+        /// <param name="ContentType">An HTTP content type.</param>
+        public ContentTypeNodeX? Get(HTTPContentType ContentType)
+        {
+
+            if (contentTypeNodes.TryGetValue(ContentType, out var contentTypeNode))
+                return contentTypeNode;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryGet  (ContentType, out ContentTypeNodeX)
+
+        /// <summary>
+        /// Return the HTTP content type node for the given HTTP content type.
+        /// </summary>
+        /// <param name="ContentType">An HTTP content type.</param>
+        /// <param name="ContentTypeNodeX">The attached HTTP content type node.</param>
+        public Boolean TryGet(HTTPContentType ContentType, out ContentTypeNodeX? ContentTypeNodeX)
+
+            => contentTypeNodes.TryGetValue(ContentType, out ContentTypeNodeX);
+
+        #endregion
+
+
+        #region IEnumerable<URINode> members
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        public IEnumerator<ContentTypeNodeX> GetEnumerator()
+            => contentTypeNodes.Values.GetEnumerator();
+
+        /// <summary>
+        /// Return all HTTP method nodes.
+        /// </summary>
+        IEnumerator IEnumerable.GetEnumerator()
+            => contentTypeNodes.Values.GetEnumerator();
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(HTTPMethod,
+                             " (",
+                             contentTypeNodes.Select(contenttype => contenttype.Value.ToString()).AggregateCSV(),
+                             ")");
+
+        #endregion
+
+    }
+
+}

@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public delegate Task HTTPResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, HTTPRequest Request, HTTPResponse Response);
 
     /// <summary>
-    /// A HTTP API logger.
+    /// An HTTP API logger.
     /// </summary>
     public abstract class AHTTPLogger
     {
@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //}
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context is not null ? context + "_" : "",
+                                                                                                           context is not null ? context + "_" : String.Empty,
                                                                                                            logfileName, "_",
                                                                                                            Timestamp.Now.Year, "-",
                                                                                                            Timestamp.Now.Month.ToString("D2"),

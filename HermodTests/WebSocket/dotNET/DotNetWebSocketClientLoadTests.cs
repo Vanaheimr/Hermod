@@ -175,10 +175,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (newWebSocketConnection.Count < numberOfClients)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(numberOfClients, validatedTCP.          Count, validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(numberOfClients, newTCPConnection.      Count, newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(numberOfClients, validatedWebSocket.    Count, validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(numberOfClients, newWebSocketConnection.Count, newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(numberOfClients, validatedTCP.          Count, validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(numberOfClients, newTCPConnection.      Count, newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(numberOfClients, validatedWebSocket.    Count, validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(numberOfClients, newWebSocketConnection.Count, newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(numberOfClients, httpRequests.          Count);
             ClassicAssert.AreEqual(numberOfClients, httpResponses.         Count);

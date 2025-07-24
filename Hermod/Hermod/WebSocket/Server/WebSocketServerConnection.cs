@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// A HTTP WebSocket server connection.
+    /// An HTTP WebSocket server connection.
     /// </summary>
     public class WebSocketServerConnection : IWebSocketConnection,
                                              IEquatable<WebSocketServerConnection>
@@ -234,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Create a new HTTP WebSocket server connection.
         /// </summary>
-        /// <param name="WebSocketServer">A HTTP WebSocket server.</param>
+        /// <param name="WebSocketServer">An HTTP WebSocket server.</param>
         /// <param name="TcpClient">A TCP connection abstraction.</param>
         /// <param name="HTTPRequest">An optional HTTP request of this web socket connection. Can also be attached later.</param>
         /// <param name="HTTPResponse">An optional HTTP response of this web socket connection. Can also be attached later.</param>
@@ -720,7 +720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection1">An HTTP WebSocket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (WebSocketServerConnection? WebSocketConnection1,
@@ -746,7 +746,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection1">An HTTP WebSocket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (WebSocketServerConnection? WebSocketConnection1,
@@ -761,7 +761,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection1">An HTTP WebSocket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (WebSocketServerConnection? WebSocketConnection1,
@@ -782,7 +782,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection1">An HTTP WebSocket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (WebSocketServerConnection? WebSocketConnection1,
@@ -797,7 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection1">An HTTP WebSocket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (WebSocketServerConnection? WebSocketConnection1,
@@ -818,7 +818,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="WebSocketConnection1">A HTTP WebSocket server connection.</param>
+        /// <param name="WebSocketConnection1">An HTTP WebSocket server connection.</param>
         /// <param name="WebSocketConnection2">Another HTTP WebSocket server connection.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (WebSocketServerConnection? WebSocketConnection1,
@@ -837,7 +837,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two HTTP WebSocket server connections.
         /// </summary>
-        /// <param name="Object">A HTTP WebSocket server connection to compare with.</param>
+        /// <param name="Object">An HTTP WebSocket server connection to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is WebSocketServerConnection webSocketServerConnection
@@ -852,7 +852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two HTTP WebSocket server connections.
         /// </summary>
-        /// <param name="WebSocketConnection">A HTTP WebSocket server connection to compare with.</param>
+        /// <param name="WebSocketConnection">An HTTP WebSocket server connection to compare with.</param>
         public Int32 CompareTo(WebSocketServerConnection? WebSocketConnection)
         {
 
@@ -874,7 +874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two HTTP WebSocket server connections for equality.
         /// </summary>
-        /// <param name="Object">A HTTP WebSocket server connection to compare with.</param>
+        /// <param name="Object">An HTTP WebSocket server connection to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is WebSocketServerConnection webSocketServerConnection &&
@@ -887,7 +887,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Compares two HTTP WebSocket server connections for equality.
         /// </summary>
-        /// <param name="WebSocketConnection">A HTTP WebSocket server connection to compare with.</param>
+        /// <param name="WebSocketConnection">An HTTP WebSocket server connection to compare with.</param>
         public Boolean Equals(WebSocketServerConnection? WebSocketConnection)
 
             => WebSocketConnection is not null &&

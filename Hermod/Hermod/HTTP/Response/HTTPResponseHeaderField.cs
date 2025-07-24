@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP response header field.
+    /// An HTTP response header field.
     /// </summary>
     /// <param name="Name">The name of the HTTP response header field.</param>
     /// <param name="RequestPathSemantic">Whether a header field has and end-to-end or an hop-to-hop semantic.</param>

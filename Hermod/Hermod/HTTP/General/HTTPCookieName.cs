@@ -33,14 +33,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this HTTP cookie namee is null or empty.
         /// </summary>
-        /// <param name="HTTPCookieName">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName">An HTTP cookie name.</param>
         public static Boolean IsNullOrEmpty(this HTTPCookieName? HTTPCookieName)
             => !HTTPCookieName.HasValue || HTTPCookieName.Value.IsNullOrEmpty;
 
         /// <summary>
         /// Indicates whether this HTTP cookie name is null or empty.
         /// </summary>
-        /// <param name="HTTPCookieName">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName">An HTTP cookie name.</param>
         public static Boolean IsNotNullOrEmpty(this HTTPCookieName? HTTPCookieName)
             => HTTPCookieName.HasValue && HTTPCookieName.Value.IsNotNullOrEmpty;
 
@@ -184,7 +184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPCookieName HTTPCookieName1,
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPCookieName HTTPCookieName1,
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPCookieName HTTPCookieName1,
@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPCookieName HTTPCookieName1,
@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPCookieName HTTPCookieName1,
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPCookieName HTTPCookieName1,
@@ -275,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Combines two HTTP cookies names.
         /// </summary>
-        /// <param name="HTTPCookieName1">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName1">An HTTP cookie name.</param>
         /// <param name="HTTPCookieName2">Another HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static HTTPCookieName operator + (HTTPCookieName HTTPCookieName1,
@@ -290,7 +290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Combines a HTTP cookies name with a text.
         /// </summary>
-        /// <param name="HTTPCookieName">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName">An HTTP cookie name.</param>
         /// <param name="Text">A text.</param>
         /// <returns>true|false</returns>
         public static HTTPCookieName operator + (HTTPCookieName HTTPCookieName,
@@ -306,7 +306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Combines a HTTP cookies name with a text.
         /// </summary>
         /// <param name="Text">A text.</param>
-        /// <param name="HTTPCookieName">A HTTP cookie name.</param>
+        /// <param name="HTTPCookieName">An HTTP cookie name.</param>
         /// <returns>true|false</returns>
         public static HTTPCookieName operator + (String         Text,
                                                  HTTPCookieName HTTPCookieName)
@@ -324,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP cookie names.
         /// </summary>
-        /// <param name="Object">A HTTP cookie name to compare with.</param>
+        /// <param name="Object">An HTTP cookie name to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPCookieName httpCookieName
@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP cookie names.
         /// </summary>
-        /// <param name="HTTPCookieName">A HTTP cookie name to compare with.</param>
+        /// <param name="HTTPCookieName">An HTTP cookie name to compare with.</param>
         public Int32 CompareTo(HTTPCookieName HTTPCookieName)
 
             => String.Compare(InternalName,
@@ -357,7 +357,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP cookie names for equality.
         /// </summary>
-        /// <param name="Object">A HTTP cookie name to compare with.</param>
+        /// <param name="Object">An HTTP cookie name to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPCookieName httpCookieName &&
@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP cookie names for equality.
         /// </summary>
-        /// <param name="HTTPCookieName">A HTTP cookie name to compare with.</param>
+        /// <param name="HTTPCookieName">An HTTP cookie name to compare with.</param>
         public Boolean Equals(HTTPCookieName HTTPCookieName)
 
             => String.Equals(InternalName,

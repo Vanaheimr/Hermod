@@ -25,7 +25,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP source.
+    /// An HTTP source.
     /// </summary>
     public readonly struct HTTPSource : IEquatable<HTTPSource>,
                                         IComparable<HTTPSource>,
@@ -118,7 +118,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource1">An HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPSource HTTPSource1,
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource1">An HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPSource HTTPSource1,
@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource1">An HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPSource HTTPSource1,
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource1">An HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPSource HTTPSource1,
@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource1">An HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPSource HTTPSource1,
@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPSource1">A HTTP source.</param>
+        /// <param name="HTTPSource1">An HTTP source.</param>
         /// <param name="HTTPSource2">Another HTTP source.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPSource HTTPSource1,
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP sources.
         /// </summary>
-        /// <param name="Object">A HTTP source to compare with.</param>
+        /// <param name="Object">An HTTP source to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPSource httpSource
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP sources.
         /// </summary>
-        /// <param name="HTTPSource">A HTTP source to compare with.</param>
+        /// <param name="HTTPSource">An HTTP source to compare with.</param>
         public Int32 CompareTo(HTTPSource HTTPSource)
         {
 
@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP sources for equality.
         /// </summary>
-        /// <param name="Object">A HTTP source to compare with.</param>
+        /// <param name="Object">An HTTP source to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPSource httpSource &&
@@ -274,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP sources for equality.
         /// </summary>
-        /// <param name="HTTPSource">A HTTP source to compare with.</param>
+        /// <param name="HTTPSource">An HTTP source to compare with.</param>
         public Boolean Equals(HTTPSource HTTPSource)
 
             => Socket.Equals(HTTPSource.Socket) &&

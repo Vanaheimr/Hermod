@@ -17,15 +17,15 @@
 
 #region Usings
 
-using System.Text;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.SMTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Net;
 using System.Net.Sockets;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 #endregion
 
@@ -45,6 +45,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private static readonly Byte[] endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
         const                   Byte   endOfHTTPHeaderDelimiterLength   = 4;
 
+        /// <summary>
+        /// The default HTTP server name.
+        /// </summary>
+        public  const  String  DefaultHTTPServerName    = "GraphDefined Hermod HTTP Server v2.0";
+
+        ///// <summary>
+        ///// The default HTTP service name.
+        ///// </summary>
+        //public  const  String  DefaultHTTPServiceName   = "GraphDefined Hermod HTTP Service v2.0";
+
         #endregion
 
         #region Properties
@@ -52,7 +62,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The buffer size for the TCP stream.
         /// </summary>
-        public UInt32  BufferSize    { get; }
+        public UInt32  BufferSize        { get; }
+
+        /// <summary>
+        /// The HTTP server name.
+        /// </summary>
+        public String  HTTPServerName    { get; } = DefaultHTTPServerName;
 
         #endregion
 
@@ -63,12 +78,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>
+        /// <param name="HTTPServerName">An optional HTTP server name. If null or empty, the default HTTP server name will be used.</param>
         /// <param name="BufferSize">An optional buffer size for the TCP stream. If null, the default buffer size will be used.</param>
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
         public AHTTPTestServer(IIPAddress?              IPAddress        = null,
                                IPPort?                  TCPPort          = null,
+                               String?                  HTTPServerName   = null,
                                UInt32?                  BufferSize       = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
@@ -82,11 +99,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.BufferSize = BufferSize.HasValue
-                                  ? BufferSize.Value > Int32.MaxValue
-                                        ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                        : (UInt32) BufferSize.Value
-                                  : DefaultBufferSize;
+            this.HTTPServerName  = HTTPServerName.IsNullOrEmpty()
+                                       ? DefaultHTTPServerName
+                                       : HTTPServerName.Trim();
+
+            this.BufferSize      = BufferSize.HasValue
+                                       ? BufferSize.Value > Int32.MaxValue
+                                             ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
+                                             : (UInt32) BufferSize.Value
+                                       : DefaultBufferSize;
 
         }
 
@@ -209,12 +230,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #endregion
 
 
-                    await ProcessHTTPRequest(
-                              request,
-                              stream,
-                              CancellationToken
-                          );
-
+                    var httpResponse = await ProcessHTTPRequest(
+                                                 request,
+                                                 stream,
+                                                 CancellationToken
+                                             );
 
                     #region When the upper layer did not consume all of the body stream, we will discard the remaining data to support pipelining
 
@@ -256,14 +276,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #endregion
 
 
-                    if (!request.IsKeepAlive)
+                    await SendResponse(
+                              stream,
+                              httpResponse,
+                              CancellationToken
+                          );
+
+                    #region Fire & Forget the worker for chunked HTTP respones
+
+                    if (httpResponse.ChunkWorker is not null && httpResponse.HTTPBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                    {
+                        try
+                        {
+                            _ = httpResponse.ChunkWorker(
+                                    httpResponse,
+                                    chunkedStream
+                                );
+                        }
+                        catch (Exception e)
+                        {
+                            DebugX.LogT("HTTP server response worker exception: " + e.Message);
+                        }
+                    }
+
+                    #endregion
+
+                    if (!httpResponse.IsKeepAlive)
                         break;
 
                 }
             }
             catch (Exception e)
             {
-                
+                DebugX.Log(e, "Exception in HTTPTestServer.HandleConnection: " + e.Message);
             }
 
         }
@@ -277,9 +322,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Request">The HTTP request to process.</param>
         /// <param name="Stream">The network stream for reading the HTTP body and sending the response.</param>
         /// <param name="CancellationToken">An optional cancellation token to cancel the processing of the HTTP request.</param>
-        protected abstract Task ProcessHTTPRequest(HTTPRequest        Request,
-                                                   NetworkStream      Stream,
-                                                   CancellationToken  CancellationToken   = default);
+        protected abstract Task<HTTPResponse> ProcessHTTPRequest(HTTPRequest        Request,
+                                                                 NetworkStream      Stream,
+                                                                 CancellationToken  CancellationToken   = default);
 
 
         protected static async Task SendResponse(NetworkStream      Stream,
@@ -291,9 +336,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             {
 
                 await Stream.WriteAsync(
-                          Response.ToString().ToUTF8Bytes(),
+                          (Response.RawHTTPHeader + "\r\n\r\n").ToUTF8Bytes(),
                           CancellationToken
                       );
+
+                if (Response.ContentLength.HasValue)
+                    await Stream.WriteAsync(
+                              Response.HTTPBody,
+                              CancellationToken
+                          );
 
                 await Stream.FlushAsync(CancellationToken);
 

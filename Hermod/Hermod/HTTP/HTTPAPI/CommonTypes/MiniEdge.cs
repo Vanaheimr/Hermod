@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
         {
 
-            var IsNotPublic = PrivacyLevel != PrivacyLevel.World ? String.Concat(" [", PrivacyLevel.ToString(), "]") : "";
+            var IsNotPublic = PrivacyLevel != PrivacyLevel.World ? String.Concat(" [", PrivacyLevel.ToString(), "]") : String.Empty;
 
             return String.Concat(Source, " --", EdgeLabel, IsNotPublic, "->", Target);
 

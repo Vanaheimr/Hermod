@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="ModbusResponseDelegate">A delegate to call.</param>
-            /// <returns>A HTTP response logger.</returns>
+            /// <returns>An HTTP response logger.</returns>
             public ModbusClientResponseLogger RegisterLogTarget(LogTargets                    LogTarget,
                                                                 ModbusResponseLoggerDelegate  ModbusResponseDelegate)
             {
@@ -583,7 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             }
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context != null ? context + "_" : "",
+                                                                                                           context != null ? context + "_" : String.Empty,
                                                                                                            logfileName, "_",
                                                                                                            Timestamp.Now.Year, "-",
                                                                                                            Timestamp.Now.Month.ToString("D2"),

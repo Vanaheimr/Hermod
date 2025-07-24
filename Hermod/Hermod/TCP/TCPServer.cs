@@ -460,7 +460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                         }
                         catch (Exception e)
                         {
-                            DebugX.Log(" [", nameof(TCPServer), "] Could not accept new TCP connection: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                            DebugX.Log(" [", nameof(TCPServer), "] Could not accept new TCP connection: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
                         }
 
                         #endregion
@@ -518,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                             e
                                         );
 
-                                        DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] Connection exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                                        DebugX.Log(" [", nameof(TCPServer), ":", tcpConnection.LocalPort.ToString(), "] Connection exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
 
                                         newTCPConnection?.Close();
 
@@ -558,7 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 catch (Exception e)
                 {
 
-                    DebugX.Log(" [", nameof(TCPServer), "] Exception occurred: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                    DebugX.Log(" [", nameof(TCPServer), "] Exception occurred: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
 
                     var OnExceptionLocal = OnExceptionOccurred;
                     if (OnExceptionLocal is not null)

@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                    DebugX.Log(" [TCPServer:", LocalPort.ToString(), "] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
                     throw;
                 }
 

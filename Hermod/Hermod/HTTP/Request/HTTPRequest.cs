@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Xml.Linq;
+using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
@@ -26,6 +27,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.MIME;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -43,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as an UTF8 string.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="ExpectedContentType">The expected HTTP request content type.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
         public static HTTPResult<String> GetRequestBodyAsUTF8String(this HTTPRequest  Request,
@@ -88,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as an UTF8 string.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="ExpectedContentType">The expected HTTP request content type.</param>
         /// <param name="Text">The HTTP request body as an UTF8 string.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
@@ -140,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as JSON object.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="Text">The HTTP request body as a string.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
@@ -189,7 +191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as JSON array or object.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="JSONArray">The HTTP request body as a JSON array.</param>
         /// <param name="JSONObject">The HTTP request body as a JSON object.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
@@ -272,7 +274,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as JSON array.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="JSONArray">The HTTP request body as a JSON array.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
@@ -354,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as JSON object.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="JSONObject">The HTTP request body as a JSON object.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
@@ -434,7 +436,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP request body as JSON object.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="JSONObject">The HTTP request body as a JSON object.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <param name="AllowEmptyHTTPBody">Allow the HTTP request body to be empty!</param>
@@ -718,7 +720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP response builder for the given request.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         public static HTTPResponse.Builder Reply(this HTTPRequest  HTTPRequest,
                                                  HTTPStatusCode?   HTTPStatusCode = null)
 
@@ -732,7 +734,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
-    /// A HTTP request.
+    /// An HTTP request.
     /// </summary>
     public partial class HTTPRequest : AHTTPPDU
     {
@@ -743,6 +745,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP server of this request.
         /// </summary>
         public HTTPServer?        HTTPServer                { get; }
+        public HTTPTestServerX?   HTTPTestServerX           { get; set; }
 
 
         public X509Certificate2?  ServerCertificate         { get; }
@@ -781,7 +784,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The parsed URL parameters of the best matching URL template.
         /// Set by the HTTP server.
         /// </summary>
-        public String[]            ParsedURLParameters     { get; internal set; } = [];
+        public String[]                    ParsedURLParameters     { get; internal set; } = [];
+        public Dictionary<String, String>  ParsedURLParametersX    { get; internal set; } = [];
+
+        public NetworkStream?              NetworkStream           { get; internal set; }
+        public Func<HTTPRequest, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
 
         /// <summary>
         /// The HTTP query string.
@@ -1387,7 +1394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Create a new HTTP request based on the given HTTP request.
         /// (e.g. upgrade a HTTPRequest to a HTTPRequest&lt;TContent&gt;)
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         internal HTTPRequest(HTTPRequest Request)
 
             : base(Request)

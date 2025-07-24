@@ -26,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP version identifier.
+    /// An HTTP version identifier.
     /// </summary>
     public struct HTTPVersion : IEquatable<HTTPVersion>,
                                 IComparable<HTTPVersion>,
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
@@ -207,7 +207,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPVersion1">A HTTP version.</param>
+        /// <param name="HTTPVersion1">An HTTP version.</param>
         /// <param name="HTTPVersion2">Another HTTP version.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
@@ -327,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTPVersions for equality.
         /// </summary>
-        /// <param name="HTTPVersion">A HTTPVersion to compare with.</param>
+        /// <param name="HTTPVersion">An HTTPVersion to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPVersion HTTPVersion)
         {

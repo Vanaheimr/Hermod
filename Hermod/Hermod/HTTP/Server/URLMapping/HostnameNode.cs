@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Determines whether the given HTTP path template is defined.
         /// </summary>
-        /// <param name="HTTPPath">A HTTP path template.</param>
+        /// <param name="HTTPPath">An HTTP path template.</param>
         public Boolean Contains(HTTPPath HTTPPath)
 
             => urlNodes.ContainsKey(HTTPPath);
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the URL node for the given HTTP path template.
         /// </summary>
-        /// <param name="HTTPPath">A HTTP path template.</param>
+        /// <param name="HTTPPath">An HTTP path template.</param>
         public URL_Node? Get(HTTPPath HTTPPath)
         {
 
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the URL node for the given HTTP path template.
         /// </summary>
-        /// <param name="HTTPPath">A HTTP path template.</param>
+        /// <param name="HTTPPath">An HTTP path template.</param>
         /// <param name="URLNode">The attached URL node.</param>
         public Boolean TryGet(HTTPPath HTTPPath, out URL_Node? URLNode)
 

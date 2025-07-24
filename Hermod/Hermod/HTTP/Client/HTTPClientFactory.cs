@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP GET request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP HEAD request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -150,9 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP POST request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
+        /// <param name="Content">An HTTP content.</param>
         /// <param name="ContentType">An optional HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -212,10 +212,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP PUT request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -274,10 +274,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP PATCH request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -336,7 +336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP DELETE request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -392,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP OPTIONS request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -451,7 +451,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP CHECK request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -507,7 +507,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP COUNT request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -563,7 +563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP CLEAR request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -619,10 +619,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP CREATE request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -681,10 +681,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP ADD request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -743,10 +743,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP SET request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -805,7 +805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP TRACE request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
@@ -861,10 +861,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP MIRROR request.
         /// </summary>
-        /// <param name="HTTPClientCommand">A HTTP client.</param>
+        /// <param name="HTTPClientCommand">An HTTP client.</param>
         /// <param name="Path">An URL path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -973,7 +973,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="InternalBufferSize">The internal buffer size.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public static IHTTPClientCommands Create(URL                                                        RemoteURL,
                                                  HTTPHostname?                                              VirtualHostname              = null,

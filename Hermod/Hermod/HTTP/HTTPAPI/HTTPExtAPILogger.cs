@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTPExtAPI logger using the default logging delegates.
         /// </summary>
-        /// <param name="HTTPExtAPI">A HTTPExtAPI.</param>
+        /// <param name="HTTPExtAPI">An HTTPExtAPI.</param>
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTPExtAPI logger using the given logging delegates.
         /// </summary>
-        /// <param name="HTTPExtAPI">A HTTPExtAPI.</param>
+        /// <param name="HTTPExtAPI">An HTTPExtAPI.</param>
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// 

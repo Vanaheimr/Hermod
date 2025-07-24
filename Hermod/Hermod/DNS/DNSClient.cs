@@ -602,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public override String ToString()
 
             => "Using DNS servers: " +
-               DNSServers.SafeSelect(socket => socket.ToString()).AggregateWith(", ");
+               DNSServers.SafeSelect(socket => socket.ToString()).AggregateCSV();
 
         #endregion
 

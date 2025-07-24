@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP Bearer Authentication used in token-based authentication systems such as OAuth 2.0.
+    /// An HTTP Bearer Authentication used in token-based authentication systems such as OAuth 2.0.
     /// </summary>
     public sealed class HTTPBearerAuthentication : IHTTPAuthentication,
                                                    IEquatable<HTTPBearerAuthentication>,
@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication1">An HTTP Bearer Authentication.</param>
         /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPBearerAuthentication HTTPBearerAuthentication1,
@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication1">An HTTP Bearer Authentication.</param>
         /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPBearerAuthentication HTTPBearerAuthentication1,
@@ -256,7 +256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication1">An HTTP Bearer Authentication.</param>
         /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPBearerAuthentication HTTPBearerAuthentication1,
@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication1">An HTTP Bearer Authentication.</param>
         /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPBearerAuthentication HTTPBearerAuthentication1,
@@ -288,7 +288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication1">An HTTP Bearer Authentication.</param>
         /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPBearerAuthentication HTTPBearerAuthentication1,
@@ -305,7 +305,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication1">A HTTP Bearer Authentication.</param>
+        /// <param name="HTTPBearerAuthentication1">An HTTP Bearer Authentication.</param>
         /// <param name="HTTPBearerAuthentication2">Another HTTP Bearer Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPBearerAuthentication HTTPBearerAuthentication1,
@@ -324,7 +324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Bearer Authentications.
         /// </summary>
-        /// <param name="Object">A HTTP Bearer Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Bearer Authentication to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPBearerAuthentication httpBearerAuthentication
@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Bearer Authentications.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication">A HTTP Bearer Authentication to compare with.</param>
+        /// <param name="HTTPBearerAuthentication">An HTTP Bearer Authentication to compare with.</param>
         public Int32 CompareTo(HTTPBearerAuthentication? HTTPBearerAuthentication)
         {
 
@@ -364,7 +364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Bearer Authentications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP Bearer Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Bearer Authentication to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPBearerAuthentication httpBearerAuthentication &&
@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Bearer Authentications for equality.
         /// </summary>
-        /// <param name="HTTPBearerAuthentication">A HTTP Bearer Authentication to compare with.</param>
+        /// <param name="HTTPBearerAuthentication">An HTTP Bearer Authentication to compare with.</param>
         public Boolean Equals(HTTPBearerAuthentication? HTTPBearerAuthentication)
 
             => HTTPBearerAuthentication is not null &&

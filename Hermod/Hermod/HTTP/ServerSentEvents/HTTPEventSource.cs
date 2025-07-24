@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     // protocol. BOSH is based on the long polling approach.
 
     /// <summary>
-    /// A HTTP event source.
+    /// An HTTP event source.
     /// </summary>
     public class HTTPEventSource<T> : IHTTPEventSource<T>
     {
@@ -263,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Data:              DataDeserializer(line[2]),
                                                  SerializedHeader:  String.Concat(line[1].IsNotNullOrEmpty()
                                                                                       ? "event: " + line[1] + Environment.NewLine
-                                                                                      : "",
+                                                                                      : String.Empty,
                                                                                   "id: ",   IdCounter,        Environment.NewLine,
                                                                                   "data: "),
                                                  SerializedData:    line[2])
@@ -413,7 +413,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           String.Concat(
                               SubEvent.IsNotNullOrEmpty()
                                   ? "event: " + SubEvent + Environment.NewLine
-                                  : "",
+                                  : String.Empty,
                               "id: ",   IdCounter,         Environment.NewLine,
                               "data: "
                           ),

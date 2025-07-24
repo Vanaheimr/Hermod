@@ -719,7 +719,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Logger.GetInvocationList().
                                      OfType<TDelegate>().
                                      Select(LogHandler)
-                          );
+                          ).ConfigureAwait(false);
 
                 }
                 catch (Exception e)

@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
     /// <summary>
-    /// A HTTP/SOAP/XML server.
+    /// An HTTP/SOAP/XML server.
     /// </summary>
     public class SOAPServer
     {

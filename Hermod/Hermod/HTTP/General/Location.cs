@@ -34,14 +34,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this HTTP location is null or empty.
         /// </summary>
-        /// <param name="Location">A HTTP location.</param>
+        /// <param name="Location">An HTTP location.</param>
         public static Boolean IsNullOrEmpty(this Location? Location)
             => !Location.HasValue || Location.Value.IsNullOrEmpty;
 
         /// <summary>
         /// Indicates whether this HTTP location is null or empty.
         /// </summary>
-        /// <param name="Location">A HTTP location.</param>
+        /// <param name="Location">An HTTP location.</param>
         public static Boolean IsNotNullOrEmpty(this Location? Location)
             => Location.HasValue && Location.Value.IsNotNullOrEmpty;
 
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new absolute HTTP Location based on the given HTTP URL.
         /// </summary>
-        /// <param name="URL">A HTTP URL.</param>
+        /// <param name="URL">An HTTP URL.</param>
         public Location(URL URL)
         {
             this.URL = URL;
@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new relative HTTP Location based on the given HTTP path.
         /// </summary>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         public Location(HTTPPath Path)
         {
             this.Path = Path;
@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Convert the given HTTP URL into a HTTP Location.
         /// </summary>
-        /// <param name="Path">A HTTP URL.</param>
+        /// <param name="Path">An HTTP URL.</param>
         public static Location From(URL URL)
 
             => new (URL);
@@ -128,7 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Convert the given HTTP Path into a HTTP Location.
         /// </summary>
-        /// <param name="Path">A HTTP Path.</param>
+        /// <param name="Path">An HTTP Path.</param>
         public static Location From(HTTPPath Path)
 
             => new(Path);
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Location1">A HTTP location.</param>
+        /// <param name="Location1">An HTTP location.</param>
         /// <param name="Location2">Another HTTP location.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (Location Location1,
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Location1">A HTTP location.</param>
+        /// <param name="Location1">An HTTP location.</param>
         /// <param name="Location2">Another HTTP location.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (Location Location1,
@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Location1">A HTTP location.</param>
+        /// <param name="Location1">An HTTP location.</param>
         /// <param name="Location2">Another HTTP location.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (Location Location1,
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Location1">A HTTP location.</param>
+        /// <param name="Location1">An HTTP location.</param>
         /// <param name="Location2">Another HTTP location.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (Location Location1,
@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Location1">A HTTP location.</param>
+        /// <param name="Location1">An HTTP location.</param>
         /// <param name="Location2">Another HTTP location.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (Location Location1,
@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Location1">A HTTP location.</param>
+        /// <param name="Location1">An HTTP location.</param>
         /// <param name="Location2">Another HTTP location.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (Location Location1,
@@ -330,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP locations for equality.
         /// </summary>
-        /// <param name="Object">A HTTP location to compare with.</param>
+        /// <param name="Object">An HTTP location to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is Location url
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP locations for equality.
         /// </summary>
-        /// <param name="Location">A HTTP location to compare with.</param>
+        /// <param name="Location">An HTTP location to compare with.</param>
         public Int32 CompareTo(Location Location)
 
             => URL.HasValue && Location.URL.HasValue
@@ -365,7 +365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP locations for equality.
         /// </summary>
-        /// <param name="Object">A HTTP location to compare with.</param>
+        /// <param name="Object">An HTTP location to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is Location url &&
@@ -378,7 +378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP locations for equality.
         /// </summary>
-        /// <param name="Location">A HTTP location to compare with.</param>
+        /// <param name="Location">An HTTP location to compare with.</param>
         public Boolean Equals(Location Location)
 
             => URL.HasValue && Location.URL.HasValue

@@ -75,8 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             {
 
                 return this +
-                       (PublicKeyRing != null ? " publickey: "  + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().First().KeyId + " (" + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count() + ")" : "") +
-                       (SecretKeyRing != null ? " privatekey: " + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().First().KeyId + " (" + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Count() + ")" : "");
+                       (PublicKeyRing != null ? " publickey: "  + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().First().KeyId + " (" + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count() + ")" : String.Empty) +
+                       (SecretKeyRing != null ? " privatekey: " + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().First().KeyId + " (" + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Count() + ")" : String.Empty);
 
             }
         }

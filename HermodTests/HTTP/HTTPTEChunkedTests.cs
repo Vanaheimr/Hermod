@@ -354,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 chunkLengths.   Add(length);
                 chunkExtensions.Add(extensions);
-                chunkData.      Add(data != null ? data.ToUTF8String() : "");
+                chunkData.      Add(data != null ? data.ToUTF8String() : String.Empty);
 
                 return Task.CompletedTask;
 
@@ -423,7 +423,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 chunkLengths.   Add(length);
                 chunkExtensions.Add(extensions);
-                chunkData.      Add(data != null ? data.ToUTF8String() : "");
+                chunkData.      Add(data != null ? data.ToUTF8String() : String.Empty);
 
                 return Task.CompletedTask;
 
@@ -492,7 +492,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 chunkLengths.   Add(length);
                 chunkExtensions.Add(extensions);
-                chunkData.      Add(data != null ? data.ToUTF8String() : "");
+                chunkData.      Add(data != null ? data.ToUTF8String() : String.Empty);
 
                 return Task.CompletedTask;
 

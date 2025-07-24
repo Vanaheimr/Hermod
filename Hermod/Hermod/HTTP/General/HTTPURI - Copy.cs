@@ -29,7 +29,7 @@
 //{
 
 //    /// <summary>
-//    /// A HTTP uniform resource identifier.
+//    /// An HTTP uniform resource identifier.
 //    /// </summary>
 //    public struct HTTPURI : IEquatable<HTTPURI>,
 //                            IComparable<HTTPURI>,
@@ -264,7 +264,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator == (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -289,7 +289,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="Text">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator == (HTTPURI HTTPURI1, String Text)
@@ -314,7 +314,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator != (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -327,7 +327,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="Text">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator != (HTTPURI HTTPURI1, String Text)
@@ -340,7 +340,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator < (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -360,7 +360,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator <= (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -373,7 +373,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator > (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -393,7 +393,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static Boolean operator >= (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -407,7 +407,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="Text">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static HTTPURI operator + (HTTPURI HTTPURI1, String Text)
@@ -422,7 +422,7 @@
 //        /// <summary>
 //        /// Compares two instances of this object.
 //        /// </summary>
-//        /// <param name="HTTPURI1">A HTTP uniform resource identifier.</param>
+//        /// <param name="HTTPURI1">An HTTP uniform resource identifier.</param>
 //        /// <param name="HTTPURI2">Another HTTP uniform resource identifier.</param>
 //        /// <returns>true|false</returns>
 //        public static HTTPURI operator + (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
@@ -512,7 +512,7 @@
 //        /// <summary>
 //        /// Compares two HTTPURIs for equality.
 //        /// </summary>
-//        /// <param name="HTTPURI">A HTTPURI to compare with.</param>
+//        /// <param name="HTTPURI">An HTTPURI to compare with.</param>
 //        /// <returns>True if both match; False otherwise.</returns>
 //        public Boolean Equals(HTTPURI HTTPURI)
 //        {

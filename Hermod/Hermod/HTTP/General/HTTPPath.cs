@@ -35,14 +35,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this HTTP path is null or empty.
         /// </summary>
-        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
         public static Boolean IsNullOrEmpty(this HTTPPath? HTTPPath)
             => !HTTPPath.HasValue || HTTPPath.Value.IsNullOrEmpty;
 
         /// <summary>
         /// Indicates whether this HTTP path is null or empty.
         /// </summary>
-        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
         public static Boolean IsNotNullOrEmpty(this HTTPPath? HTTPPath)
             => HTTPPath.HasValue && HTTPPath.Value.IsNotNullOrEmpty;
 
@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPPath HTTPPath1,
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPPath HTTPPath1,
@@ -314,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPPath HTTPPath1,
@@ -329,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPPath HTTPPath1,
@@ -346,7 +346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPPath HTTPPath1,
@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPPath HTTPPath1,
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
@@ -390,7 +390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPPath1">A HTTP path.</param>
+        /// <param name="HTTPPath1">An HTTP path.</param>
         /// <param name="HTTPPath2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPPath HTTPPath1, HTTPPath HTTPPath2)
@@ -405,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Combines a HTTP path and a string.
         /// </summary>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         public static HTTPPath operator + (HTTPPath  Path,
                                            String    Text)
@@ -431,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Combines a HTTP path and a string.
         /// </summary>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         /// <param name="Text">Another HTTP path.</param>
         public static HTTPPath operator + (HTTPPath?  Path,
                                            String     Text)
@@ -465,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Combines a HTTP hostname and HTTP path.
         /// </summary>
         /// <param name="Hostname">Another HTTP path.</param>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         public static String operator + (HTTPHostname  Hostname,
                                          HTTPPath      Path)
         {
@@ -485,7 +485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Combines a HTTP hostname and HTTP path.
         /// </summary>
         /// <param name="Hostname">Another HTTP path.</param>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         public static String operator + (HTTPHostname  Hostname,
                                          HTTPPath?     Path)
         {
@@ -512,7 +512,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Combines a string and HTTP path.
         /// </summary>
         /// <param name="Text">Another HTTP path.</param>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         public static String operator + (String    Text,
                                          HTTPPath  Path)
         {
@@ -532,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Combines a string and HTTP path.
         /// </summary>
         /// <param name="Text">Another HTTP path.</param>
-        /// <param name="Path">A HTTP path.</param>
+        /// <param name="Path">An HTTP path.</param>
         public static String operator + (String     Text,
                                          HTTPPath?  Path)
         {
@@ -558,7 +558,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Combines two instances of this object.
         /// </summary>
-        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path1">An HTTP path.</param>
         /// <param name="Path2">Another HTTP path.</param>
         public static HTTPPath operator + (HTTPPath  Path1,
                                            HTTPPath  Path2)
@@ -578,7 +578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path1">An HTTP path.</param>
         /// <param name="Path2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static HTTPPath operator + (HTTPPath?  Path1,
@@ -602,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path1">An HTTP path.</param>
         /// <param name="Path2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static HTTPPath operator + (HTTPPath   Path1,
@@ -626,7 +626,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Path1">A HTTP path.</param>
+        /// <param name="Path1">An HTTP path.</param>
         /// <param name="Path2">Another HTTP path.</param>
         /// <returns>true|false</returns>
         public static HTTPPath operator + (HTTPPath?  Path1,
@@ -715,7 +715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTPPaths for equality.
         /// </summary>
-        /// <param name="HTTPPath">A HTTPPath to compare with.</param>
+        /// <param name="HTTPPath">An HTTPPath to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPPath HTTPPath)
 

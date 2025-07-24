@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task RegisterOptionsHTTPRequest(DateTime     Timestamp,
                                                            HTTPAPI      API,
                                                            HTTPRequest  Request)
@@ -122,8 +122,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task RegisterOptionsHTTPResponse(DateTime      Timestamp,
                                                             HTTPAPI       API,
                                                             HTTPRequest   Request,
@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task RegisterHTTPRequest(DateTime     Timestamp,
                                                     HTTPAPI      API,
                                                     HTTPRequest  Request)
@@ -172,8 +172,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task RegisterHTTPResponse(DateTime      Timestamp,
                                                      HTTPAPI       API,
                                                      HTTPRequest   Request,
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task LoginOptionsHTTPRequest(DateTime     Timestamp,
                                                         HTTPAPI      API,
                                                         HTTPRequest  Request)
@@ -222,8 +222,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task LoginOptionsHTTPResponse(DateTime      Timestamp,
                                                          HTTPAPI       API,
                                                          HTTPRequest   Request,
@@ -249,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task LoginHTTPRequest(DateTime     Timestamp,
                                                  HTTPAPI      API,
                                                  HTTPRequest  Request)
@@ -272,8 +272,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task LoginHTTPResponse(DateTime      Timestamp,
                                                   HTTPAPI       API,
                                                   HTTPRequest   Request,
@@ -467,12 +467,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
             => String.Concat("=login=",            User.     Id.      ToString().ToBase64(),
                              Astronaut is not null
                                  ? ":astronaut=" + Astronaut.Id.      ToString().ToBase64()
-                                 : "",
+                                 : String.Empty,
                              ":username=",         User.Name.FirstText().ToBase64(),
                              ":email=",            User.EMail.Address.ToString().ToBase64(),
                              ":language=",         User.UserLanguage. AsText().  ToBase64(),
-                             IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : "",
-                             IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : "");
+                             IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : String.Empty,
+                             IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : String.Empty);
 
 
         #endregion
@@ -484,12 +484,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
             => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
-                                 : "",
+                                 : String.Empty,
                              "; Path=",     URLPathPrefix.ToString(),
                              "; SameSite=strict",
                              UseSecureCookies
                                  ? "; secure"
-                                 : "");
+                                 : String.Empty);
 
         #endregion
 

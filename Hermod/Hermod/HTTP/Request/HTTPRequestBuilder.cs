@@ -17,9 +17,8 @@
 
 #region Usings
 
-using System.Text;
-
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 
 #endregion
 
@@ -27,7 +26,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP request.
+    /// An HTTP request.
     /// </summary>
     public partial class HTTPRequest : AHTTPPDU
     {
@@ -84,6 +83,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// The HTTP query string.
             /// </summary>
             public QueryString  QueryString     { get; internal set; }
+
+
+            public Func<HTTPRequest, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
 
             #endregion
 
@@ -791,7 +793,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Set the HTTP status code.
             /// </summary>
-            /// <param name="HTTPStatusCode">A HTTP status code.</param>
+            /// <param name="HTTPStatusCode">An HTTP status code.</param>
             public Builder SetHTTPStatusCode(HTTPStatusCode HTTPStatusCode)
             {
                 this.HTTPStatusCode = HTTPStatusCode;
@@ -1069,7 +1071,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Add a HTTPContentType and its quality to the Accept header field.
             /// </summary>
-            /// <param name="HTTPContentType">A HTTPContentType.</param>
+            /// <param name="HTTPContentType">An HTTPContentType.</param>
             /// <param name="Quality">The quality of the HTTPContentType.</param>
             public Builder AddAccept(HTTPContentType HTTPContentType, Double Quality = 1)
             {
@@ -1513,7 +1515,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Content,
                                HTTPServer: HTTPServer) {
 
-                        FakeURLPrefix = FakeURLPrefix
+                        FakeURLPrefix  = FakeURLPrefix,
+                        ChunkWorker    = ChunkWorker
 
                     };
 

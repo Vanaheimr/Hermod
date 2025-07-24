@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP client logger.
+    /// An HTTP client logger.
     /// </summary>
     public class HTTPClientLogger : AHTTPLogger
     {
@@ -122,7 +122,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
-            /// <returns>A HTTP request logger.</returns>
+            /// <returns>An HTTP request logger.</returns>
             public HTTPClientRequestLogger RegisterLogTarget(LogTargets                 LogTarget,
                                                              HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
-            /// <returns>A HTTP response logger.</returns>
+            /// <returns>An HTTP response logger.</returns>
             public HTTPClientResponseLogger RegisterLogTarget(LogTargets                  LogTarget,
                                                               HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP client logger using the given logging delegates.
         /// </summary>
-        /// <param name="HTTPClient">A HTTP client.</param>
+        /// <param name="HTTPClient">An HTTP client.</param>
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// 

@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP Token Authentication.
+    /// An HTTP Token Authentication.
     /// </summary>
     public sealed class HTTPTokenAuthentication : IHTTPAuthentication,
                                                   IEquatable<HTTPTokenAuthentication>,
@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication1">An HTTP Token Authentication.</param>
         /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPTokenAuthentication HTTPTokenAuthentication1,
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication1">An HTTP Token Authentication.</param>
         /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPTokenAuthentication HTTPTokenAuthentication1,
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication1">An HTTP Token Authentication.</param>
         /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPTokenAuthentication HTTPTokenAuthentication1,
@@ -279,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication1">An HTTP Token Authentication.</param>
         /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPTokenAuthentication HTTPTokenAuthentication1,
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication1">An HTTP Token Authentication.</param>
         /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPTokenAuthentication HTTPTokenAuthentication1,
@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication1">A HTTP Token Authentication.</param>
+        /// <param name="HTTPTokenAuthentication1">An HTTP Token Authentication.</param>
         /// <param name="HTTPTokenAuthentication2">Another HTTP Token Authentication.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPTokenAuthentication HTTPTokenAuthentication1,
@@ -330,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Token Authentications.
         /// </summary>
-        /// <param name="Object">A HTTP Token Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Token Authentication to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPTokenAuthentication httpTokenAuthentication
@@ -345,7 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Token Authentications.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication">A HTTP Token Authentication to compare with.</param>
+        /// <param name="HTTPTokenAuthentication">An HTTP Token Authentication to compare with.</param>
         public Int32 CompareTo(HTTPTokenAuthentication? HTTPTokenAuthentication)
         {
 
@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Token Authentications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP Token Authentication to compare with.</param>
+        /// <param name="Object">An HTTP Token Authentication to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPTokenAuthentication httpTokenAuthentication &&
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Token Authentications for equality.
         /// </summary>
-        /// <param name="HTTPTokenAuthentication">A HTTP Token Authentication to compare with.</param>
+        /// <param name="HTTPTokenAuthentication">An HTTP Token Authentication to compare with.</param>
         public Boolean Equals(HTTPTokenAuthentication? HTTPTokenAuthentication)
 
             => HTTPTokenAuthentication is not null &&

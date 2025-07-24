@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     /// <summary>
     /// An abstract HTTP protocol data unit builder.
-    /// A HTTP pdu has three parts:
+    /// An HTTP pdu has three parts:
     ///  - First a request/response specific first line
     ///  - A collection of key-value pairs of type &lt;string,object&gt;
     ///    for any kind of metadata
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     {
 
                                         if (definedHeaderField.MultipleValuesAsList == true)
-                                            sb.Append($"{headerField.Key}: {texts.AggregateWith(", ")}\r\n");
+                                            sb.Append($"{headerField.Key}: {texts.AggregateCSV()}\r\n");
 
                                         else
                                             foreach (var text in texts)
@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 }
 
-                                sb.Append($"{headerField.Key}: {list.AggregateWith(", ")}\r\n");
+                                sb.Append($"{headerField.Key}: {list.AggregateCSV()}\r\n");
                                 break;
 
                             default:

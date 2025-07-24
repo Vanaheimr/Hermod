@@ -36,14 +36,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Indicates whether this HTTP hostname is null or empty.
         /// </summary>
-        /// <param name="HTTPHostname">A HTTP hostname.</param>
+        /// <param name="HTTPHostname">An HTTP hostname.</param>
         public static Boolean IsNullOrEmpty(this HTTPHostname? HTTPHostname)
             => !HTTPHostname.HasValue || HTTPHostname.Value.IsNullOrEmpty;
 
         /// <summary>
         /// Indicates whether this HTTP hostname is null or empty.
         /// </summary>
-        /// <param name="HTTPHostname">A HTTP hostname.</param>
+        /// <param name="HTTPHostname">An HTTP hostname.</param>
         public static Boolean IsNotNullOrEmpty(this HTTPHostname? HTTPHostname)
             => HTTPHostname.HasValue && HTTPHostname.Value.IsNotNullOrEmpty;
 
@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public String   SimpleString
-            => Name + (Port.HasValue ? ":" + Port.Value.ToString() : "");
+            => Name + (Port.HasValue ? ":" + Port.Value.ToString() : String.Empty);
 
         #endregion
 
@@ -326,7 +326,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPHostname Hostname1,
@@ -341,7 +341,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPHostname Hostname1,
@@ -356,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPHostname Hostname1,
@@ -371,7 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPHostname Hostname1,
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPHostname Hostname1,
@@ -401,7 +401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPHostname Hostname1,
@@ -416,7 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPHostname Hostname1,
@@ -431,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="Hostname1">A HTTPHostname.</param>
+        /// <param name="Hostname1">An HTTPHostname.</param>
         /// <param name="Hostname2">Another HTTPHostname.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPHostname Hostname1,
@@ -450,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP hostnames.
         /// </summary>
-        /// <param name="Object">A HTTP hostname to compare with.</param>
+        /// <param name="Object">An HTTP hostname to compare with.</param>
         public Int32 CompareTo(Object Object)
 
             => Object is HTTPHostname httpHostname
@@ -465,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP hostnames.
         /// </summary>
-        /// <param name="Hostname">A HTTP hostname to compare with.</param>
+        /// <param name="Hostname">An HTTP hostname to compare with.</param>
         public Int32 CompareTo(HTTPHostname Hostname)
 
             => ToString().CompareTo(Hostname.ToString());
@@ -481,7 +481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP hostnames for equality.
         /// </summary>
-        /// <param name="Object">A HTTP hostname to compare with.</param>
+        /// <param name="Object">An HTTP hostname to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPHostname httpHostname &&
@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP hostnames for equality.
         /// </summary>
-        /// <param name="Hostname">A HTTP hostname to compare with.</param>
+        /// <param name="Hostname">An HTTP hostname to compare with.</param>
         public Boolean Equals(HTTPHostname Hostname)
 
             => String.Equals(ToString(),
@@ -533,7 +533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    Port.HasValue
                        ? $":{Port.Value}"
-                       : ""
+                       : String.Empty
 
                );
 

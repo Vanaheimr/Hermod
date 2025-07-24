@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     }
 
     /// <summary>
-    /// A HTTP content type.
+    /// An HTTP content type.
     /// </summary>
     /// <param name="MediaMainType">The media main type for the HTTP content type.</param>
     /// <param name="MediaSubType">The media sub type for the HTTP content type.</param>
@@ -525,7 +525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP content types.
         /// </summary>
-        /// <param name="Object">A HTTP content type to compare with.</param>
+        /// <param name="Object">An HTTP content type to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPContentType httpContentType
@@ -540,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP content types.
         /// </summary>
-        /// <param name="HTTPContentType">A HTTP content type to compare with.</param>
+        /// <param name="HTTPContentType">An HTTP content type to compare with.</param>
         public Int32 CompareTo(HTTPContentType? HTTPContentType)
         {
 
@@ -568,7 +568,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP content types for equality.
         /// </summary>
-        /// <param name="HTTPContentType">A HTTP content type to compare with.</param>
+        /// <param name="HTTPContentType">An HTTP content type to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPContentType httpContentType &&
@@ -581,7 +581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP content types for equality.
         /// </summary>
-        /// <param name="HTTPContentType">A HTTP content type to compare with.</param>
+        /// <param name="HTTPContentType">An HTTP content type to compare with.</param>
         public Boolean Equals(HTTPContentType? HTTPContentType)
 
             => HTTPContentType is not null &&
@@ -624,7 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    fileExtensions.Any()
                        ? $", file extensions: {fileExtensions.Aggregate((a, b) => a + ", " + b)}"
-                       : ""
+                       : String.Empty
 
                );
 
@@ -643,15 +643,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    CharSet is not null
                        ? $"; charset={CharSet}"
-                       : "",
+                       : String.Empty,
 
                    MIMEBoundary.IsNotNullOrEmpty()
                        ? $"; boundary=\"{MIMEBoundary}\""
-                       : "",
+                       : String.Empty,
 
                    Action.IsNotNullOrEmpty()
                        ? $"; action=\"{Action}\""
-                       : ""
+                       : String.Empty
 
                );
 

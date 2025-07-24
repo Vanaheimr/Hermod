@@ -31,7 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
     /// <summary>
-    /// A HTTP/SOAP/XML server API.
+    /// An HTTP/SOAP/XML server API.
     /// </summary>
     public abstract class ASOAPServer : ISOAPServer
     {
@@ -290,7 +290,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                       ? ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Subject ?? "-") + Environment.NewLine +
                                                                         ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer ?? "-") + Environment.NewLine +
                                                                          Environment.NewLine
-                                                                      : "") +
+                                                                      : String.Empty) +
 
                                                                  "Defined endpoints: " + Environment.NewLine + Environment.NewLine +
                                                                  SOAPServer.
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                      Select(group => " - " + group.Key + Environment.NewLine +
                                                                                      "   " + group.SelectMany(dispatcher => dispatcher.SOAPDispatches).
                                                                                                    Select(dispatch => dispatch.Description).
-                                                                                                   AggregateWith(", ")
+                                                                                                   AggregateCSV()
                                                                            ).AggregateWith(Environment.NewLine + Environment.NewLine)
                                                                 ).ToUTF8Bytes(),
                                               Connection = ConnectionType.Close

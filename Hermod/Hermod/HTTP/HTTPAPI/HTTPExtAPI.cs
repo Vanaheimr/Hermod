@@ -79,10 +79,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
-        /// <param name="HTTPResponse">A HTTP error response.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserId(this HTTPRequest           HTTPRequest,
                                           HTTPExtAPI                 HTTPExtAPI,
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Invalid UserId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -145,10 +145,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
-        /// <param name="HTTPResponseBuilder">A HTTP error response builder.</param>
+        /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserId2(this HTTPRequest          HTTPRequest,
                                            HTTPExtAPI                HTTPExtAPI,
@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (HTTPRequest.ParsedURLParameters.Length < 1) {
-                HTTPResponseBuilder.Content = @"{ ""description"": ""Missing user identification!"" }".ToUTF8Bytes();
+                HTTPResponseBuilder.Content = @"{ ""description"": String.EmptyMissing user identification!"" }".ToUTF8Bytes();
                 UserId = null;
                 return false;
             }
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             UserId = User_Id.TryParse(HTTPRequest.ParsedURLParameters[0]);
 
             if (!UserId.HasValue) {
-                HTTPResponseBuilder.Content = @"{ ""description"": ""Invalid user identification!"" }".ToUTF8Bytes();
+                HTTPResponseBuilder.Content = @"{ ""description"": String.EmptyInvalid user identification!"" }".ToUTF8Bytes();
                 UserId = null;
                 return false;
             }
@@ -183,11 +183,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="User">The resolved user.</param>
-        /// <param name="HTTPResponse">A HTTP error response.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUser(this HTTPRequest           HTTPRequest,
                                         HTTPExtAPI                   HTTPExtAPI,
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Invalid UserId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -247,7 +247,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Unknown UserId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyUnknown UserId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -269,10 +269,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
-        /// <param name="HTTPResponse">A HTTP error response.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserGroupId(this HTTPRequest           HTTPRequest,
                                                HTTPExtAPI                   HTTPExtAPI,
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Invalid UserGroupId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -338,11 +338,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="UserGroup">The resolved user.</param>
-        /// <param name="HTTPResponse">A HTTP error response.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserGroup(this HTTPRequest           HTTPRequest,
                                              HTTPExtAPI                   HTTPExtAPI,
@@ -387,7 +387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Invalid UserGroupId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -402,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Unknown UserGroupId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyUnknown UserGroupId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -424,10 +424,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The Organizations API.</param>
         /// <param name="OrganizationId">The parsed unique user identification.</param>
-        /// <param name="HTTPResponse">A HTTP error response.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseOrganizationId(this HTTPRequest           HTTPRequest,
                                                   HTTPExtAPI                   HTTPExtAPI,
@@ -472,7 +472,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Invalid OrganizationId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -493,11 +493,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// for the given HTTP hostname and HTTP query parameter
         /// or an HTTP error response.
         /// </summary>
-        /// <param name="HTTPRequest">A HTTP request.</param>
+        /// <param name="HTTPRequest">An HTTP request.</param>
         /// <param name="HTTPExtAPI">The Organizations API.</param>
         /// <param name="OrganizationId">The parsed unique user identification.</param>
         /// <param name="Organization">The resolved user.</param>
-        /// <param name="HTTPResponse">A HTTP error response.</param>
+        /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseOrganization(this HTTPRequest           HTTPRequest,
                                                 HTTPExtAPI                   HTTPExtAPI,
@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Invalid OrganizationId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -557,7 +557,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                    Content         = @"{ ""description"": ""Unknown OrganizationId!"" }".ToUTF8Bytes(),
+                    Content         = @"{ ""description"": String.EmptyUnknown OrganizationId!"" }".ToUTF8Bytes(),
                     Connection      = ConnectionType.Close
                 };
 
@@ -1369,7 +1369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task AddUsersHTTPRequest(DateTime     Timestamp,
                                                     HTTPAPI      HTTPAPI,
                                                     HTTPRequest  Request)
@@ -1392,8 +1392,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task AddUsersHTTPResponse(DateTime      Timestamp,
                                                      HTTPAPI       HTTPAPI,
                                                      HTTPRequest   Request,
@@ -1419,7 +1419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task AddUserHTTPRequest(DateTime     Timestamp,
                                                    HTTPAPI      HTTPAPI,
                                                    HTTPRequest  Request)
@@ -1442,8 +1442,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task AddUserHTTPResponse(DateTime      Timestamp,
                                                     HTTPAPI       HTTPAPI,
                                                     HTTPRequest   Request,
@@ -1469,7 +1469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task SetUserHTTPRequest(DateTime     Timestamp,
                                                    HTTPAPI      HTTPAPI,
                                                    HTTPRequest  Request)
@@ -1492,8 +1492,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task SetUserHTTPResponse(DateTime      Timestamp,
                                                     HTTPAPI       HTTPAPI,
                                                     HTTPRequest   Request,
@@ -1519,7 +1519,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task ChangePasswordRequest(DateTime     Timestamp,
                                                       HTTPAPI      HTTPAPI,
                                                       HTTPRequest  Request)
@@ -1542,8 +1542,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task ChangePasswordResponse(DateTime      Timestamp,
                                                        HTTPAPI       HTTPAPI,
                                                        HTTPRequest   Request,
@@ -1569,7 +1569,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task ImpersonateUserRequest(DateTime     Timestamp,
                                                        HTTPAPI      HTTPAPI,
                                                        HTTPRequest  Request)
@@ -1592,8 +1592,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task ImpersonateUserResponse(DateTime      Timestamp,
                                                         HTTPAPI       HTTPAPI,
                                                         HTTPRequest   Request,
@@ -1619,7 +1619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task SetUserNotificationsRequest(DateTime     Timestamp,
                                                             HTTPAPI      HTTPAPI,
                                                             HTTPRequest  Request)
@@ -1642,8 +1642,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task SetUserNotificationsResponse(DateTime      Timestamp,
                                                              HTTPAPI       HTTPAPI,
                                                              HTTPRequest   Request,
@@ -1669,7 +1669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task DeleteUserNotificationsRequest(DateTime     Timestamp,
                                                                HTTPAPI      HTTPAPI,
                                                                HTTPRequest  Request)
@@ -1692,8 +1692,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task DeleteUserNotificationsResponse(DateTime      Timestamp,
                                                                 HTTPAPI       HTTPAPI,
                                                                 HTTPRequest   Request,
@@ -1722,7 +1722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task AddOrganizationHTTPRequest(DateTime     Timestamp,
                                                            HTTPAPI      HTTPAPI,
                                                            HTTPRequest  Request)
@@ -1745,8 +1745,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task AddOrganizationHTTPResponse(DateTime      Timestamp,
                                                             HTTPAPI       HTTPAPI,
                                                             HTTPRequest   Request,
@@ -1772,7 +1772,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task SetOrganizationHTTPRequest(DateTime     Timestamp,
                                                            HTTPAPI      HTTPAPI,
                                                            HTTPRequest  Request)
@@ -1795,8 +1795,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task SetOrganizationHTTPResponse(DateTime      Timestamp,
                                                             HTTPAPI       HTTPAPI,
                                                             HTTPRequest   Request,
@@ -1822,7 +1822,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task DeleteOrganizationHTTPRequest(DateTime     Timestamp,
                                                               HTTPAPI      HTTPAPI,
                                                               HTTPRequest  Request)
@@ -1845,8 +1845,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task DeleteOrganizationHTTPResponse(DateTime      Timestamp,
                                                                HTTPAPI       HTTPAPI,
                                                                HTTPRequest   Request,
@@ -1873,7 +1873,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task SetOrganizationNotificationsRequest(DateTime     Timestamp,
                                                                     HTTPAPI      HTTPAPI,
                                                                     HTTPRequest  Request)
@@ -1896,8 +1896,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task SetOrganizationNotificationsResponse(DateTime      Timestamp,
                                                                      HTTPAPI       HTTPAPI,
                                                                      HTTPRequest   Request,
@@ -1923,7 +1923,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task DeleteOrganizationNotificationsRequest(DateTime     Timestamp,
                                                                        HTTPAPI      HTTPAPI,
                                                                        HTTPRequest  Request)
@@ -1946,8 +1946,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task DeleteOrganizationNotificationsResponse(DateTime      Timestamp,
                                                                         HTTPAPI       HTTPAPI,
                                                                         HTTPRequest   Request,
@@ -1976,7 +1976,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task RestartRequest(DateTime     Timestamp,
                                                HTTPAPI      HTTPAPI,
                                                HTTPRequest  Request)
@@ -1999,8 +1999,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task RestartResponse(DateTime      Timestamp,
                                                 HTTPAPI       HTTPAPI,
                                                 HTTPRequest   Request,
@@ -2026,7 +2026,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         protected internal Task StopRequest(DateTime     Timestamp,
                                             HTTPAPI      HTTPAPI,
                                             HTTPRequest  Request)
@@ -2049,8 +2049,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Request">A HTTP request.</param>
-        /// <param name="Response">A HTTP response.</param>
+        /// <param name="Request">An HTTP request.</param>
+        /// <param name="Response">An HTTP response.</param>
         protected internal Task StopResponse(DateTime      Timestamp,
                                              HTTPAPI       HTTPAPI,
                                              HTTPRequest   Request,
@@ -2410,7 +2410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP API.
         /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="HTTPServer">An HTTP server.</param>
         /// <param name="HTTPHostname">An optional HTTP hostname.</param>
         /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
         /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
@@ -2902,7 +2902,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        ? "<div style=\"color: #AAAAAA; font-size: 80%; padding-bottom: 10px\">\r\n" +
                                              "If you no longer wish to receive this kind of notification e-mails you can unsubscribe <a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/notifications\">here</a>.<br />\r\n" +
                                          "</div>\r\n"
-                                       : "",
+                                       : String.Empty,
                                    "<div style=\"color: #AAAAAA; font-size: 70%\">\r\n",
                                        "(c) GraphDefined GmbH<br />\r\n",
                                    "</div>\r\n",
@@ -2938,7 +2938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat("\r\n\r\n---------------------------------------------------------------\r\n",
                              EMailType == EMailType.Notification
                                  ? "If you no longer wish to receive this kind of notification e-mails you can unsubscribe here: https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/notifications.\r\n\r\n"
-                                 : "",
+                                 : String.Empty,
                              "HTTPExt API\r\n",
                              "(c) GraphDefined GmbH\r\n\r\n");
 
@@ -2968,8 +2968,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          HTMLEMailHeader(ExternalDNSName, BasePath, EMailType.System),
                                              "Dear ", User.Name, ",<br /><br />" + Environment.NewLine,
                                              "your " + HTTPServiceName + " account has been created!<br /><br />" + Environment.NewLine,
-                                             "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : "") + "...<br /><br />" + Environment.NewLine,
-                                             "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : "") + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine,
+                                             "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : String.Empty) + "...<br /><br />" + Environment.NewLine,
+                                             "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine,
                                          HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
                                      ),
 
@@ -2977,8 +2977,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          TextEMailHeader(ExternalDNSName, BasePath, EMailType.System) +
                                              "Dear ", User.Name, ", " + Environment.NewLine +
                                              "your " + HTTPServiceName + " account has been created!" + Environment.NewLine + Environment.NewLine +
-                                             "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : "") + "..." + Environment.NewLine + Environment.NewLine +
-                                             "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : "") +
+                                             "Please click the following link to set a new password for your account" + (Use2FactorAuth ? " and check your mobile phone for an additional security token" : String.Empty) + "..." + Environment.NewLine + Environment.NewLine +
+                                             "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) +
                                          TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
                                     ),
 
@@ -3052,7 +3052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             "Dear " + User.Name + ",<br /><br />" + Environment.NewLine +
                                             "someone - hopefully you - requested us to change your password!<br />" + Environment.NewLine +
                                             "If this request was your intention, please click the following link to set a new password...<br /><br />" + Environment.NewLine +
-                                            "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : "") + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine +
+                                            "<a href=\"https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) + "\" style=\"text-decoration: none; color: #FFFFFF; background-color: #ff7300; Border: solid #ff7300; border-width: 10px 20px; line-height: 2; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 4px; margin-top: 20px; font-size: 70%\">Set a new password</a>" + Environment.NewLine +
                                         HTMLEMailFooter(ExternalDNSName, BasePath, EMailType.System)
                                     ),
 
@@ -3061,7 +3061,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             "Dear " + User.Name + "," + Environment.NewLine +
                                             "someone - hopefully you - requested us to change your password!" + Environment.NewLine +
                                             "If this request was your intention, please click the following link to set a new password..." + Environment.NewLine + Environment.NewLine +
-                                            "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : "") +
+                                            "https://" + ExternalDNSName + (BasePath?.ToString() ?? "") + "/setPassword?" + SecurityToken + (Use2FactorAuth ? "&2factor" : String.Empty) +
                                         TextEMailFooter(ExternalDNSName, BasePath, EMailType.System)
                                     ),
 
@@ -3435,12 +3435,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat("=login=",            User.     Id.      ToString().ToBase64(),
                              Astronaut is not null
                                  ? ":astronaut=" + Astronaut.Id.      ToString().ToBase64()
-                                 : "",
+                                 : String.Empty,
                              ":username=",         User.Name.FirstText().ToBase64(),
                              ":email=",            User.EMail.Address.ToString().ToBase64(),
                              ":language=",         User.UserLanguage. AsText().  ToBase64(),
-                             IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : "",
-                             IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : "");
+                             IsAdmin(User) == Access_Levels.ReadOnly  ? ":isAdminRO" : String.Empty,
+                             IsAdmin(User) == Access_Levels.ReadWrite ? ":isAdminRW" : String.Empty);
 
 
         #endregion
@@ -3452,12 +3452,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
-                                 : "",
+                                 : String.Empty,
                              "; Path=",     URLPathPrefix.ToString(),
                              "; SameSite=strict",
                              UseSecureCookies
                                  ? "; secure"
-                                 : "");
+                                 : String.Empty);
 
         #endregion
 
@@ -4222,7 +4222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             //SetCookie           = String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
                             //                                    HTTPCookieDomain.IsNotNullOrEmpty()
                             //                                        ? "; Domain=" + HTTPCookieDomain
-                            //                                        : "",
+                            //                                        : String.Empty,
                             //                                    "; Path=", URLPathPrefix),
                             XLocationAfterAuth  = request.Path,
                             CacheControl        = "private, max-age=0, no-cache",
@@ -4836,7 +4836,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                         String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                                   HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                                       ? "; Domain=" + HTTPCookieDomain
-                                                                                                      : "",
+                                                                                                      : String.Empty,
                                                                                                   "; Path=", URLPathPrefix)
                                                                                     )
                                                                                 ),
@@ -4859,7 +4859,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                         String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                                       HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                                           ? "; Domain=" + HTTPCookieDomain
-                                                                                                          : "",
+                                                                                                          : String.Empty,
                                                                                                       "; Path=", URLPathPrefix)
                                                                                     )
                                                                                 ),
@@ -5581,13 +5581,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                    ? "; Domain=" + HTTPCookieDomain
-                                                                                   : "",
+                                                                                   : String.Empty,
                                                                                "; Path=", URLPathPrefix),
 
                                                                  String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                                HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                    ? "; Domain=" + HTTPCookieDomain
-                                                                                   : "",
+                                                                                   : String.Empty,
                                                                                "; Path=", URLPathPrefix)
 
                                                              ),
@@ -6534,13 +6534,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                 String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
-                                                                                  : "",
+                                                                                  : String.Empty,
                                                                               "; Path=", URLPathPrefix),
 
                                                                 String.Concat(SessionCookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
                                                                               HTTPCookieDomain.IsNotNullOrEmpty()
                                                                                   ? "; Domain=" + HTTPCookieDomain
-                                                                                  : "",
+                                                                                  : String.Empty,
                                                                               "; Path=", URLPathPrefix)
                                                             ),
                                           Connection      = ConnectionType.Close
@@ -11727,7 +11727,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11749,7 +11749,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11775,7 +11775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11804,7 +11804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11835,7 +11835,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11866,7 +11866,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11886,7 +11886,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11911,7 +11911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11938,7 +11938,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11964,7 +11964,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11983,7 +11983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(apiKey), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12013,7 +12013,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12039,7 +12039,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12069,7 +12069,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12100,7 +12100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12139,7 +12139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12364,7 +12364,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12392,7 +12392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : "", LineNumber.HasValue ? ", line " + LineNumber.Value : "", ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12755,8 +12755,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 default:
                     DebugX.Log(String.Concat(nameof(HTTPExtAPI), ": does not know what to do with event '", Command,
-                                             Sender.IsNotNullOrEmpty() ? " via " + Sender : "",
-                                             LineNumber.HasValue ? ", line " + LineNumber.Value : "",
+                                             Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty,
+                                             LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty,
                                              "'!"));
                     break;
 
@@ -12931,8 +12931,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             var retry       = 0;
                             var maxRetries  = 23;
-                            var text1       = (Comment ?? "no comment!") + (CurrentUserId.HasValue ? "by " + CurrentUserId.ToString() + " " : "");
-                            var text2       = "# --" + (text1 != null ? "< " + text1 + " >" : "");
+                            var text1       = (Comment ?? "no comment!") + (CurrentUserId.HasValue ? "by " + CurrentUserId.ToString() + " " : String.Empty);
+                            var text2       = "# --" + (text1 != null ? "< " + text1 + " >" : String.Empty);
                             var text3       = text2 + new String('-', Math.Max(10, 200 - text2.Length)) + Environment.NewLine;
 
                             do

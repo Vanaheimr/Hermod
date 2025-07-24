@@ -680,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat("'", Id, "' for ",
                              UserId.ToString(), ", [",
                              AccessRights.ToString(),
-                             NotAfter != null ? ", expires at " + NotAfter.Value.ToISO8601() : "",
+                             NotAfter != null ? ", expires at " + NotAfter.Value.ToISO8601() : String.Empty,
                              IsDisabled ? ", disabled]" : "]");
 
         #endregion

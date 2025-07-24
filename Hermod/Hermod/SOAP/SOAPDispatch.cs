@@ -43,12 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         public SOAPMatch                  Matcher                  { get; }
 
         /// <summary>
-        /// A HTTP/SOAP delegate to invoke this dispatch.
+        /// An HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
         public SOAPBodyDelegate           BodyDelegate             { get; }
 
         /// <summary>
-        /// A HTTP/SOAP delegate to invoke this dispatch.
+        /// An HTTP/SOAP delegate to invoke this dispatch.
         /// </summary>
         public SOAPHeaderAndBodyDelegate  HeaderAndBodyDelegate    { get; }
 
@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Description">A description for this SOAP dispatch.</param>
         /// <param name="Matcher">A delegate to check if this dispatch applies.</param>
-        /// <param name="BodyDelegate">A HTTP/SOAP delegate to invoke this dispatch.</param>
+        /// <param name="BodyDelegate">An HTTP/SOAP delegate to invoke this dispatch.</param>
         public SOAPDispatch(String            Description,
                             SOAPMatch         Matcher,
                             SOAPBodyDelegate  BodyDelegate)
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="Description">A description for this SOAP dispatch.</param>
         /// <param name="Matcher">A delegate to check if this dispatch applies.</param>
-        /// <param name="HeaderAndBodyDelegate">A HTTP/SOAP delegate to invoke this dispatch.</param>
+        /// <param name="HeaderAndBodyDelegate">An HTTP/SOAP delegate to invoke this dispatch.</param>
         public SOAPDispatch(String                     Description,
                             SOAPMatch                  Matcher,
                             SOAPHeaderAndBodyDelegate  HeaderAndBodyDelegate)

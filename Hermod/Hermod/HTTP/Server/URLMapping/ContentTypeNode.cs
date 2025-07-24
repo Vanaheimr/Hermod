@@ -23,9 +23,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// </summary>
     /// <param name="HTTPContentType">The http content type for this service.</param>
     /// <param name="HTTPContentTypeAuthentication">This and all subordinated nodes demand an explicit HTTP content type authentication.</param>
-    /// <param name="HTTPRequestLogger">A HTTP request logger.</param>
+    /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
     /// <param name="RequestHandler">The default delegate to call for any request to this URI template.</param>
-    /// <param name="HTTPResponseLogger">A HTTP response logger.</param>
+    /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
     /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
     /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
     public class ContentTypeNode(HTTPAPI                  HTTPAPI,
@@ -59,12 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPAuthentication?                       HTTPContentTypeAuthentication    { get; } = HTTPContentTypeAuthentication;
 
         /// <summary>
-        /// A HTTP request logger.
+        /// An HTTP request logger.
         /// </summary>
         public HTTPRequestLogHandler?                    HTTPRequestLogger                { get; } = HTTPRequestLogger;
 
         /// <summary>
-        /// A HTTP response logger.
+        /// An HTTP response logger.
         /// </summary>
         public HTTPResponseLogHandler?                   HTTPResponseLogger               { get; } = HTTPResponseLogger;
 

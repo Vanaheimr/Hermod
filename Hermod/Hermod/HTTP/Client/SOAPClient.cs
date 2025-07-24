@@ -100,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,
@@ -395,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <param name="InternalBufferSize">An optional size of the internal buffers.</param>
         /// <param name="UseHTTPPipelining">Whether to pipeline multiple HTTP request through a single HTTP/TCP connection.</param>
         /// <param name="DisableLogging">Disable logging.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public SOAPClient(URL                                                        RemoteURL,
                           HTTPHostname?                                              VirtualHostname              = null,

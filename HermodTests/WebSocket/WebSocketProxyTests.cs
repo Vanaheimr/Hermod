@@ -274,10 +274,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.WebSockets
             while (proxy_newWebSocketConnection.Count == 0)
                 Thread.Sleep(10);
 
-            ClassicAssert.AreEqual(1, proxy_validatedTCP.          Count, proxy_validatedTCP.          AggregateWith(", "));
-            ClassicAssert.AreEqual(1, proxy_newTCPConnection.      Count, proxy_newTCPConnection.      AggregateWith(", "));
-            ClassicAssert.AreEqual(1, proxy_validatedWebSocket.    Count, proxy_validatedWebSocket.    AggregateWith(", "));
-            ClassicAssert.AreEqual(1, proxy_newWebSocketConnection.Count, proxy_newWebSocketConnection.AggregateWith(", "));
+            ClassicAssert.AreEqual(1, proxy_validatedTCP.          Count, proxy_validatedTCP.          AggregateCSV());
+            ClassicAssert.AreEqual(1, proxy_newTCPConnection.      Count, proxy_newTCPConnection.      AggregateCSV());
+            ClassicAssert.AreEqual(1, proxy_validatedWebSocket.    Count, proxy_validatedWebSocket.    AggregateCSV());
+            ClassicAssert.AreEqual(1, proxy_newWebSocketConnection.Count, proxy_newWebSocketConnection.AggregateCSV());
 
             ClassicAssert.AreEqual(1, proxy_httpRequests.          Count);
             ClassicAssert.AreEqual(1, proxy_httpResponses.         Count);

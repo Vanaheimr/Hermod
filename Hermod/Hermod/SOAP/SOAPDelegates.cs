@@ -28,21 +28,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 {
 
     /// <summary>
-    /// A HTTP delegate.
+    /// An HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
     /// <param name="SOAPBody">The parsed SOAP/XML request body.</param>
-    /// <returns>A HTTP response task.</returns>
+    /// <returns>An HTTP response task.</returns>
     public delegate Task<HTTPResponse> SOAPBodyDelegate(HTTPRequest  Request,
                                                         XElement     SOAPBody);
 
     /// <summary>
-    /// A HTTP delegate.
+    /// An HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>
     /// <param name="SOAPHeader">The parsed SOAP/XML request header.</param>
     /// <param name="SOAPBody">The parsed SOAP/XML request body.</param>
-    /// <returns>A HTTP response task.</returns>
+    /// <returns>An HTTP response task.</returns>
     public delegate Task<HTTPResponse> SOAPHeaderAndBodyDelegate(HTTPRequest  Request,
                                                                  XElement     SOAPHeader,
                                                                  XElement     SOAPBody);

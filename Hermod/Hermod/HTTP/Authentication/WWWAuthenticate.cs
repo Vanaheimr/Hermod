@@ -55,7 +55,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP WWW-Authenticate based on the given method and parameters.
         /// </summary>
-        /// <param name="Method">A HTTP WWW-Authenticate method.</param>
+        /// <param name="Method">An HTTP WWW-Authenticate method.</param>
         /// <param name="Parameters">Optional WWW-Authenticate parameters.</param>
         private WWWAuthenticate(String                      Method,
                                 Dictionary<String, String>  Parameters)
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-            => $"{Method} {parameters.Select(parameter => $"{parameter.Key}=\"{parameter.Value}\"").AggregateWith(", ")}";
+            => $"{Method} {parameters.Select(parameter => $"{parameter.Key}=\"{parameter.Value}\"").AggregateCSV()}";
 
         #endregion
 

@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         public String ToLogLine()
-            => String.Concat(UserId, ";", Expires.ToISO8601(), SuperUserId.HasValue ? ";" + SuperUserId.Value : "");
+            => String.Concat(UserId, ";", Expires.ToISO8601(), SuperUserId.HasValue ? ";" + SuperUserId.Value : String.Empty);
 
     }
 

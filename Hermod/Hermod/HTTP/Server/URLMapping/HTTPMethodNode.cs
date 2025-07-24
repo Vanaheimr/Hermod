@@ -60,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public URLReplacement                            AllowReplacement            { get; }
 
         /// <summary>
-        /// A HTTP request logger.
+        /// An HTTP request logger.
         /// </summary>
         public HTTPRequestLogHandler?                    HTTPRequestLogger           { get; private set; }
 
@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPAuthentication?                       HTTPMethodAuthentication    { get; }
 
         /// <summary>
-        /// A HTTP delegate.
+        /// An HTTP delegate.
         /// </summary>
         public HTTPDelegate?                             RequestHandler              { get; private set; }
 
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Dictionary<HTTPStatusCode, HTTPDelegate>  ErrorHandlers               { get; } = [];
 
         /// <summary>
-        /// A HTTP response logger.
+        /// An HTTP response logger.
         /// </summary>
         public HTTPResponseLogHandler?                   HTTPResponseLogger          { get; private set; }
 
@@ -109,8 +109,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP method node.
         /// </summary>
-        /// <param name="HTTPAPI">A HTTP API.</param>
-        /// <param name="HTTPMethod">A HTTP method.</param>
+        /// <param name="HTTPAPI">An HTTP API.</param>
+        /// <param name="HTTPMethod">An HTTP method.</param>
         /// <param name="HTTPMethodAuthentication">This and all subordinated nodes demand an optional explicit HTTP method authentication.</param>
         internal HTTPMethodNode(HTTPAPI              HTTPAPI,
                                 HTTPMethod           HTTPMethod,
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Determines whether the given HTTP content type is defined.
         /// </summary>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         public Boolean Contains(HTTPContentType ContentType)
 
             => contentTypeNodes.ContainsKey(ContentType);
@@ -248,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP content type node for the given HTTP content type.
         /// </summary>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         public ContentTypeNode? Get(HTTPContentType ContentType)
         {
 
@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return the HTTP content type node for the given HTTP content type.
         /// </summary>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="ContentTypeNode">The attached HTTP content type node.</param>
         public Boolean TryGet(HTTPContentType ContentType, out ContentTypeNode? ContentTypeNode)
 
@@ -301,7 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             => String.Concat(HTTPMethod,
                              " (",
-                             contentTypeNodes.Select(contenttype => contenttype.Value.ToString()).AggregateWith(", "),
+                             contentTypeNodes.Select(contenttype => contenttype.Value.ToString()).AggregateCSV(),
                              ")");
 
         #endregion

@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 {
 
     /// <summary>
-    /// A HTTP WebSocket client.
+    /// An HTTP WebSocket client.
     /// </summary>
     public class WebSocketClient : IWebSocketClient
     {
@@ -394,7 +394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="LoggingContext">An optional context for logging client methods.</param>
         /// <param name="LogfileCreator">A delegate to create a log file from the given context and log file name.</param>
-        /// <param name="HTTPLogger">A HTTP logger.</param>
+        /// <param name="HTTPLogger">An HTTP logger.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         public WebSocketClient(URL                                                             RemoteURL,
                                HTTPHostname?                                                   VirtualHostname              = null,

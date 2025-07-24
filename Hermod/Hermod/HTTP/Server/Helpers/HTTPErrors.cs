@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Return a HTTP error response using the best-matching content type.
         /// </summary>
         /// <param name="HTTPRequest">The HTTP request.</param>
-        /// <param name="StatusCode">A HTTP status code.</param>
+        /// <param name="StatusCode">An HTTP status code.</param>
         /// <param name="Reasons">Optional application side reasons for this error.</param>
         public static HTTPResponse HTTPErrorResponse_old(HTTPRequest HTTPRequest, HTTPStatusCode StatusCode, String Reasons = null)
         {

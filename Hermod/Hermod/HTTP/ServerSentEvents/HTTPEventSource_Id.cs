@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
+        /// <param name="HTTPEventSourceId1">An HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPEventSource_Id HTTPEventSourceId1,
@@ -183,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
+        /// <param name="HTTPEventSourceId1">An HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPEventSource_Id HTTPEventSourceId1,
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
+        /// <param name="HTTPEventSourceId1">An HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPEventSource_Id HTTPEventSourceId1,
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
+        /// <param name="HTTPEventSourceId1">An HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPEventSource_Id HTTPEventSourceId1,
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
+        /// <param name="HTTPEventSourceId1">An HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPEventSource_Id HTTPEventSourceId1,
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEventSourceId1">A HTTP Event Source identification.</param>
+        /// <param name="HTTPEventSourceId1">An HTTP Event Source identification.</param>
         /// <param name="HTTPEventSourceId2">Another HTTP Event Source identification.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPEventSource_Id HTTPEventSourceId1,
@@ -262,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Event Source identifications.
         /// </summary>
-        /// <param name="Object">A HTTP Event Source identification to compare with.</param>
+        /// <param name="Object">An HTTP Event Source identification to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is HTTPEventSource_Id httpEventSourceId
@@ -277,7 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Event Source identifications.
         /// </summary>
-        /// <param name="HTTPEventSourceId">A HTTP Event Source identification to compare with.</param>
+        /// <param name="HTTPEventSourceId">An HTTP Event Source identification to compare with.</param>
         public Int32 CompareTo(HTTPEventSource_Id HTTPEventSourceId)
 
             => String.Compare(InternalId,
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Event Source identifications for equality.
         /// </summary>
-        /// <param name="Object">A HTTP Event Source identification to compare with.</param>
+        /// <param name="Object">An HTTP Event Source identification to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is HTTPEventSource_Id httpEventSourceId &&
@@ -308,7 +308,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Event Source identifications for equality.
         /// </summary>
-        /// <param name="HTTPEventSourceId">A HTTP Event Source identification to compare with.</param>
+        /// <param name="HTTPEventSourceId">An HTTP Event Source identification to compare with.</param>
         public Boolean Equals(HTTPEventSource_Id HTTPEventSourceId)
 
             => String.Equals(InternalId,

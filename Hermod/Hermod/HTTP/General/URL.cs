@@ -366,7 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    // A HTTP(S) port is given...
+                    // An HTTP(S) port is given...
                     if (elements[2].Contains(':'))
                     {
 

@@ -42,8 +42,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPServer">The HTTP server.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Hostname">A HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="Method">An optional HTTP method, default is "GET".</param>
         public static void RegisterRAWRequestHandler(this HTTPServer  HTTPServer,
                                                      HTTPAPI          HTTPAPI,
@@ -91,8 +91,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPServer">The HTTP server.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
-        /// <param name="Hostname">A HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="Location">The HTTP URL to redirect to.</param>
         public static void RegisterMovedTemporarilyHandler(this HTTPServer  HTTPServer,
                                                            HTTPAPI          HTTPAPI,
@@ -410,7 +410,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpEventSource is not null)
                 await httpEventSource.SubmitEvent(
                                           ChangeType,
-                                          @"{ ""timestamp"": """ + Timestamp.Now.ToISO8601() + @""", ""fileName"": """ + FileName + @""" }"
+                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""fileName"": String.Empty" + FileName + @""" }"
                                       );
 
         }
@@ -431,7 +431,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpEventSource is not null)
                 await httpEventSource.SubmitEvent(
                                           "Renamed",
-                                          @"{ ""timestamp"": """ + Timestamp.Now.ToISO8601() + @""", ""newFileName"": """ + NewFileName + @""", ""oldFileName"": """ + OldFileName + @""" }"
+                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""newFileName"": String.Empty" + NewFileName + @""", ""oldFileName"": String.Empty" + OldFileName + @""" }"
                                       );
 
         }
@@ -452,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (httpEventSource is not null)
                 await httpEventSource.SubmitEvent(
                                           "Error",
-                                          @"{ ""timestamp"": """ + Timestamp.Now.ToISO8601() + @""", ""message"": """ + Error.GetException().Message + @""" }"
+                                          @"{ ""timestamp"": String.Empty" + Timestamp.Now.ToISO8601() + @""", ""message"": String.Empty" + Error.GetException().Message + @""" }"
                                       );
 
         }
@@ -501,7 +501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         private static void WatchFileSystemFolder(this HTTPAPI        HTTPAPI,
                                                   HTTPHostname        Hostname,
@@ -532,7 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPExtAPI">The HTTP API.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
         private static void WatchFileSystemFolder(this HTTPExtAPI     HTTPExtAPI,
@@ -771,7 +771,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         public static void MapFileSystemFolder(this HTTPAPI                   HTTPAPI,
@@ -830,7 +830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPExtAPI">The HTTP API.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="ResourcePath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
@@ -926,7 +926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="HTTPExtAPI">The HTTP API.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
-        /// <param name="URLTemplate">A HTTP URL template.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
         /// <param name="FileSystemPath">The path to the file within the local file system.</param>
         /// <param name="DefaultFilename">The default file to load.</param>
         /// <param name="RequireAuthentication">Whether a HTTP authentication is required for downloading the files.</param>
@@ -1006,7 +1006,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns internal resources embedded within the given assembly.
         /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="HTTPServer">An HTTP server.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceAssembly">The assembly where the resources are located.</param>
@@ -1155,7 +1155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns a resource from the given file system location.
         /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="HTTPServer">An HTTP server.</param>
         /// <param name="Hostname">The HTTP hostname.</param>
         /// <param name="URLTemplate">An URL template.</param>
         /// <param name="ResourceFilenameBuilder">The path to the file within the assembly.</param>

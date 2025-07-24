@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse optional from-timestamp filter...
         /// </summary>
-        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="QueryString">An HTTP query string.</param>
         public static DateTime? ParseFromTimestampFilter(this QueryString QueryString)
         {
 
@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse optional to-timestamp filter...
         /// </summary>
-        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="QueryString">An HTTP query string.</param>
         public static DateTime? ParseToTimestampFilter(this QueryString  QueryString)
         {
 
@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Parse optional from-/to-timestamp filters...
         /// </summary>
-        /// <param name="QueryString">A HTTP query string.</param>
+        /// <param name="QueryString">An HTTP query string.</param>
         /// <param name="FromTimestamp">The optional 'from' query parameter.</param>
         /// <param name="ToTimestamp">The optional 'to' query parameter.</param>
         public static void ParseFromToTimestampFilters(this QueryString  QueryString,
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     }
 
     /// <summary>
-    /// A HTTP Query String.
+    /// An HTTP Query String.
     /// </summary>
     public class QueryString : IEnumerable<KeyValuePair<String, IEnumerable<Object>>>
     {

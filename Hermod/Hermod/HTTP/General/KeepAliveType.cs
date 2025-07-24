@@ -168,7 +168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Keep-Alives.
         /// </summary>
-        /// <param name="Object">A HTTP Keep Alive to compare with.</param>
+        /// <param name="Object">An HTTP Keep Alive to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
             => Object is KeepAliveType keepAliveType
@@ -183,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Keep Alives.
         /// </summary>
-        /// <param name="KeepAliveType">A HTTP Keep Alive to compare with.</param>
+        /// <param name="KeepAliveType">An HTTP Keep Alive to compare with.</param>
         public Int32 CompareTo(KeepAliveType? KeepAliveType)
         {
 
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Keep Alives for equality.
         /// </summary>
-        /// <param name="Object">A HTTP Keep Alive to compare with.</param>
+        /// <param name="Object">An HTTP Keep Alive to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is KeepAliveType keepAliveType &&
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP Keep Alives for equality.
         /// </summary>
-        /// <param name="KeepAliveType">A HTTP Keep Alive to compare with.</param>
+        /// <param name="KeepAliveType">An HTTP Keep Alive to compare with.</param>
         public Boolean Equals(KeepAliveType? KeepAliveType)
 
             => KeepAliveType is not null &&
@@ -271,11 +271,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                    Timeout.HasValue
                        ? $"timeout={(UInt32) Timeout.Value.TotalSeconds}"
-                       : "",
+                       : String.Empty,
 
                    MaxNumberOfRequests.HasValue
                        ? $"max={MaxNumberOfRequests.Value}"
-                       : ""
+                       : String.Empty
 
                );
 

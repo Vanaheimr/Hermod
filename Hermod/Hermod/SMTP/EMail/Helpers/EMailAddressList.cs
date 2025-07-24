@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                        Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
                                         ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
                                         : "<" + EMA.Address.Value + ">").
-                       AggregateWith(", ").
+                       AggregateCSV().
                        Trim();
 
         }
@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                        Select(EMA => EMA.OwnerName.IsNotNullOrEmpty()
                                         ? EMA.OwnerName + " <" + EMA.Address.Value + ">"
                                         : "<" + EMA.Address.Value + ">").
-                       AggregateWith(", ").
+                       AggregateCSV().
                        Trim();
 
         }

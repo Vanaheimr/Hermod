@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new common HTTP API Base.
         /// </summary>
-        /// <param name="HTTPServiceName">A HTTP service name (HTTP Servername).</param>
+        /// <param name="HTTPServiceName">An HTTP service name (HTTP Servername).</param>
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
         public AHTTPAPIBase(String?                  HTTPServiceName      = null,
                             HTTPPath?                URLPathPrefix        = null,
@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             this.LogfileName         = LogfileName    ?? DefaultHTTPAPI_LogfileName;
             this.LogfileCreator      = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                               context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : "",
+                                                                                                               context.IsNotNullOrEmpty() ? context + Path.DirectorySeparatorChar : String.Empty,
                                                                                                                logfileName.Replace(".log", ""), "_",
                                                                                                                DateTime.Now.Year, "-",
                                                                                                                DateTime.Now.Month.ToString("D2"),

@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
     /// <summary>
-    /// A HTTP API logger.
+    /// An HTTP API logger.
     /// </summary>
     public class HTTPServerLogger : AHTTPLogger
     {
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
-            /// <returns>A HTTP request logger.</returns>
+            /// <returns>An HTTP request logger.</returns>
             public HTTPServerRequestLogger RegisterLogTarget(LogTargets                 LogTarget,
                                                              HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
@@ -300,7 +300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPRequestDelegate">A delegate to call.</param>
-            /// <returns>A HTTP request logger.</returns>
+            /// <returns>An HTTP request logger.</returns>
             public HTTPServerRequestLogger2 RegisterLogTarget(LogTargets                 LogTarget,
                                                               HTTPRequestLoggerDelegate  HTTPRequestDelegate)
             {
@@ -477,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
-            /// <returns>A HTTP response logger.</returns>
+            /// <returns>An HTTP response logger.</returns>
             public HTTPServerResponseLogger RegisterLogTarget(LogTargets                  LogTarget,
                                                               HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
@@ -654,7 +654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             /// <param name="LogTarget">A log target.</param>
             /// <param name="HTTPResponseDelegate">A delegate to call.</param>
-            /// <returns>A HTTP response logger.</returns>
+            /// <returns>An HTTP response logger.</returns>
             public HTTPServerResponseLogger2 RegisterLogTarget(LogTargets                  LogTarget,
                                                                HTTPResponseLoggerDelegate  HTTPResponseDelegate)
             {
@@ -765,7 +765,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP API logger using the given logging delegates.
         /// </summary>
-        /// <param name="HTTPServer">A HTTP server.</param>
+        /// <param name="HTTPServer">An HTTP server.</param>
         /// <param name="LoggingPath">The logging path.</param>
         /// <param name="Context">A context of this API.</param>
         /// 

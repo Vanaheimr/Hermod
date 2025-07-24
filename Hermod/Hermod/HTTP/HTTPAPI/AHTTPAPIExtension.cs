@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Attach the given OCPP charging station management system WebAPI to the given HTTP API.
         /// </summary>
-        /// <param name="HTTPAPI">A HTTP API.</param>
+        /// <param name="HTTPAPI">An HTTP API.</param>
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
         /// <param name="APIVersionHash">An optional API version hash (git commit hash value).</param>
         public AHTTPAPIExtension(THTTPAPI                 HTTPAPI,

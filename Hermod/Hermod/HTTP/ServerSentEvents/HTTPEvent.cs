@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent1">An HTTP event.</param>
         /// <param name="HTTPEvent2">Another HTTP event.</param>
         /// <returns>true|false</returns>
         public static Boolean operator == (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
@@ -213,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent1">An HTTP event.</param>
         /// <param name="HTTPEvent2">Another HTTP event.</param>
         /// <returns>true|false</returns>
         public static Boolean operator != (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent1">An HTTP event.</param>
         /// <param name="HTTPEvent2">Another HTTP event.</param>
         /// <returns>true|false</returns>
         public static Boolean operator < (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
@@ -246,7 +246,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent1">An HTTP event.</param>
         /// <param name="HTTPEvent2">Another HTTP event.</param>
         /// <returns>true|false</returns>
         public static Boolean operator <= (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent1">An HTTP event.</param>
         /// <param name="HTTPEvent2">Another HTTP event.</param>
         /// <returns>true|false</returns>
         public static Boolean operator > (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
@@ -279,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two instances of this object.
         /// </summary>
-        /// <param name="HTTPEvent1">A HTTP event.</param>
+        /// <param name="HTTPEvent1">An HTTP event.</param>
         /// <param name="HTTPEvent2">Another HTTP event.</param>
         /// <returns>true|false</returns>
         public static Boolean operator >= (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
@@ -318,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Compares two HTTP events for equality.
         /// </summary>
-        /// <param name="HTTPEvent">A HTTP event to compare with.</param>
+        /// <param name="HTTPEvent">An HTTP event to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(HTTPEvent<T> HTTPEvent)
         {

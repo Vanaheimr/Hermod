@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
 
     /// <summary>
-    /// A HTTP WebSocket server.
+    /// An HTTP WebSocket server.
     /// </summary>
     public abstract class AWebSocketServer : IWebSocketServer
     {
@@ -895,7 +895,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Remove the given web socket connection.
         /// </summary>
-        /// <param name="Connection">A HTTP WebSocket connection.</param>
+        /// <param name="Connection">An HTTP WebSocket connection.</param>
         public Boolean RemoveConnection(WebSocketServerConnection Connection)
         {
 
@@ -1309,7 +1309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
                                                         httpMethod = IsStillHTTP
                                                                          ? Encoding.UTF8.GetString(bytes, 0, 4)
-                                                                         : "";
+                                                                         : String.Empty;
 
                                                     }
 
@@ -1797,7 +1797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 }
                                 catch (Exception e)
                                 {
-                                    DebugX.Log(" [AWebSocketServer] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : "");
+                                    DebugX.Log(" [AWebSocketServer] TLS exception: ", e.Message, e.StackTrace is not null ? Environment.NewLine + e.StackTrace : String.Empty);
                                     newTCPConnection.Close();
                                 }
 

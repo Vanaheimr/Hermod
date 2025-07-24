@@ -634,8 +634,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="HTTPPath">A HTTP path.</param>
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -655,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
             var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
+                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
                               HTTPMethod     = HTTPMethod,
                               Path           = HTTPPath,
                               QueryString    = QueryString ?? QueryString.Empty,
@@ -680,10 +680,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
-        /// <param name="HTTPPath">A HTTP path.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="QueryString">An optional HTTP Query String.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -705,7 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
+                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
                               HTTPMethod     = HTTPMethod,
                               Path           = HTTPPath,
                               QueryString    = QueryString ?? QueryString.Empty,
@@ -732,7 +732,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
+        /// <param name="HTTPMethod">An HTTP method.</param>
         /// <param name="RequestURL">The URL of this request.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
@@ -751,7 +751,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
+                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
                               HTTPMethod     = HTTPMethod,
                               Path           = RequestURL.Path,
                               QueryString    = RequestURL.QueryString ?? QueryString.Empty,
@@ -776,10 +776,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new HTTP request.
         /// </summary>
-        /// <param name="HTTPMethod">A HTTP method.</param>
+        /// <param name="HTTPMethod">An HTTP method.</param>
         /// <param name="RequestURL">The URL of this request.</param>
-        /// <param name="Content">A HTTP content.</param>
-        /// <param name="ContentType">A HTTP content type.</param>
+        /// <param name="Content">An HTTP content.</param>
+        /// <param name="ContentType">An HTTP content type.</param>
         /// <param name="Accept">An optional HTTP accept header.</param>
         /// <param name="Authentication">An optional HTTP authentication.</param>
         /// <param name="UserAgent">An optional HTTP user agent.</param>
@@ -799,7 +799,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             var builder = new HTTPRequest.Builder(this, CancellationToken) {
-                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : "")),
+                              Host           = HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
                               HTTPMethod     = HTTPMethod,
                               Path           = RequestURL.Path,
                               QueryString    = RequestURL.QueryString ?? QueryString.Empty,
@@ -862,7 +862,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Execute the given HTTP request and return its result.
         /// </summary>
-        /// <param name="Request">A HTTP request.</param>
+        /// <param name="Request">An HTTP request.</param>
         /// <param name="RequestLogDelegate">A delegate for logging the HTTP request.</param>
         /// <param name="ResponseLogDelegate">A delegate for logging the HTTP request/response.</param>
         /// 
@@ -1319,7 +1319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         #endregion
 
-                        #region A single fixed-lenght HTTP request -> read '$Content-Length' bytes...
+                        #region A single fixed-length HTTP request -> read '$Content-Length' bytes...
 
                         //receiveBuffer = new Byte[50 * 1024 * 1024];
 

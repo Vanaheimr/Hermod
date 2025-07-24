@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Remove the given web socket connection.
         /// </summary>
-        /// <param name="Connection">A HTTP WebSocket connection.</param>
+        /// <param name="Connection">An HTTP WebSocket connection.</param>
         Boolean RemoveConnection(WebSocketServerConnection Connection);
 
         #endregion

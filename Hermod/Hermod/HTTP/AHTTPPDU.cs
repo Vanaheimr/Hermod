@@ -17,14 +17,13 @@
 
 #region Usings
 
-using System.Text;
-using System.Collections;
-using System.Net.Sockets;
-using System.Diagnostics.CodeAnalysis;
-
 using Newtonsoft.Json.Linq;
-
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Buffers;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Text;
 
 #endregion
 
@@ -33,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
     /// <summary>
     /// An abstract HTTP protocol data unit.
-    /// A HTTP pdu has three parts:
+    /// An HTTP pdu has three parts:
     ///  - First a request/response specific first line
     ///  - A collection of key-value pairs of type &lt;string,object&gt;
     ///    for any kind of metadata
@@ -150,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         sb.Append($"{headerField.Key}: {text}\r\n");
 
                     else if (headerField.Value is IEnumerable<String> listOfStrings)
-                        sb.Append($"{headerField.Key}: {listOfStrings.AggregateWith(", ")}\r\n");
+                        sb.Append($"{headerField.Key}: {listOfStrings.AggregateCSV()}\r\n");
 
                     else if (headerField.Value is IEnumerable         listOfThings)
                     {
@@ -170,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
                         }
 
-                        sb.Append($"{headerField.Key}: {list.AggregateWith(", ")}\r\n");
+                        sb.Append($"{headerField.Key}: {list.AggregateCSV()}\r\n");
 
                     }
 
@@ -1325,6 +1324,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         }
 
         #endregion
+
+
+
+        public Task<IEnumerable<(String, String)>>
+
+            ReadAllChunks(Action<Byte[]>     OnChunkReceived,
+                          CancellationToken  CancellationToken   = default)
+
+        {
+
+            if (httpBodyStream is ChunkedTransferEncodingStream chunkedStream)
+                return chunkedStream.ReadAllChunks(
+                           OnChunkReceived,
+                           CancellationToken
+                       );
+
+            return Task.FromResult<IEnumerable<(String, String)>>([]);
+
+        }
 
 
         #region TryReadHTTPBodyStream()
