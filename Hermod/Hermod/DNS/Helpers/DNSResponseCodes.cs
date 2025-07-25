@@ -21,8 +21,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// Query Result/Response Codes
     /// </summary>
-    public enum DNSResponseCodes : int
+    public enum DNSResponseCodes : Int32
     {
+
         NoError         = 0,
         FormatError     = 1,
         ServerFailure   = 2,
@@ -30,6 +31,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         NotImplemented  = 4,
         Refused         = 5,
         Reserved        = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
+
     }
 
 }

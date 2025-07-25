@@ -17,8 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -27,6 +26,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     #region (enum) SSHFP_Algorithm
 
+    /// <summary>
+    /// The algorithm used for the SSH public key.
+    /// https://www.rfc-editor.org/rfc/rfc4255
+    /// </summary>
     public enum SSHFP_Algorithm
     {
         reserved  = 0,
@@ -39,6 +42,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     #region (enum) SSHFP_FingerprintType
 
+    /// <summary>
+    /// The fingerprint type used for the SSH public key.
+    /// https://www.rfc-editor.org/rfc/rfc4255
+    /// </summary>
     public enum SSHFP_FingerprintType
     {
         reserved  = 0,
@@ -50,60 +57,72 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
     /// <summary>
-    /// SSH Fingerprint - DNS Resource Record
+    /// Extensions methods for DNS SSHFP resource records.
+    /// </summary>
+    public static class DNS_SSHFP_Extensions
+    {
+
+        #region AddToCache(this DNSClient, DomainName, SSHFPRecord)
+
+        /// <summary>
+        /// Add a DNS SSHFP record cache entry.
+        /// </summary>
+        /// <param name="DNSClient">A DNS client.</param>
+        /// <param name="DomainName">A domain name.</param>
+        /// <param name="SSHFPRecord">A DNS SSHFP record</param>
+        public static void AddToCache(this DNSClient  DNSClient,
+                                      String          DomainName,
+                                      SSHFP             SSHFPRecord)
+        {
+
+            if (DomainName.IsNullOrEmpty())
+                return;
+
+            DNSClient.DNSCache.Add(
+                DomainName,
+                IPSocket.LocalhostV4(IPPort.DNS),
+                SSHFPRecord
+            );
+
+        }
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// The DNS SSH Public Key Fingerprint (SSHFP) resource record.
+    /// https://www.rfc-editor.org/rfc/rfc4255
     /// </summary>
     public class SSHFP : ADNSResourceRecord
     {
 
         #region Data
 
+        /// <summary>
+        /// The DNS SSH Public Key Fingerprint (SSHFP) resource record type identifier.
+        /// </summary>
         public const UInt16 TypeId = 44;
 
         #endregion
 
         #region Properties
 
-        #region Algorithm
+        /// <summary>
+        /// The SSH Public Key Fingerprint algorithm.
+        /// </summary>
+        public SSHFP_Algorithm        FPAlgorithm    { get; }
 
-        private readonly SSHFP_Algorithm _Algorithm;
+        /// <summary>
+        /// The SSH Public Key Fingerprint type.
+        /// </summary>
+        public SSHFP_FingerprintType  FPType         { get; }
 
-        public SSHFP_Algorithm Algorithm
-        {
-            get
-            {
-                return _Algorithm;
-            }
-        }
-
-        #endregion
-
-        #region Typ
-
-        private readonly SSHFP_FingerprintType _Typ;
-
-        public SSHFP_FingerprintType Typ
-        {
-            get
-            {
-                return _Typ;
-            }
-        }
-
-        #endregion
-
-        #region Fingerprint
-
-        private readonly String _Fingerprint;
-
-        public String Fingerprint
-        {
-            get
-            {
-                return _Fingerprint;
-            }
-        }
-
-        #endregion
+        /// <summary>
+        /// The SSH Public Key Fingerprint.
+        /// </summary>
+        public String                 Fingerprint    { get; }
 
         #endregion
 
@@ -111,15 +130,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region SSHFP(Stream)
 
+        /// <summary>
+        /// Create a new SSHFP resource record from the given stream.
+        /// </summary>
+        /// <param name="Stream">A stream containing the SSHFP resource record data.</param>
         public SSHFP(Stream  Stream)
 
-            : base(Stream, TypeId)
+            : base(Stream,
+                   TypeId)
 
         {
 
-            this._Algorithm    = (SSHFP_Algorithm)       (Stream.ReadByte() & Byte.MaxValue);
-            this._Typ          = (SSHFP_FingerprintType) (Stream.ReadByte() & Byte.MaxValue);
-            this._Fingerprint  = DNSTools.ExtractName(Stream);
+            this.FPAlgorithm  = ParseAlgorithm      (Stream);
+
+            this.FPType       = ParseFingerprintType(Stream);
+
+            this.Fingerprint  = FPType switch {
+                                    SSHFP_FingerprintType.SHA1    => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 20)),
+                                    SSHFP_FingerprintType.SHA256  => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 32)),
+                                    _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
+                                };
+
+            if (FPType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
+                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
+
+            if (FPType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
+                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
 
         }
 
@@ -127,53 +163,126 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region SSHFP(Name, Stream)
 
+        /// <summary>
+        /// Create a new SSHFP resource record from the given name and stream.
+        /// </summary>
+        /// <param name="Name">The DNS name of this SSHFP resource record.</param>
+        /// <param name="Stream">A stream containing the SSHFP resource record data.</param>
         public SSHFP(String  Name,
                      Stream  Stream)
 
-            : base(Name, TypeId, Stream)
+            : base(Name,
+                   TypeId,
+                   Stream)
 
         {
 
-            this._Algorithm    = (SSHFP_Algorithm)       (Stream.ReadByte() & Byte.MaxValue);
-            this._Typ          = (SSHFP_FingerprintType) (Stream.ReadByte() & Byte.MaxValue);
+            this.FPAlgorithm  = ParseAlgorithm      (Stream);
 
-            switch (this._Typ)
-            {
+            this.FPType       = ParseFingerprintType(Stream);
 
-                case SSHFP_FingerprintType.SHA1:
-                    this._Fingerprint  = BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 20));
-                    break;
+            this.Fingerprint  = FPType switch {
+                                    SSHFP_FingerprintType.SHA1    => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 20)),
+                                    SSHFP_FingerprintType.SHA256  => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 32)),
+                                    _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
+                                };
 
-                case SSHFP_FingerprintType.SHA256:
-                    this._Fingerprint  = BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 32));
-                    break;
+            if (FPType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
+                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
 
-            }
+            if (FPType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
+                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
 
         }
 
         #endregion
 
-        #region SSHFP(Name, Class, TimeToLive, Algorithm, Typ, Fingerprint)
+        #region SSHFP(Name, Class, TimeToLive, Algorithm, Type, Fingerprint)
 
+        /// <summary>
+        /// Create a new SSHFP resource record with the given parameters.
+        /// </summary>
+        /// <param name="Name">The DNS name of this SSHFP resource record.</param>
+        /// <param name="Class">The DNS query class of this SSHFP resource record.</param>
+        /// <param name="TimeToLive">The time to live of this SSHFP resource record.</param>
+        /// <param name="Algorithm">The SSH Public Key Fingerprint algorithm.</param>
+        /// <param name="Type">The SSH Public Key Fingerprint type.</param>
+        /// <param name="Fingerprint">The SSH Public Key Fingerprint.</param>
         public SSHFP(String                 Name,
                      DNSQueryClasses        Class,
                      TimeSpan               TimeToLive,
                      SSHFP_Algorithm        Algorithm,
-                     SSHFP_FingerprintType  Typ,
+                     SSHFP_FingerprintType  Type,
                      String                 Fingerprint)
 
-            : base(Name, TypeId, Class, TimeToLive)
+            : base(Name,
+                   TypeId,
+                   Class,
+                   TimeToLive,
+                   $"{Fingerprint} ({Algorithm}, {Type})")
 
         {
 
-            this._Algorithm    = Algorithm;
-            this._Typ          = Typ;
-            this._Fingerprint  = Fingerprint;
+
+
+            this.FPAlgorithm  = Algorithm;
+            this.FPType       = Type;
+            this.Fingerprint  = Fingerprint.Trim();
+
+            if (FPType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
+                throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
+
+            if (FPType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
+                throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
 
         }
 
         #endregion
+
+        #endregion
+
+
+        #region (private) ParseAlgorithm       (Stream)
+
+        private static SSHFP_Algorithm ParseAlgorithm(Stream Stream)
+        {
+
+            var algorithm = (SSHFP_Algorithm) (Stream.ReadByte() & Byte.MaxValue);
+
+            if (!Enum.IsDefined(algorithm))
+                throw new InvalidDataException($"Invalid SSHFP algorithm: {algorithm}");
+
+            return algorithm;
+
+        }
+
+        #endregion
+
+        #region (private) ParseFingerprintType (Stream)
+
+        private static SSHFP_FingerprintType ParseFingerprintType(Stream Stream)
+        {
+
+            var type = (SSHFP_FingerprintType) (Stream.ReadByte() & Byte.MaxValue);
+
+            if (!Enum.IsDefined(type))
+                throw new InvalidDataException($"Invalid SSHFP fingerprint type: {type}");
+
+            return type;
+
+        }
+
+        #endregion
+
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this DNS record.
+        /// </summary>
+        public override String ToString()
+
+            => $"{Fingerprint} (Algorithm={FPAlgorithm}, Type={FPType}), {base.ToString()}";
 
         #endregion
 

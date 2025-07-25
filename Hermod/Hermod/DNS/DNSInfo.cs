@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-using Org.BouncyCastle.Crypto.Engines;
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -111,9 +109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     false,
                     false,
                     DNSResponseCodes.ServerFailure,
-                    Array.Empty<ADNSResourceRecord>(),
-                    Array.Empty<ADNSResourceRecord>(),
-                    Array.Empty<ADNSResourceRecord>(),
+                    [],
+                    [],
+                    [],
                     false,
                     true,
                     Timeout);
@@ -129,9 +127,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     false,
                     false,
                     DNSResponseCodes.ServerFailure,
-                    Array.Empty<ADNSResourceRecord>(),
-                    Array.Empty<ADNSResourceRecord>(),
-                    Array.Empty<ADNSResourceRecord>(),
+                    [],
+                    [],
+                    [],
                     false,
                     false,
                     TimeSpan.Zero);

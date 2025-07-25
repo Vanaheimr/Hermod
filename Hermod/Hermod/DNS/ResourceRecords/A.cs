@@ -17,8 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -26,7 +25,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// A - DNS Resource Record
+    /// Extensions methods for DNS A resource records.
+    /// </summary>
+    public static class DNS_A_Extensions
+    {
+
+        #region AddToCache(this DNSClient, DomainName, ARecord)
+
+        /// <summary>
+        /// Add a DNS A record cache entry.
+        /// </summary>
+        /// <param name="DNSClient">A DNS client.</param>
+        /// <param name="DomainName">A domain name.</param>
+        /// <param name="ARecord">A DNS A record</param>
+        public static void AddToCache(this DNSClient  DNSClient,
+                                      String          DomainName,
+                                      A               ARecord)
+        {
+
+            if (DomainName.IsNullOrEmpty())
+                return;
+
+            DNSClient.DNSCache.Add(
+                DomainName,
+                IPSocket.LocalhostV4(IPPort.DNS),
+                ARecord
+            );
+
+        }
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// The DNS A resource record.
     /// </summary>
     public class A : ADNSResourceRecord
     {
@@ -34,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         /// <summary>
-        /// The type Id of this DNS resource record.
+        /// The DNS A resource record type identifier.
         /// </summary>
         public const UInt16 TypeId = 1;
 
@@ -42,18 +76,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Properties
 
-        private readonly IPv4Address _IPv4Address;
-
         /// <summary>
         /// The IPv4 address.
         /// </summary>
-        public IPv4Address IPv4Address
-        {
-            get
-            {
-                return _IPv4Address;
-            }
-        }
+        public IPv4Address  IPv4Address    { get; }
 
         #endregion
 
@@ -62,17 +88,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region A(Stream)
 
         /// <summary>
-        /// Parse a DNS A resource record from the given stream.
+        /// Create a new A resource record from the given stream.
         /// </summary>
-        /// <param name="Stream">A stream of bytes.</param>
-        public A(Stream  Stream)
+        /// <param name="Stream">A stream containing the A resource record data.</param>
+        public A(Stream Stream)
 
-            : base(Stream, TypeId)
+            : base(Stream,
+                   TypeId)
 
         {
-
-            this._IPv4Address  = new IPv4Address(Stream);
-
+            this.IPv4Address = new IPv4Address(Stream);
         }
 
         #endregion
@@ -80,19 +105,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region A(Name, Stream)
 
         /// <summary>
-        /// Parse a DNS A resource record from the given stream.
+        /// Create a new A resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name.</param>
-        /// <param name="Stream">A stream of bytes.</param>
+        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="Stream">A stream containing the A resource record data.</param>
         public A(String  Name,
                  Stream  Stream)
 
-            : base(Name, TypeId, Stream)
+            : base(Name,
+                   TypeId,
+                   Stream)
 
         {
-
-            this._IPv4Address  = new IPv4Address(Stream);
-
+            this.IPv4Address = new IPv4Address(Stream);
         }
 
         #endregion
@@ -102,24 +127,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create a new DNS A resource record.
         /// </summary>
-        /// <param name="Name">The DNS name.</param>
-        /// <param name="Class">The DNS class.</param>
-        /// <param name="TimeToLive">The timestamp when this resource records gets invalidated.</param>
+        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
         public A(String           Name,
                  DNSQueryClasses  Class,
                  TimeSpan         TimeToLive,
                  IPv4Address      IPv4Address)
 
-            : base(Name, TypeId, Class, TimeToLive, IPv4Address.ToString())
+            : base(Name,
+                   TypeId,
+                   Class,
+                   TimeToLive,
+                   IPv4Address.ToString())
 
         {
-
-            this._IPv4Address  = IPv4Address;
-
+            this.IPv4Address = IPv4Address;
         }
 
         #endregion
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this DNS record.
+        /// </summary>
+        public override String ToString()
+
+            => $"{IPv4Address}, {base.ToString()}";
 
         #endregion
 

@@ -21,13 +21,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// Query Class or Scope
     /// </summary>
-    public enum DNSQueryClasses : int
+    public enum DNSQueryClasses : Int32
     {
-        IN              = 1,
-        CS              = 2,
-        CH              = 3,
-        HS              = 4,
-        ANY             = 255
+
+        IN   = 1,
+        CS   = 2,
+        CH   = 3,
+        HS   = 4,
+        ANY  = 255
+
     }
 
 }

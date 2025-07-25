@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             this.Socket            = Socket;
-            this.ForwardedForList  = ForwardedFor?.ToArray() ?? Array.Empty<IIPAddress>();
+            this.ForwardedForList  = ForwardedFor?.ToArray() ?? [];
 
             unchecked
             {

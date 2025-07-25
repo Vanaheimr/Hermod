@@ -15,34 +15,59 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// Base Resource Record class for objects returned in 
-    /// answers, authorities and additional record DNS responses. 
+    /// The abstract DNS Resource Record class for objects returned in
+    /// answers, authorities and additional record DNS responses.
     /// </summary>
     public abstract class ADNSResourceRecord
     {
 
         #region Properties
 
+        /// <summary>
+        /// The DNS name of this resource record.
+        /// </summary>
         public String           Name          { get; }
 
+        /// <summary>
+        /// The type of this resource record.
+        /// </summary>
         public UInt16           Type          { get; }
 
+        /// <summary>
+        /// The class of this resource record.
+        /// </summary>
         public DNSQueryClasses  Class         { get; }
 
+        /// <summary>
+        /// The time to live of this resource record.
+        /// </summary>
         public TimeSpan         TimeToLive    { get; }
 
-
+        /// <summary>
+        /// The end of life of this resource record.
+        /// </summary>
         [NoDNSPaketInformation]
         public DateTime         EndOfLife     { get; }
 
-
+        /// <summary>
+        /// The source IP address of this resource record, if available.
+        /// </summary>
         [NoDNSPaketInformation]
         public IIPAddress?      Source        { get; }
 
+        /// <summary>
+        /// The text representation of this resource record, if available.
+        /// </summary>
         public String?          RText         { get; }
 
         #endregion
@@ -51,22 +76,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(DNSStream, Type)
 
-        protected ADNSResourceRecord(Stream DNSStream, UInt16 Type)
+        /// <summary>
+        /// Create a new DNS resource record from the given DNS stream and type.
+        /// </summary>
+        /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
+        /// <param name="Type">A valid DNS resource record type.</param>
+        protected ADNSResourceRecord(Stream  DNSStream,
+                                     UInt16  Type)
         {
 
-            this.Name          = DNSTools.ExtractName(DNSStream);
+            this.Name        = DNSTools.ExtractName(DNSStream);
+            this.Type        = Type;
 
-            this.Type = Type;
-            //this._Type          = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
+            var type         = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
+            if (type != Type)
+                throw new ArgumentException($"Invalid DNS resource record type! Expected '{Type}', but got '{type}'!");
 
-            //if (_Type != Type)
-            //    throw new ArgumentException("Invalid DNS RR Type!");
+            this.Class       = (DNSQueryClasses)   ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
+            this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            this.EndOfLife   = Illias.Timestamp.Now + TimeToLive;
 
-            this.Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this.TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
-
-            var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
+            //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
 
         }
 
@@ -74,18 +104,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(Name, Type, DNSStream)
 
+        /// <summary>
+        /// Create a new DNS resource record from the given name, type and DNS stream.
+        /// </summary>
+        /// <param name="Name">A DNS name of this resource record.</param>
+        /// <param name="Type">A valid DNS resource record type.</param>
+        /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
         protected ADNSResourceRecord(String  Name,
                                      UInt16  Type,
                                      Stream  DNSStream)
         {
 
-            this.Name          = Name;
-            this.Type          = Type;
-            this.Class         = (DNSQueryClasses) ((DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this.TimeToLive    = TimeSpan.FromSeconds((DNSStream.ReadByte() & byte.MaxValue) << 24 | (DNSStream.ReadByte() & byte.MaxValue) << 16 | (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue);
-            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
+            this.Name        = Name;
+            this.Type        = Type;
+            this.Class       = (DNSQueryClasses)   ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
+            this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            this.EndOfLife   = Timestamp.Now + TimeToLive;
 
-            var RDLength        = (DNSStream.ReadByte() & byte.MaxValue) << 8 | DNSStream.ReadByte() & byte.MaxValue;
+            //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
 
         }
 
@@ -93,17 +129,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive)
 
+        /// <summary>
+        /// Create a new DNS resource record with the given name, type, class and time to live.
+        /// </summary>
+        /// <param name="Name">A DNS name of this resource record.</param>
+        /// <param name="Type">A valid DNS resource record type.</param>
+        /// <param name="Class">A valid DNS query class.</param>
+        /// <param name="TimeToLive">A time span representing the time to live of this resource record.</param>
         protected ADNSResourceRecord(String           Name,
                                      UInt16           Type,
                                      DNSQueryClasses  Class,
                                      TimeSpan         TimeToLive)
         {
 
-            this.Name          = Name;
-            this.Type          = Type;
-            this.Class         = Class;
-            this.TimeToLive    = TimeToLive;
-            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
+            this.Name        = Name;
+            this.Type        = Type;
+            this.Class       = Class;
+            this.TimeToLive  = TimeToLive;
+            this.EndOfLife   = Timestamp.Now + TimeToLive;
 
         }
 
@@ -118,12 +161,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                      String           RText)
         {
 
-            this.Name          = Name;
-            this.Type          = Type;
-            this.Class         = Class;
-            this.TimeToLive    = TimeToLive;
-            this.EndOfLife     = Illias.Timestamp.Now + TimeToLive;
-            this.RText         = RText;
+            this.Name        = Name;
+            this.Type        = Type;
+            this.Class       = Class;
+            this.TimeToLive  = TimeToLive;
+            this.EndOfLife   = Timestamp.Now + TimeToLive;
+            this.RText       = RText;
 
         }
 

@@ -29,17 +29,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The timestamp of the last refresh.
         /// </summary>
-        public DateTime  RefreshTime    { get; }
+        public DateTimeOffset  RefreshTime    { get; }
 
         /// <summary>
         /// The timestamp when this entry gets invalidated.
         /// </summary>
-        public DateTime  EndOfLife      { get; }
+        public DateTimeOffset  EndOfLife      { get; }
 
         /// <summary>
         /// The cached DNS information.
         /// </summary>
-        public DNSInfo   DNSInfo        { get; }
+        public DNSInfo         DNSInfo        { get; }
 
         #endregion
 
@@ -51,9 +51,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RefreshTime">The timestamp of the last refresh.</param>
         /// <param name="EndOfLife">The timestamp when this entry gets invalidated.</param>
         /// <param name="DNSInfo">The cached DNS information.</param>
-        public DNSCacheEntry(DateTime  RefreshTime,
-                             DateTime  EndOfLife,
-                             DNSInfo   DNSInfo)
+        public DNSCacheEntry(DateTimeOffset  RefreshTime,
+                             DateTimeOffset  EndOfLife,
+                             DNSInfo         DNSInfo)
         {
 
             this.RefreshTime  = RefreshTime;

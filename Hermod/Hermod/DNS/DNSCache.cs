@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Threading;
 using System.Diagnostics;
-using System.Collections.Generic;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -63,12 +59,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                               RecursionDesired:     false,
                                                                               RecursionAvailable:   false,
                                                                               ResponseCode:         DNSResponseCodes.NoError,
-                                                                              Answers:              new ADNSResourceRecord[] {
+                                                                              Answers:              [
                                                                                                         new    A("localhost", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1")),
                                                                                                         new AAAA("localhost", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv6Address.Parse("::1"))
-                                                                                                    },
-                                                                              Authorities:          Array.Empty<ADNSResourceRecord>(),
-                                                                              AdditionalRecords:    Array.Empty<ADNSResourceRecord>(),
+                                                                                                    ],
+                                                                              Authorities:          [],
+                                                                              AdditionalRecords:    [],
                                                                               IsValid:              true,
                                                                               IsTimeout:            false,
                                                                               Timeout:              TimeSpan.Zero)
@@ -84,12 +80,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                               RecursionDesired:     false,
                                                                               RecursionAvailable:   false,
                                                                               ResponseCode:         DNSResponseCodes.NoError,
-                                                                              Answers:              new ADNSResourceRecord[] {
+                                                                              Answers:              [
                                                                                                         new    A("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv4Address.Parse("127.0.0.1")),
                                                                                                         new AAAA("loopback", DNSQueryClasses.IN, TimeSpan.FromDays(3650), IPv6Address.Parse("::1"))
-                                                                                                    },
-                                                                              Authorities:          Array.Empty<ADNSResourceRecord>(),
-                                                                              AdditionalRecords:    Array.Empty<ADNSResourceRecord>(),
+                                                                                                    ],
+                                                                              Authorities:          [],
+                                                                              AdditionalRecords:    [],
                                                                               IsValid:              true,
                                                                               IsTimeout:            false,
                                                                               Timeout:              TimeSpan.Zero)

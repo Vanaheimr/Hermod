@@ -17,8 +17,7 @@
 
 #region Usings
 
-using System;
-using System.IO;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -26,46 +25,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// MailExchange Resource Record
+    /// Extensions methods for DNS MX resource records.
+    /// </summary>
+    public static class DNS_MX_Extensions
+    {
+
+        #region AddToCache(this DNSClient, DomainName, MXRecord)
+
+        /// <summary>
+        /// Add a DNS MX record cache entry.
+        /// </summary>
+        /// <param name="DNSClient">A DNS client.</param>
+        /// <param name="DomainName">A domain name.</param>
+        /// <param name="MXRecord">A DNS MX record</param>
+        public static void AddToCache(this DNSClient  DNSClient,
+                                      String          DomainName,
+                                      MX              MXRecord)
+        {
+
+            if (DomainName.IsNullOrEmpty())
+                return;
+
+            DNSClient.DNSCache.Add(
+                DomainName,
+                IPSocket.LocalhostV4(IPPort.DNS),
+                MXRecord
+            );
+
+        }
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// The DNS Mail Exchange (MX) resource record.
     /// </summary>
     public class MX : ADNSResourceRecord
     {
 
         #region Data
 
+        /// <summary>
+        /// The DNS Mail Exchange (MX) resource record type identifier.
+        /// </summary>
         public const UInt16 TypeId = 15;
 
         #endregion
 
         #region Properties
 
-        #region Preference
+        /// <summary>
+        /// The preference of this mail exchange.
+        /// </summary>
+        public Int32   Preference    { get; }
 
-        private readonly Int32 _Preference;
-
-        public Int32 Preference
-        {
-            get
-            {
-                return _Preference;
-            }
-        }
-
-        #endregion
-
-        #region Exchange
-
-        private readonly String _Exchange;
-
-        public String Exchange
-        {
-            get
-            {
-                return _Exchange;
-            }
-        }
-
-        #endregion
+        /// <summary>
+        /// The domain name of the mail exchange server.
+        /// </summary>
+        public String  Exchange      { get; }
 
         #endregion
 
@@ -73,14 +92,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region MX(Stream)
 
+        /// <summary>
+        /// Create a new MX resource record from the given stream.
+        /// </summary>
+        /// <param name="Stream">A stream containing the MX resource record data.</param>
         public MX(Stream  Stream)
 
-            : base(Stream, TypeId)
+            : base(Stream,
+                   TypeId)
 
         {
 
-            this._Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
-            this._Exchange    = DNSTools.ExtractName(Stream);
+            this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
+            this.Exchange    = DNSTools.ExtractName(Stream);
 
         }
 
@@ -88,15 +112,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region MX(Name, Stream)
 
+        /// <summary>
+        /// Create a new MX resource record from the given name and stream.
+        /// </summary>
+        /// <param name="Name">The DNS name of this MX resource record.</param>
+        /// <param name="Stream">A stream containing the MX resource record data.</param>
         public MX(String  Name,
                   Stream  Stream)
 
-            : base(Name, TypeId, Stream)
+            : base(Name,
+                   TypeId,
+                   Stream)
 
         {
 
-            this._Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
-            this._Exchange    = DNSTools.ExtractName(Stream);
+            this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
+            this.Exchange    = DNSTools.ExtractName(Stream);
 
         }
 
@@ -104,22 +135,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region MX(Name, Class, TimeToLive, Preference, Exchange)
 
+        /// <summary>
+        /// Create a new DNS A resource record.
+        /// </summary>
+        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        /// <param name="Preference">The preference of this mail exchange.</param>
+        /// <param name="Exchange">The domain name of the mail exchange server.</param>
         public MX(String           Name,
                   DNSQueryClasses  Class,
                   TimeSpan         TimeToLive,
                   Int32            Preference,
                   String           Exchange)
 
-            : base(Name, TypeId, Class, TimeToLive)
+            : base(Name,
+                   TypeId,
+                   Class,
+                   TimeToLive)
 
         {
 
-            this._Preference  = Preference;
-            this._Exchange    = Exchange;
+            this.Preference  = Preference;
+            this.Exchange    = Exchange;
 
         }
 
         #endregion
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this DNS record.
+        /// </summary>
+        public override String ToString()
+
+            => $"Preference: {Preference}, Exchange: {Exchange}, {base.ToString()}";
 
         #endregion
 
