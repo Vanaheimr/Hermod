@@ -42,13 +42,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="TargetName">The domain name of the target host.</param>
         /// <param name="SvcParams">The HTTPS parameters.</param>
-        public static void CacheHTTPS(this DNSClient         DNSClient,
-                                      DomainName             DomainName,
-                                      UInt16                 Priority,
-                                      String                 TargetName,
+        public static void CacheHTTPS(this DNSClient             DNSClient,
+                                      DomainName                 DomainName,
+                                      UInt16                     Priority,
+                                      String                     TargetName,
                                       IEnumerable<SVCParameter>  SvcParams,
-                                      DNSQueryClasses        Class        = DNSQueryClasses.IN,
-                                      TimeSpan?              TimeToLive   = null)
+                                      DNSQueryClasses            Class        = DNSQueryClasses.IN,
+                                      TimeSpan?                  TimeToLive   = null)
         {
 
             var dnsRecord = new HTTPS(
@@ -241,11 +241,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="TargetName">The domain name of the target host.</param>
         /// <param name="SvcParams">The HTTPS parameters.</param>
-        public HTTPS(DomainName             DomainName,
-                     DNSQueryClasses        Class,
-                     TimeSpan               TimeToLive,
-                     UInt16                 Priority,
-                     String                 TargetName,
+        public HTTPS(DomainName                 DomainName,
+                     DNSQueryClasses            Class,
+                     TimeSpan                   TimeToLive,
+                     UInt16                     Priority,
+                     String                     TargetName,
                      IEnumerable<SVCParameter>  SvcParams)
 
             : base(DomainName,

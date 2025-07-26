@@ -109,11 +109,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
                 var ipv6Addresses   = dnsClient.
                                           Query<AAAA>(Hostname).
-                                          ContinueWith(AAAARecords => AAAARecords.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+                                          ContinueWith(AAAARecords => AAAARecords.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address));
 
                 var ipv4Addresses   = dnsClient.
                                           Query<A>   (Hostname).
-                                          ContinueWith(ARecords    => ARecords.   Result.Select(ARecord    => ARecord.   IPv4Address));
+                                          ContinueWith(ARecords    => ARecords.   Result.FilteredAnswers.Select(ARecord    => ARecord.   IPv4Address));
 
                 await Task.WhenAll(ipv6Addresses,
                                    ipv4Addresses).

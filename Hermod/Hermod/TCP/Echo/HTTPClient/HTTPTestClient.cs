@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         private HTTPTestClient(URL                      URL,
-                               DNSService?              DNSService       = null,
+                               SRV_Spec?                DNSService       = null,
                                TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         private HTTPTestClient(DomainName               DNSName,
-                               DNSService               DNSService,
+                               SRV_Spec                 DNSService,
                                Boolean?                 UseDNSURI        = null,
                                TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPTestClient>
 
             ConnectNew(URL                      URL,
-                       DNSService?              DNSService       = null,
+                       SRV_Spec?                DNSService       = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPTestClient>
 
             ConnectNew(DomainName               DNSName,
-                       DNSService               DNSService,
+                       SRV_Spec                 DNSService,
                        Boolean?                 UseDNSURI        = false,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,

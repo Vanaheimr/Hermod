@@ -26,6 +26,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region CacheA(this DNSClient, Name, IPv4Address, Class = IN, TimeToLive = 365days)
 
+        public static void CacheA(this DNSClient   DNSClient,
+                                  DomainName       DomainName,
+                                  IPv4Address      IPv4Address,
+                                  DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                  TimeSpan?        TimeToLive   = null)
+
+            => CacheA(DNSClient,
+                      DNSService.Parse(DomainName.FullName),
+                      IPv4Address,
+                      Class,
+                      TimeToLive);
+
+
         /// <summary>
         /// Add a DNS A record cache entry.
         /// </summary>
@@ -35,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
         public static void CacheA(this DNSClient   DNSClient,
-                                  DomainName       DomainName,
+                                  DNSService       DomainName,
                                   IPv4Address      IPv4Address,
                                   DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                   TimeSpan?        TimeToLive   = null)
@@ -105,12 +118,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region A(DomainName, Stream)
 
+        public A(DomainName  DomainName,
+                 Stream      Stream)
+
+            : this(DNSService.Parse(DomainName.FullName),
+                   Stream)
+
+        { }
+
+
         /// <summary>
         /// Create a new A resource record from the given name and stream.
         /// </summary>
         /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Stream">A stream containing the A resource record data.</param>
-        public A(DomainName  DomainName,
+        public A(DNSService  DomainName,
                  Stream      Stream)
 
             : base(DomainName,
@@ -118,12 +140,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
+
             this.IPv4Address = new IPv4Address(Stream);
+
         }
 
         #endregion
 
         #region A(Name, Class, TimeToLive, IPv4Address)
+
+        public A(DomainName       DomainName,
+                 DNSQueryClasses  Class,
+                 TimeSpan         TimeToLive,
+                 IPv4Address      IPv4Address)
+
+            : this(DNSService.Parse(DomainName.FullName),
+                   Class,
+                   TimeToLive,
+                   IPv4Address)
+
+        { }
+
 
         /// <summary>
         /// Create a new DNS A resource record.
@@ -132,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
-        public A(DomainName       DomainName,
+        public A(DNSService       DomainName,
                  DNSQueryClasses  Class,
                  TimeSpan         TimeToLive,
                  IPv4Address      IPv4Address)
@@ -144,7 +181,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    IPv4Address.ToString())
 
         {
+
             this.IPv4Address = IPv4Address;
+
         }
 
         #endregion

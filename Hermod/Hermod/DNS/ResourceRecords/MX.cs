@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
 
-            this.Exchange    = DomainName.Parse(
+            this.Exchange    = DNS.DomainName.Parse(
                                    DNSTools.ExtractName(Stream)
                                );
 

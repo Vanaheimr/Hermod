@@ -18,6 +18,8 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
+using System;
 using System.Text;
 
 #endregion
@@ -41,6 +43,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return [];
 
         }
+
+
+        public static String ReadDomainNameFromBytes(Stream DNSStream)
+        {
+            // Similar to ReadDomainName, but no full message (no pointers expected in this SOA)
+            StringBuilder sb = new StringBuilder();
+            while (true)
+            {
+
+                byte length = (Byte) DNSStream.ReadByte();
+
+                if (length == 0)
+                    break;
+
+                var label = new byte[length];
+                DNSStream.Read(label, 0, length);
+
+                sb.Append(Encoding.ASCII.GetString(label)).Append('.');
+
+            }
+
+            if (sb.Length > 0)
+                sb.Length--;
+
+            return sb.ToString();
+
+        }
+
+
 
         public static String ExtractName(Stream DNSStream)
         {
@@ -142,9 +173,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         if (DNSStream.Read(buffer, 0, LengthOfSegment) != LengthOfSegment)
                             throw new EndOfStreamException("Incomplete DNS label read");
 
-                        DNSName.Append(Encoding.ASCII.GetString(buffer, 0, LengthOfSegment));
+                        var bufferHEX = buffer.ToArray().ToHexString();
+
+                        DNSName.Append(Encoding.UTF8.GetString(buffer, 0, LengthOfSegment));
 
                     }
+
                 }
 
             } while (LengthOfSegment > 0);
@@ -171,6 +205,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
         #endregion
+
+
+        public static String ReplaceFirstDotWithAt(String input)
+        {
+
+            var idx = input.IndexOf('.');
+
+            if (idx < 0)
+                return input;
+
+            return String.Concat(input.AsSpan(0, idx), "@", input.AsSpan(idx + 1));
+
+        }
 
 
         #region Google DNS

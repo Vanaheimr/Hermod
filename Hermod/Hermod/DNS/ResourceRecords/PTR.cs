@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TypeId)
 
         {
-            this.Target = DomainName.Parse(
+            this.Target = DNS.DomainName.Parse(
                               DNSTools.ExtractName(Stream)
                           );
         }

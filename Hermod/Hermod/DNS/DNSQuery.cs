@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The domain name to query.
         /// </summary>
-        public DomainName            DomainName          { get; }
+        public DNSService            DomainName          { get; }
 
         /// <summary>
         /// The transaction identifier of this DNS query.
@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS query.
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
-        public DNSQuery(DomainName DomainName)
+        public DNSQuery(DNSService DomainName)
 
             : this(DomainName,
                    true,
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
         /// <param name="DNSResourceRecordTypes">The DNS resource record types to query.</param>
-        public DNSQuery(DomainName                   DomainName,
+        public DNSQuery(DNSService                   DomainName,
                         params DNSResourceRecords[]  DNSResourceRecordTypes)
 
             : this(DomainName,
@@ -104,7 +104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name to query.</param>
         /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
         /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
-        public DNSQuery(DomainName                   DomainName,
+        public DNSQuery(DNSService                   DomainName,
                         Boolean                      RecursionDesired,
                         params DNSResourceRecords[]  ResourceRecordTypes)
         {

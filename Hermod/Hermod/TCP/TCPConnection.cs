@@ -216,7 +216,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         private volatile Boolean isClosed;
 
         public Boolean IsClosed
-            => isClosed;
+        {
+            get          => isClosed;
+            internal set => isClosed = value;
+        }
 
         #endregion
 

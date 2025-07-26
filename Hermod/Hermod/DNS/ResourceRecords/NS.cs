@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.NameServer = DomainName.Parse(
+            this.NameServer = DNS.DomainName.Parse(
                                   DNSTools.ExtractName(Stream)
                               );
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.NameServer = DomainName.Parse(
+            this.NameServer = DNS.DomainName.Parse(
                                   DNSTools.ExtractName(Stream)
                               );
 

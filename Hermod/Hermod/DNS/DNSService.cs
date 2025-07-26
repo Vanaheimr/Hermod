@@ -17,10 +17,10 @@
 
 #region Usings
 
-using System.Text.RegularExpressions;
-using System.Diagnostics.CodeAnalysis;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -44,13 +44,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Indicates whether this DNS service is null or empty.
         /// </summary>
         /// <param name="DNSService">A DNS service.</param>
-        public static Boolean IsNotNullOrEmpty(this DNSService? DNSService)
+        public static Boolean IsNotNullOrEmpty([NotNullWhen(true)] this DNSService? DNSService)
             => DNSService?.FullName.IsNotNullOrEmpty() ?? false;
 
     }
 
     /// <summary>
     /// DNS service DNS services are used to identify services in the Domain Name System (DNS).
+    /// It is a domain name that is used to specify a service provided by a server.
+    /// In contrast to domain names it allows "_" as the first character of a label,
     /// </summary>
     public class DNSService : IEquatable<DNSService>,
                               IComparable<DNSService>,
@@ -60,14 +62,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Data
 
         public static readonly Regex DNSServiceRegExpr = new Regex(
-                                                             @"^(?=.{1,254}$)" +                                            // max. 254 Zeichen gesamt inkl. Punkt
-                                                             @"(?:[A-Za-z0-9]" +                                            // erstes Label: beginnt mit Buchst./Ziffer
-                                                             @"(?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?" +                        // optional mittlere Zeichen, endet mit Buchst./Ziffer
+                                                             @"^(?=.{1,254}$)" +                                               // max. 254 Zeichen gesamt inkl. Punkt
+                                                             @"(?:[A-Za-z0-9_]" +                                              // erstes Label: beginnt mit Buchst./Ziffer/_
+                                                             @"(?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?" +                         // optional mittlere Zeichen, endet mit Buchst./Ziffer/_
                                                              @")" +
-                                                             @"(?:\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*" +  // 0…n weitere Labels
-                                                             @"\.?$",                                                       // optional ein abschließender Punkt
+                                                             @"(?:\.(?:[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?))*" +  // 0…n weitere Labels
+                                                             @"\.?$",                                                          // optional ein abschließender Punkt
                                                              RegexOptions.IgnoreCase |
-                                                             RegexOptions.Compiled   |
+                                                             RegexOptions.Compiled |
                                                              RegexOptions.CultureInvariant
                                                          );
 
@@ -157,10 +159,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
             }
 
-            if (!DNSServiceRegExpr.IsMatch(Text))
+            if (Text != ".")
             {
-                ErrorResponse = "The given DNS service does not match the required format!";
-                return false;
+                if (!DNSServiceRegExpr.IsMatch(Text))
+                {
+                    ErrorResponse = "The given DNS service does not match the required format!";
+                    return false;
+                }
             }
 
             var labels = Text.TrimEnd('.').Split('.');
@@ -200,6 +205,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                );
 
         #endregion
+
+
+        public static DNSService From(DomainName  DomainName,
+                                      SRV_Spec    DNSServiceSpec)
+
+            => new ($"{DNSServiceSpec}.{DomainName.FullName}");
 
 
         #region Operator overloading

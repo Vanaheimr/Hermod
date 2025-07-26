@@ -32,6 +32,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region CacheAAAA(this DNSClient, DomainName, IPv6Address, Class = IN, TimeToLive = 365days)
 
+        public static void CacheAAAA(this DNSClient   DNSClient,
+                                     DomainName       DomainName,
+                                     IPv6Address      IPv6Address,
+                                     DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                     TimeSpan?        TimeToLive   = null)
+
+            => CacheAAAA(DNSClient,
+                         DNSService.Parse(DomainName.FullName),
+                         IPv6Address,
+                         Class,
+                         TimeToLive);
+
+
         /// <summary>
         /// Add a DNS AAAA record cache entry.
         /// </summary>
@@ -41,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheAAAA(this DNSClient   DNSClient,
-                                     DomainName       DomainName,
+                                     DNSService       DomainName,
                                      IPv6Address      IPv6Address,
                                      DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                      TimeSpan?        TimeToLive   = null)
@@ -104,19 +117,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TypeId)
 
         {
+
             this.IPv6Address = new IPv6Address(Stream);
+
         }
 
         #endregion
 
         #region AAAA(DomainName Stream)
 
+        public AAAA(DomainName  DomainName,
+                    Stream      Stream)
+
+            : this(DNSService.Parse(DomainName.FullName),
+                   Stream)
+
+        { }
+
+
         /// <summary>
         /// Create a new AAAA resource record from the given name and stream.
         /// </summary>
         /// <param name="DomainName">The domain name of this AAAA resource record.</param>
         /// <param name="Stream">A stream containing the AAAA resource record data.</param>
-        public AAAA(DomainName  DomainName,
+        public AAAA(DNSService  DomainName,
                     Stream      Stream)
 
             : base(DomainName,
@@ -124,12 +148,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
+
             this.IPv6Address = new IPv6Address(Stream);
+
         }
 
         #endregion
 
         #region AAAA(DomainName, Class, TimeToLive, IPv6Address)
+
+        public AAAA(DomainName       DomainName,
+                    DNSQueryClasses  Class,
+                    TimeSpan         TimeToLive,
+                    IPv6Address      IPv6Address)
+
+            : this(DNSService.Parse(DomainName.FullName),
+                   Class,
+                   TimeToLive,
+                   IPv6Address)
+
+        { }
+
 
         /// <summary>
         /// Create a new DNS AAAA resource record.
@@ -138,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
-        public AAAA(DomainName       DomainName,
+        public AAAA(DNSService       DomainName,
                     DNSQueryClasses  Class,
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
@@ -150,7 +189,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    IPv6Address.ToString())
 
         {
+
             this.IPv6Address = IPv6Address;
+
         }
 
         #endregion

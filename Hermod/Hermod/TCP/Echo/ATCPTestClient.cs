@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected                 TcpClient?                tcpClient;
         protected                 CancellationTokenSource?  cts;
 
-        private                   IIPAddress?               remoteIPAddress;
+   //     private                   IIPAddress?               remoteIPAddress;
 
         #endregion
 
@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    : null;
 
         public  URL?                     RemoteURL          { get; }
-        public  IIPAddress?              RemoteIPAddress    { get;  }
+        public  IIPAddress?              RemoteIPAddress    { get; private set; }
         public  IPPort?                  RemoteTCPPort      { get; }
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
@@ -187,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public DNSService?               DNSService         { get; }
+        public SRV_Spec?                 DNSService         { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
@@ -264,7 +264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) ATCPTestClient(URL,     DNSService = null, ..., DNSClient = null)
 
         protected ATCPTestClient(URL                      URL,
-                                 DNSService?              DNSService       = null,
+                                 SRV_Spec?                DNSService       = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) ATCPTestClient(DNSName, DNSService,        ..., DNSClient = null)
 
         protected ATCPTestClient(DomainName               DNSName,
-                                 DNSService               DNSService,
+                                 SRV_Spec                 DNSService,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -355,31 +355,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #region Localhost / URL looks like an IP address...
 
                     if      (IPAddress.IsIPv4Localhost(RemoteURL.Value.Hostname))
-                        remoteIPAddress = IPv4Address.Localhost;
+                        RemoteIPAddress = IPv4Address.Localhost;
 
                     else if (IPAddress.IsIPv6Localhost(RemoteURL.Value.Hostname))
-                        remoteIPAddress = IPv6Address.Localhost;
+                        RemoteIPAddress = IPv6Address.Localhost;
 
                     else if (IPAddress.IsIPv4(RemoteURL.Value.Hostname.Name))
-                        remoteIPAddress = IPv4Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
+                        RemoteIPAddress = IPv4Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
 
                     else if (IPAddress.IsIPv6(RemoteURL.Value.Hostname.Name))
-                        remoteIPAddress = IPv6Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
+                        RemoteIPAddress = IPv6Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
 
                     #endregion
 
                     #region DNS SRV    lookups...
 
-                    if (remoteIPAddress is null &&
+                    if (RemoteIPAddress is null &&
                         DNSClient       is not null &&
                         DNSService.IsNotNullOrEmpty())
                     {
 
                         // Look up the DNS Name or the hostname of the URL...
-                        var serviceRecords         = await DNSClient.
-                                                               Query<SRV>(DNSName ?? RemoteURL.Value.Hostname.Name).
-                                                               ContinueWith(query => query.Result).
-                                                               ConfigureAwait(false);
+                        var serviceRecords         = await DNSClient.Query_DNSService(DNS.DNSService.Parse($"{DNSService}.{DNSName ?? RemoteURL.Value.Hostname.Name}")).
+                                                                     ConfigureAwait(false);
 
                         var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);
                         var priorityRecords        = serviceRecords. Where(serviceRecord => serviceRecord.Priority == minPriority).ToArray();
@@ -417,18 +415,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     #region DNS A/AAAA lookups...
 
-                    if (remoteIPAddress is null &&
+                    if (RemoteIPAddress is null &&
                         DNSClient       is not null)
                     {
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
-                        var ipv4AddressLookupTask = DNSClient.
-                                                        Query<A>   (dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name).
-                                                        ContinueWith(query => query.Result.Select(ARecord    => ARecord.   IPv4Address));
-
-                        var ipv6AddressLookupTask = DNSClient.
-                                                        Query<AAAA>(dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name).
-                                                        ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name);
+                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name);
 
                         await Task.WhenAll(
                                   ipv4AddressLookupTask,
@@ -438,18 +431,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         if (PreferIPv4)
                         {
                             if (ipv6AddressLookupTask.Result.Any())
-                                remoteIPAddress = ipv6AddressLookupTask.Result.First();
+                                RemoteIPAddress = ipv6AddressLookupTask.Result.First();
 
                             if (ipv4AddressLookupTask.Result.Any())
-                                remoteIPAddress = ipv4AddressLookupTask.Result.First();
+                                RemoteIPAddress = ipv4AddressLookupTask.Result.First();
                         }
                         else
                         {
                             if (ipv4AddressLookupTask.Result.Any())
-                                remoteIPAddress = ipv4AddressLookupTask.Result.First();
+                                RemoteIPAddress = ipv4AddressLookupTask.Result.First();
 
                             if (ipv6AddressLookupTask.Result.Any())
-                                remoteIPAddress = ipv6AddressLookupTask.Result.First();
+                                RemoteIPAddress = ipv6AddressLookupTask.Result.First();
                         }
 
                         timings.DNSLookup = timings.Elapsed;

@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Indicates whether this domain name is null or empty.
         /// </summary>
         /// <param name="DomainName">A domain name.</param>
-        public static Boolean IsNotNullOrEmpty(this DomainName? DomainName)
+        public static Boolean IsNotNullOrEmpty([NotNullWhen(true)] this DomainName? DomainName)
             => DomainName?.FullName.IsNotNullOrEmpty() ?? false;
 
     }
@@ -206,10 +206,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
             }
 
-            if (!DomainNameRegExpr.IsMatch(Text))
+            if (Text != ".")
             {
-                ErrorResponse = "The given domain name does not match the required format!";
-                return false;
+                if (!DomainNameRegExpr.IsMatch(Text))
+                {
+                    ErrorResponse = "The given domain name does not match the required format!";
+                    return false;
+                }
             }
 
             var labels = Text.TrimEnd('.').Split('.');

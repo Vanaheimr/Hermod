@@ -18,6 +18,65 @@
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
+
+    public class DNSInfo<T>(IPSocket                         Origin,
+                            Int32                            QueryId,
+                            Boolean                          IsAuthoritativeAnswer,
+                            Boolean                          IsTruncated,
+                            Boolean                          RecursionDesired,
+                            Boolean                          RecursionAvailable,
+                            DNSResponseCodes                 ResponseCode,
+                            IEnumerable<ADNSResourceRecord>  Answers,
+                            IEnumerable<ADNSResourceRecord>  Authorities,
+                            IEnumerable<ADNSResourceRecord>  AdditionalRecords,
+
+                            Boolean                          IsValid,
+                            Boolean                          IsTimeout,
+                            TimeSpan                         Timeout)
+
+        : DNSInfo(Origin,
+                  QueryId,
+                  IsAuthoritativeAnswer,
+                  IsTruncated,
+                  RecursionDesired,
+                  RecursionAvailable,
+                  ResponseCode,
+                  Answers,
+                  Authorities,
+                  AdditionalRecords,
+                  IsValid,
+                  IsTimeout,
+                  Timeout)
+
+        where T : ADNSResourceRecord
+
+    {
+
+        public IEnumerable<T>  FilteredAnswers
+            => Answers.OfType<T>();
+
+
+        public DNSInfo(DNSInfo Legacy)
+
+            : this(Legacy.Origin,
+                   Legacy.QueryId,
+                   Legacy.AuthoritativeAnswer,
+                   Legacy.IsTruncated,
+                   Legacy.RecursionRequested,
+                   Legacy.RecursionAvailable,
+                   Legacy.ResponseCode,
+                   Legacy.Answers,
+                   Legacy.Authorities,
+                   Legacy.AdditionalRecords,
+                   Legacy.IsValid,
+                   Legacy.IsTimeout,
+                   Legacy.Timeout)
+
+        { }
+
+    }
+
+
     public class DNSInfo
     {
 

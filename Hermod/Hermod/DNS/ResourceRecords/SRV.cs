@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheSRV(this DNSClient   DNSClient,
-                                    DomainName       DomainName,
+                                    DNSService       DomainName,
                                     UInt16           Priority,
                                     UInt16           Weight,
                                     IPPort           Port,
@@ -126,10 +126,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Port      = IPPort.    Parse((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = DomainName.Parse(DNSTools.ExtractName(Stream));
+            this.Priority  = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Weight    = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Port      = IPPort.        Parse((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Target    = DNS.DomainName.Parse(DNSTools.ExtractName(Stream));
 
         }
 
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name of this SRV resource record.</param>
         /// <param name="Stream">A stream containing the SRV resource record data.</param>
-        public SRV(DomainName  DomainName,
+        public SRV(DNSService  DomainName,
                    Stream      Stream)
 
             : base(DomainName,
@@ -151,10 +151,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Port      = IPPort.    Parse((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = DomainName.Parse(DNSTools.ExtractName(Stream));
+            this.Priority  = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Weight    = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Port      = IPPort.        Parse((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Target    = DNS.DomainName.Parse(DNSTools.ExtractName(Stream));
 
         }
 
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Port">The port on this target host of this service.</param>
         /// <param name="Target">The domain name of the target host.</param>
-        public SRV(DomainName       DomainName,
+        public SRV(DNSService       DomainName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    UInt16           Priority,

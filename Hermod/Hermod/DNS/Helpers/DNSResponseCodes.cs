@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         NoError         = 0,
         FormatError     = 1,
         ServerFailure   = 2,
-        NameError       = 3,
+        NameError       = 3, // NXDOMAIN
         NotImplemented  = 4,
         Refused         = 5,
         Reserved        = 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15

@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -153,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Server   = DomainName.        Parse(DNSTools.ExtractName(Stream));
+            this.Server   = DNS.DomainName.    Parse(DNSTools.ExtractName(Stream));
             this.Email    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
             this.Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
             this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
@@ -181,8 +182,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Server   = DomainName.        Parse(DNSTools.ExtractName(Stream));
-            this.Email    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
+            // Read RD length
+            var a1 = Stream.ReadByte();
+            var a2 = Stream.ReadByte();
+
+            //var aa = DNSTools.ReadDomainNameFromBytes(Stream);
+            //var bb = DNSTools.ReadDomainNameFromBytes(Stream);
+
+            //var server = DNSTools.ExtractName(Stream);
+
+            //if (server == "")
+            //{
+            //    var data = Stream.ToByteArray().ToHexString();
+            //    server = ".";
+            //}
+
+            this.Server   = DomainName.        Parse(DNSTools.ExtractNameUTF8(Stream));
+            this.Email    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractNameUTF8(Stream)));
             this.Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
             this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);

@@ -306,9 +306,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // The operation was cancelled, e.g. by a timeout.
+                DebugX.LogT("HTTPTestServer.HandleConnection(...) was cancelled!");
+            }
+            catch (IOException ie)
+            {
+                // An I/O error occurred, e.g. the connection was closed by the client.
+                DebugX.LogException(ie, "IOException in HTTPTestServer.HandleConnection(...)!");
+            }
             catch (Exception e)
             {
-                DebugX.Log(e, "Exception in HTTPTestServer.HandleConnection: " + e.Message);
+                DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...)!");
+            }
+            finally
+            {
+                try
+                {
+                    Connection.IsClosed = true;
+                    //await Connection.DisposeAsync();
+                    Connection.Dispose();
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogException(e, "Exception in HTTPTestServer.HandleConnection(...).Dispose()!");
+                }
             }
 
         }

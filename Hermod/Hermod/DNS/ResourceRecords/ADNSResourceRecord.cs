@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The domain name of this resource record.
         /// </summary>
-        public DomainName          DomainName    { get; }
+        public DNSService          DomainName    { get; }
 
         /// <summary>
         /// The type of this resource record.
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                      DNSResourceRecords  Type)
         {
 
-            this.DomainName  = DomainName.Parse(
+            this.DomainName  = DNSService.Parse(
                                    DNSTools.ExtractName(DNSStream)
                                );
 
@@ -108,13 +108,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(DomainName, Type, DNSStream)
 
+        protected ADNSResourceRecord(DomainName          DomainName,
+                                     DNSResourceRecords  Type,
+                                     Stream              DNSStream)
+
+            : this(DNSService.Parse(DomainName.FullName),
+                   Type,
+                   DNSStream)
+
+        { }
+
+
         /// <summary>
         /// Create a new DNS resource record from the given name, type and DNS stream.
         /// </summary>
         /// <param name="DomainName">A domain name of this resource record.</param>
         /// <param name="Type">A valid DNS resource record type.</param>
         /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
-        protected ADNSResourceRecord(DomainName          DomainName,
+        protected ADNSResourceRecord(DNSService          DomainName,
                                      DNSResourceRecords  Type,
                                      Stream              DNSStream)
         {
@@ -134,6 +145,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region (protected) ADNSResourceRecord(DomainName, Type, Class, TimeToLive, RText = null)
 
         protected ADNSResourceRecord(DomainName          DomainName,
+                                     DNSResourceRecords  Type,
+                                     DNSQueryClasses     Class,
+                                     TimeSpan            TimeToLive,
+                                     String?             RText = null)
+
+            : this(DNSService.Parse(DomainName.FullName),
+                   Type,
+                   Class,
+                   TimeToLive,
+                   RText)
+
+        { }
+
+        protected ADNSResourceRecord(DNSService          DomainName,
                                      DNSResourceRecords  Type,
                                      DNSQueryClasses     Class,
                                      TimeSpan            TimeToLive,

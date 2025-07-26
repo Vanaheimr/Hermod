@@ -172,7 +172,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          Boolean                            AutoConnect                 = false)
         {
 
-            //this.IPAddress                  = IPAddress;
             this.RemotePort                 = RemotePort;
             this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate;
@@ -180,9 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.DNSClient                  = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
                                                                                  SearchForIPv6DNSServers: this.UseIPv6);
 
-            this._IPSocketList               = new List<IPSocket>() {
-                                                   new IPSocket(IPAddress, RemotePort)
-                                               };
+            this._IPSocketList               = [ new IPSocket(IPAddress, RemotePort) ];
 
             if (AutoConnect)
                 Connect();
@@ -310,10 +307,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (DNSClient is not null)
             {
 
-                foreach (var socket in (await DNSClient.Query<A>   (RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv4Address, RemotePort)))
+                foreach (var socket in (await DNSClient.Query<A>   (RemoteHost)).FilteredAnswers.SafeSelect(ARecord => new IPSocket(ARecord.IPv4Address, RemotePort)))
                     _IPSocketList.Add(socket);
 
-                foreach (var socket in (await DNSClient.Query<AAAA>(RemoteHost)).SafeSelect(ARecord => new IPSocket(ARecord.IPv6Address, RemotePort)))
+                foreach (var socket in (await DNSClient.Query<AAAA>(RemoteHost)).FilteredAnswers.SafeSelect(ARecord => new IPSocket(ARecord.IPv6Address, RemotePort)))
                     _IPSocketList.Add(socket);
 
             }

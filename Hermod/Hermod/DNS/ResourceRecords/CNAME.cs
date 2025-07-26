@@ -99,9 +99,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.CName = DomainName.Parse(
-                            DNSTools.ExtractName(Stream)
-                        );
+            this.CName = DNS.DomainName.Parse(
+                             DNSTools.ExtractName(Stream)
+                         );
 
         }
 
@@ -124,8 +124,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             this.CName = DomainName.Parse(
-                            DNSTools.ExtractName(Stream)
-                        );
+                             DNSTools.ExtractName(Stream)
+                         );
 
         }
 
