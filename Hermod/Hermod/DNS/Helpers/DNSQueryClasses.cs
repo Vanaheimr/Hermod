@@ -21,14 +21,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// Query Class or Scope
     /// </summary>
-    public enum DNSQueryClasses : Int32
+    public enum DNSQueryClasses : UInt16
     {
 
-        IN   = 1,
-        CS   = 2,
-        CH   = 3,
-        HS   = 4,
-        ANY  = 255
+        /// <summary>
+        /// Pseudo class, used for DNS dynamic updates (RFC  2136).
+        /// </summary>
+        NONE  = 0,
+
+        /// <summary>
+        /// Internet IPv4/IPv6
+        /// </summary>
+        IN    = 1,
+
+        /// <summary>
+        /// CSNET
+        /// </summary>
+        CS    = 2,
+
+        /// <summary>
+        /// Chaosnet
+        /// </summary>
+        CH    = 3,
+
+        /// <summary>
+        /// Hesiod
+        /// </summary>
+        HS    = 4,
+
+        /// <summary>
+        /// Any class
+        /// </summary>
+        ANY   = 255
 
     }
 

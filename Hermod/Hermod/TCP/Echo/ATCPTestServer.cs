@@ -216,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (this.IPAddress.IsIPv6)
             {
 
-                this.tcpListenerIPv6         = new TcpListener(this.IPAddress.Convert(), this.TCPPort.ToUInt16());
+                this.tcpListenerIPv6         = new TcpListener(this.IPAddress.ToDotNet(), this.TCPPort.ToUInt16());
 
                 // Dual mode on ANY address!
                 if (this.IPAddress.IsAny && this.IPAddress.IsIPv4)

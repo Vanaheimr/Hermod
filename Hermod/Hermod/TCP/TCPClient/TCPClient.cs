@@ -78,9 +78,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Properties
 
-        public String                      RemoteHost               { get; }
+        public DomainName                  RemoteHost               { get; }
 
-        public String                      ServiceName              { get; }
+        public DNSService                  ServiceName              { get; }
 
         public IPPort                      RemotePort               { get; }
 
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region Connected
 
-        public delegate void TCPConnectedDelegate(Object Sender, String DNSName, IPSocket IPSocket);
+        public delegate void TCPConnectedDelegate(Object Sender, DomainName DNSName, IPSocket IPSocket);
 
         public event TCPConnectedDelegate Connected;
 
@@ -147,9 +147,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region ValidateRemoteCertificate
 
-        public delegate Boolean ValidateRemoteCertificateDelegate(TCPClient Sender, X509Certificate Certificate, X509Chain CertificateChain, SslPolicyErrors PolicyErrors);
+        public delegate Boolean ValidateRemoteCertificateDelegate(TCPClient Sender, X509Certificate? Certificate, X509Chain? CertificateChain, SslPolicyErrors PolicyErrors);
 
-        public event ValidateRemoteCertificateDelegate ValidateServerCertificate;
+        public event ValidateRemoteCertificateDelegate? ValidateServerCertificate;
 
         #endregion
 
@@ -204,36 +204,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(String                             RemoteHost,
-                         String                             ServiceName,
-                         Boolean                            UseIPv4                     = true,
-                         Boolean                            UseIPv6                     = false,
-                         Boolean                            PreferIPv6                  = false,
-                         TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate  ValidateServerCertificate   = null,
-                         TimeSpan?                          ConnectionTimeout           = null,
-                         DNSClient                          DNSClient                   = null,
-                         Boolean                            AutoConnect                 = false)
+        public TCPClient(DomainName                          RemoteHost,
+                         DNSService                          ServiceName,
+                         Boolean                             UseIPv4                     = true,
+                         Boolean                             UseIPv6                     = false,
+                         Boolean                             PreferIPv6                  = false,
+                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
+                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
+                         TimeSpan?                           ConnectionTimeout           = null,
+                         DNSClient?                          DNSClient                   = null,
+                         Boolean                             AutoConnect                 = false)
         {
 
-            this.RemoteHost                 = RemoteHost?.Trim();
-            if (this.RemoteHost.IsNullOrWhiteSpace())
-                throw new ArgumentNullException(nameof(RemoteHost),  "The given remote host must not be null or empty!");
-
-            this.ServiceName                = ServiceName?.Trim();
-            if (this.ServiceName.IsNullOrWhiteSpace())
-                throw new ArgumentNullException(nameof(ServiceName), "The given service name must not be null or empty!");
-
+            this.RemoteHost                 = RemoteHost;
+            this.ServiceName                = ServiceName;
             this.UseIPv4                    = UseIPv4;
             this.UseIPv6                    = UseIPv6;
             this.PreferIPv6                 = PreferIPv6;
             this.UseTLS                     = UseTLS;
             this.ValidateServerCertificate  = ValidateServerCertificate;
             this._ConnectionTimeout         = ConnectionTimeout ?? TimeSpan.FromSeconds(60);
-            this.DNSClient                  = DNSClient         ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
-                                                                                 SearchForIPv6DNSServers: this.UseIPv6);
+            this.DNSClient                  = DNSClient         ?? new DNSClient(
+                                                                       SearchForIPv4DNSServers: this.UseIPv4,
+                                                                       SearchForIPv6DNSServers: this.UseIPv6
+                                                                   );
 
-            this._IPSocketList              = new List<IPSocket>();
+            this._IPSocketList              = [];
 
             if (IPv4Address.TryParse(this.RemoteHost, out IPv4Address ipv4address))
                 _IPSocketList.Add(new IPSocket(ipv4address, RemotePort));
@@ -264,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public TCPClient(String                              RemoteHost,
+        public TCPClient(DomainName                          RemoteHost,
                          IPPort                              RemotePort,
                          Boolean                             UseIPv4                     = true,
                          Boolean                             UseIPv6                     = false,
@@ -277,10 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          CancellationToken?                  CancellationToken           = null)
         {
 
-            this.RemoteHost                 = RemoteHost?.Trim();
-            if (this.RemoteHost.IsNullOrWhiteSpace())
-                throw new ArgumentNullException(nameof(RemoteHost),  "The given remote host must not be null or empty!");
-
+            this.RemoteHost                 = RemoteHost;
             this.RemotePort                 = RemotePort;
             this.CancellationToken          = CancellationToken != null ? CancellationToken : new CancellationToken();
             this.UseIPv4                    = UseIPv4;
@@ -292,7 +285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             this.DNSClient                  = DNSClient                 ?? new DNSClient(SearchForIPv4DNSServers: this.UseIPv4,
                                                                                          SearchForIPv6DNSServers: this.UseIPv6);
 
-            this._IPSocketList              = new List<IPSocket>();
+            this._IPSocketList              = [];
 
             if (IPv4Address.TryParse(RemoteHost, out IPv4Address ipv4address))
                 _IPSocketList.Add(new IPSocket(ipv4address, RemotePort));
@@ -477,15 +470,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         protected void EnableTLS()
         {
 
+            if (Stream is null)
+                throw new Exception("Cannot enable TLS on a null stream!");
+
             try
             {
-
                 TLSStream  = new SslStream(Stream, false, ValidateRemoteCertificate);
-                TLSStream.AuthenticateAsClient(RemoteHost, TLSClientCertificates, DefaultSslProtocols, true);
+                TLSStream.AuthenticateAsClient(RemoteHost.FullName, TLSClientCertificates, DefaultSslProtocols, true);
                 Stream     = TLSStream;
-
             }
-
             catch (Exception e)
             {
                 DebugX.LogT("EnableTLS() failed!" + Environment.NewLine +
@@ -497,14 +490,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #endregion
 
         #region (private) ValidateRemoteCertificate(Sender, Certificate, Chain, Errors)
-        private Boolean ValidateRemoteCertificate(Object           Sender,
-                                                  X509Certificate  Certificate,
-                                                  X509Chain        Chain,
-                                                  SslPolicyErrors  Errors)
+        private Boolean ValidateRemoteCertificate(Object            Sender,
+                                                  X509Certificate?  Certificate,
+                                                  X509Chain?        Chain,
+                                                  SslPolicyErrors   Errors)
         {
 
             var ValidateRemoteCertificateLocal = ValidateServerCertificate;
-            if (ValidateRemoteCertificateLocal != null)
+            if (ValidateRemoteCertificateLocal is not null)
                 return ValidateRemoteCertificateLocal(this, Certificate, Chain, Errors);
 
             return false;

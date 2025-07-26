@@ -18,10 +18,11 @@
 #region Usings
 
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System.Diagnostics.CodeAnalysis;
 
 #endregion
 
@@ -151,40 +152,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        public static Boolean IsIPv4(String IPAddress)
+        public static Boolean IsIPv4(String        IPAddress)
             => IPAddress.IsNotNullOrEmpty() &&
                IPv4AddressRegExpr.IsMatch(IPAddress.Trim());
 
-        public static Boolean IsIPv4(HTTPHostname Hostname)
+        public static Boolean IsIPv4(HTTPHostname  Hostname)
             => Hostname.IsNotNullOrEmpty &&
                IPv4AddressRegExpr.IsMatch(Hostname.ToString());
 
-        public static Boolean IsIPv6(String IPAddress)
+        public static Boolean IsIPv4(DomainName    DomainName)
+            => DomainName.IsNotNullOrEmpty() &&
+               IPv4AddressRegExpr.IsMatch(DomainName.ToString());
+
+
+        public static Boolean IsIPv6(String        IPAddress)
             => IPAddress.IsNotNullOrEmpty() &&
                IPv6AddressRegExpr.IsMatch(IPAddress.Trim());
 
-        public static Boolean IsIPv6(HTTPHostname Hostname)
+        public static Boolean IsIPv6(HTTPHostname  Hostname)
             => Hostname.IsNotNullOrEmpty &&
                IPv6AddressRegExpr.IsMatch(Hostname.ToString());
 
+        public static Boolean IsIPv6(DomainName    DomainName)
+            => DomainName.IsNotNullOrEmpty() &&
+               IPv6AddressRegExpr.IsMatch(DomainName.ToString());
 
-        public static Boolean IsLocalhost(String Text)
-            => IsIPv4Localhost(Text) || IsIPv6Localhost(Text);
 
-        public static Boolean IsLocalhost(HTTPHostname Hostname)
-            => IsIPv4Localhost(Hostname) || IsIPv6Localhost(Hostname);
+        public static Boolean IsLocalhost(String        Text)
+            => IsIPv4Localhost(Text)       || IsIPv6Localhost(Text);
 
-        public static Boolean IsIPv4Localhost(String Text)
-            => (IsIPv4(Text) && Text.StartsWith("127.")) || Text.ToLower() == "localhost";
+        public static Boolean IsLocalhost(HTTPHostname  Hostname)
+            => IsIPv4Localhost(Hostname)   || IsIPv6Localhost(Hostname);
 
-        public static Boolean IsIPv4Localhost(HTTPHostname Hostname)
+        public static Boolean IsLocalhost(DomainName    DomainName)
+            => IsIPv4Localhost(DomainName) || IsIPv6Localhost(DomainName);
+
+
+        public static Boolean IsIPv4Localhost(String        Text)
+            => (IsIPv4(Text) && Text.StartsWith("127.")) ||
+               Text.Equals("localhost",  StringComparison.CurrentCultureIgnoreCase);
+
+        public static Boolean IsIPv4Localhost(HTTPHostname  Hostname)
             => Hostname.IsNotNullOrEmpty && IsIPv4Localhost(Hostname.ToString());
 
-        public static Boolean IsIPv6Localhost(String Text)
-            => (IsIPv6(Text) && Text == "::1") || Text.ToLower() == "localhost6";
+        public static Boolean IsIPv4Localhost(DomainName    DomainName)
+            => DomainName.IsNotNullOrEmpty() && IsIPv4Localhost(DomainName.ToString());
 
-        public static Boolean IsIPv6Localhost(HTTPHostname Hostname)
+
+        public static Boolean IsIPv6Localhost(String        Text)
+            => (IsIPv6(Text) && Text == "::1") ||
+               Text.Equals("localhost",  StringComparison.CurrentCultureIgnoreCase) ||
+               Text.Equals("localhost6", StringComparison.CurrentCultureIgnoreCase);
+
+        public static Boolean IsIPv6Localhost(HTTPHostname  Hostname)
             => Hostname.IsNotNullOrEmpty && IsIPv6Localhost(Hostname.ToString());
+
+        public static Boolean IsIPv6Localhost(DomainName    DomainName)
+            => DomainName.IsNotNullOrEmpty() && IsIPv6Localhost(DomainName.ToString());
 
 
 
@@ -199,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Convert this IP address into a System.Net.IPAddress.
         /// </summary>
         /// <param name="IPAddress">An IP address.</param>
-        public static IIPAddress Convert(System.Net.IPAddress IPAddress)
+        public static IIPAddress FromDotNet(System.Net.IPAddress IPAddress)
         {
 
             var bytes = IPAddress.GetAddressBytes();
@@ -221,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Convert this IP address into a System.Net.IPAddress.
         /// </summary>
         /// <param name="IPAddress">An IP address.</param>
-        public static System.Net.IPAddress Convert(this IIPAddress IPAddress)
+        public static System.Net.IPAddress ToDotNet(this IIPAddress IPAddress)
         {
 
             // IPv4/IPv6 dual mode...

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Text;
 
 #endregion
@@ -30,27 +31,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public class DNSQuery
     {
 
-        #region Data
+        #region Properties
 
         /// <summary>
         /// The query types (resource record types).
         /// </summary>
-        public UInt16[]         QueryTypes    { get; }
+        public DNSResourceRecords[]  QueryTypes          { get; }
 
         /// <summary>
         /// The query class.
         /// </summary>
-        public DNSQueryClasses  QueryClass    { get; }
+        public DNSQueryClasses       QueryClass          { get; }
 
-        #endregion
+        /// <summary>
+        /// The domain name to query.
+        /// </summary>
+        public DomainName            DomainName          { get; }
 
-        #region Properties
+        /// <summary>
+        /// The transaction identifier of this DNS query.
+        /// </summary>
+        public Int32                 TransactionId       { get; }
 
-        public String   DomainName          { get; }
-
-        public Int32    TransactionId       { get; }
-
-        public Boolean  RecursionDesired    { get; }
+        /// <summary>
+        /// Whether recursion is desired or not.
+        /// </summary>
+        public Boolean               RecursionDesired    { get; }
 
         #endregion
 
@@ -62,11 +68,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS query.
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
-        public DNSQuery(String DomainName)
+        public DNSQuery(DomainName DomainName)
 
             : this(DomainName,
                    true,
-                   255)
+                   DNSResourceRecords.Any)
 
         { }
 
@@ -79,8 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name to query.</param>
         /// <param name="DNSResourceRecordTypes">The DNS resource record types to query.</param>
-        public DNSQuery(String           DomainName,
-                        params UInt16[]  DNSResourceRecordTypes)
+        public DNSQuery(DomainName                   DomainName,
+                        params DNSResourceRecords[]  DNSResourceRecordTypes)
 
             : this(DomainName,
                    true,
@@ -98,13 +104,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name to query.</param>
         /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
         /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
-        public DNSQuery(String           DomainName,
-                        Boolean          RecursionDesired,
-                        params UInt16[]  ResourceRecordTypes)
+        public DNSQuery(DomainName                   DomainName,
+                        Boolean                      RecursionDesired,
+                        params DNSResourceRecords[]  ResourceRecordTypes)
         {
 
             if (ResourceRecordTypes is null || ResourceRecordTypes.Length == 0)
-                QueryTypes = [ 255 ];
+                QueryTypes = [ DNSResourceRecords.Any ];
 
             else
                 QueryTypes = ResourceRecordTypes;
@@ -123,7 +129,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        private static readonly Char[] splitter = [ '.' ];
 
         #region Serialize()
 
@@ -171,13 +176,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var queryType in QueryTypes)
             {
 
-                foreach (var DomainNameTokens in DomainName.Split(splitter))
+                foreach (var domainNameLabel in DomainName.Labels)
                 {
 
                     // Set Length label for domain name segment
-                    dnsPacket[packetPosition++] = (Byte) (DomainNameTokens.Length & Byte.MaxValue);
+                    dnsPacket[packetPosition++] = (Byte) (domainNameLabel.Length & Byte.MaxValue);
 
-                    foreach (var character in Encoding.ASCII.GetBytes(DomainNameTokens))
+                    foreach (var character in Encoding.ASCII.GetBytes(domainNameLabel))
                         dnsPacket[packetPosition++] = character;
 
                 }
@@ -185,11 +190,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // End-of-DomainName marker
                 dnsPacket[packetPosition++] = 0x00;
 
-                dnsPacket[packetPosition++] = (Byte) 0;
-                dnsPacket[packetPosition++] = (Byte) queryType;
+                var _queryType  = (UInt16) queryType;
+                dnsPacket[packetPosition++] = (Byte) (_queryType  >> 8);
+                dnsPacket[packetPosition++] = (Byte) (_queryType   & 0xFF);
 
-                dnsPacket[packetPosition++] = (Byte) 0;
-                dnsPacket[packetPosition++] = (Byte) QueryClass;
+                var _queryClass = (UInt16) QueryClass;
+                dnsPacket[packetPosition++] = (Byte) (_queryClass >> 8);
+                dnsPacket[packetPosition++] = (Byte) (_queryClass  & 0xFF);
 
             }
 
@@ -202,6 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
         #endregion
+
 
     }
 

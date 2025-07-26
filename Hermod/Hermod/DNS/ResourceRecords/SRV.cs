@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_SRV_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, SRVRecord)
+        #region CacheSRV(this DNSClient, DomainName, Priority, Weight, Port, Target, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS SRV record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="SRVRecord">A DNS SRV record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      SRV             SRVRecord)
+        /// <param name="DomainName">The domain name of this SRV resource record.</param>
+        /// <param name="Priority">The priority of this target host.</param>
+        /// <param name="Weight">The relative weight for entries with the same priority.</param>
+        /// <param name="Port">The port on this target host of this service.</param>
+        /// <param name="Target">The domain name of the target host.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheSRV(this DNSClient   DNSClient,
+                                    DomainName       DomainName,
+                                    UInt16           Priority,
+                                    UInt16           Weight,
+                                    IPPort           Port,
+                                    DomainName       Target,
+                                    DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                    TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new SRV(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Priority,
+                                Weight,
+                                Port,
+                                Target
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                SRVRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -71,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Service (SRV) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 33;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.SRV;
 
         #endregion
 
@@ -81,23 +91,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// A 16-bit unsigned integer specifying the priority of this target host.
         /// Lower values indicate higher priority.
         /// </summary>
-        public UInt16  Priority    { get; }
+        public UInt16      Priority    { get; }
 
         /// <summary>
         /// A 16-bit unsigned integer specifying a relative weight for entries with the same priority.
         /// Higher weights should be given a proportionately higher probability of being selected.
         /// </summary>
-        public UInt16  Weight      { get; }
+        public UInt16      Weight      { get; }
 
         /// <summary>
         /// The port on this target host of this service.
         /// </summary>
-        public UInt16  Port        { get; }
+        public IPPort      Port        { get; }
 
         /// <summary>
         /// The domain name of the target host.
         /// </summary>
-        public String  Target      { get; }
+        public DomainName  Target      { get; }
 
         #endregion
 
@@ -118,24 +128,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
             this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Port      = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = DNSTools.ExtractName(Stream);
+            this.Port      = IPPort.    Parse((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
+            this.Target    = DomainName.Parse(DNSTools.ExtractName(Stream));
 
         }
 
         #endregion
 
-        #region SRV(Name, Stream)
+        #region SRV(DomainName, Stream)
 
         /// <summary>
         /// Create a new SRV resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this SRV resource record.</param>
+        /// <param name="DomainName">The domain name of this SRV resource record.</param>
         /// <param name="Stream">A stream containing the SRV resource record data.</param>
-        public SRV(String Name,
-                   Stream Stream)
+        public SRV(DomainName  DomainName,
+                   Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
@@ -143,34 +153,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
             this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Port      = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = DNSTools.ExtractName(Stream);
+            this.Port      = IPPort.    Parse((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
+            this.Target    = DomainName.Parse(DNSTools.ExtractName(Stream));
 
         }
 
         #endregion
 
-        #region SRV(Name, Class, TimeToLive, Priority, Weight, Port, Target)
+        #region SRV(DomainName, Class, TimeToLive, Priority, Weight, Port, Target)
 
         /// <summary>
         ///  Create a new DNS SRV record.
         /// </summary>
-        /// <param name="Name">The DNS name of this SRV record.</param>
+        /// <param name="DomainName">The domain name of this SRV record.</param>
         /// <param name="Class">The DNS query class of this SRV record.</param>
         /// <param name="TimeToLive">The time to live of this SRV record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Port">The port on this target host of this service.</param>
         /// <param name="Target">The domain name of the target host.</param>
-        public SRV(String           Name,
+        public SRV(DomainName       DomainName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    UInt16           Priority,
                    UInt16           Weight,
-                   UInt16           Port,
-                   String           Target)
+                   IPPort           Port,
+                   DomainName       Target)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,

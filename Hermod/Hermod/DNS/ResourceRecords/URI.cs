@@ -17,7 +17,7 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -30,26 +30,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_URI_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, URIRecord)
+        #region CacheURI(this DNSClient, DomainName, Priority, Weight, Target, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS URI record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="URIRecord">A DNS URI record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      URI             URIRecord)
+        /// <param name="DomainName">The domain name of this URI resource record.</param>
+        /// <param name="Priority">The priority of this target host.</param>
+        /// <param name="Weight">The relative weight for entries with the same priority.</param>
+        /// <param name="Target">The domain name of the target host.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheURI(this DNSClient   DNSClient,
+                                    DomainName       DomainName,
+                                    UInt16           Priority,
+                                    UInt16           Weight,
+                                    URL              Target,
+                                    DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                    TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new URI(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Priority,
+                                Weight,
+                                Target
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                URIRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -71,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Uniform Resource Identifier (URI) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 256;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.URI;
 
         #endregion
 
@@ -92,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The URI of the target, enclosed in double-quote characters in presentation format.
         /// </summary>
-        public String  Target      { get; }
+        public URL     Target      { get; }
 
         #endregion
 
@@ -113,23 +126,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
             this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = DNSTools.ExtractNameUTF8(Stream);
+            this.Target    = URL.Parse(DNSTools.ExtractName(Stream));
 
         }
 
         #endregion
 
-        #region URI(Name, Stream)
+        #region URI(DomainName, Stream)
 
         /// <summary>
         /// Create a new URI resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this URI resource record.</param>
+        /// <param name="DomainName">The domain name of this URI resource record.</param>
         /// <param name="Stream">A stream containing the URI resource record data.</param>
-        public URI(String  Name,
-                   Stream  Stream)
+        public URI(DomainName  DomainName,
+                   Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
@@ -137,31 +150,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
             this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Target    = DNSTools.ExtractName(Stream);
+            this.Target    = URL.Parse(DNSTools.ExtractName(Stream));
 
         }
 
         #endregion
 
-        #region URI(Name, Class, TimeToLive, Priority, Weight, Port, Target)
+        #region URI(DomainName, Class, TimeToLive, Priority, Weight, Port, Target)
 
         /// <summary>
         ///  Create a new DNS URI record.
         /// </summary>
-        /// <param name="Name">The DNS name of this URI record.</param>
+        /// <param name="DomainName">The domain name of this URI record.</param>
         /// <param name="Class">The DNS query class of this URI record.</param>
         /// <param name="TimeToLive">The time to live of this URI record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Target">The domain name of the target host.</param>
-        public URI(String           Name,
+        public URI(DomainName       DomainName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    UInt16           Priority,
                    UInt16           Weight,
-                   String           Target)
+                   URL              Target)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,

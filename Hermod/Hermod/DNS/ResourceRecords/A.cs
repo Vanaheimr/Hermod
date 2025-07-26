@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_A_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, ARecord)
+        #region CacheA(this DNSClient, Name, IPv4Address, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS A record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="ARecord">A DNS A record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      A               ARecord)
+        /// <param name="DomainName">The domain name of this A resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
+        public static void CacheA(this DNSClient   DNSClient,
+                                  DomainName       DomainName,
+                                  IPv4Address      IPv4Address,
+                                  DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                  TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new A(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                IPv4Address
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                ARecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -70,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS A resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 1;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.A;
 
         #endregion
 
@@ -102,17 +103,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region A(Name, Stream)
+        #region A(DomainName, Stream)
 
         /// <summary>
         /// Create a new A resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Stream">A stream containing the A resource record data.</param>
-        public A(String  Name,
-                 Stream  Stream)
+        public A(DomainName  DomainName,
+                 Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
@@ -127,16 +128,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create a new DNS A resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
-        public A(String           Name,
+        public A(DomainName       DomainName,
                  DNSQueryClasses  Class,
                  TimeSpan         TimeToLive,
                  IPv4Address      IPv4Address)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,

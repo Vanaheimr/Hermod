@@ -243,9 +243,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                              TimeSpan?                                                 WriteTimeout                 = null)
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            : base(new IPSocket(IPAddress.Convert((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
+            : base(new IPSocket(IPAddress.FromDotNet((         TCPClient.Client.LocalEndPoint  as IPEndPoint).Address),
                                 IPPort.   Parse  ((UInt16) (TCPClient.Client.LocalEndPoint  as IPEndPoint).Port)),
-                   new IPSocket(IPAddress.Convert((         TCPClient.Client.RemoteEndPoint as IPEndPoint).Address),
+                   new IPSocket(IPAddress.FromDotNet((         TCPClient.Client.RemoteEndPoint as IPEndPoint).Address),
                                 IPPort.   Parse  ((UInt16) (TCPClient.Client.RemoteEndPoint as IPEndPoint).Port)))
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 

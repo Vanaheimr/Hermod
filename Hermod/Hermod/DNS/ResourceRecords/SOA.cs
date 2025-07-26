@@ -17,7 +17,7 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.Mail;
 
 #endregion
 
@@ -30,26 +30,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_SOA_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, SOARecord)
+        #region CacheSOA(this DNSClient, DomainName, Server, Email, Serial, Refresh, Retry, Expire, Minimum, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS SOA record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="SOARecord">A DNS SOA record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      SOA             SOARecord)
+        /// <param name="DomainName">The domain name of this SOA resource record.</param>
+        /// <param name="Server">The name of the DNS server that is authoritative for the domain.</param>
+        /// <param name="Email">The email address of the person responsible for the domain.</param>
+        /// <param name="Serial">The serial number of the zone file, which is incremented each time the zone file is updated.</param>
+        /// <param name="Refresh">The time interval (in seconds) that a secondary DNS server should wait before refreshing its zone file from the primary DNS server.</param>
+        /// <param name="Retry">The time interval (in seconds) that a secondary DNS server should wait before retrying a failed refresh attempt.</param>
+        /// <param name="Expire">The time interval (in seconds) that a secondary DNS server should consider the zone file valid before it expires.</param>
+        /// <param name="Minimum">The minimum time interval (in seconds) that a DNS resolver should cache the SOA record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheSOA(this DNSClient      DNSClient,
+                                    DomainName          DomainName,
+                                    DomainName          Server,
+                                    SimpleEMailAddress  Email,
+                                    Int64               Serial,
+                                    TimeSpan            Refresh,
+                                    TimeSpan            Retry,
+                                    TimeSpan            Expire,
+                                    TimeSpan            Minimum,
+                                    DNSQueryClasses     Class        = DNSQueryClasses.IN,
+                                    TimeSpan?           TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new SOA(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Server,
+                                Email,
+                                Serial,
+                                Refresh,
+                                Retry,
+                                Expire,
+                                Minimum
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                SOARecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -70,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Start of Authority (SOA) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 6;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.SOA;
 
         #endregion
 
@@ -79,37 +104,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The name of the DNS server that is authoritative for the domain.
         /// </summary>
-        public String  Server     { get; }
+        public DomainName          Server     { get; }
 
         /// <summary>
         /// The email address of the person responsible for the domain.
         /// </summary>
-        public String  Email      { get; }
+        public SimpleEMailAddress  Email      { get; }
 
         /// <summary>
         /// The serial number of the zone file, which is incremented each time the zone file is updated.
         /// </summary>
-        public Int64   Serial     { get; }
+        public Int64               Serial     { get; }
 
         /// <summary>
         /// The time interval (in seconds) that a secondary DNS server should wait before refreshing its zone file from the primary DNS server.
         /// </summary>
-        public Int64   Refresh    { get; }
+        public TimeSpan            Refresh    { get; }
 
         /// <summary>
         /// The time interval (in seconds) that a secondary DNS server should wait before retrying a failed refresh attempt.
         /// </summary>
-        public Int64   Retry      { get; }
+        public TimeSpan            Retry      { get; }
 
         /// <summary>
         /// The time interval (in seconds) that a secondary DNS server should consider the zone file valid before it expires.
         /// </summary>
-        public Int64   Expire     { get; }
+        public TimeSpan            Expire     { get; }
 
         /// <summary>
         /// The minimum time interval (in seconds) that a DNS resolver should cache the SOA record.
         /// </summary>
-        public Int64   Minimum    { get; }
+        public TimeSpan            Minimum    { get; }
 
         #endregion
 
@@ -128,52 +153,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Server   = DNSTools.ExtractName(Stream);
-            this.Email    = DNSTools.ExtractName(Stream);
+            this.Server   = DomainName.        Parse(DNSTools.ExtractName(Stream));
+            this.Email    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
             this.Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Refresh  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Retry    = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Expire   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Minimum  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Expire   = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Minimum  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
 
         }
 
         #endregion
 
-        #region SOA(Name, Stream)
+        #region SOA(DomainName, Stream)
 
         /// <summary>
         /// Create a new SOA resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this SOA resource record.</param>
+        /// <param name="DomainName">The domain name of this SOA resource record.</param>
         /// <param name="Stream">A stream containing the SOA resource record data.</param>
-        public SOA(String  Name,
-                   Stream  Stream)
+        public SOA(DomainName  DomainName,
+                   Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
         {
 
-            this.Server   = DNSTools.ExtractName(Stream);
-            this.Email    = DNSTools.ExtractName(Stream);
+            this.Server   = DomainName.        Parse(DNSTools.ExtractName(Stream));
+            this.Email    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
             this.Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Refresh  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Retry    = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Expire   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
-            this.Minimum  = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Expire   = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Minimum  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
 
         }
 
         #endregion
 
-        #region SOA(Name, Class, TimeToLive, ...)
+        #region SOA(DomainName, Class, TimeToLive, ...)
 
         /// <summary>
         /// Create a new DNS A resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="Server">The name of the DNS server that is authoritative for the domain.</param>
@@ -183,18 +208,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Retry">The time interval (in seconds) that a secondary DNS server should wait before retrying a failed refresh attempt.</param>
         /// <param name="Expire">The time interval (in seconds) that a secondary DNS server should consider the zone file valid before it expires.</param>
         /// <param name="Minimum">The minimum time interval (in seconds) that a DNS resolver should cache the SOA record.</param>
-        public SOA(String           Name,
-                   DNSQueryClasses  Class,
-                   TimeSpan         TimeToLive,
-                   String           Server,
-                   String           Email,
-                   Int64            Serial,
-                   Int64            Refresh,
-                   Int64            Retry,
-                   Int64            Expire,
-                   Int64            Minimum)
+        public SOA(DomainName          DomainName,
+                   DNSQueryClasses     Class,
+                   TimeSpan            TimeToLive,
+                   DomainName          Server,
+                   SimpleEMailAddress  Email,
+                   Int64               Serial,
+                   TimeSpan            Refresh,
+                   TimeSpan            Retry,
+                   TimeSpan            Expire,
+                   TimeSpan            Minimum)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive)
@@ -223,7 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public override String ToString()
 
             => String.Concat(
-                   $"SOA(Name: {Name}, ",
+                   $"SOA({DomainName}, ",
                    $"Server: {Server}, ",
                    $"Email: {Email}, ",
                    $"Serial: {Serial}, ",

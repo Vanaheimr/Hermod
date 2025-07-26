@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_MX_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, MXRecord)
+        #region CacheMXRecord(this DNSClient, DomainName, Preference, Exchange, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS MX record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
         /// <param name="DomainName">A domain name.</param>
-        /// <param name="MXRecord">A DNS MX record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      MX              MXRecord)
+        /// <param name="Preference">The preference of this mail exchange.</param>
+        /// <param name="Exchange">The domain name of the mail exchange server.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheMXRecord(this DNSClient   DNSClient,
+                                         DomainName       DomainName,
+                                         Int32            Preference,
+                                         DomainName       Exchange,
+                                         DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                         TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new MX(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Preference,
+                                Exchange
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                MXRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -70,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Mail Exchange (MX) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 15;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.MX;
 
         #endregion
 
@@ -79,12 +83,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The preference of this mail exchange.
         /// </summary>
-        public Int32   Preference    { get; }
+        public Int32       Preference    { get; }
 
         /// <summary>
         /// The domain name of the mail exchange server.
         /// </summary>
-        public String  Exchange      { get; }
+        public DomainName  Exchange      { get; }
 
         #endregion
 
@@ -96,7 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new MX resource record from the given stream.
         /// </summary>
         /// <param name="Stream">A stream containing the MX resource record data.</param>
-        public MX(Stream  Stream)
+        public MX(Stream Stream)
 
             : base(Stream,
                    TypeId)
@@ -104,52 +108,58 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
-            this.Exchange    = DNSTools.ExtractName(Stream);
+
+            this.Exchange    = DomainName.Parse(
+                                   DNSTools.ExtractName(Stream)
+                               );
 
         }
 
         #endregion
 
-        #region MX(Name, Stream)
+        #region MX(DomainName, Stream)
 
         /// <summary>
         /// Create a new MX resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this MX resource record.</param>
+        /// <param name="DomainName">The domain name of this MX resource record.</param>
         /// <param name="Stream">A stream containing the MX resource record data.</param>
-        public MX(String  Name,
-                  Stream  Stream)
+        public MX(DomainName  DomainName,
+                  Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
         {
 
             this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
-            this.Exchange    = DNSTools.ExtractName(Stream);
+
+            this.Exchange    = DomainName.Parse(
+                                   DNSTools.ExtractName(Stream)
+                               );
 
         }
 
         #endregion
 
-        #region MX(Name, Class, TimeToLive, Preference, Exchange)
+        #region MX(DomainName, Class, TimeToLive, Preference, Exchange)
 
         /// <summary>
         /// Create a new DNS A resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="Preference">The preference of this mail exchange.</param>
         /// <param name="Exchange">The domain name of the mail exchange server.</param>
-        public MX(String           Name,
+        public MX(DomainName       DomainName,
                   DNSQueryClasses  Class,
                   TimeSpan         TimeToLive,
                   Int32            Preference,
-                  String           Exchange)
+                  DomainName       Exchange)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive)

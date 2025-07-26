@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System;
 using System.Buffers;
@@ -47,6 +48,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
+        /// <summary>
+        /// Use DNS URI records to resolve the hostname to IP addresses.
+        /// </summary>
+        public Boolean  UseDNSURI    { get; }
 
         #endregion
 
@@ -70,10 +75,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         { }
 
+
+        private HTTPTestClient(URL                      URL,
+                               DNSService?              DNSService       = null,
+                               TimeSpan?                ConnectTimeout   = null,
+                               TimeSpan?                ReceiveTimeout   = null,
+                               TimeSpan?                SendTimeout      = null,
+                               UInt32?                  BufferSize       = null,
+                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                               DNSClient?               DNSClient        = null)
+
+            : base(URL,
+                   DNSService,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient)
+
+        { }
+
+
+        private HTTPTestClient(DomainName               DNSName,
+                               DNSService               DNSService,
+                               Boolean?                 UseDNSURI        = null,
+                               TimeSpan?                ConnectTimeout   = null,
+                               TimeSpan?                ReceiveTimeout   = null,
+                               TimeSpan?                SendTimeout      = null,
+                               UInt32?                  BufferSize       = null,
+                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                               DNSClient?               DNSClient        = null)
+
+            : base(DNSName,
+                   DNSService,
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient)
+
+        {
+
+            this.UseDNSURI = UseDNSURI ?? false;
+
+        }
+
         #endregion
 
 
-        #region ConnectNew (         TCPPort, ConnectTimeout = null, ReceiveTimeout = null, SendTimeout = null, BufferSize = null, LoggingHandler = null)
+        #region ConnectNew (         TCPPort, ...)
 
         /// <summary>
         /// Create a new HTTPTestClient and connect to the given address and TCP port.
@@ -105,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ConnectNew (Address, TCPPort, ConnectTimeout = null, ReceiveTimeout = null, SendTimeout = null, BufferSize = null, LoggingHandler = null)
+        #region ConnectNew (Address, TCPPort, ...)
 
         /// <summary>
         /// Create a new HTTPTestClient and connect to the given address and TCP port.
@@ -137,6 +189,97 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              SendTimeout,
                              BufferSize,
                              LoggingHandler
+                         );
+
+            await client.ConnectAsync();
+
+            return client;
+
+        }
+
+        #endregion
+
+        #region ConnectNew (URL,     DNSService = null, ..., DNSClient = null)
+
+        /// <summary>
+        /// Create a new HTTPTestClient and connect to the given URL.
+        /// </summary>
+        /// <param name="URL">The URL to connect to.</param>
+        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports for the given URL hostname.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<HTTPTestClient>
+
+            ConnectNew(URL                      URL,
+                       DNSService?              DNSService       = null,
+                       TimeSpan?                ConnectTimeout   = null,
+                       TimeSpan?                ReceiveTimeout   = null,
+                       TimeSpan?                SendTimeout      = null,
+                       UInt32?                  BufferSize       = null,
+                       TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                       DNSClient?               DNSClient        = null)
+
+        {
+
+            var client = new HTTPTestClient(
+                             URL,
+                             DNSService,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             BufferSize,
+                             LoggingHandler,
+                             DNSClient
+                         );
+
+            await client.ConnectAsync();
+
+            return client;
+
+        }
+
+        #endregion
+
+        #region ConnectNew (DNSName, DNSService,        ..., DNSClient = null)
+
+        /// <summary>
+        /// Create a new HTTPTestClient and connect to the given URL.
+        /// </summary>
+        /// <param name="DNSName">The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.</param>
+        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports.</param>
+  //      /// <param name="UseDNSURI">Whether to use DNS URI records to resolve the hostname to high available URIs.</param>
+        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
+        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
+        /// <param name="SendTimeout">An optional timeout for sending data.</param>
+        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
+        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
+        public static async Task<HTTPTestClient>
+
+            ConnectNew(DomainName               DNSName,
+                       DNSService               DNSService,
+                       Boolean?                 UseDNSURI        = false,
+                       TimeSpan?                ConnectTimeout   = null,
+                       TimeSpan?                ReceiveTimeout   = null,
+                       TimeSpan?                SendTimeout      = null,
+                       UInt32?                  BufferSize       = null,
+                       TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                       DNSClient?               DNSClient        = null)
+
+        {
+
+            var client = new HTTPTestClient(
+                             DNSName,
+                             DNSService,
+                             UseDNSURI,
+                             ConnectTimeout,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             BufferSize,
+                             LoggingHandler,
+                             DNSClient
                          );
 
             await client.ConnectAsync();
@@ -255,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 #endregion
 
-                IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent(bufferSize * 2);
+                IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent(BufferSize * 2);
                 var buffer = bufferOwner.Memory;
                 var dataLength = 0;
 
@@ -267,10 +410,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     if (dataLength < endOfHTTPHeaderDelimiterLength ||
                         buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
                     {
-                        if (dataLength >= buffer.Length - bufferSize)
+                        if (dataLength >= buffer.Length - BufferSize)
                             throw new Exception("Header too large.");
 
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, bufferSize), Request.CancellationToken);
+                        var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
                         if (bytesRead == 0)
                         {
                             bufferOwner?.Dispose();
@@ -391,7 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override string ToString()
 
-            => $"{nameof(HTTPTestClient)}: {ipAddress}:{tcpPort} (Connected: {IsConnected})";
+            => $"{nameof(HTTPTestClient)}: {RemoteIPAddress}:{RemoteTCPPort} (Connected: {IsConnected})";
 
         #endregion
 

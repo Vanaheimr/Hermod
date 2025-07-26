@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         /// <param name="TestData">The ICMP echo request test data.</param>
         /// <param name="TTL">The time-to-live of the underlying IP packet.</param>
         /// <param name="DNSClient">An optional DNS client to use.</param>
-        public async Task<PingResults> Ping(String                  Hostname,
+        public async Task<PingResults> Ping(DomainName              Hostname,
                                             UInt32                  NumberOfTests        = 3,
                                             TimeSpan?               Timeout              = null,
                                             TestRunResultDelegate?  ResultHandler        = null,
@@ -599,9 +599,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
             socket.Close();
 
-            return new PingResults(pingResults,
-                                   Timeout.Value,
-                                   Timestamp.Now - startTimestamp);
+            return new PingResults(
+                       pingResults,
+                       Timeout.Value,
+                       Timestamp.Now - startTimestamp
+                   );
 
         }
 

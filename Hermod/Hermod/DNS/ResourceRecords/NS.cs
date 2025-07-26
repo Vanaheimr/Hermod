@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_NS_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, NSRecord)
+        #region CacheAAAA(this DNSClient, DomainName, NameServer, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS NS record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="NSRecord">A DNS NS record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      NS              NSRecord)
+        /// <param name="DomainName">The domain name of this AAAA resource record.</param>
+        /// <param name="NameServer">The text of the NS DNS Resource Record, which is the domain name of the authoritative name server.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheNS(this DNSClient   DNSClient,
+                                   DomainName       DomainName,
+                                   DomainName       NameServer,
+                                   DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                   TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new NS(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                NameServer
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                NSRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -70,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Name Server (NS) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 2;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.NS;
 
         #endregion
 
@@ -79,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The text of the NS DNS Resource Record, which is the domain name of the authoritative name server.
         /// </summary>
-        public String  Text    { get; }
+        public DomainName  NameServer    { get; }
 
         #endregion
 
@@ -98,54 +99,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Text = DNSTools.ExtractName(Stream);
+            this.NameServer = DomainName.Parse(
+                                  DNSTools.ExtractName(Stream)
+                              );
 
         }
 
         #endregion
 
-        #region NS(Name, Stream)
+        #region NS(DomainName, Stream)
 
         /// <summary>
         /// Create a new NS resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this NS resource record.</param>
+        /// <param name="DomainName">The domain name of this NS resource record.</param>
         /// <param name="Stream">A stream containing the NS resource record data.</param>
-        public NS(String  Name,
-                  Stream  Stream)
+        public NS(DomainName  DomainName,
+                  Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
         {
-            this.Text = DNSTools.ExtractName(Stream);
+
+            this.NameServer = DomainName.Parse(
+                                  DNSTools.ExtractName(Stream)
+                              );
+
         }
 
         #endregion
 
-        #region NS(Name, Class, TimeToLive, RText)
+        #region NS(DomainName, Class, TimeToLive, NameServer)
 
         /// <summary>
         /// Create a new DNS NS resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this NS resource record.</param>
+        /// <param name="DomainName">The domain name of this NS resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
-        /// <param name="RText">The text of the NS DNS Resource Record, which is the domain name of the authoritative name server.</param>
-        public NS(String           Name,
+        /// <param name="NameServer">The text of the NS DNS Resource Record, which is the domain name of the authoritative name server.</param>
+        public NS(DomainName       DomainName,
                   DNSQueryClasses  Class,
                   TimeSpan         TimeToLive,
-                  String           RText)
+                  DomainName       NameServer)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   RText)
+                   TimeToLive)
 
         {
-            this.Text = RText;
+
+            this.NameServer = NameServer;
+
         }
 
         #endregion
@@ -159,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"{Text}, {base.ToString()}";
+            => $"{NameServer}, {base.ToString()}";
 
         #endregion
 

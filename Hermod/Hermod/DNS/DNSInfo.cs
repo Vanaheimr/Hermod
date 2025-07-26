@@ -21,6 +21,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public class DNSInfo
     {
 
+        private readonly List<ADNSResourceRecord> answers;
+        private readonly List<ADNSResourceRecord> authorities;
+        private readonly List<ADNSResourceRecord> additionalRecords;
+
         #region Properties
 
         /// <summary>
@@ -33,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public Int32                            QueryId               { get; }
 
-        public Boolean                          AuthorativeAnswer     { get; }
+        public Boolean                          AuthoritativeAnswer     { get; }
 
         public Boolean                          IsTruncated           { get; }
 
@@ -44,11 +48,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSResponseCodes                 ResponseCode          { get; }
 
 
-        public IEnumerable<ADNSResourceRecord>  Answers               { get; }
+        public IEnumerable<ADNSResourceRecord>  Answers
+            => answers.AsReadOnly();
 
-        public IEnumerable<ADNSResourceRecord>  Authorities           { get; }
+        public IEnumerable<ADNSResourceRecord>  Authorities
+            => authorities.AsReadOnly();
 
-        public IEnumerable<ADNSResourceRecord>  AdditionalRecords     { get; }
+        public IEnumerable<ADNSResourceRecord>  AdditionalRecords
+            => additionalRecords.AsReadOnly();
 
 
         public Boolean                          IsValid               { get; }
@@ -63,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public DNSInfo(IPSocket                         Origin,
                        Int32                            QueryId,
-                       Boolean                          IsAuthorativeAnswer,
+                       Boolean                          IsAuthoritativeAnswer,
                        Boolean                          IsTruncated,
                        Boolean                          RecursionDesired,
                        Boolean                          RecursionAvailable,
@@ -79,15 +86,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.Origin              = Origin;
             this.QueryId             = QueryId;
-            this.AuthorativeAnswer   = IsAuthorativeAnswer;
+            this.AuthoritativeAnswer   = IsAuthoritativeAnswer;
             this.IsTruncated         = IsTruncated;
             this.RecursionRequested  = RecursionDesired;
             this.RecursionAvailable  = RecursionAvailable;
             this.ResponseCode        = ResponseCode;
 
-            this.Answers             = Answers;
-            this.Authorities         = Authorities;
-            this.AdditionalRecords   = AdditionalRecords;
+            this.answers             = [.. Answers];
+            this.authorities         = [.. Authorities];
+            this.additionalRecords   = [.. AdditionalRecords];
 
             this.IsValid             = IsValid;
             this.IsTimeout           = IsTimeout;
@@ -96,6 +103,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
         #endregion
+
+
+
+        internal void AddAnswers(IEnumerable<ADNSResourceRecord> ResourceRecords)
+        {
+            answers.AddRange(ResourceRecords);
+        }
 
 
         public static DNSInfo TimedOut(IPSocket  Origin,

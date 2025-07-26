@@ -17,7 +17,7 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -30,26 +30,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_AAAA_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, AAAARecord)
+        #region CacheAAAA(this DNSClient, DomainName, IPv6Address, Class = IN, TimeToLive = 365days)
 
         /// <summary>
-        /// Add a DNS A record cache entry.
+        /// Add a DNS AAAA record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="AAAARecord">A DNS AAAA record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      AAAA            AAAARecord)
+        /// <param name="DomainName">The domain name of this AAAA resource record.</param>
+        /// <param name="IPv6Address">The IPv6 address of this resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheAAAA(this DNSClient   DNSClient,
+                                     DomainName       DomainName,
+                                     IPv6Address      IPv6Address,
+                                     DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                     TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new AAAA(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                IPv6Address
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV6(IPPort.DNS),
-                AAAARecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -70,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS AAAA resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 28;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.AAAA;
 
         #endregion
 
@@ -91,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new AAAA resource record from the given stream.
         /// </summary>
         /// <param name="Stream">A stream containing the AAAA resource record data.</param>
-        public AAAA(Stream  Stream)
+        public AAAA(Stream Stream)
 
             : base(Stream,
                    TypeId)
@@ -102,17 +109,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region AAAA(Name, Stream)
+        #region AAAA(DomainName Stream)
 
         /// <summary>
         /// Create a new AAAA resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this AAAA resource record.</param>
+        /// <param name="DomainName">The domain name of this AAAA resource record.</param>
         /// <param name="Stream">A stream containing the AAAA resource record data.</param>
-        public AAAA(String  Name,
-                    Stream  Stream)
+        public AAAA(DomainName  DomainName,
+                    Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
@@ -122,21 +129,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region AAAA(Name, Class, TimeToLive, IPv6Address)
+        #region AAAA(DomainName, Class, TimeToLive, IPv6Address)
 
         /// <summary>
         /// Create a new DNS AAAA resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this AAAA resource record.</param>
+        /// <param name="Name">The domain name of this AAAA resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
-        public AAAA(String           Name,
+        public AAAA(DomainName       DomainName,
                     DNSQueryClasses  Class,
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,

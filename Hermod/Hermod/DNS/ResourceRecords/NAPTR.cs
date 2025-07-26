@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_NAPTR_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, NAPTRRecord)
+        #region AddToCache(this DNSClient, DomainName, Order, Preference, Flags, Services, RegExpr, Replacement, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS NAPTR record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="NAPTRRecord">A DNS NAPTR record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      NAPTR           NAPTRRecord)
+        /// <param name="DomainName">The domain name of this AAAA resource record.</param>
+        /// <param name="Order">The order in which the NAPTR records MUST be processed.</param>
+        /// <param name="Preference">The order in which NAPTR records with the same Order value should be processed.</param>
+        /// <param name="Flags">The flags to control aspects of the rewriting and interpretation of the fields.</param>
+        /// <param name="Services">The service parameters applicable to this delegation path.</param>
+        /// <param name="RegExpr">The substitution expression (regular expression) applied to the original string to construct the next domain name.</param>
+        /// <param name="Replacement">The new value in the case where the regular expression is a simple replacement.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheNAPTR(this DNSClient   DNSClient,
+                                      DomainName       DomainName,
+                                      UInt16           Order,
+                                      UInt16           Preference,
+                                      String           Flags,
+                                      String           Services,
+                                      String           RegExpr,
+                                      String           Replacement,
+                                      DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                      TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new NAPTR(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Order,
+                                Preference,
+                                Flags,
+                                Services,
+                                RegExpr,
+                                Replacement
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                NAPTRRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -71,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Naming Authority Pointer (NAPTR) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 35;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.NAPTR;
 
         #endregion
 
@@ -139,17 +155,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region NAPTR(Name, Stream)
+        #region NAPTR(DomainName, Stream)
 
         /// <summary>
         /// Create a new NAPTR resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this NAPTR resource record.</param>
+        /// <param name="DomainName">The domain name of this NAPTR resource record.</param>
         /// <param name="Stream">A stream containing the NAPTR resource record data.</param>
-        public NAPTR(String  Name,
-                     Stream  Stream)
+        public NAPTR(DomainName  DomainName,
+                     Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
@@ -166,12 +182,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region NAPTR(Name, Class, TimeToLive, Order, Preference, Flags, Services, RegExpr, Replacement)
+        #region NAPTR(DomainName, Class, TimeToLive, Order, Preference, Flags, Services, RegExpr, Replacement)
 
         /// <summary>
         /// Create a new DNS NAPTR record.
         /// </summary>
-        /// <param name="Name">The DNS name of this NAPTR record.</param>
+        /// <param name="DomainName">The domain name of this NAPTR record.</param>
         /// <param name="Class">The DNS query class of this NAPTR record.</param>
         /// <param name="TimeToLive">The time to live of this NAPTR record.</param>
         /// <param name="Order">The order in which the NAPTR records MUST be processed.</param>
@@ -180,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Services">The service parameters applicable to this delegation path.</param>
         /// <param name="RegExpr">The substitution expression (regular expression) applied to the original string to construct the next domain name.</param>
         /// <param name="Replacement">The new value in the case where the regular expression is a simple replacement.</param>
-        public NAPTR(String           Name,
+        public NAPTR(DomainName       DomainName,
                      DNSQueryClasses  Class,
                      TimeSpan         TimeToLive,
                      UInt16           Order,
@@ -190,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      String           RegExpr,
                      String           Replacement)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,

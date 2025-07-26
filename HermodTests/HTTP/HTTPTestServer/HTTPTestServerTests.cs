@@ -20,6 +20,7 @@
 using Microsoft.VisualBasic;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 using org.GraphDefined.Vanaheimr.Illias;
@@ -231,15 +232,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
 
             var file1      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
-            var port1      = httpClient.LocalTCPPort;
+            var port1      = httpClient.CurrentLocalTCPPort;
             var httpBody1  = file1.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file2      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2.txt")));
-            var port2      = httpClient.LocalTCPPort;
+            var port2      = httpClient.CurrentLocalTCPPort;
             var httpBody2  = file2.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file3      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2/test3.txt")));
-            var port3      = httpClient.LocalTCPPort;
+            var port3      = httpClient.CurrentLocalTCPPort;
             var httpBody3  = file3.Item2?.HTTPBodyAsUTF8String ?? "";
 
             Assert.That(httpBody1,  Is.EqualTo("Hello World: 'test1.txt'!"));
@@ -346,15 +347,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
 
             var file1      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
-            var port1      = httpClient.LocalTCPPort;
+            var port1      = httpClient.CurrentLocalTCPPort;
             var httpBody1  = file1.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file2      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2.txt")));
-            var port2      = httpClient.LocalTCPPort;
+            var port2      = httpClient.CurrentLocalTCPPort;
             var httpBody2  = file2.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file3      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2/test3.txt")));
-            var port3      = httpClient.LocalTCPPort;
+            var port3      = httpClient.CurrentLocalTCPPort;
             var httpBody3  = file3.Item2?.HTTPBodyAsUTF8String ?? "";
 
             Assert.That(httpBody1,  Is.EqualTo("Hello World: 'test1.txt'!"));
@@ -504,6 +505,74 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+
+
+
+
+
+
+
+
+
+        #region HTTPTestServer_DNSTest_01()
+
+        [Test]
+        public async Task HTTPTestServer_DNSTest_01()
+        {
+
+            var httpServer  = await HTTPTestServerX.StartNew();
+            var api1        = httpServer.AddHTTPAPI();
+
+            api1.AddHandler(
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:   HTTPMethod.GET,
+                HTTPDelegate: request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                       Content         = $"Hello World: '{filename}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+
+            var dnsClient  = new DNSClient();
+            var domainName = DomainName.Parse("example.local");
+            dnsClient.CacheA   (domainName, IPv4Address.Parse("127.0.0.1"));
+            dnsClient.CacheA   (domainName, IPv4Address.Parse("127.0.0.2"));
+            dnsClient.CacheAAAA(domainName, IPv6Address.Parse("[::1]"));
+
+
+            var r4 = await dnsClient.Query<A>   (domainName);
+            var r6 = await dnsClient.Query<AAAA>(domainName);
+
+            var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
+
+            //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
+            //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
+
+
+            var dd = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test3.txt")));
+            Assert.That(dd.Item2, Is.Not.Null);
+
+            var httpBody = dd.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(httpBody,  Is.EqualTo("Hello World: 'test3.txt'!"));
+
+        }
+
+        #endregion
 
 
     }

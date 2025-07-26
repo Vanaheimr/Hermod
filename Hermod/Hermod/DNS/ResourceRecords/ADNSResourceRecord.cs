@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -34,67 +35,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Properties
 
         /// <summary>
-        /// The DNS name of this resource record.
+        /// The domain name of this resource record.
         /// </summary>
-        public String           Name          { get; }
+        public DomainName          DomainName    { get; }
 
         /// <summary>
         /// The type of this resource record.
         /// </summary>
-        public UInt16           Type          { get; }
+        public DNSResourceRecords  Type          { get; }
 
         /// <summary>
         /// The class of this resource record.
         /// </summary>
-        public DNSQueryClasses  Class         { get; }
+        public DNSQueryClasses     Class         { get; }
 
         /// <summary>
         /// The time to live of this resource record.
         /// </summary>
-        public TimeSpan         TimeToLive    { get; }
+        public TimeSpan            TimeToLive    { get; }
 
         /// <summary>
         /// The end of life of this resource record.
         /// </summary>
         [NoDNSPaketInformation]
-        public DateTime         EndOfLife     { get; }
+        public DateTime            EndOfLife     { get; }
 
         /// <summary>
         /// The source IP address of this resource record, if available.
         /// </summary>
         [NoDNSPaketInformation]
-        public IIPAddress?      Source        { get; }
+        public IIPAddress?         Source        { get; }
 
         /// <summary>
         /// The text representation of this resource record, if available.
         /// </summary>
-        public String?          RText         { get; }
+        public String?             RText         { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        #region (protected) ADNSResourceRecord(DNSStream, Type)
+        #region (protected) ADNSResourceRecord(DNSStream,  Type)
 
         /// <summary>
         /// Create a new DNS resource record from the given DNS stream and type.
         /// </summary>
         /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
         /// <param name="Type">A valid DNS resource record type.</param>
-        protected ADNSResourceRecord(Stream  DNSStream,
-                                     UInt16  Type)
+        protected ADNSResourceRecord(Stream              DNSStream,
+                                     DNSResourceRecords  Type)
         {
 
-            this.Name        = DNSTools.ExtractName(DNSStream);
+            this.DomainName  = DomainName.Parse(
+                                   DNSTools.ExtractName(DNSStream)
+                               );
+
             this.Type        = Type;
 
-            var type         = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
-            if (type != Type)
+            var type         = (UInt16) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            if (type != (UInt16) Type)
                 throw new ArgumentException($"Invalid DNS resource record type! Expected '{Type}', but got '{type}'!");
 
             this.Class       = (DNSQueryClasses)   ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
             this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
-            this.EndOfLife   = Illias.Timestamp.Now + TimeToLive;
+            this.EndOfLife   = Timestamp.Now + TimeToLive;
 
             //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
 
@@ -102,20 +106,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (protected) ADNSResourceRecord(Name, Type, DNSStream)
+        #region (protected) ADNSResourceRecord(DomainName, Type, DNSStream)
 
         /// <summary>
         /// Create a new DNS resource record from the given name, type and DNS stream.
         /// </summary>
-        /// <param name="Name">A DNS name of this resource record.</param>
+        /// <param name="DomainName">A domain name of this resource record.</param>
         /// <param name="Type">A valid DNS resource record type.</param>
         /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
-        protected ADNSResourceRecord(String  Name,
-                                     UInt16  Type,
-                                     Stream  DNSStream)
+        protected ADNSResourceRecord(DomainName          DomainName,
+                                     DNSResourceRecords  Type,
+                                     Stream              DNSStream)
         {
 
-            this.Name        = Name;
+            this.DomainName  = DomainName;
             this.Type        = Type;
             this.Class       = (DNSQueryClasses)   ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
             this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
@@ -127,41 +131,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive)
+        #region (protected) ADNSResourceRecord(DomainName, Type, Class, TimeToLive, RText = null)
 
-        /// <summary>
-        /// Create a new DNS resource record with the given name, type, class and time to live.
-        /// </summary>
-        /// <param name="Name">A DNS name of this resource record.</param>
-        /// <param name="Type">A valid DNS resource record type.</param>
-        /// <param name="Class">A valid DNS query class.</param>
-        /// <param name="TimeToLive">A time span representing the time to live of this resource record.</param>
-        protected ADNSResourceRecord(String           Name,
-                                     UInt16           Type,
-                                     DNSQueryClasses  Class,
-                                     TimeSpan         TimeToLive)
+        protected ADNSResourceRecord(DomainName          DomainName,
+                                     DNSResourceRecords  Type,
+                                     DNSQueryClasses     Class,
+                                     TimeSpan            TimeToLive,
+                                     String?             RText = null)
         {
 
-            this.Name        = Name;
-            this.Type        = Type;
-            this.Class       = Class;
-            this.TimeToLive  = TimeToLive;
-            this.EndOfLife   = Timestamp.Now + TimeToLive;
-
-        }
-
-        #endregion
-
-        #region (protected) ADNSResourceRecord(Name, Type, Class, TimeToLive, RText)
-
-        protected ADNSResourceRecord(String           Name,
-                                     UInt16           Type,
-                                     DNSQueryClasses  Class,
-                                     TimeSpan         TimeToLive,
-                                     String           RText)
-        {
-
-            this.Name        = Name;
+            this.DomainName  = DomainName;
             this.Type        = Type;
             this.Class       = Class;
             this.TimeToLive  = TimeToLive;
@@ -183,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => String.Concat(
 
-                   $"Name={Name}, Type={Type}, Class={Class}, TTL={TimeToLive.TotalSeconds} seconds, EndOfLife='{EndOfLife}'",
+                   $"DomainName={DomainName}, Type={Type}, Class={Class}, TTL={TimeToLive.TotalSeconds} seconds, EndOfLife='{EndOfLife}'",
 
                    Source is not null
                        ? $"Source = {Source}"

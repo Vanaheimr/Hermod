@@ -17,14 +17,14 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
-using System.Net.NetworkInformation;
-using System.Reflection;
-using System.Diagnostics;
-using System.Collections.Concurrent;
-
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Reflection;
 
 #endregion
 
@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private readonly ConcurrentDictionary<UInt16, ConstructorInfo>  rrLookup;
+        private readonly ConcurrentDictionary<DNSResourceRecords, ConstructorInfo>  rrLookup;
 
         #endregion
 
@@ -201,12 +201,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                  type.IsSubclassOf(typeof(ADNSResourceRecord))))
             {
 
-                TypeIdField = actualType.GetField("TypeId")                                 ?? throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was not found!");
-                Constructor = actualType.GetConstructor([ typeof(String), typeof(Stream) ]) ?? throw new ArgumentException($"Constructor<String, Stream> of type '{actualType.Name}' was not found!");
+                TypeIdField = actualType.GetField      ("TypeId")                               ?? throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was not found!");
+                Constructor = actualType.GetConstructor([ typeof(DomainName), typeof(Stream) ]) ?? throw new ArgumentException($"Constructor<DomainName, Stream> of type '{actualType.Name}' was not found!");
 
                 var actualTypeId = TypeIdField.GetValue(actualType);
 
-                if (actualTypeId is UInt16 id)
+                if (actualTypeId is DNSResourceRecords id)
                     rrLookup.TryAdd(id, Constructor);
 
                 else
@@ -311,16 +311,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         private ADNSResourceRecord? ReadResourceRecord(Stream DNSStream)
         {
 
-            var ResourceName  = DNSTools.ExtractName(DNSStream);
-            var TypeId        = (UInt16) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            var resourceName  = DNSTools.ExtractName(DNSStream);
+            var typeId        = (DNSResourceRecords) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
 
-            if (rrLookup.TryGetValue(TypeId, out var constructor))
+            if (rrLookup.TryGetValue(typeId, out var constructor))
                 return (ADNSResourceRecord) constructor.Invoke([
-                                                ResourceName,
+                                                resourceName,
                                                 DNSStream
                                             ]);
 
-            Debug.WriteLine("Unknown DNS resource record '" + TypeId + "' for '" + ResourceName + "' received!");
+            Debug.WriteLine($"Unknown DNS resource record '{typeId}' for '{resourceName}' received!");
 
             return null;
 
@@ -335,8 +335,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         /// <param name="DNSInformation">The DNS information</param>
-        private void AddToCache(String    DomainName,
-                                DNSInfo   DNSInformation)
+        private void AddToCache(DomainName  DomainName,
+                                DNSInfo     DNSInformation)
         {
 
             if (DomainName.IsNullOrEmpty() || DNSInformation == null)
@@ -352,10 +352,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query(DomainName, params ResourceRecordTypes)
+        #region Query(DomainName, ResourceRecordTypes, CancellationToken = default)
 
-        public Task<DNSInfo> Query(String           DomainName,
-                                   params UInt16[]  ResourceRecordTypes)
+        public Task<DNSInfo> Query(DomainName                       DomainName,
+                                   IEnumerable<DNSResourceRecords>  ResourceRecordTypes,
+                                   CancellationToken                CancellationToken   = default)
         {
 
             #region Initial checks
@@ -368,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                          IPPort.DNS
                                                      ),
                                QueryId:              0,
-                               IsAuthorativeAnswer:  false,
+                               IsAuthoritativeAnswer:  false,
                                IsTruncated:          false,
                                RecursionDesired:     true,
                                RecursionAvailable:   false,
@@ -382,8 +383,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            )
                       );
 
-            if (ResourceRecordTypes.Length == 0)
-                ResourceRecordTypes = [ 255 ];
+            var resourceRecordTypes = ResourceRecordTypes.ToList();
+
+            if (resourceRecordTypes.Count == 0)
+                resourceRecordTypes = [ DNSResourceRecords.Any ];
 
             #endregion
 
@@ -395,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var resourceRecords = cachedResults.Answers.
-                                          Where  (resourceRecord => ResourceRecordTypes.Contains(resourceRecord.Type)).
+                                          Where  (resourceRecord => resourceRecordTypes.Contains(resourceRecord.Type)).
                                           ToArray();
 
                 if (resourceRecords.Length != 0)
@@ -409,7 +412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsQuery = new DNSQuery(
                                DomainName,
                                RecursionDesired,
-                               ResourceRecordTypes
+                               [.. resourceRecordTypes]
                            );
 
             #region Query all DNS server(s) in parallel...
@@ -446,7 +449,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                                  dnsServer.Port
                                                              ),
                                        QueryId:              dnsQuery.TransactionId,
-                                       IsAuthorativeAnswer:  false,
+                                       IsAuthoritativeAnswer:  false,
                                        IsTruncated:          false,
                                        RecursionDesired:     false,
                                        RecursionAvailable:   false,
@@ -549,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                           IPPort.DNS
                                                      ),
                                QueryId:              0,
-                               IsAuthorativeAnswer:  false,
+                               IsAuthoritativeAnswer:  false,
                                IsTruncated:          false,
                                RecursionDesired:     true,
                                RecursionAvailable:   false,
@@ -567,16 +570,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>(DomainName)
+        #region Query<T>(DomainName, CancellationToken = default)
 
-        public async Task<IEnumerable<T>> Query<T>(String DomainName)
+        public async Task<IEnumerable<T>> Query<T>(DomainName         DomainName,
+                                                   CancellationToken  CancellationToken   = default)
+
             where T : ADNSResourceRecord
+
         {
 
-            var typeIdField  = typeof(T).GetField("TypeId") ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
+            var typeIdField  = typeof(T).GetField("TypeId")
+                                   ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
+
             var dnsQuery     = await Query(
                                          DomainName,
-                                         [ (UInt16) typeIdField.GetValue(typeof(T)) ]
+                                         [ (DNSResourceRecords) typeIdField.GetValue(typeof(T)) ]
                                      ).ConfigureAwait(false);
 
             return dnsQuery.Answers.
@@ -589,7 +597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query<T1, T2>(DomainName, Mapper)
 
-        public async Task<IEnumerable<T2>> Query<TRR, T2>(String         DomainName,
+        public async Task<IEnumerable<T2>> Query<TRR, T2>(DomainName     DomainName,
                                                           Func<TRR, T2>  Mapper)
 
             where TRR : ADNSResourceRecord
@@ -597,6 +605,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => (await Query<TRR>(DomainName)).Select(v => Mapper(v));
 
         #endregion
+
+
+        public async Task<IEnumerable<IIPAddress>>
+
+            QueryURL(URL                RemoteURL,
+                     CancellationToken  CancellationToken   = default)
+
+        {
+
+            var ipv4AddressLookupTask = Query<A>   (RemoteURL.Hostname.Name, CancellationToken).
+                                        ContinueWith(query => query.Result.Select(ARecord    => ARecord.   IPv4Address));
+
+            var ipv6AddressLookupTask = Query<AAAA>(RemoteURL.Hostname.Name, CancellationToken).
+                                        ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+
+            await Task.WhenAll(
+                      ipv4AddressLookupTask,
+                      ipv6AddressLookupTask
+                  ).ConfigureAwait(false);
+
+
+            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
+                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
+
+        }
+
 
 
         #region (override) ToString()

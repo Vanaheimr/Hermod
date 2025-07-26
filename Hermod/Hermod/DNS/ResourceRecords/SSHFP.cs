@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -62,26 +56,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_SSHFP_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, SSHFPRecord)
+        #region CacheSSHFP(this DNSClient, DomainName, Algorithm, Type, Fingerprint, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS SSHFP record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="SSHFPRecord">A DNS SSHFP record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      SSHFP             SSHFPRecord)
+        /// <param name="DomainName">The domain name of this SSHFP resource record.</param>
+        /// <param name="Algorithm">The SSH Public Key Fingerprint algorithm.</param>
+        /// <param name="Type">The SSH Public Key Fingerprint type.</param>
+        /// <param name="Fingerprint">The SSH Public Key Fingerprint.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheSSHFP(this DNSClient         DNSClient,
+                                      DomainName             DomainName,
+                                      SSHFP_Algorithm        Algorithm,
+                                      SSHFP_FingerprintType  Type,
+                                      String                 Fingerprint,
+                                      DNSQueryClasses        Class        = DNSQueryClasses.IN,
+                                      TimeSpan?              TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new SSHFP(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Algorithm,
+                                Type,
+                                Fingerprint
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                SSHFPRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -103,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS SSH Public Key Fingerprint (SSHFP) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 44;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.SSHFP;
 
         #endregion
 
@@ -161,17 +168,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region SSHFP(Name, Stream)
+        #region SSHFP(DomainName, Stream)
 
         /// <summary>
         /// Create a new SSHFP resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this SSHFP resource record.</param>
+        /// <param name="DomainName">The domain name of this SSHFP resource record.</param>
         /// <param name="Stream">A stream containing the SSHFP resource record data.</param>
-        public SSHFP(String  Name,
-                     Stream  Stream)
+        public SSHFP(DomainName  DomainName,
+                     Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
@@ -197,25 +204,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region SSHFP(Name, Class, TimeToLive, Algorithm, Type, Fingerprint)
+        #region SSHFP(DomainName, Class, TimeToLive, Algorithm, Type, Fingerprint)
 
         /// <summary>
         /// Create a new SSHFP resource record with the given parameters.
         /// </summary>
-        /// <param name="Name">The DNS name of this SSHFP resource record.</param>
+        /// <param name="DomainName">The domain name of this SSHFP resource record.</param>
         /// <param name="Class">The DNS query class of this SSHFP resource record.</param>
         /// <param name="TimeToLive">The time to live of this SSHFP resource record.</param>
         /// <param name="Algorithm">The SSH Public Key Fingerprint algorithm.</param>
         /// <param name="Type">The SSH Public Key Fingerprint type.</param>
         /// <param name="Fingerprint">The SSH Public Key Fingerprint.</param>
-        public SSHFP(String                 Name,
+        public SSHFP(DomainName             DomainName,
                      DNSQueryClasses        Class,
                      TimeSpan               TimeToLive,
                      SSHFP_Algorithm        Algorithm,
                      SSHFP_FingerprintType  Type,
                      String                 Fingerprint)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,

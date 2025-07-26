@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override string ToString()
 
-            => $"{nameof(TCPTestClient)}: {ipAddress}:{tcpPort} (Connected: {IsConnected})";
+            => $"{nameof(TCPTestClient)}: {RemoteIPAddress}:{RemoteTCPPort} (Connected: {IsConnected})";
 
         #endregion
 

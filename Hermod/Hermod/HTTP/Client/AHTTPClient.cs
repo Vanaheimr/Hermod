@@ -45,13 +45,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         public TimeSpan               Elapsed
-            => Timestamp.Now - RequestTimestamp;
+            => Timestamp.Now - Start;
 
         public List<Elapsed<String>>  Errors                  { get; }
 
 
-        public DateTime               RequestTimestamp        { get; }
-        public TimeSpan               Start                   { get; }
+        public DateTimeOffset         Start                   { get; }
+        public TimeSpan?              Request                 { get; }
         public TimeSpan?              RequestLogging1         { get; internal set; }
         public TimeSpan?              RequestLogging2         { get; internal set; }
         public TimeSpan?              DNSLookup               { get; internal set; }
@@ -63,19 +63,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public UInt64?                RequestBodyLength       { get; internal set; }
         public TimeSpan?              WriteRequestBody        { get; internal set; }
         public List<Elapsed<UInt64>>  DataReceived            { get; }
-        public DateTime               ResponseTimestamp       { get; internal set; }
+        public DateTimeOffset         ResponseTimestamp       { get; internal set; }
         public TimeSpan?              ResponseHeaderParsed    { get; internal set; }
         public TimeSpan?              ResponseLogging1        { get; internal set; }
         public TimeSpan?              ResponseLogging2        { get; internal set; }
 
 
 
-        public HTTPClientTimings(HTTPRequest HTTPRequest)
+        public HTTPClientTimings(HTTPRequest? HTTPRequest = null)
         {
-            this.DataReceived      = new List<Elapsed<UInt64>>();
-            this.Errors            = new List<Elapsed<String>>();
-            this.RequestTimestamp  = HTTPRequest.Timestamp;
-            this.Start             = Timestamp.Now - RequestTimestamp;
+
+            var now            = Timestamp.Now;
+
+            this.Start         = HTTPRequest is not null
+                                     ? HTTPRequest.Timestamp < now
+                                           ? HTTPRequest.Timestamp
+                                           : now
+                                     : now;
+
+            this.Request       = HTTPRequest is not null
+                                     ? HTTPRequest.Timestamp - Start
+                                     : null;
+
+            this.DataReceived  = [];
+            this.Errors        = [];
+
         }
 
         public void AddHTTPResponse(HTTPResponse HTTPResponse)
@@ -87,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public void AddError(String Error)
         {
-            Errors.Add(new Elapsed<String>(Timestamp.Now - RequestTimestamp, Error));
+            Errors.Add(new Elapsed<String>(Timestamp.Now - Start, Error));
         }
 
 
@@ -99,21 +111,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override String ToString()
 
             => String.Concat(
-                    "RequestTimestamp: ",     RequestTimestamp.                     ToISO8601(),                             " > ",
-                    "Start: ",                Start.                                TotalMilliseconds.ToString("F2")       , " > ",
-                    "RequestLogging1: ",      RequestLogging1?.                     TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "RequestLogging2: ",      RequestLogging2?.                     TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "DNSLookup: ",            DNSLookup?.                           TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "Connected: ",            Connected?.                           TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "TLSHandshake: ",         TLSHandshake?.                        TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "RestartCounter: ",       RestartCounter - 1,                                                            " > ",
-                    "WriteRequestHeader: ",   WriteRequestHeader?.                  TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestHeaderLength} bytes) > ",
-                    "WriteRequestBody: ",     WriteRequestBody?.                    TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestBodyLength} bytes) > ",
+                    "Start: ",                Start.                                      ToISO8601(),                             " > ",
+                    "Request: ",              Request?.                                   TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "RequestLogging1: ",      RequestLogging1?.                           TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "RequestLogging2: ",      RequestLogging2?.                           TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "DNSLookup: ",            DNSLookup?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "Connected: ",            Connected?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "TLSHandshake: ",         TLSHandshake?.                              TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "RestartCounter: ",       RestartCounter - 1,                                                                  " > ",
+                    "WriteRequestHeader: ",   WriteRequestHeader?.                        TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestHeaderLength} bytes) > ",
+                    "WriteRequestBody: ",     WriteRequestBody?.                          TotalMilliseconds.ToString("F2") ?? "-", $" ({RequestBodyLength} bytes) > ",
                     DataReceived.Select(elapsed => $"DataReceived: {elapsed.Time.TotalMilliseconds:F2} ({elapsed.Value} bytes)").AggregateWith(" > "), " > ",
-                    "ResponseTimestamp: ",   (ResponseTimestamp - RequestTimestamp).TotalMilliseconds.ToString("F2"), " > ",
-                    "ResponseHeaderParsed: ", ResponseHeaderParsed?.                TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "ResponseLogging1: ",     ResponseLogging1?.                    TotalMilliseconds.ToString("F2") ?? "-", " > ",
-                    "ResponseLogging2: ",     ResponseLogging2?.                    TotalMilliseconds.ToString("F2") ?? "-"
+                    "ResponseTimestamp: ",   (ResponseTimestamp - Start - Request!.Value).TotalMilliseconds.ToString("F2"), " > ",
+                    "ResponseHeaderParsed: ", ResponseHeaderParsed?.                      TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "ResponseLogging1: ",     ResponseLogging1?.                          TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "ResponseLogging2: ",     ResponseLogging2?.                          TotalMilliseconds.ToString("F2") ?? "-"
                 );
 
     }
@@ -905,7 +917,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     await Task.WhenAll(RequestLogDelegate.GetInvocationList().
                                        Cast<ClientRequestLogHandler>().
                                        Select(async e => {
-                                           await e(timings.RequestTimestamp + timings.RequestLogging1.Value,
+                                           await e((timings.Start + timings.RequestLogging1.Value).DateTime,
                                                    this,
                                                    Request);
                                        })).
@@ -953,10 +965,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 RemoteIPAddress = IPv6Address.Localhost;
 
                             else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
+                                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name.FullName);
 
                             else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
+                                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name.FullName);
 
                             #endregion
 
@@ -966,11 +978,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 var IPv4AddressLookupTask = DNSClient.
-                                                                Query<A>   (RemoteURL.Hostname.Name).
+                                                                Query<A>   (RemoteURL.Hostname.Name, CancellationToken).
                                                                 ContinueWith(query => query.Result.Select(ARecord    => ARecord.   IPv4Address));
 
                                 var IPv6AddressLookupTask = DNSClient.
-                                                                Query<AAAA>(RemoteURL.Hostname.Name).
+                                                                Query<AAAA>(RemoteURL.Hostname.Name, CancellationToken).
                                                                 ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
 
                                 await Task.WhenAll(IPv4AddressLookupTask,
@@ -1136,7 +1148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
+                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name.FullName,
                                                                           clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
                                                                           enabledSslProtocols:         TLSProtocol,
                                                                           checkCertificateRevocation:  false);// true);
@@ -1859,7 +1871,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (ResponseLogDelegate is not null)
                     await Task.WhenAll(ResponseLogDelegate.GetInvocationList().
                                        Cast<ClientResponseLogHandler>().
-                                       Select(e => e(timings.RequestTimestamp + timings.ResponseLogging1.Value,
+                                       Select(e => e((timings.Start + timings.ResponseLogging1.Value).DateTime,
                                                      this,
                                                      Request,
                                                      Response))).

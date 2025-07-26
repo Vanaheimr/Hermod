@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         /// <param name="CancellationToken"></param>
-        public SMTPClient(String                              RemoteHost,
+        public SMTPClient(DomainName                          RemoteHost,
                           IPPort                              RemotePort,
                           String?                             Login                       = null,
                           String?                             Password                    = null,
@@ -150,23 +150,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         #region (private) GenerateMessageId(Mail, DomainPart = null)
 
-        private Message_Id GenerateMessageId(EMail    Mail,
-                                             String?  DomainPart   = null)
+        private Message_Id GenerateMessageId(EMail        Mail,
+                                             DomainName?  DomainPart   = null)
         {
-
-            DomainPart       = DomainPart?.Trim();
 
             var randomBytes  = new Byte[16];
             Random.Shared.NextBytes(randomBytes);
 
-            var hashedBytes  = SHA256.Create().ComputeHash(randomBytes.
-                                                               Concat(Mail.From.   ToString(). ToUTF8Bytes()).
-                                                               Concat(Mail.Subject.            ToUTF8Bytes()).
-                                                               Concat(Mail.Date.   ToISO8601().ToUTF8Bytes()).
-                                                               ToArray());
+            var hashedBytes  = SHA256.HashData([
+                                   .. randomBytes,
+                                   .. Mail.From.   ToString(). ToUTF8Bytes(),
+                                   .. Mail.Subject.            ToUTF8Bytes(),
+                                   .. Mail.Date.   ToISO8601().ToUTF8Bytes(),
+                               ]);
 
-            return Message_Id.Parse(hashedBytes.ToHexString()[..24],
-                                    DomainPart is not null ? DomainPart : RemoteHost);
+            return Message_Id.Parse(
+                       hashedBytes.ToHexString()[..24],
+                       DomainPart is not null
+                           ? DomainPart.FullName
+                           : RemoteHost.FullName);
 
         }
 

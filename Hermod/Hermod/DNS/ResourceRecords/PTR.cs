@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_PTR_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, PTRRecord)
+        #region CachePTR(this DNSClient, DomainName, Target, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS PTR record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="PTRRecord">A DNS PTR record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      PTR             PTRRecord)
+        /// <param name="DomainName">The domain name of this PTR resource record.</param>
+        /// <param name="Target">The text of this DNS Pointer (PTR) resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CachePTR(this DNSClient   DNSClient,
+                                    DomainName       DomainName,
+                                    DomainName       Target,
+                                    DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                    TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new PTR(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                Target
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                PTRRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -60,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
     /// <summary>
-    /// The DNS Pointer (PTR) resource record type.
+    /// The DNS Pointer (PTR) resource record type, e.g. used for reverse DNS lookups.
     /// </summary>
     public class PTR : ADNSResourceRecord
     {
@@ -70,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Pointer (PTR) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 12;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.PTR;
 
         #endregion
 
@@ -79,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The text of this DNS Pointer (PTR) resource record.
         /// </summary>
-        public String  Text    { get; }
+        public DomainName  Target    { get; }
 
         #endregion
 
@@ -97,53 +98,60 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TypeId)
 
         {
-            this.Text = DNSTools.ExtractName(Stream);
+            this.Target = DomainName.Parse(
+                              DNSTools.ExtractName(Stream)
+                          );
         }
 
         #endregion
 
-        #region PTR(Name, Stream)
+        #region PTR(DomainName, Stream)
 
         /// <summary>
         /// Create a new PTR resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this PTR resource record.</param>
+        /// <param name="DomainName">The domain name of this PTR resource record.</param>
         /// <param name="Stream">A stream containing the PTR resource record data.</param>
-        public PTR(String  Name,
-                   Stream  Stream)
+        public PTR(DomainName  DomainName,
+                   Stream      Stream)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Stream)
 
         {
-            this.Text = DNSTools.ExtractName(Stream);
+
+            this.Target = DomainName.Parse(
+                              DNSTools.ExtractName(Stream)
+                          );
+
         }
 
         #endregion
 
-        #region PTR(Name, Class, TimeToLive, RText)
+        #region PTR(DomainName, Class, TimeToLive, Target)
 
         /// <summary>
         /// Create a new DNS A resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this A resource record.</param>
+        /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
-        /// <param name="RText">The text of this DNS Pointer (PTR) resource record.</param>
-        public PTR(String           Name,
+        /// <param name="Target">The text of this DNS Pointer (PTR) resource record.</param>
+        public PTR(DomainName       DomainName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
-                   String           RText)
+                   DomainName       Target)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   RText)
+                   TimeToLive)
 
         {
-            this.Text = RText;
+
+            this.Target = Target;
+
         }
 
         #endregion
@@ -157,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"{Text}, {base.ToString()}";
+            => $"{Target}, {base.ToString()}";
 
         #endregion
 

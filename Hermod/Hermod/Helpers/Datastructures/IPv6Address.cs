@@ -17,10 +17,10 @@
 
 #region Usings
 
-using System.Globalization;
-
-using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
+using System.Globalization;
 
 #endregion
 
@@ -275,7 +275,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Text,     out IPv4Address)
+        #region TryParse(Text,       out IPv4Address)
 
         /// <summary>
         /// Try to parse the given text as an IPv6 address.
@@ -288,6 +288,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             // 2001:0db8:85a3:08d3:1319:8a2e:0370:7344
             // fd00::9ec7:a6ff:feb7:c6 => fd00:0000:0000:0000:9ec7:a6ff:feb7:00c6
             IPv6Address = default;
+
+            Text = Text.Trim().TrimStart('[').TrimEnd(']').Trim();
 
             if (Text.IndexOf(':') < 0)
                 return false;
@@ -371,7 +373,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Hostname, out IPv6Address)
+        #region TryParse(Hostname,   out IPv6Address)
 
         /// <summary>
         /// Try to parse the given HTTP hostname as an IPv6 address.
@@ -380,7 +382,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6Address">The parsed IPv6 address.</param>
         public static Boolean TryParse(HTTPHostname Hostname, out IPv6Address IPv6Address)
 
-            => TryParse(Hostname.Name, out IPv6Address);
+            => TryParse(Hostname.Name.FullName, out IPv6Address);
+
+        #endregion
+
+        #region TryParse(DomainName, out IPv6Address)
+
+        /// <summary>
+        /// Try to parse the given domain name as an IPv6 address.
+        /// </summary>
+        /// <param name="DomainName">A domain name.</param>
+        /// <param name="IPv6Address">The parsed IPv6 address.</param>
+        public static Boolean TryParse(DomainName DomainName, out IPv6Address IPv6Address)
+
+            => TryParse(DomainName.FullName, out IPv6Address);
 
         #endregion
 

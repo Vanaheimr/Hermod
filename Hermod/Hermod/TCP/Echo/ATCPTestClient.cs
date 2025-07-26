@@ -17,9 +17,10 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using System;
-using System.Buffers;
+using org.GraphDefined.Vanaheimr.Illias;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -31,6 +32,61 @@ using System.Text;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    #region (class) HTTPClientConnectTimings
+
+    public class HTTPClientConnectTimings
+    {
+
+        public TimeSpan               Elapsed
+            => Timestamp.Now - Start;
+
+        public List<Elapsed<String>>  Errors                  { get; }
+
+
+        public DateTimeOffset         Start                   { get; }
+        public TimeSpan?              DNSSRVLookup            { get; internal set; }
+        public TimeSpan?              DNSLookup               { get; internal set; }
+        public TimeSpan?              Connected               { get; internal set; }
+        public TimeSpan?              TLSHandshake            { get; internal set; }
+        public Byte                   RestartCounter          { get; internal set; }
+
+
+        public HTTPClientConnectTimings()
+        {
+
+            this.Start         = Timestamp.Now;
+            this.Errors        = [];
+
+        }
+
+
+        public void AddError(String Error)
+        {
+            Errors.Add(new Elapsed<String>(Timestamp.Now - Start, Error));
+        }
+
+
+        public String ErrorsAsString()
+
+            => Errors.Select(elapsed => elapsed.Time.TotalMilliseconds.ToString("F2") + ": " + elapsed.Value).AggregateWith(Environment.NewLine);
+
+
+        public override String ToString()
+
+            => String.Concat(
+                    "Start: ",                Start.                                      ToISO8601(),                             " > ",
+                    "DNS SRV Lookup: ",       DNSSRVLookup?.                              TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "DNS Lookup: ",           DNSLookup?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "Connected: ",            Connected?.                                 TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "TLSHandshake: ",         TLSHandshake?.                              TotalMilliseconds.ToString("F2") ?? "-", " > ",
+                    "RestartCounter: ",       RestartCounter - 1,                                                                  " > "
+                );
+
+    }
+
+    #endregion
+
+
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
@@ -40,17 +96,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        protected static readonly Byte[] endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
-        protected const           Byte   endOfHTTPHeaderDelimiterLength   = 4;
+        protected static readonly Byte[]                    endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
+        protected const           Byte                      endOfHTTPHeaderDelimiterLength   = 4;
 
-        public static readonly TimeSpan  DefaultConnectTimeout  = TimeSpan.FromSeconds(5);
-        public static readonly TimeSpan  DefaultReceiveTimeout  = TimeSpan.FromSeconds(5);
-        public static readonly TimeSpan  DefaultSendTimeout     = TimeSpan.FromSeconds(5);
-        public const           Int32     DefaultBufferSize      = 4096;
+        public static readonly    TimeSpan                  DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
+        public static readonly    TimeSpan                  DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
+        public static readonly    TimeSpan                  DefaultSendTimeout               = TimeSpan.FromSeconds(5);
+        public const              Int32                     DefaultBufferSize                = 4096;
 
-        protected readonly  TCPEchoLoggingDelegate?   loggingHandler;
-        protected           TcpClient?                tcpClient;
-        protected           CancellationTokenSource?  cts;
+        protected readonly        TCPEchoLoggingDelegate?   loggingHandler;
+        protected                 TcpClient?                tcpClient;
+        protected                 CancellationTokenSource?  cts;
+
+        private                   IIPAddress?               remoteIPAddress;
 
         #endregion
 
@@ -66,71 +124,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local IP end point of the connected echo server.
         /// </summary>
-        public IPEndPoint?  LocalEndPoint
+        public IPEndPoint?  CurrentLocalEndPoint
             => tcpClient?.Client.LocalEndPoint as IPEndPoint;
 
         /// <summary>
         /// The local TCP port of the connected echo server.
         /// </summary>
-        public UInt16?      LocalTCPPort
+        public UInt16?      CurrentLocalTCPPort
 
-            => LocalEndPoint is not null
-                   ? (UInt16) LocalEndPoint.Port
+            => CurrentLocalEndPoint is not null
+                   ? (UInt16) CurrentLocalEndPoint.Port
                    : null;
 
         /// <summary>
         /// The local IP address of the connected echo server.
         /// </summary>
-        public IIPAddress?  LocalIPAddress
+        public IIPAddress?  CurrentLocalIPAddress
 
-            => LocalEndPoint is not null
-                   ? IPAddress.Parse(LocalEndPoint.Address.GetAddressBytes())
+            => CurrentLocalEndPoint is not null
+                   ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
                    : null;
 
 
         /// <summary>
         /// The remote IP end point of the connected echo server.
         /// </summary>
-        public IPEndPoint?  RemoteEndPoint
+        public IPEndPoint?  CurrentRemoteEndPoint
             => tcpClient?.Client.RemoteEndPoint as IPEndPoint;
 
         /// <summary>
         /// The remote TCP port of the connected echo server.
         /// </summary>
-        public UInt16?      RemoteTCPPort
+        public UInt16?      CurrentRemoteTCPPort
 
-            => RemoteEndPoint is not null
-                   ? (UInt16) RemoteEndPoint.Port
+            => CurrentRemoteEndPoint is not null
+                   ? (UInt16) CurrentRemoteEndPoint.Port
                    : null;
 
         /// <summary>
         /// The remote IP address of the connected echo server.
         /// </summary>
-        public IIPAddress?  RemoteIPAddress
+        public IIPAddress?  CurrentRemoteIPAddress
 
-            => RemoteEndPoint is not null
-                   ? IPAddress.Parse(RemoteEndPoint.Address.GetAddressBytes())
+            => CurrentRemoteEndPoint is not null
+                   ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
                    : null;
 
-
-        public  IIPAddress               ipAddress          { get; }
-        public  IPPort                   tcpPort            { get; }
+        public  URL?                     RemoteURL          { get; }
+        public  IIPAddress?              RemoteIPAddress    { get;  }
+        public  IPPort?                  RemoteTCPPort      { get; }
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
         public  TimeSpan                 SendTimeout        { get; }
-        public  Int32                    bufferSize         { get; }
+        public  Int32                    BufferSize         { get; }
+
+
+        /// <summary>
+        /// The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.
+        /// </summary>
+        public DomainName?               DNSName            { get; }
+
+        /// <summary>
+        /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
+        /// </summary>
+        public DNSService?               DNSService         { get; }
+
+        /// <summary>
+        /// Prefer IPv4 instead of IPv6.
+        /// </summary>
+        public Boolean                   PreferIPv4         { get; }
+
+        /// <summary>
+        /// The DNS client defines which DNS servers to use.
+        /// </summary>
+        public DNSClient?                DNSClient          { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        protected ATCPTestClient(IIPAddress               Address,
-                                 IPPort                   TCPPort,
-                                 TimeSpan?                ConnectTimeout   = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        #region (private)   ATCPTestClient(...)
+
+        private ATCPTestClient(TimeSpan?                ConnectTimeout   = null,
+                               TimeSpan?                ReceiveTimeout   = null,
+                               TimeSpan?                SendTimeout      = null,
+                               UInt32?                  BufferSize       = null,
+                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                               DNSClient?               DNSClient        = null)
         {
 
             if (ConnectTimeout.HasValue && ConnectTimeout.Value.TotalMilliseconds > Int32.MaxValue)
@@ -142,19 +222,100 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (SendTimeout.   HasValue && SendTimeout.   Value.TotalMilliseconds > Int32.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
-            this.ipAddress       = Address;
-            this.tcpPort         = TCPPort;
-            this.bufferSize      = BufferSize.HasValue
-                                       ? BufferSize.Value > Int32.MaxValue
-                                             ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                             : (Int32) BufferSize.Value
-                                       : DefaultBufferSize;
-            this.ConnectTimeout  = ConnectTimeout ?? DefaultConnectTimeout;
-            this.ReceiveTimeout  = ReceiveTimeout ?? DefaultReceiveTimeout;
-            this.SendTimeout     = SendTimeout    ?? DefaultSendTimeout;
-            this.loggingHandler  = LoggingHandler;
+            this.BufferSize       = BufferSize.HasValue
+                                        ? BufferSize.Value > Int32.MaxValue
+                                              ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
+                                              : (Int32) BufferSize.Value
+                                        : DefaultBufferSize;
+            this.ConnectTimeout   = ConnectTimeout ?? DefaultConnectTimeout;
+            this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;
+            this.SendTimeout      = SendTimeout    ?? DefaultSendTimeout;
+            this.loggingHandler   = LoggingHandler;
 
         }
+
+        #endregion
+
+        #region (protected) ATCPTestClient(IPAddress, TCPPort, ...)
+
+        protected ATCPTestClient(IIPAddress               IPAddress,
+                                 IPPort                   TCPPort,
+                                 TimeSpan?                ConnectTimeout   = null,
+                                 TimeSpan?                ReceiveTimeout   = null,
+                                 TimeSpan?                SendTimeout      = null,
+                                 UInt32?                  BufferSize       = null,
+                                 TCPEchoLoggingDelegate?  LoggingHandler   = null)
+
+            : this(ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler)
+
+        {
+
+            this.RemoteTCPPort    = TCPPort;
+            this.RemoteIPAddress  = IPAddress;
+
+        }
+
+        #endregion
+
+        #region (protected) ATCPTestClient(URL,     DNSService = null, ..., DNSClient = null)
+
+        protected ATCPTestClient(URL                      URL,
+                                 DNSService?              DNSService       = null,
+                                 TimeSpan?                ConnectTimeout   = null,
+                                 TimeSpan?                ReceiveTimeout   = null,
+                                 TimeSpan?                SendTimeout      = null,
+                                 UInt32?                  BufferSize       = null,
+                                 TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                                 DNSClient?               DNSClient        = null)
+
+            : this(ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient)
+
+        {
+
+            this.RemoteURL   = URL;
+            this.DNSService  = DNSService;
+            this.DNSClient   = DNSClient ?? new DNSClient();
+
+        }
+
+        #endregion
+
+        #region (protected) ATCPTestClient(DNSName, DNSService,        ..., DNSClient = null)
+
+        protected ATCPTestClient(DomainName               DNSName,
+                                 DNSService               DNSService,
+                                 TimeSpan?                ConnectTimeout   = null,
+                                 TimeSpan?                ReceiveTimeout   = null,
+                                 TimeSpan?                SendTimeout      = null,
+                                 UInt32?                  BufferSize       = null,
+                                 TCPEchoLoggingDelegate?  LoggingHandler   = null,
+                                 DNSClient?               DNSClient        = null)
+
+            : this(ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient)
+
+        {
+
+            this.DNSName     = DNSName;
+            this.DNSService  = DNSService;
+            this.DNSClient   = DNSClient ?? new DNSClient();
+
+        }
+
+        #endregion
 
         #endregion
 
@@ -180,30 +341,159 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected async Task connectAsync()
         {
 
+            var timings = new HTTPClientConnectTimings();
+
             try
             {
 
-                cts               = new CancellationTokenSource();
-                tcpClient         = new TcpClient();
-                var connectTask   = tcpClient.ConnectAsync(ipAddress.Convert(), tcpPort.ToUInt16());
+                DomainName? dnsSRVRemoteHost   = null;
+                IPPort?     dnsSRVRemotePort   = null;
 
-                if (await Task.WhenAny(connectTask, Task.Delay(ConnectTimeout, cts.Token)) == connectTask)
+                if (RemoteURL.HasValue)
                 {
-                    await connectTask; // Await to throw if failed
-                    tcpClient.ReceiveTimeout = (Int32) ReceiveTimeout.TotalMilliseconds;
-                    tcpClient.SendTimeout    = (Int32) SendTimeout.TotalMilliseconds;
-                    tcpClient.LingerState    = new LingerOption(true, 1);
-                    await Log("Client connected!");
+
+                    #region Localhost / URL looks like an IP address...
+
+                    if      (IPAddress.IsIPv4Localhost(RemoteURL.Value.Hostname))
+                        remoteIPAddress = IPv4Address.Localhost;
+
+                    else if (IPAddress.IsIPv6Localhost(RemoteURL.Value.Hostname))
+                        remoteIPAddress = IPv6Address.Localhost;
+
+                    else if (IPAddress.IsIPv4(RemoteURL.Value.Hostname.Name))
+                        remoteIPAddress = IPv4Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
+
+                    else if (IPAddress.IsIPv6(RemoteURL.Value.Hostname.Name))
+                        remoteIPAddress = IPv6Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
+
+                    #endregion
+
+                    #region DNS SRV    lookups...
+
+                    if (remoteIPAddress is null &&
+                        DNSClient       is not null &&
+                        DNSService.IsNotNullOrEmpty())
+                    {
+
+                        // Look up the DNS Name or the hostname of the URL...
+                        var serviceRecords         = await DNSClient.
+                                                               Query<SRV>(DNSName ?? RemoteURL.Value.Hostname.Name).
+                                                               ContinueWith(query => query.Result).
+                                                               ConfigureAwait(false);
+
+                        var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);
+                        var priorityRecords        = serviceRecords. Where(serviceRecord => serviceRecord.Priority == minPriority).ToArray();
+                        var totalWeight            = priorityRecords.Sum  (serviceRecord => serviceRecord.Weight);
+
+                        // Uniform random selection if no weighted choice was made...
+                        var selectedServiceRecord  = priorityRecords[Random.Shared.Next(priorityRecords.Length)];
+
+                        if (totalWeight > 0)
+                        {
+
+                            var random      = Random.Shared.Next(totalWeight);
+                            var cumulative  = 0;
+
+                            foreach (var rec in priorityRecords)
+                            {
+                                cumulative += rec.Weight;
+                                if (random < cumulative)
+                                {
+                                    selectedServiceRecord = rec;
+                                    break;
+                                }
+                            }
+
+                        }
+
+                        dnsSRVRemoteHost = selectedServiceRecord.Target;
+                        dnsSRVRemotePort = selectedServiceRecord.Port;
+
+                        timings.DNSSRVLookup = timings.Elapsed;
+
+                    }
+
+                    #endregion
+
+                    #region DNS A/AAAA lookups...
+
+                    if (remoteIPAddress is null &&
+                        DNSClient       is not null)
+                    {
+
+                        // Look up the DNS SRV remote host or the hostname of the URL...
+                        var ipv4AddressLookupTask = DNSClient.
+                                                        Query<A>   (dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name).
+                                                        ContinueWith(query => query.Result.Select(ARecord    => ARecord.   IPv4Address));
+
+                        var ipv6AddressLookupTask = DNSClient.
+                                                        Query<AAAA>(dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name).
+                                                        ContinueWith(query => query.Result.Select(AAAARecord => AAAARecord.IPv6Address));
+
+                        await Task.WhenAll(
+                                  ipv4AddressLookupTask,
+                                  ipv6AddressLookupTask
+                              ).ConfigureAwait(false);
+
+                        if (PreferIPv4)
+                        {
+                            if (ipv6AddressLookupTask.Result.Any())
+                                remoteIPAddress = ipv6AddressLookupTask.Result.First();
+
+                            if (ipv4AddressLookupTask.Result.Any())
+                                remoteIPAddress = ipv4AddressLookupTask.Result.First();
+                        }
+                        else
+                        {
+                            if (ipv4AddressLookupTask.Result.Any())
+                                remoteIPAddress = ipv4AddressLookupTask.Result.First();
+
+                            if (ipv6AddressLookupTask.Result.Any())
+                                remoteIPAddress = ipv6AddressLookupTask.Result.First();
+                        }
+
+                        timings.DNSLookup = timings.Elapsed;
+
+                    }
+
+                    #endregion
+
                 }
+
+                if (RemoteIPAddress is not null)
+                {
+
+                    var remotePort    = dnsSRVRemotePort ?? RemoteTCPPort;
+
+                    if (!remotePort.HasValue)
+                        throw new ArgumentNullException(nameof(RemoteTCPPort), "The remote TCP port must not be null!");
+
+                    cts               = new CancellationTokenSource();
+                    tcpClient         = new TcpClient();
+                    var connectTask   = tcpClient.ConnectAsync(RemoteIPAddress.ToDotNet(), remotePort.Value.ToUInt16());
+
+                    if (await Task.WhenAny(connectTask, Task.Delay(ConnectTimeout, cts.Token)) == connectTask)
+                    {
+                        await connectTask; // Await to throw if failed
+                        tcpClient.ReceiveTimeout = (Int32) ReceiveTimeout.TotalMilliseconds;
+                        tcpClient.SendTimeout    = (Int32) SendTimeout.TotalMilliseconds;
+                        tcpClient.LingerState    = new LingerOption(true, 1);
+                        await Log("Client connected!");
+                    }
+                    else
+                    {
+                        throw new TimeoutException("Connection timeout");
+                    }
+
+                }
+
                 else
-                {
-                    throw new TimeoutException("Connection timeout");
-                }
+                    throw new ArgumentNullException(nameof(RemoteIPAddress), "The remote IP address must not be null!");
 
             }
             catch (Exception ex)
             {
-                await Log($"Error connecting EchoTestClient: {ex.Message}");
+                await Log($"Error connecting ATCPTestClient: {ex.Message}");
                 throw;
             }
 
@@ -339,7 +629,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(ATCPTestClient)}: {ipAddress}:{tcpPort} (Connected: {IsConnected})";
+            => $"{nameof(ATCPTestClient)}: {RemoteIPAddress}:{RemoteTCPPort} (Connected: {IsConnected})";
 
         #endregion
 

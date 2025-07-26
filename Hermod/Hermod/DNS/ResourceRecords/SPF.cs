@@ -19,33 +19,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
-    /// Extensions methods for DNS CNAME resource records.
+    /// Extensions methods for DNS SPF resource records.
     /// </summary>
-    public static class DNS_CNAME_Extensions
+    public static class DNS_SPF_Extensions
     {
 
-        #region CacheCNAME(this DNSClient, DomainName, CNAMERecord)
+        #region CacheSPF(this DNSClient, DomainName, Rules, Class = IN, TimeToLive = 365days)
 
         /// <summary>
-        /// Add a DNS CNAME record cache entry.
+        /// Add a DNS SPF record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="CName">The target of this CNAME resource record.</param>
+        /// <param name="DomainName">The domain name of this SPF resource record.</param>
+        /// <param name="Rules">The SPF rules of this resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
-        public static void CacheCNAME(this DNSClient   DNSClient,
-                                      DomainName       DomainName,
-                                      DomainName       CName,
-                                      DNSQueryClasses  Class        = DNSQueryClasses.IN,
-                                      TimeSpan?        TimeToLive   = null)
+        public static void CacheSPF(this DNSClient   DNSClient,
+                                    DomainName       DomainName,
+                                    String           Rules,
+                                    DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                    TimeSpan?        TimeToLive   = null)
         {
 
-            var dnsRecord = new CNAME(
+            var dnsRecord = new SPF(
                                 DomainName,
                                 Class,
                                 TimeToLive ?? TimeSpan.FromDays(365),
-                                CName
+                                Rules
                             );
 
             DNSClient.DNSCache.Add(
@@ -61,61 +61,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
     /// <summary>
-    /// The DNS Canonical Name (CNAME) resource record.
+    /// The DNS Sender Policy Framework (SPF) resource record type identifier.
+    /// Defined in: https://www.rfc-editor.org/rfc/rfc4408
+    /// Deprecated in: https://www.rfc-editor.org/rfc/rfc7208
+    /// 
     /// </summary>
-    public class CNAME : ADNSResourceRecord
+    public class SPF : ADNSResourceRecord
     {
 
         #region Data
 
         /// <summary>
-        /// The DNS Canonical Name (CNAME) resource record type identifier.
+        /// The DNS Sender Policy Framework (SPF) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.CNAME;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.SPF;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// The DNS Canonical Name (CNAME).
+        /// The rules of this DNS Sender Policy Framework (SPF) resource record.
         /// </summary>
-        public DomainName  CName    { get; }
+        public String  Rules    { get; }
 
         #endregion
 
         #region Constructor
 
-        #region CNAME(Stream)
+        #region SPF(Stream)
 
         /// <summary>
-        /// Create a new CNAME resource record from the given stream.
+        /// Create a new SPF resource record from the given stream.
         /// </summary>
-        /// <param name="Stream">A stream containing the CNAME resource record data.</param>
-        public CNAME(Stream  Stream)
+        /// <param name="Stream">A stream containing the SPF resource record data.</param>
+        public SPF(Stream Stream)
 
             : base(Stream,
                    TypeId)
 
         {
 
-            this.CName = DomainName.Parse(
-                            DNSTools.ExtractName(Stream)
-                        );
+            this.Rules = DNSTools.ExtractName(Stream);
 
         }
 
         #endregion
 
-        #region CNAME(DomainName, Stream)
+        #region SPF(DomainName, Stream)
 
         /// <summary>
-        /// Create a new CNAME resource record from the given name and stream.
+        /// Create a new SPF resource record from the given name and stream.
         /// </summary>
-        /// <param name="DomainName">The domain name of this CNAME resource record.</param>
-        /// <param name="Stream">A stream containing the CNAME resource record data.</param>
-        public CNAME(DomainName  DomainName,
-                     Stream      Stream)
+        /// <param name="DomainName">The domain name of this SPF resource record.</param>
+        /// <param name="Stream">A stream containing the SPF resource record data.</param>
+        public SPF(DomainName  DomainName,
+                   Stream      Stream)
 
             : base(DomainName,
                    TypeId,
@@ -123,27 +124,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.CName = DomainName.Parse(
-                            DNSTools.ExtractName(Stream)
-                        );
+            this.Rules = DNSTools.ExtractName(Stream);
 
         }
 
         #endregion
 
-        #region CNAME(DomainName, Class, TimeToLive, RText)
+        #region SPF(DomainName, Class, TimeToLive, RText)
 
         /// <summary>
-        /// Create a new DNS CNAME resource record.
+        /// Create a new DNS SPF resource record.
         /// </summary>
-        /// <param name="DomainName">The domain name of this CNAME resource record.</param>
+        /// <param name="DomainName">The domain name of this SPF resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
-        /// <param name="CName">The target of this CNAME resource record.</param>
-        public CNAME(DomainName       DomainName,
-                     DNSQueryClasses  Class,
-                     TimeSpan         TimeToLive,
-                     DomainName       CName)
+        /// <param name="RText">The text of this DNS SPF resource record.</param>
+        public SPF(DomainName       DomainName,
+                   DNSQueryClasses  Class,
+                   TimeSpan         TimeToLive,
+                   String           RText)
 
             : base(DomainName,
                    TypeId,
@@ -152,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.CName = CName;
+            this.Rules = RText;
 
         }
 
@@ -167,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"{CName}, {base.ToString()}";
+            => $"{Rules}, {base.ToString()}";
 
         #endregion
 

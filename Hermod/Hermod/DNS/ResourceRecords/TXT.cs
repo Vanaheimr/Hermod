@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -30,26 +24,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_TXT_Extensions
     {
 
-        #region AddToCache(this DNSClient, DomainName, TXTRecord)
+        #region CacheTXT(this DNSClient, DomainName, RText, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS TXT record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">A domain name.</param>
-        /// <param name="TXTRecord">A DNS TXT record</param>
-        public static void AddToCache(this DNSClient  DNSClient,
-                                      String          DomainName,
-                                      TXT             TXTRecord)
+        /// <param name="DomainName">The domain name of this TXT resource record.</param>
+        /// <param name="RText">The text of this DNS TXT resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        public static void CacheTXT(this DNSClient   DNSClient,
+                                    DomainName       DomainName,
+                                    String           RText,
+                                    DNSQueryClasses  Class        = DNSQueryClasses.IN,
+                                    TimeSpan?        TimeToLive   = null)
         {
 
-            if (DomainName.IsNullOrEmpty())
-                return;
+            var dnsRecord = new TXT(
+                                DomainName,
+                                Class,
+                                TimeToLive ?? TimeSpan.FromDays(365),
+                                RText
+                            );
 
             DNSClient.DNSCache.Add(
-                DomainName,
-                IPSocket.LocalhostV4(IPPort.DNS),
-                TXTRecord
+                dnsRecord.DomainName,
+                dnsRecord
             );
 
         }
@@ -70,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Text (TXT) resource record type identifier.
         /// </summary>
-        public const UInt16 TypeId = 16;
+        public const DNSResourceRecords TypeId = DNSResourceRecords.TXT;
 
         #endregion
 
@@ -102,46 +103,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region TXT(Name, Stream)
+        #region TXT(DomainName, Stream)
 
         /// <summary>
         /// Create a new TXT resource record from the given name and stream.
         /// </summary>
-        /// <param name="Name">The DNS name of this TXT resource record.</param>
+        /// <param name="DomainName">The domain name of this TXT resource record.</param>
         /// <param name="Stream">A stream containing the TXT resource record data.</param>
-        public TXT(String  Name,
-                   Stream  Stream)
+        public TXT(DomainName  DomainName,
+                   Stream      Stream)
 
-            : base(Name, TypeId, Stream)
+            : base(DomainName,
+                   TypeId,
+                   Stream)
 
         {
+
             this.Text = DNSTools.ExtractName(Stream);
+
         }
 
         #endregion
 
-        #region TXT(Name, Class, TimeToLive, RText)
+        #region TXT(DomainName, Class, TimeToLive, RText)
 
         /// <summary>
         /// Create a new DNS TXT resource record.
         /// </summary>
-        /// <param name="Name">The DNS name of this TXT resource record.</param>
+        /// <param name="DomainName">The domain name of this TXT resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="RText">The text of this DNS TXT resource record.</param>
-        public TXT(String           Name,
+        public TXT(DomainName       DomainName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    String           RText)
 
-            : base(Name,
+            : base(DomainName,
                    TypeId,
                    Class,
                    TimeToLive,
                    RText)
 
         {
+
             this.Text = RText;
+
         }
 
         #endregion

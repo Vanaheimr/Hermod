@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
@@ -239,11 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPv4Address Localhost
 
-            => new (
-                   new Byte[] {
-                       127, 0, 0, 1
-                   }
-               );
+            => new ([ 127, 0, 0, 1 ]);
 
         #endregion
 
@@ -254,11 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public static IPv4Address Broadcast
 
-            => new (
-                   new Byte[] {
-                       255, 255, 255, 255
-                   }
-               );
+            => new ([ 255, 255, 255, 255 ]);
 
         #endregion
 
@@ -354,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Text,     out IPv4Address)
+        #region TryParse(Text,       out IPv4Address)
 
         /// <summary>
         /// Try to parse the given text as an IPv4 address.
@@ -393,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region TryParse(Hostname, out IPv4Address)
+        #region TryParse(Hostname,   out IPv4Address)
 
         /// <summary>
         /// Try to parse the given HTTP hostname as an IPv4 address.
@@ -402,7 +395,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address">The parsed IPv4 address.</param>
         public static Boolean TryParse(HTTPHostname Hostname, out IPv4Address IPv4Address)
 
-            => TryParse(Hostname.Name, out IPv4Address);
+            => TryParse(Hostname.Name.FullName, out IPv4Address);
+
+        #endregion
+
+        #region TryParse(DomainName, out IPv4Address)
+
+        /// <summary>
+        /// Try to parse the given domain name as an IPv4 address.
+        /// </summary>
+        /// <param name="DomainName">A domain name.</param>
+        /// <param name="IPv4Address">The parsed IPv4 address.</param>
+        public static Boolean TryParse(DomainName DomainName, out IPv4Address IPv4Address)
+
+            => TryParse(DomainName.FullName, out IPv4Address);
 
         #endregion
 

@@ -511,10 +511,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             RemoteIPAddress = IPv6Address.Localhost;
 
                         else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
+                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name.FullName);
 
                         else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
+                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name.FullName);
 
                         #region DNS lookup...
 
@@ -523,7 +523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         {
 
                             var IPv4AddressLookupTask  = DNSClient.
-                                                             Query<A>(RemoteURL.Hostname.Name).
+                                                             Query<A>   (RemoteURL.Hostname.Name).
                                                              ContinueWith(query => query.Result.Select(ARecord    => ARecord.IPv4Address));
 
                             var IPv6AddressLookupTask  = DNSClient.
@@ -663,7 +663,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         {
 
                             await TLSStream.AuthenticateAsClientAsync(
-                                      RemoteURL.Hostname.Name,
+                                      RemoteURL.Hostname.Name.FullName,
                                       ClientCert is not null
                                           ? new X509CertificateCollection(new X509Certificate[] { ClientCert })
                                           : null,

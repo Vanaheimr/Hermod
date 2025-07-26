@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (elements[2].Contains(':'))
                     {
 
-                        if (!HTTPHostname.TryParse(elements[2][..elements[2].IndexOf(':')],  out hostname))
+                        if (!HTTPHostname.TryParse(elements[2][..elements[2].IndexOf(':')],  out hostname, out _))
                             return false;
 
                         var portText = elements[2][(elements[2].IndexOf(':') + 1)..]?.Trim();
@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
-                    else if (!HTTPHostname.TryParse(elements[2], out hostname))
+                    else if (!HTTPHostname.TryParse(elements[2], out hostname, out _))
                         return false;
 
                     if (elements.Length > 3)
