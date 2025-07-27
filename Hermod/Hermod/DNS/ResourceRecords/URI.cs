@@ -30,20 +30,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_URI_Extensions
     {
 
-        #region CacheURI(this DNSClient, DomainName, Priority, Weight, Target, Class = IN, TimeToLive = 365days)
+        #region CacheURI(this DNSClient, DNSServiceName, Priority, Weight, Target, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS URI record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">The domain name of this URI resource record.</param>
+        /// <param name="DNSServiceName">The DNS Service Name of this URI resource record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Target">The domain name of the target host.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheURI(this DNSClient   DNSClient,
-                                    DomainName       DomainName,
+                                    DNSServiceName   DNSServiceName,
                                     UInt16           Priority,
                                     UInt16           Weight,
                                     URL              Target,
@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             var dnsRecord = new URI(
-                                DomainName,
+                                DNSServiceName,
                                 Class,
                                 TimeToLive ?? TimeSpan.FromDays(365),
                                 Priority,
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Uniform Resource Identifier (URI) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.URI;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.URI;
 
         #endregion
 
@@ -132,17 +132,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region URI(DomainName, Stream)
+        #region URI(DNSServiceName, Stream)
 
         /// <summary>
         /// Create a new URI resource record from the given name and stream.
         /// </summary>
-        /// <param name="DomainName">The domain name of this URI resource record.</param>
+        /// <param name="DNSServiceName">The DNS Service Name of this URI resource record.</param>
         /// <param name="Stream">A stream containing the URI resource record data.</param>
-        public URI(DomainName  DomainName,
-                   Stream      Stream)
+        public URI(DNSServiceName  DNSServiceName,
+                   Stream          Stream)
 
-            : base(DomainName,
+            : base(DNSServiceName,
                    TypeId,
                    Stream)
 
@@ -156,25 +156,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region URI(DomainName, Class, TimeToLive, Priority, Weight, Port, Target)
+        #region URI(DNSServiceName, Class, TimeToLive, Priority, Weight, Port, Target)
 
         /// <summary>
         ///  Create a new DNS URI record.
         /// </summary>
-        /// <param name="DomainName">The domain name of this URI record.</param>
+        /// <param name="DNSServiceName">The DNS Service Name of this URI record.</param>
         /// <param name="Class">The DNS query class of this URI record.</param>
         /// <param name="TimeToLive">The time to live of this URI record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Target">The domain name of the target host.</param>
-        public URI(DomainName       DomainName,
+        public URI(DNSServiceName   DNSServiceName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    UInt16           Priority,
                    UInt16           Weight,
                    URL              Target)
 
-            : base(DomainName,
+            : base(DNSServiceName,
                    TypeId,
                    Class,
                    TimeToLive,
@@ -191,6 +191,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
+
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            tempStream.WriteUInt16BE(Priority);
+            tempStream.WriteUInt16BE(Weight);
+
+            // TARGET domain-name (variable, with compression)
+            var targetOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            Target.ToString().Serialize(
+                tempStream,
+                targetOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH: Variable, when compression is used!
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

@@ -24,13 +24,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_SRV_Extensions
     {
 
-        #region CacheSRV(this DNSClient, DomainName, Priority, Weight, Port, Target, Class = IN, TimeToLive = 365days)
+        #region CacheSRV(this DNSClient, DNSServiceName, Priority, Weight, Port, Target, Class = IN, TimeToLive = 365days)
 
         /// <summary>
         /// Add a DNS SRV record cache entry.
         /// </summary>
         /// <param name="DNSClient">A DNS client.</param>
-        /// <param name="DomainName">The domain name of this SRV resource record.</param>
+        /// <param name="DNSServiceName">The DNSServiceName of this SRV resource record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Port">The port on this target host of this service.</param>
@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheSRV(this DNSClient   DNSClient,
-                                    DNSService       DomainName,
+                                    DNSServiceName   DNSServiceName,
                                     UInt16           Priority,
                                     UInt16           Weight,
                                     IPPort           Port,
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             var dnsRecord = new SRV(
-                                DomainName,
+                                DNSServiceName,
                                 Class,
                                 TimeToLive ?? TimeSpan.FromDays(365),
                                 Priority,
@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Service (SRV) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.SRV;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SRV;
 
         #endregion
 
@@ -140,10 +140,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create a new SRV resource record from the given name and stream.
         /// </summary>
-        /// <param name="DomainName">The domain name of this SRV resource record.</param>
+        /// <param name="DomainName">The DNS Service Name of this SRV resource record.</param>
         /// <param name="Stream">A stream containing the SRV resource record data.</param>
-        public SRV(DNSService  DomainName,
-                   Stream      Stream)
+        public SRV(DNSServiceName  DomainName,
+                   Stream          Stream)
 
             : base(DomainName,
                    TypeId,
@@ -160,19 +160,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region SRV(DomainName, Class, TimeToLive, Priority, Weight, Port, Target)
+        #region SRV(DNSServiceName, Class, TimeToLive, Priority, Weight, Port, Target)
 
         /// <summary>
         ///  Create a new DNS SRV record.
         /// </summary>
-        /// <param name="DomainName">The domain name of this SRV record.</param>
+        /// <param name="DNSServiceName">The DNS Service Name of this SRV record.</param>
         /// <param name="Class">The DNS query class of this SRV record.</param>
         /// <param name="TimeToLive">The time to live of this SRV record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="Weight">The relative weight for entries with the same priority.</param>
         /// <param name="Port">The port on this target host of this service.</param>
         /// <param name="Target">The domain name of the target host.</param>
-        public SRV(DNSService       DomainName,
+        public SRV(DNSServiceName   DNSServiceName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
                    UInt16           Priority,
@@ -180,11 +180,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    IPPort           Port,
                    DomainName       Target)
 
-            : base(DomainName,
+            : base(DNSServiceName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   $"{Priority} {Weight} {Port} {Target}")
+                   TimeToLive)
 
         {
 
@@ -198,6 +197,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            tempStream.WriteUInt16BE(Priority);
+            tempStream.WriteUInt16BE(Weight);
+            tempStream.WriteUInt16BE(Port.ToUInt16());
+
+            // TARGET domain-name (variable, with compression)
+            var targetOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            Target.Serialize(
+                tempStream,
+                targetOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH: Variable, when compression is used!
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

@@ -26,9 +26,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean                          RecursionDesired,
                             Boolean                          RecursionAvailable,
                             DNSResponseCodes                 ResponseCode,
-                            IEnumerable<ADNSResourceRecord>  Answers,
-                            IEnumerable<ADNSResourceRecord>  Authorities,
-                            IEnumerable<ADNSResourceRecord>  AdditionalRecords,
+                            IEnumerable<IDNSResourceRecord>  Answers,
+                            IEnumerable<IDNSResourceRecord>  Authorities,
+                            IEnumerable<IDNSResourceRecord>  AdditionalRecords,
 
                             Boolean                          IsValid,
                             Boolean                          IsTimeout,
@@ -80,9 +80,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public class DNSInfo
     {
 
-        private readonly List<ADNSResourceRecord> answers;
-        private readonly List<ADNSResourceRecord> authorities;
-        private readonly List<ADNSResourceRecord> additionalRecords;
+        private readonly List<IDNSResourceRecord> answers;
+        private readonly List<IDNSResourceRecord> authorities;
+        private readonly List<IDNSResourceRecord> additionalRecords;
 
         #region Properties
 
@@ -107,13 +107,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public DNSResponseCodes                 ResponseCode          { get; }
 
 
-        public IEnumerable<ADNSResourceRecord>  Answers
-            => answers.AsReadOnly();
+        public IEnumerable<IDNSResourceRecord>  Answers
+            => answers.          AsReadOnly();
 
-        public IEnumerable<ADNSResourceRecord>  Authorities
-            => authorities.AsReadOnly();
+        public IEnumerable<IDNSResourceRecord>  Authorities
+            => authorities.      AsReadOnly();
 
-        public IEnumerable<ADNSResourceRecord>  AdditionalRecords
+        public IEnumerable<IDNSResourceRecord>  AdditionalRecords
             => additionalRecords.AsReadOnly();
 
 
@@ -134,9 +134,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        Boolean                          RecursionDesired,
                        Boolean                          RecursionAvailable,
                        DNSResponseCodes                 ResponseCode,
-                       IEnumerable<ADNSResourceRecord>  Answers,
-                       IEnumerable<ADNSResourceRecord>  Authorities,
-                       IEnumerable<ADNSResourceRecord>  AdditionalRecords,
+                       IEnumerable<IDNSResourceRecord>  Answers,
+                       IEnumerable<IDNSResourceRecord>  Authorities,
+                       IEnumerable<IDNSResourceRecord>  AdditionalRecords,
 
                        Boolean                          IsValid,
                        Boolean                          IsTimeout,
@@ -165,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
-        internal void AddAnswers(IEnumerable<ADNSResourceRecord> ResourceRecords)
+        internal void AddAnswers(IEnumerable<IDNSResourceRecord> ResourceRecords)
         {
             answers.AddRange(ResourceRecords);
         }

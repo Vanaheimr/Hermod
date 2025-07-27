@@ -15,6 +15,14 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using System.Text;
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -71,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Text (TXT) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.TXT;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.TXT;
 
         #endregion
 
@@ -154,6 +162,37 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tokens = Text.SubTokens(255).ToList();
+
+            var dataLen = tokens.Sum(t => 1 + Encoding.ASCII.GetByteCount(t));
+            if (dataLen > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH
+            Stream.WriteUInt16BE(dataLen);
+
+            foreach (var token in tokens)
+                Stream.WriteASCIIMax255(token);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

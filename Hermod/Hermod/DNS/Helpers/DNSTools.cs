@@ -17,9 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
-using System;
+using System.Buffers.Binary;
+using System.Reflection.Emit;
 using System.Text;
 
 #endregion
@@ -71,7 +71,111 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        public static String ReadDomainName(byte[] packet, ref int position)
+        {
 
+            var sb = new StringBuilder();
+            int jumps = 0;
+            const int maxJumps = 10; // Prevent infinite loops
+            int originalPosition = position;
+            bool jumped = false;
+
+            while (true)
+            {
+
+                if (position >= packet.Length)
+                    throw new InvalidDataException("Invalid domain name");
+
+                byte len = packet[position];
+
+                if ((len & 0xC0) == 0xC0) // Pointer
+                {
+                    if (jumps++ > maxJumps) throw new InvalidDataException("Compression loop detected");
+
+                    int offset = ((len & 0x3F) << 8) | packet[position + 1];
+                    position += 2; // Move past pointer
+                    if (!jumped)
+                    {
+                        originalPosition = position; // Save for later continuation if needed, but since pointer replaces, no continuation
+                    }
+                    position = offset;
+                    jumped = true;
+                    continue;
+                }
+
+                position++;
+                if (len == 0) break;
+
+                if (sb.Length > 0) sb.Append('.');
+
+                sb.Append(Encoding.ASCII.GetString(packet, position, len));
+                position += len;
+
+            }
+
+            if (jumped)
+            {
+                position = originalPosition; // Restore position after name if jumped
+            }
+
+            return sb.ToString();
+
+        }
+
+        //public static String ReadDomainName(byte[] packet, ref int position)
+        //{
+
+        //    var sb = new StringBuilder();
+        //    int jumps = 0;
+        //    const int maxJumps = 10; // Prevent infinite loops
+        //    int originalPosition = position;
+        //    bool jumped = false;
+
+        //    while (true)
+        //    {
+        //        if (position >= packet.Length) throw new InvalidDataException("Invalid domain name");
+
+        //        byte len = packet[position];
+
+        //        if ((len & 0xC0) == 0xC0) // Pointer
+        //        {
+        //            if (jumps++ > maxJumps) throw new InvalidDataException("Compression loop detected");
+
+        //            int offset = ((len & 0x3F) << 8) | packet[position + 1];
+        //            position += 2; // Move past pointer
+        //            if (!jumped)
+        //            {
+        //                originalPosition = position; // Save for later continuation if needed, but since pointer replaces, no continuation
+        //            }
+        //            position = offset;
+        //            jumped = true;
+        //            continue;
+        //        }
+
+        //        position++;
+        //        if (len == 0) break;
+
+        //        if (sb.Length > 0) sb.Append('.');
+
+        //        sb.Append(Encoding.ASCII.GetString(packet, position, len));
+        //        position += len;
+        //    }
+
+        //    if (jumped)
+        //    {
+        //        position = originalPosition; // Restore position after name if jumped
+        //    }
+
+        //    return sb.ToString();
+        //}
+
+
+
+        public static DomainName     ExtractDomainName    (Stream DNSStream)
+            => DomainName.    Parse(ExtractName(DNSStream));
+
+        public static DNSServiceName ExtractDNSServiceName(Stream DNSStream)
+            => DNSServiceName.Parse(ExtractName(DNSStream));
 
         public static String ExtractName(Stream DNSStream)
         {
@@ -218,6 +322,141 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return String.Concat(input.AsSpan(0, idx), "@", input.AsSpan(idx + 1));
 
         }
+
+
+
+        public static void Serialize(this String                 Text,
+                                     Stream                      Stream,
+                                     Int32                       CurrentOffset,
+                                     Boolean                     UseCompression   = true,
+                                     Dictionary<String, Int32>?  Offsets          = null)
+        {
+
+            Offsets ??= [];
+
+            Text = Text.Trim();
+
+            // Root domain
+            if (Text == String.Empty || Text == ".")
+            {
+                Stream.WriteByte(0x00);
+                return;
+            }
+
+            // Check for compression
+            if (UseCompression && Offsets.TryGetValue(Text, out var pointerOffset))
+            {
+                // Pointer: 0xC0 | (offset >> 8), then low byte
+                UInt16 pointer = (UInt16) (0xC000 | pointerOffset);
+                Stream.WriteByte((Byte) (pointer >>    8));
+                Stream.WriteByte((Byte) (pointer &  0xFF));
+                return;
+            }
+
+            // Add offset for this name
+            Offsets[Text] = CurrentOffset;
+
+            var labels = Text.Trim('.').Split('.');
+
+            foreach (var label in labels)
+            {
+
+                var labelBytes = Encoding.ASCII.GetBytes(label);
+                if (labelBytes.Length > 63)
+                    throw new ArgumentException("Label too long");
+
+                Stream.WriteByte((Byte) labelBytes.Length);
+                Stream.Write    (labelBytes, 0, labelBytes.Length);
+
+                // Update offset for suffixes
+                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
+                if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
+                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
+
+            }
+
+            // End of name
+            Stream.WriteByte(0x00);
+
+        }
+
+
+
+
+        public static void WriteUInt16BE(this Stream Stream, UInt16 value)
+        {
+            Span<Byte> buffer = stackalloc Byte[2];
+            BinaryPrimitives.WriteUInt16BigEndian(buffer, value);
+            Stream.Write(buffer);
+        }
+
+        public static void WriteUInt16BE(this Stream Stream, Int64 value)
+        {
+            Span<Byte> buffer = stackalloc Byte[2];
+            BinaryPrimitives.WriteUInt16BigEndian(buffer, (UInt16) value);
+            Stream.Write(buffer);
+        }
+
+        public static void WriteUInt32BE(this Stream Stream, UInt32 Value)
+        {
+            Span<Byte> buffer = stackalloc Byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(buffer, Value);
+            Stream.Write(buffer);
+        }
+
+        public static void WriteTimeSpanBE(this Stream Stream, TimeSpan Value)
+        {
+            Span<Byte> buffer = stackalloc Byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(buffer, (UInt32) Value.TotalSeconds);
+            Stream.Write(buffer);
+        }
+
+
+
+        public static void WriteASCIIMax255(this Stream Stream, String Text)
+        {
+
+            if (Text.Length > 255)
+                throw new InvalidOperationException("The given text exceeds maximum character-string length of 255 bytes!");
+
+            Span<Byte> buffer = stackalloc Byte[Text.Length];
+
+            for (var i = 0; i < Text.Length; i++)
+            {
+
+                var c = Text[i];
+
+                if (c > 127)
+                    throw new InvalidOperationException("Non-ASCII character encountered!");
+
+                buffer[i] = (Byte) c;
+
+            }
+
+            Stream.WriteByte((Byte) Text.Length);
+            Stream.Write(buffer);
+
+        }
+
+        public static void WriteUTF8Max255(this Stream Stream, String Text)
+        {
+
+            ArgumentNullException.ThrowIfNull(Text);
+
+            var maxByteCount   = Encoding.UTF8.GetMaxByteCount(Text.Length);
+            Span<Byte> buffer  = stackalloc Byte[maxByteCount];
+            var byteCount      = Encoding.UTF8.GetBytes(Text, buffer);
+            buffer             = buffer[..byteCount];
+
+            if (byteCount > 255)
+                throw new InvalidOperationException("The given text exceeds maximum character-string length of 255 bytes!");
+
+            Stream.WriteByte((Byte) byteCount);
+            Stream.Write(buffer);
+
+        }
+
+
 
 
         #region Google DNS

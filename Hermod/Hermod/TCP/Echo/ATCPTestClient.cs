@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         // Look up the DNS Name or the hostname of the URL...
-                        var serviceRecords         = await DNSClient.Query_DNSService(DNS.DNSService.Parse($"{DNSService}.{DNSName ?? RemoteURL.Value.Hostname.Name}")).
+                        var serviceRecords         = await DNSClient.Query_DNSService(DNS.DNSServiceName.Parse($"{DNSService}.{DNSName ?? RemoteURL.Value.Hostname.Name}")).
                                                                      ConfigureAwait(false);
 
                         var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);

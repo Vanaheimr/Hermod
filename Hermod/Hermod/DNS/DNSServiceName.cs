@@ -17,10 +17,12 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -37,14 +39,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Indicates whether this DNS service is null or empty.
         /// </summary>
         /// <param name="DNSService">A DNS service.</param>
-        public static Boolean IsNullOrEmpty(this DNSService? DNSService)
+        public static Boolean IsNullOrEmpty(this DNSServiceName? DNSService)
             => DNSService?.FullName.IsNullOrEmpty() ?? true;
 
         /// <summary>
         /// Indicates whether this DNS service is null or empty.
         /// </summary>
         /// <param name="DNSService">A DNS service.</param>
-        public static Boolean IsNotNullOrEmpty([NotNullWhen(true)] this DNSService? DNSService)
+        public static Boolean IsNotNullOrEmpty([NotNullWhen(true)] this DNSServiceName? DNSService)
             => DNSService?.FullName.IsNotNullOrEmpty() ?? false;
 
     }
@@ -54,26 +56,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// It is a domain name that is used to specify a service provided by a server.
     /// In contrast to domain names it allows "_" as the first character of a label,
     /// </summary>
-    public class DNSService : IEquatable<DNSService>,
-                              IComparable<DNSService>,
-                              IComparable
+    public class DNSServiceName : IEquatable<DNSServiceName>,
+                                  IComparable<DNSServiceName>,
+                                  IComparable
     {
 
         #region Data
 
-        public static readonly Regex DNSServiceRegExpr = new Regex(
-                                                             @"^(?=.{1,254}$)" +                                               // max. 254 Zeichen gesamt inkl. Punkt
-                                                             @"(?:[A-Za-z0-9_]" +                                              // erstes Label: beginnt mit Buchst./Ziffer/_
-                                                             @"(?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?" +                         // optional mittlere Zeichen, endet mit Buchst./Ziffer/_
-                                                             @")" +
-                                                             @"(?:\.(?:[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?))*" +  // 0…n weitere Labels
-                                                             @"\.?$",                                                          // optional ein abschließender Punkt
-                                                             RegexOptions.IgnoreCase |
-                                                             RegexOptions.Compiled |
-                                                             RegexOptions.CultureInvariant
-                                                         );
-
-        private readonly String[]  labels;
+        public static readonly Regex DNSServiceNameRegExpr  = new Regex(
+                                                                  @"^(?=.{1,254}$)" +                                               // max. 254 Zeichen gesamt inkl. Punkt
+                                                                  @"(?:[A-Za-z0-9_]" +                                              // erstes Label: beginnt mit Buchst./Ziffer/_
+                                                                  @"(?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?" +                         // optional mittlere Zeichen, endet mit Buchst./Ziffer/_
+                                                                  @")" +
+                                                                  @"(?:\.(?:[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?))*" +  // 0…n weitere Labels
+                                                                  @"\.?$",                                                          // optional ein abschließender Punkt
+                                                                  RegexOptions.IgnoreCase |
+                                                                  RegexOptions.Compiled |
+                                                                  RegexOptions.CultureInvariant
+                                                              );
 
         #endregion
 
@@ -81,6 +81,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public String                 FullName    { get; }
 
+
+        private readonly String[] labels;
         public IReadOnlyList<String>  Labels
             => labels.AsReadOnly();
 
@@ -88,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
-        protected DNSService(String DNSService)
+        protected DNSServiceName(String DNSService)
         {
 
             this.FullName  = DNSService;
@@ -96,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
-        protected DNSService(params String[] DomainLabels)
+        protected DNSServiceName(params String[] DomainLabels)
         {
 
             this.FullName  = DomainLabels.AggregateWith('.') + ".";
@@ -113,13 +115,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Parse the given text as DNS service.
         /// </summary>
         /// <param name="Text">The text representation of a DNS service.</param>
-        public static DNSService Parse(String Text)
+        public static DNSServiceName Parse(String Text)
         {
 
-            if (TryParse(Text, out var domainName, out var errorResponse))
-                return domainName;
+            if (TryParse(Text, out var dnsServiceName, out var errorResponse))
+                return dnsServiceName;
 
-            throw new ArgumentException($"Invalid text representation of a DNS service: '{Text}': {errorResponse}",
+            throw new ArgumentException($"Invalid text representation of a DNS service name: '{Text}': {errorResponse}",
                                         nameof(Text));
 
         }
@@ -134,9 +136,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Text">The text representation of a DNS service.</param>
         /// <param name="DNSService">The parsed DNS service.</param>
         /// <param name="ErrorResponse">An optional error response in case the parsing fails.</param>
-        public static Boolean TryParse(String                                Text,
-                                       [NotNullWhen(true)]  out DNSService?  DNSService,
-                                       [NotNullWhen(false)] out String?      ErrorResponse)
+        public static Boolean TryParse(String                                    Text,
+                                       [NotNullWhen(true)]  out DNSServiceName?  DNSService,
+                                       [NotNullWhen(false)] out String?          ErrorResponse)
         {
 
             DNSService     = null;
@@ -161,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (Text != ".")
             {
-                if (!DNSServiceRegExpr.IsMatch(Text))
+                if (!DNSServiceNameRegExpr.IsMatch(Text))
                 {
                     ErrorResponse = "The given DNS service does not match the required format!";
                     return false;
@@ -186,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            DNSService = new DNSService(Text);
+            DNSService = new DNSServiceName(Text);
             return true;
 
         }
@@ -198,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Clone this DNS service.
         /// </summary>
-        public DNSService Clone()
+        public DNSServiceName Clone()
 
             => new(
                    FullName.CloneString()
@@ -207,10 +209,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        public static DNSService From(DomainName  DomainName,
-                                      SRV_Spec    DNSServiceSpec)
+        public static DNSServiceName From(DomainName  DomainName,
+                                          SRV_Spec    DNSServiceSpec)
 
             => new ($"{DNSServiceSpec}.{DomainName.FullName}");
+
+
+
+        public void Serialize(Stream                      Stream,
+                              Int32                       CurrentOffset,
+                              Boolean                     UseCompression   = true,
+                              Dictionary<String, Int32>?  Offsets          = null)
+        {
+
+            Offsets ??= [];
+
+            // Root domain
+            if (Labels.Count == 0)
+            {
+                Stream.WriteByte(0x00);
+                return;
+            }
+
+            // Check for compression
+            if (UseCompression && Offsets.TryGetValue(FullName, out var pointerOffset))
+            {
+                // Pointer: 0xC0 | (offset >> 8), then low byte
+                var pointer = (UInt16) (0xC000 | pointerOffset);
+                Stream.WriteByte((Byte) (pointer >>    8));
+                Stream.WriteByte((Byte) (pointer &  0xFF));
+                return;
+            }
+
+            // Add offset for this name
+            Offsets[FullName] = CurrentOffset;
+
+            foreach (var label in Labels)
+            {
+
+                var labelBytes = Encoding.ASCII.GetBytes(label);
+                if (labelBytes.Length > 63)
+                    throw new ArgumentException("Label too long");
+
+                Stream.WriteByte((Byte) labelBytes.Length);
+                Stream.Write    (labelBytes, 0, labelBytes.Length);
+
+                // Update offset for suffixes
+                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
+                if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
+                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
+
+            }
+
+            // End of name
+            Stream.WriteByte(0x00);
+
+        }
+
 
 
         #region Operator overloading
@@ -223,8 +278,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (DNSService DNSService1,
-                                           DNSService DNSService2)
+        public static Boolean operator == (DNSServiceName DNSService1,
+                                           DNSServiceName DNSService2)
 
             => DNSService1.Equals(DNSService2);
 
@@ -238,7 +293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator == (DNSService DNSService1,
+        public static Boolean operator == (DNSServiceName DNSService1,
                                            String     DNSService2)
 
             => DNSService1.FullName.Equals(DNSService2);
@@ -253,8 +308,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (DNSService DNSService1,
-                                           DNSService DNSService2)
+        public static Boolean operator != (DNSServiceName DNSService1,
+                                           DNSServiceName DNSService2)
 
             => !DNSService1.Equals(DNSService2);
 
@@ -268,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator != (DNSService DNSService1,
+        public static Boolean operator != (DNSServiceName DNSService1,
                                            String     DNSService2)
 
             => !DNSService1.FullName.Equals(DNSService2);
@@ -283,8 +338,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator < (DNSService DNSService1,
-                                          DNSService DNSService2)
+        public static Boolean operator < (DNSServiceName DNSService1,
+                                          DNSServiceName DNSService2)
 
             => DNSService1.CompareTo(DNSService2) < 0;
 
@@ -298,8 +353,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator <= (DNSService DNSService1,
-                                           DNSService DNSService2)
+        public static Boolean operator <= (DNSServiceName DNSService1,
+                                           DNSServiceName DNSService2)
 
             => DNSService1.CompareTo(DNSService2) <= 0;
 
@@ -313,8 +368,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator > (DNSService DNSService1,
-                                          DNSService DNSService2)
+        public static Boolean operator > (DNSServiceName DNSService1,
+                                          DNSServiceName DNSService2)
 
             => DNSService1.CompareTo(DNSService2) > 0;
 
@@ -328,8 +383,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSService1">A DNS service.</param>
         /// <param name="DNSService2">Another DNS service.</param>
         /// <returns>true|false</returns>
-        public static Boolean operator >= (DNSService DNSService1,
-                                           DNSService DNSService2)
+        public static Boolean operator >= (DNSServiceName DNSService1,
+                                           DNSServiceName DNSService2)
 
             => DNSService1.CompareTo(DNSService2) >= 0;
 
@@ -347,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Object">A DNS service to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
-            => Object is DNSService domainName
+            => Object is DNSServiceName domainName
                    ? CompareTo(domainName)
                    : throw new ArgumentException("The given object is not a DNS service!",
                                                  nameof(Object));
@@ -360,7 +415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Compares two DNS services.
         /// </summary>
         /// <param name="DNSService">A DNS service to compare with.</param>
-        public Int32 CompareTo(DNSService? DNSService)
+        public Int32 CompareTo(DNSServiceName? DNSService)
         {
 
             if (DNSService is null)
@@ -384,7 +439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Object">A DNS service to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is DNSService domainName &&
+            => Object is DNSServiceName domainName &&
                    Equals(domainName);
 
         #endregion
@@ -395,7 +450,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Compares two DNS services for equality.
         /// </summary>
         /// <param name="DNSService">A DNS service to compare with.</param>
-        public Boolean Equals(DNSService? DNSService)
+        public Boolean Equals(DNSServiceName? DNSService)
 
             => DNSService is not null &&
 

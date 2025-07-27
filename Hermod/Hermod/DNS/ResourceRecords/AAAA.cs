@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -39,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                      TimeSpan?        TimeToLive   = null)
 
             => CacheAAAA(DNSClient,
-                         DNSService.Parse(DomainName.FullName),
+                         DNSServiceName.Parse(DomainName.FullName),
                          IPv6Address,
                          Class,
                          TimeToLive);
@@ -54,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheAAAA(this DNSClient   DNSClient,
-                                     DNSService       DomainName,
+                                     DNSServiceName       DomainName,
                                      IPv6Address      IPv6Address,
                                      DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                      TimeSpan?        TimeToLive   = null)
@@ -90,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS AAAA resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.AAAA;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.AAAA;
 
         #endregion
 
@@ -110,37 +104,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create a new AAAA resource record from the given stream.
         /// </summary>
-        /// <param name="Stream">A stream containing the AAAA resource record data.</param>
+        /// <param name="Stream">AAAA stream containing the AAAA resource record data.</param>
         public AAAA(Stream Stream)
 
             : base(Stream,
                    TypeId)
 
         {
-
             this.IPv6Address = new IPv6Address(Stream);
-
         }
 
         #endregion
 
-        #region AAAA(DomainName Stream)
-
-        public AAAA(DomainName  DomainName,
-                    Stream      Stream)
-
-            : this(DNSService.Parse(DomainName.FullName),
-                   Stream)
-
-        { }
-
+        #region AAAA(DomainName,     Stream)
 
         /// <summary>
-        /// Create a new AAAA resource record from the given name and stream.
+        /// Create a new AAAA resource record from the given domain name and stream.
         /// </summary>
         /// <param name="DomainName">The domain name of this AAAA resource record.</param>
-        /// <param name="Stream">A stream containing the AAAA resource record data.</param>
-        public AAAA(DNSService  DomainName,
+        /// <param name="Stream">AAAA stream containing the AAAA resource record data.</param>
+        public AAAA(DomainName  DomainName,
                     Stream      Stream)
 
             : base(DomainName,
@@ -148,55 +131,151 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
-
             this.IPv6Address = new IPv6Address(Stream);
-
         }
 
         #endregion
 
-        #region AAAA(DomainName, Class, TimeToLive, IPv6Address)
+        #region AAAA(DNSServiceName, Stream)
 
+        /// <summary>
+        /// Create a new AAAA resource record from the given domain name and stream.
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS Service Name of this AAAA resource record.</param>
+        /// <param name="Stream">AAAA stream containing the AAAA resource record data.</param>
+        public AAAA(DNSServiceName  DNSServiceName,
+                    Stream          Stream)
+
+            : base(DNSServiceName,
+                   TypeId,
+                   Stream)
+
+        {
+            this.IPv6Address = new IPv6Address(Stream);
+        }
+
+        #endregion
+
+        #region AAAA(DomainName,     Class, TimeToLive, IPv6Address)
+
+        /// <summary>
+        /// Create a new DNS AAAA resource record.
+        /// </summary>
+        /// <param name="DomainName">The domain name of this AAAA resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        /// <param name="IPv6Address">The IPv6 address of this resource record.</param>
         public AAAA(DomainName       DomainName,
                     DNSQueryClasses  Class,
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
 
-            : this(DNSService.Parse(DomainName.FullName),
+            : base(DomainName,
+                   TypeId,
                    Class,
-                   TimeToLive,
-                   IPv6Address)
+                   TimeToLive)
 
-        { }
+        {
+            this.IPv6Address = IPv6Address;
+        }
 
+        #endregion
+
+        #region AAAA(DNSServiceName, Class, TimeToLive, IPv6Address)
 
         /// <summary>
         /// Create a new DNS AAAA resource record.
         /// </summary>
-        /// <param name="Name">The domain name of this AAAA resource record.</param>
+        /// <param name="DNSServiceName">The DNS Service Name of this AAAA resource record.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
-        /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
-        public AAAA(DNSService       DomainName,
+        /// <param name="IPv6Address">The IPv6 address of this resource record.</param>
+        public AAAA(DNSServiceName   DNSServiceName,
                     DNSQueryClasses  Class,
                     TimeSpan         TimeToLive,
                     IPv6Address      IPv6Address)
 
-            : base(DomainName,
+            : base(DNSServiceName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   IPv6Address.ToString())
+                   TimeToLive)
 
         {
-
             this.IPv6Address = IPv6Address;
-
         }
 
         #endregion
 
         #endregion
+
+        public static AAAA Parse(DomainName       DomainName,
+                                 DNSQueryClasses  Class,
+                                 TimeSpan         TimeToLive,
+                                 Byte[]           RData)
+        {
+
+            if (RData.Length != 16)
+                throw new InvalidDataException("Invalid AAAA RData length");
+
+            return new AAAA(
+                       DomainName,
+                       Class,
+                       TimeToLive,
+                       new IPv6Address(RData)
+                   );
+
+        }
+
+        public static async ValueTask<AAAA> Parse(DomainName         DomainName,
+                                                  DNSQueryClasses    Class,
+                                                  TimeSpan           TimeToLive,
+                                                  Stream             RDataStream,
+                                                  CancellationToken  CancellationToken   = default)
+        {
+
+            var memory  = new Byte[16];
+            var read    = await RDataStream.ReadAsync(
+                                    memory,
+                                    CancellationToken
+                                );
+
+            if (read != 16)
+                throw new InvalidDataException("Invalid AAAA RData length!");
+
+            return new AAAA(
+                       DomainName,
+                       Class,
+                       TimeToLive,
+                       new IPv6Address(memory)
+                   );
+
+        }
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            // RDLENGTH (2 bytes): 16 for AAAA
+            Stream.WriteUInt16BE(16);
+
+            // RDATA: IPv4 address (16 bytes)
+            Stream.Write(IPv6Address.GetBytes(), 0, 16);
+
+        }
+
+        #endregion
+
+
 
         #region (override) ToString()
 

@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Name Server (NS) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.NS;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.NS;
 
         #endregion
 
@@ -159,6 +159,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            // RDATA: Target domain name
+            NameServer.Serialize(
+                tempStream,
+                (Int32) Stream.Position + 2,
+                UseCompression,
+                CompressionOffsets
+            );
+
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH: Variable, when compression is used!
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA (tempStream) to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

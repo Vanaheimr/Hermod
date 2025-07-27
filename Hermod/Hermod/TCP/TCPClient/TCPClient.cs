@@ -80,7 +80,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         public DomainName                  RemoteHost               { get; }
 
-        public DNSService                  ServiceName              { get; }
+        public DNSServiceName                  ServiceName              { get; }
 
         public IPPort                      RemotePort               { get; }
 
@@ -202,7 +202,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         public TCPClient(DomainName                          RemoteHost,
-                         DNSService                          ServiceName,
+                         DNSServiceName                          ServiceName,
                          Boolean                             UseIPv4                     = true,
                          Boolean                             UseIPv6                     = false,
                          Boolean                             PreferIPv6                  = false,

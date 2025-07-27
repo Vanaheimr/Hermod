@@ -24,7 +24,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// The algorithm used for the SSH public key.
     /// https://www.rfc-editor.org/rfc/rfc4255
     /// </summary>
-    public enum SSHFP_Algorithm
+    public enum SSHFP_Algorithm : Byte
     {
         reserved  = 0,
         RSA       = 1,
@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// The fingerprint type used for the SSH public key.
     /// https://www.rfc-editor.org/rfc/rfc4255
     /// </summary>
-    public enum SSHFP_FingerprintType
+    public enum SSHFP_FingerprintType : Byte
     {
         reserved  = 0,
         SHA1      = 1,
@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       DomainName             DomainName,
                                       SSHFP_Algorithm        Algorithm,
                                       SSHFP_FingerprintType  Type,
-                                      String                 Fingerprint,
+                                      Byte[]                 Fingerprint,
                                       DNSQueryClasses        Class        = DNSQueryClasses.IN,
                                       TimeSpan?              TimeToLive   = null)
         {
@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS SSH Public Key Fingerprint (SSHFP) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.SSHFP;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SSHFP;
 
         #endregion
 
@@ -119,17 +119,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The SSH Public Key Fingerprint algorithm.
         /// </summary>
-        public SSHFP_Algorithm        FPAlgorithm    { get; }
+        public SSHFP_Algorithm        FingerprintAlgorithm    { get; }
 
         /// <summary>
         /// The SSH Public Key Fingerprint type.
         /// </summary>
-        public SSHFP_FingerprintType  FPType         { get; }
+        public SSHFP_FingerprintType  FingerprintType         { get; }
 
         /// <summary>
         /// The SSH Public Key Fingerprint.
         /// </summary>
-        public String                 Fingerprint    { get; }
+        public Byte[]                 Fingerprint             { get; }
 
         #endregion
 
@@ -148,20 +148,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.FPAlgorithm  = ParseAlgorithm      (Stream);
+            this.FingerprintAlgorithm  = ParseAlgorithm      (Stream);
 
-            this.FPType       = ParseFingerprintType(Stream);
+            this.FingerprintType       = ParseFingerprintType(Stream);
 
-            this.Fingerprint  = FPType switch {
-                                    SSHFP_FingerprintType.SHA1    => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 20)),
-                                    SSHFP_FingerprintType.SHA256  => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 32)),
-                                    _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
-                                };
+            this.Fingerprint           = FingerprintType switch {
+                                             SSHFP_FingerprintType.SHA1    => DNSTools.ExtractByteArray(Stream, 20),
+                                             SSHFP_FingerprintType.SHA256  => DNSTools.ExtractByteArray(Stream, 32),
+                                             _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
+                                         };
 
-            if (FPType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
+            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
                 throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
 
-            if (FPType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
+            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
                 throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
 
         }
@@ -184,20 +184,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.FPAlgorithm  = ParseAlgorithm      (Stream);
+            this.FingerprintAlgorithm  = ParseAlgorithm      (Stream);
 
-            this.FPType       = ParseFingerprintType(Stream);
+            this.FingerprintType       = ParseFingerprintType(Stream);
 
-            this.Fingerprint  = FPType switch {
-                                    SSHFP_FingerprintType.SHA1    => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 20)),
-                                    SSHFP_FingerprintType.SHA256  => BitConverter.ToString(DNSTools.ExtractByteArray(Stream, 32)),
-                                    _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
-                                };
+            this.Fingerprint           = FingerprintType switch {
+                                             SSHFP_FingerprintType.SHA1    => DNSTools.ExtractByteArray(Stream, 20),
+                                             SSHFP_FingerprintType.SHA256  => DNSTools.ExtractByteArray(Stream, 32),
+                                             _                             => throw new Exception($"Unknown SSHFP fingerprint type '{Type}'!")
+                                         };
 
-            if (FPType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
+            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
                 throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
 
-            if (FPType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
+            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
                 throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
 
         }
@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      TimeSpan               TimeToLive,
                      SSHFP_Algorithm        Algorithm,
                      SSHFP_FingerprintType  Type,
-                     String                 Fingerprint)
+                     Byte[]                 Fingerprint)
 
             : base(DomainName,
                    TypeId,
@@ -232,14 +232,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
-            this.FPAlgorithm  = Algorithm;
-            this.FPType       = Type;
-            this.Fingerprint  = Fingerprint.Trim();
+            this.FingerprintAlgorithm  = Algorithm;
+            this.FingerprintType       = Type;
+            this.Fingerprint           = Fingerprint;
 
-            if (FPType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 40)
+            if (FingerprintType == SSHFP_FingerprintType.SHA1   && Fingerprint.Length != 20)
                 throw new ArgumentException($"Invalid SHA1 fingerprint length: {Fingerprint.Length} (40)!");
 
-            if (FPType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 64)
+            if (FingerprintType == SSHFP_FingerprintType.SHA256 && Fingerprint.Length != 32)
                 throw new ArgumentException($"Invalid SHA256 fingerprint length: {Fingerprint.Length} (64)!");
 
         }
@@ -282,6 +282,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            // RDLENGTH (2 bytes): 2 (algorithm + type) + Fingerprint.Length
+            Stream.WriteUInt16BE(2 + Fingerprint.Length);
+
+            Stream.WriteByte((Byte) FingerprintAlgorithm);
+            Stream.WriteByte((Byte) FingerprintType);
+
+            Stream.Write    (Fingerprint, 0, Fingerprint.Length);
+
+        }
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
@@ -289,7 +316,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"{Fingerprint} (Algorithm={FPAlgorithm}, Type={FPType}), {base.ToString()}";
+            => $"{Fingerprint} (Algorithm={FingerprintAlgorithm}, Type={FingerprintType}), {base.ToString()}";
 
         #endregion
 

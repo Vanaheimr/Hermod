@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheMXRecord(this DNSClient   DNSClient,
                                          DomainName       DomainName,
-                                         Int32            Preference,
+                                         UInt16           Preference,
                                          DomainName       Exchange,
                                          DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                          TimeSpan?        TimeToLive   = null)
@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Mail Exchange (MX) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.MX;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.MX;
 
         #endregion
 
@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The preference of this mail exchange.
         /// </summary>
-        public Int32       Preference    { get; }
+        public UInt16      Preference    { get; }
 
         /// <summary>
         /// The domain name of the mail exchange server.
@@ -107,11 +107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
+            this.Preference  = (UInt16) ((Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue));
 
-            this.Exchange    = DNS.DomainName.Parse(
-                                   DNSTools.ExtractName(Stream)
-                               );
+            this.Exchange    = DNSTools.ExtractDomainName(Stream);
 
         }
 
@@ -133,11 +131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Preference  = (Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue);
+            this.Preference  = (UInt16) ((Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue));
 
-            this.Exchange    = DomainName.Parse(
-                                   DNSTools.ExtractName(Stream)
-                               );
+            this.Exchange    = DNSTools.ExtractDomainName(Stream);
 
         }
 
@@ -156,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public MX(DomainName       DomainName,
                   DNSQueryClasses  Class,
                   TimeSpan         TimeToLive,
-                  Int32            Preference,
+                  UInt16           Preference,
                   DomainName       Exchange)
 
             : base(DomainName,
@@ -174,6 +170,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
+
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            tempStream.WriteUInt16BE(Preference);
+
+            // Mail Exchange domain name (variable, with compression)
+            var exchangeOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            Exchange.Serialize(
+                tempStream,
+                exchangeOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH (2 bytes)
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

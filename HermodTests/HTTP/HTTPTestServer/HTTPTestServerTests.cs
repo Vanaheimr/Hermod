@@ -617,9 +617,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             dnsClient.CacheA  (DomainName.Parse("api2.example.local"), IPv4Address.Parse("127.0.0.1"));
             dnsClient.CacheA  (DomainName.Parse("api3.example.local"), IPv4Address.Parse("127.0.0.1"));
 
-            dnsClient.CacheSRV(DNSService.Parse("_ocpp._tls.api.example.local"), 10, 20, api1.HTTPTestServer.TCPPort, DomainName.Parse("api1.example.local"));
-            dnsClient.CacheSRV(DNSService.Parse("_ocpp._tls.api.example.local"), 10, 80, api2.HTTPTestServer.TCPPort, DomainName.Parse("api2.example.local"));
-            dnsClient.CacheSRV(DNSService.Parse("_ocpp._tls.api.example.local"), 20,  0, api3.HTTPTestServer.TCPPort, DomainName.Parse("api3.example.local"));
+            dnsClient.CacheSRV(DNSServiceName.Parse("_ocpp._tls.api.example.local"), 10, 20, api1.HTTPTestServer.TCPPort, DomainName.Parse("api1.example.local"));
+            dnsClient.CacheSRV(DNSServiceName.Parse("_ocpp._tls.api.example.local"), 10, 80, api2.HTTPTestServer.TCPPort, DomainName.Parse("api2.example.local"));
+            dnsClient.CacheSRV(DNSServiceName.Parse("_ocpp._tls.api.example.local"), 20,  0, api3.HTTPTestServer.TCPPort, DomainName.Parse("api3.example.local"));
 
             var srv = await dnsClient.Query_DNSService(
                                 DomainName.Parse("api.example.local"),

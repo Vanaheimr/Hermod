@@ -22,7 +22,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -37,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private readonly ConcurrentDictionary<DNSService, DNSCacheEntry>  dnsCache = [];
+        private readonly ConcurrentDictionary<DNSServiceName, DNSCacheEntry>  dnsCache = [];
         private readonly Timer                                            cleanUpTimer;
 
         #endregion
@@ -54,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #region Cache "localhost"
 
             dnsCache.TryAdd(
-                DNSService.Parse(DomainName.Localhost.FullName),
+                DNSServiceName.Parse(DomainName.Localhost.FullName),
                 new DNSCacheEntry(
                     RefreshTime:  Timestamp.Now,
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
@@ -84,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             #region Cache "loopback"
 
             dnsCache.TryAdd(
-                DNSService.Parse(DomainName.Localhost.FullName),
+                DNSServiceName.Parse(DomainName.Localhost.FullName),
                 new DNSCacheEntry(
                     RefreshTime:  Timestamp.Now,
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
@@ -131,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         /// <param name="DNSInformation">The DNS information to add.</param>
-        public DNSCache Add(DNSService  DomainName,
+        public DNSCache Add(DNSServiceName  DomainName,
                             DNSInfo     DNSInformation)
         {
 
@@ -174,8 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         /// <param name="ResourceRecords">The DNS resource records to add.</param>
-        public DNSCache Add(DNSService                   DomainName,
-                            params ADNSResourceRecord[]  ResourceRecords)
+        public DNSCache Add(DNSServiceName                   DomainName,
+                            params IDNSResourceRecord[]  ResourceRecords)
 
             => Add(DomainName,
                    IPSocket.LocalhostV4(IPPort.DNS),
@@ -191,9 +190,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name.</param>
         /// <param name="Origin">The origin of the DNS resource record.</param>
         /// <param name="ResourceRecords">The DNS resource records to add.</param>
-        public DNSCache Add(DNSService                   DomainName,
+        public DNSCache Add(DNSServiceName                   DomainName,
                             IPSocket                     Origin,
-                            params ADNSResourceRecord[]  ResourceRecords)
+                            params IDNSResourceRecord[]  ResourceRecords)
         {
 
             if (!dnsCache.TryAdd(
@@ -202,24 +201,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   Timestamp.Now + TimeSpan.FromSeconds(ResourceRecords.Min(rr => rr.TimeToLive.TotalSeconds) / 2),
                                   Timestamp.Now + ResourceRecords.Min(rr => rr.TimeToLive),
                                   new DNSInfo(
-                                      Origin:               Origin,
-                                      QueryId:              Random.Shared.Next(),
+                                      Origin:                 Origin,
+                                      QueryId:                Random.Shared.Next(),
                                       IsAuthoritativeAnswer:  false,
-                                      IsTruncated:          false,
-                                      RecursionDesired:     false,
-                                      RecursionAvailable:   false,
-                                      ResponseCode:         DNSResponseCodes.NoError,
-                                      Answers:              ResourceRecords,
-                                      Authorities:          [],
-                                      AdditionalRecords:    [],
-                                      IsValid:              true,
-                                      IsTimeout:            false,
-                                      Timeout:              TimeSpan.Zero
+                                      IsTruncated:            false,
+                                      RecursionDesired:       false,
+                                      RecursionAvailable:     false,
+                                      ResponseCode:           DNSResponseCodes.NoError,
+                                      Answers:                ResourceRecords,
+                                      Authorities:            [],
+                                      AdditionalRecords:      [],
+                                      IsValid:                true,
+                                      IsTimeout:              false,
+                                      Timeout:                TimeSpan.Zero
                                   )
                               )
                           ))
             {
+
                 dnsCache[DomainName].DNSInfo.AddAnswers(ResourceRecords);
+
             }
 
             return this;
@@ -235,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Get the cached DNS information from the DNS cache.
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
-        public DNSInfo? GetDNSInfo(DNSService DomainName)
+        public DNSInfo? GetDNSInfo(DNSServiceName DomainName)
         {
 
             if (dnsCache.TryGetValue(DomainName, out var cacheEntry))
@@ -253,7 +254,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Get the cached DNS information from the DNS cache.
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
-        public Boolean TryGetDNSInfo(DNSService                        DomainName,
+        public Boolean TryGetDNSInfo(DNSServiceName                        DomainName,
                                      [NotNullWhen(true)] out DNSInfo?  DNSInfo)
         {
 

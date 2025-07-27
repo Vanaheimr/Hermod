@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Text.RegularExpressions;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -46,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       String           Flags,
                                       String           Services,
                                       String           RegExpr,
-                                      String           Replacement,
+                                      DomainName       Replacement,
                                       DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                       TimeSpan?        TimeToLive   = null)
         {
@@ -87,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Naming Authority Pointer (NAPTR) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.NAPTR;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.NAPTR;
 
         #endregion
 
@@ -97,35 +99,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// A 16-bit unsigned integer specifying the order in which the NAPTR records MUST be processed.
         /// Low numbers are processed before high numbers.
         /// </summary>
-        public UInt16  Order          { get; }
+        public UInt16      Order          { get; }
 
         /// <summary>
         /// A 16-bit unsigned integer that specifies the order in which NAPTR records with the same Order value should be processed.
         /// Low numbers are processed before high numbers.
         /// </summary>
-        public UInt16  Preference     { get; }
+        public UInt16      Preference     { get; }
 
         /// <summary>
         /// A character-string containing flags to control aspects of the rewriting and interpretation of the fields.
         /// Flags are single characters from the set [A-Z0-9], case preserved.
         /// </summary>
-        public String  Flags          { get; }
+        public String      Flags          { get; }
 
         /// <summary>
         /// A character-string that specifies the Service Parameters applicable to this delegation path.
         /// </summary>
-        public String  Services       { get; }
+        public String      Services       { get; }
 
         /// <summary>
         /// A character-string containing a substitution expression (regular expression) applied to the original string to construct the next domain name.
         /// </summary>
-        public String  RegExpr        { get; }
+        public String      RegExpr        { get; }
 
         /// <summary>
         /// A domain-name which specifies the new value in the case where the regular expression is a simple replacement.
         /// Can be "." if terminal.
         /// </summary>
-        public String  Replacement    { get; }
+        public DomainName  Replacement    { get; }
 
         #endregion
 
@@ -144,12 +146,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Order        = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Preference   = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
+            this.Order        = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Preference   = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Flags        = DNSTools.ExtractCharacterString(Stream);
             this.Services     = DNSTools.ExtractCharacterString(Stream);
             this.RegExpr      = DNSTools.ExtractCharacterString(Stream);
-            this.Replacement  = DNSTools.ExtractName(Stream);
+            this.Replacement  = DNSTools.ExtractDomainName(Stream);
 
         }
 
@@ -171,12 +173,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Order        = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.Preference   = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
+            this.Order        = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Preference   = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Flags        = DNSTools.ExtractCharacterString(Stream);
             this.Services     = DNSTools.ExtractCharacterString(Stream);
             this.RegExpr      = DNSTools.ExtractCharacterString(Stream);
-            this.Replacement  = DNSTools.ExtractName(Stream);
+            this.Replacement  = DNSTools.ExtractDomainName(Stream);
 
         }
 
@@ -204,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                      String           Flags,
                      String           Services,
                      String           RegExpr,
-                     String           Replacement)
+                     DomainName       Replacement)
 
             : base(DomainName,
                    TypeId,
@@ -226,6 +228,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
+
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            tempStream.WriteUInt16BE (Order);
+            tempStream.WriteUInt16BE (Preference);
+            tempStream.WriteASCIIMax255    (Flags);
+            tempStream.WriteASCIIMax255    (Services);
+            tempStream.WriteASCIIMax255    (RegExpr);
+
+            // REPLACEMENT (domain-name, variable with compression)
+            int replacementOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            Replacement.Serialize(
+                tempStream,
+                replacementOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH: Variable, when compression is used!
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

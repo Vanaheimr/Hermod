@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CachePTR(this DNSClient   DNSClient,
                                     DomainName       DomainName,
-                                    DomainName       Target,
+                                    DNSServiceName   Target,
                                     DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                     TimeSpan?        TimeToLive   = null)
         {
@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Pointer (PTR) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.PTR;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.PTR;
 
         #endregion
 
@@ -79,8 +79,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         /// <summary>
         /// The text of this DNS Pointer (PTR) resource record.
+        /// Might also be a DNS Service Name within the context of DNS-Based Service Discovery (DNS-SD, RFC 6763).
         /// </summary>
-        public DomainName  Target    { get; }
+        public DNSServiceName  Target    { get; }
 
         #endregion
 
@@ -98,9 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TypeId)
 
         {
-            this.Target = DNS.DomainName.Parse(
-                              DNSTools.ExtractName(Stream)
-                          );
+            this.Target = DNSTools.ExtractDNSServiceName(Stream);
         }
 
         #endregion
@@ -120,11 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
-
-            this.Target = DomainName.Parse(
-                              DNSTools.ExtractName(Stream)
-                          );
-
+            this.Target = DNSTools.ExtractDNSServiceName(Stream);
         }
 
         #endregion
@@ -141,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public PTR(DomainName       DomainName,
                    DNSQueryClasses  Class,
                    TimeSpan         TimeToLive,
-                   DomainName       Target)
+                   DNSServiceName   Target)
 
             : base(DomainName,
                    TypeId,
@@ -149,14 +144,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TimeToLive)
 
         {
-
             this.Target = Target;
-
         }
 
         #endregion
 
         #endregion
+
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            // RDATA: Target domain name
+            Target.Serialize(
+                tempStream,
+                (Int32) Stream.Position + 2,
+                UseCompression,
+                CompressionOffsets
+            );
+
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH: Variable, when compression is used!
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA (tempStream) to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

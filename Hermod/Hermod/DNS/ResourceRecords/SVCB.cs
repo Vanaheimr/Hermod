@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_SVCB_Extensions
     {
 
-        #region CacheSVCB(this DNSClient, DomainName, Target, Class = IN, TimeToLive = 365days)
+        #region CacheSVCB(this DNSClient, DomainName, Priority, TargetName, SVCParameters, Class = DNSQueryClasses.IN, TimeToLive = null)
 
         /// <summary>
         /// Add a DNS SVCB record cache entry.
@@ -39,14 +39,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name of this SVCB resource record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="TargetName">The domain name of the target host.</param>
-        /// <param name="SVCParams">The SVCB parameters.</param>
+        /// <param name="SVCParameters">The SVCB parameters.</param>
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         public static void CacheSVCB(this DNSClient             DNSClient,
                                      DomainName                 DomainName,
                                      UInt16                     Priority,
-                                     String                     TargetName,
-                                     IEnumerable<SVCParameter>  SVCParams,
+                                     DomainName                 TargetName,
+                                     IEnumerable<SVCParameter>  SVCParameters,
                                      DNSQueryClasses            Class        = DNSQueryClasses.IN,
                                      TimeSpan?                  TimeToLive   = null)
         {
@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 TimeToLive ?? TimeSpan.FromDays(365),
                                 Priority,
                                 TargetName,
-                                SVCParams
+                                SVCParameters
                             );
 
             DNSClient.DNSCache.Add(
@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Service Binding (SVCB) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.SVCB;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SVCB;
 
         #endregion
 
@@ -134,17 +134,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The priority of this target host.
         /// </summary>
-        public UInt16                 Priority   { get; }
+        public UInt16                     Priority         { get; }
 
         /// <summary>
         /// The domain name of the target host.
         /// </summary>
-        public String                 TargetName { get; }
+        public DomainName                 TargetName       { get; }
 
         /// <summary>
         /// The SVCB parameters.
         /// </summary>
-        public IEnumerable<SVCParameter>  SVCParams  { get; }
+        public IEnumerable<SVCParameter>  SVCParameters    { get; }
 
         #endregion
 
@@ -163,11 +163,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Priority = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
+            this.Priority      = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
 
-            this.TargetName = DNSTools.ExtractName(Stream);
+            this.TargetName    = DNSTools.ExtractDomainName(Stream);
 
-            var svcParams = new List<SVCParameter>();
+            var svcParameters  = new List<SVCParameter>();
 
             while (true)
             {
@@ -198,11 +198,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (Stream.Read(value, 0, len) != len)
                     break;
 
-                svcParams.Add(new SVCParameter(key, value));
+                svcParameters.Add(new SVCParameter(key, value));
 
             }
 
-            this.SVCParams = svcParams.AsReadOnly();
+            this.SVCParameters = svcParameters.AsReadOnly();
 
         }
 
@@ -224,10 +224,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.Priority    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.TargetName  = DNSTools.ExtractName(Stream);
+            this.Priority      = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
+            this.TargetName    = DNSTools.ExtractDomainName(Stream);
 
-            var svcParams    = new List<SVCParameter>();
+            var svcParameters  = new List<SVCParameter>();
 
             while (true)
             {
@@ -258,17 +258,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (Stream.Read(value, 0, len) != len)
                     break;
 
-                svcParams.Add(new SVCParameter(key, value));
+                svcParameters.Add(new SVCParameter(key, value));
 
             }
 
-            this.SVCParams = svcParams.AsReadOnly();
+            this.SVCParameters = svcParameters.AsReadOnly();
 
         }
 
         #endregion
 
-        #region SVCB(DomainName, Class, TimeToLive, Priority, TargetName, SVCParams)
+        #region SVCB(DomainName, Class, TimeToLive, Priority, TargetName, SVCParameters)
 
         /// <summary>
         /// Create a new DNS SVCB record.
@@ -278,29 +278,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this SVCB record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="TargetName">The domain name of the target host.</param>
-        /// <param name="SVCParams">The SVCB parameters.</param>
+        /// <param name="SVCParameters">The SVCB parameters.</param>
         public SVCB(DomainName                 DomainName,
                     DNSQueryClasses            Class,
                     TimeSpan                   TimeToLive,
                     UInt16                     Priority,
-                    String                     TargetName,
-                    IEnumerable<SVCParameter>  SVCParams)
+                    DomainName                 TargetName,
+                    IEnumerable<SVCParameter>  SVCParameters)
 
             : base(DomainName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   BuildPresentation(
-                       Priority,
-                       TargetName,
-                       SVCParams
-                   ))
+                   TimeToLive)
 
         {
 
-            this.Priority    = Priority;
-            this.TargetName  = TargetName;
-            this.SVCParams   = SVCParams ?? [];
+            this.Priority       = Priority;
+            this.TargetName     = TargetName;
+            this.SVCParameters  = SVCParameters ?? [];
 
         }
 
@@ -390,6 +385,56 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            tempStream.WriteUInt16BE(Priority);
+
+            // TargetName (variable, with compression)
+            var targetOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            TargetName.Serialize(
+                tempStream,
+                targetOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            // SVC parameters sorted by their keys
+            foreach (var svcParameter in SVCParameters.OrderBy(kvp => kvp.Key))
+            {
+                tempStream.WriteUInt16BE(svcParameter.Key);
+                tempStream.WriteUInt16BE(svcParameter.Value.Length);
+                tempStream.Write        (svcParameter.Value, 0, svcParameter.Value.Length);
+            }
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH (2 bytes)
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
@@ -397,7 +442,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Priority={Priority}, Target={TargetName}, SVCParams={string.Join(", ", SVCParams.Select(p => $"{GetKeyName(p.Key)}={(p.Value.Length > 0 ? EscapeValue(p.Value) : "")}"))}, {base.ToString()}";
+            => $"Priority={Priority}, Target={TargetName}, SVCParams={string.Join(", ", SVCParameters.Select(p => $"{GetKeyName(p.Key)}={(p.Value.Length > 0 ? EscapeValue(p.Value) : "")}"))}, {base.ToString()}";
 
         #endregion
 

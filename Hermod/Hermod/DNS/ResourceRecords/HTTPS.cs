@@ -30,7 +30,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public static class DNS_HTTPS_Extensions
     {
 
-        #region CacheHTTPS(this DNSClient, DomainName, Class = IN, TimeToLive = 365days, Priority, TargetName, SvcParams, ...)
+        #region CacheHTTPS(this DNSClient, DomainName, Class = IN, TimeToLive = 365days, Priority, TargetName, SVCParameters, ...)
 
         /// <summary>
         /// Add a DNS HTTPS record cache entry.
@@ -41,12 +41,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this HTTPS record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="TargetName">The domain name of the target host.</param>
-        /// <param name="SvcParams">The HTTPS parameters.</param>
+        /// <param name="SVCParameters">The HTTPS parameters.</param>
         public static void CacheHTTPS(this DNSClient             DNSClient,
                                       DomainName                 DomainName,
                                       UInt16                     Priority,
-                                      String                     TargetName,
-                                      IEnumerable<SVCParameter>  SvcParams,
+                                      DomainName                 TargetName,
+                                      IEnumerable<SVCParameter>  SVCParameters,
                                       DNSQueryClasses            Class        = DNSQueryClasses.IN,
                                       TimeSpan?                  TimeToLive   = null)
         {
@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 TimeToLive ?? TimeSpan.FromDays(365),
                                 Priority,
                                 TargetName,
-                                SvcParams
+                                SVCParameters
                             );
 
             DNSClient.DNSCache.Add(
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS HTTPS resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.HTTPS;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.HTTPS;
 
         #endregion
 
@@ -93,17 +93,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The priority of this target host.
         /// </summary>
-        public UInt16                 Priority   { get; }
+        public UInt16                     Priority        { get; }
 
         /// <summary>
         /// The domain name of the target host.
         /// </summary>
-        public String                 TargetName { get; }
+        public DomainName                 TargetName      { get; }
 
         /// <summary>
         /// The HTTPS parameters.
         /// </summary>
-        public IEnumerable<SVCParameter>  SvcParams  { get; }
+        public IEnumerable<SVCParameter>  SVCParameters    { get; }
 
         #endregion
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             this.Priority    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.TargetName  = DNSTools.ExtractName(Stream);
+            this.TargetName  = DNSTools.ExtractDomainName(Stream);
 
             var svcParams    = new List<SVCParameter>();
 
@@ -162,7 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            this.SvcParams = svcParams.AsReadOnly();
+            this.SVCParameters = svcParams.AsReadOnly();
 
         }
 
@@ -185,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             this.Priority    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
-            this.TargetName  = DNSTools.ExtractName(Stream);
+            this.TargetName  = DNSTools.ExtractDomainName(Stream);
 
             var svcParams    = new List<SVCParameter>();
 
@@ -224,13 +224,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             }
 
-            this.SvcParams = svcParams.AsReadOnly();
+            this.SVCParameters = svcParams.AsReadOnly();
 
         }
 
         #endregion
 
-        #region HTTPS(DomainName, Class, TimeToLive, Priority, TargetName, SvcParams)
+        #region HTTPS(DomainName, Class, TimeToLive, Priority, TargetName, SVCParameters)
 
         /// <summary>
         /// Create a new DNS HTTPS record.
@@ -240,29 +240,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this HTTPS record.</param>
         /// <param name="Priority">The priority of this target host.</param>
         /// <param name="TargetName">The domain name of the target host.</param>
-        /// <param name="SvcParams">The HTTPS parameters.</param>
+        /// <param name="SVCParameters">The HTTPS parameters.</param>
         public HTTPS(DomainName                 DomainName,
                      DNSQueryClasses            Class,
                      TimeSpan                   TimeToLive,
                      UInt16                     Priority,
-                     String                     TargetName,
-                     IEnumerable<SVCParameter>  SvcParams)
+                     DomainName                 TargetName,
+                     IEnumerable<SVCParameter>  SVCParameters)
 
             : base(DomainName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   BuildPresentation(
-                       Priority,
-                       TargetName,
-                       SvcParams
-                   ))
+                   TimeToLive)
 
         {
 
-            this.Priority    = Priority;
-            this.TargetName  = TargetName;
-            this.SvcParams   = SvcParams;
+            this.Priority       = Priority;
+            this.TargetName     = TargetName;
+            this.SVCParameters  = SVCParameters;
 
         }
 
@@ -271,11 +266,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region (private) BuildPresentation(Priority, TargetName, SvcParams)
+        #region (private) BuildPresentation(Priority, TargetName, SVCParameters)
 
-        private static String BuildPresentation(UInt16                 Priority,
-                                                String                 TargetName,
-                                                IEnumerable<SVCParameter>  SvcParams)
+        private static String BuildPresentation(UInt16                     Priority,
+                                                DomainName                 TargetName,
+                                                IEnumerable<SVCParameter>  SVCParameters)
         {
 
             var sb = new StringBuilder();
@@ -284,7 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             sb.Append(' ');
             sb.Append(TargetName);
 
-            foreach (var param in SvcParams.OrderBy(p => p.Key))
+            foreach (var param in SVCParameters.OrderBy(p => p.Key))
             {
                 sb.Append(' ');
                 sb.Append(GetKeyName(param.Key));
@@ -346,6 +341,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            tempStream.WriteUInt16BE(Priority);
+
+            // TargetName (variable, with compression)
+            int targetOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            TargetName.Serialize(
+                tempStream,
+                targetOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            // SVC parameters sorted by their keys
+            foreach (var svcParameter in SVCParameters.OrderBy(kvp => kvp.Key))
+            {
+                tempStream.WriteUInt16BE(svcParameter.Key);
+                tempStream.WriteUInt16BE(svcParameter.Value.Length);
+                tempStream.Write        (svcParameter.Value, 0, svcParameter.Value.Length);
+            }
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH (2 bytes)
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
@@ -353,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Priority={Priority}, Target={TargetName}, SvcParams={string.Join(", ", SvcParams.Select(p => $"{GetKeyName(p.Key)}={(p.Value.Length > 0 ? EscapeValue(p.Value) : "")}"))}, {base.ToString()}";
+            => $"Priority={Priority}, Target={TargetName}, SvcParams={string.Join(", ", SVCParameters.Select(p => $"{GetKeyName(p.Key)}={(p.Value.Length > 0 ? EscapeValue(p.Value) : "")}"))}, {base.ToString()}";
 
         #endregion
 

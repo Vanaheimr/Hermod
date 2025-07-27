@@ -51,7 +51,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                     DomainName          DomainName,
                                     DomainName          Server,
                                     SimpleEMailAddress  Email,
-                                    Int64               Serial,
+                                    UInt32              Serial,
                                     TimeSpan            Refresh,
                                     TimeSpan            Retry,
                                     TimeSpan            Expire,
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Start of Authority (SOA) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.SOA;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SOA;
 
         #endregion
 
@@ -110,12 +110,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The email address of the person responsible for the domain.
         /// </summary>
-        public SimpleEMailAddress  Email      { get; }
+        public SimpleEMailAddress  EMail      { get; }
 
         /// <summary>
         /// The serial number of the zone file, which is incremented each time the zone file is updated.
         /// </summary>
-        public Int64               Serial     { get; }
+        public UInt32              Serial     { get; }
 
         /// <summary>
         /// The time interval (in seconds) that a secondary DNS server should wait before refreshing its zone file from the primary DNS server.
@@ -155,8 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             this.Server   = DNS.DomainName.    Parse(DNSTools.ExtractName(Stream));
-            this.Email    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
-            this.Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ExtractName(Stream));
+            this.Serial   = (UInt32) ((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Expire   = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
@@ -198,8 +198,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             //}
 
             this.Server   = DomainName.        Parse(DNSTools.ExtractNameUTF8(Stream));
-            this.Email    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractNameUTF8(Stream)));
-            this.Serial   = (Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue;
+            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractNameUTF8(Stream)));
+            this.Serial   = (UInt32) ((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Expire   = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="Server">The name of the DNS server that is authoritative for the domain.</param>
-        /// <param name="Email">The email address of the person responsible for the domain.</param>
+        /// <param name="EMail">The email address of the person responsible for the domain.</param>
         /// <param name="Serial">The serial number of the zone file, which is incremented each time the zone file is updated.</param>
         /// <param name="Refresh">The time interval (in seconds) that a secondary DNS server should wait before refreshing its zone file from the primary DNS server.</param>
         /// <param name="Retry">The time interval (in seconds) that a secondary DNS server should wait before retrying a failed refresh attempt.</param>
@@ -228,8 +228,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    DNSQueryClasses     Class,
                    TimeSpan            TimeToLive,
                    DomainName          Server,
-                   SimpleEMailAddress  Email,
-                   Int64               Serial,
+                   SimpleEMailAddress  EMail,
+                   UInt32              Serial,
                    TimeSpan            Refresh,
                    TimeSpan            Retry,
                    TimeSpan            Expire,
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             this.Server   = Server;
-            this.Email    = Email;
+            this.EMail    = EMail;
             this.Serial   = Serial;
             this.Refresh  = Refresh;
             this.Retry    = Retry;
@@ -256,6 +256,61 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            var tempStream = new MemoryStream();
+
+            // MNAME (primary name server, domain-name with compression)
+            var mnameOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // +2 for RDLength
+            Server.Serialize(
+                tempStream,
+                mnameOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            // RNAME (responsible person's mailbox, domain-name with compression)
+            var rnameOffset = (Int32) Stream.Position + 2 + (Int32) tempStream.Position;  // Update offset
+            EMail.ToString().Replace("@", ".").Serialize(
+                tempStream,
+                rnameOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            tempStream.WriteUInt32BE  (Serial);
+            tempStream.WriteTimeSpanBE(Refresh);
+            tempStream.WriteTimeSpanBE(Retry);
+            tempStream.WriteTimeSpanBE(Expire);
+            tempStream.WriteTimeSpanBE(Minimum);
+
+            if (tempStream.Length > UInt16.MaxValue)
+                throw new InvalidOperationException("RDATA exceeds maximum UInt16 length (65535 bytes)!");
+
+            // RDLENGTH: Variable, when compression is used!
+            Stream.WriteUInt16BE(tempStream.Length);
+
+            // Copy RDATA to main stream
+            tempStream.Position = 0;
+            tempStream.CopyTo(Stream);
+
+        }
+
+        #endregion
+
+
         #region (override) ToString()
 
         /// <summary>
@@ -266,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => String.Concat(
                    $"SOA({DomainName}, ",
                    $"Server: {Server}, ",
-                   $"Email: {Email}, ",
+                   $"Email: {EMail}, ",
                    $"Serial: {Serial}, ",
                    $"Refresh: {Refresh}, ",
                    $"Retry: {Retry}, ",

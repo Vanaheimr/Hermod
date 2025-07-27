@@ -17,10 +17,10 @@
 
 #region Usings
 
-using System.Text.RegularExpressions;
-using System.Diagnostics.CodeAnalysis;
-
 using org.GraphDefined.Vanaheimr.Illias;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using System.Text.RegularExpressions;
 
 #endregion
 
@@ -263,6 +263,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 return false;
 
             return FullName.EndsWith(other.FullName, StringComparison.OrdinalIgnoreCase);
+
+        }
+
+
+        public void Serialize(Stream                      Stream,
+                              Int32                       CurrentOffset,
+                              Boolean                     UseCompression   = true,
+                              Dictionary<String, Int32>?  Offsets          = null)
+        {
+
+            Offsets ??= [];
+
+            // Root domain
+            if (Labels.Count == 0)
+            {
+                Stream.WriteByte(0x00);
+                return;
+            }
+
+            // Check for compression
+            if (UseCompression && Offsets.TryGetValue(FullName, out var pointerOffset))
+            {
+                // Pointer: 0xC0 | (offset >> 8), then low byte
+                UInt16 pointer = (UInt16)(0xC000 | pointerOffset);
+                Stream.WriteByte((Byte) (pointer >>    8));
+                Stream.WriteByte((Byte) (pointer &  0xFF));
+                return;
+            }
+
+            // Add offset for this name
+            Offsets[FullName] = CurrentOffset;
+
+            foreach (var label in Labels)
+            {
+
+                var labelBytes = Encoding.ASCII.GetBytes(label);
+                if (labelBytes.Length > 63)
+                    throw new ArgumentException("Label too long");
+
+                Stream.WriteByte((Byte) labelBytes.Length);
+                Stream.Write    (labelBytes, 0, labelBytes.Length);
+
+                // Update offset for suffixes
+                var suffix = String.Join(".", labels.AsEnumerable().Skip(Array.IndexOf(labels, label) + 1));
+                if (!String.IsNullOrEmpty(suffix) && !Offsets.ContainsKey(suffix))
+                    Offsets[suffix] = CurrentOffset + 1 + labelBytes.Length;
+
+            }
+
+            // End of name
+            Stream.WriteByte(0x00);
 
         }
 

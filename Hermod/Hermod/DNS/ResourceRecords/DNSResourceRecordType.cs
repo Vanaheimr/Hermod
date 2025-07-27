@@ -21,10 +21,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// DNS Resource Record types.
     /// </summary>
-    public enum DNSResourceRecords : UInt16
+    public enum DNSResourceRecordType : UInt16
     {
 
         // Pseudo Types
+
+        /// <summary>
+        /// OPT record, which is used to carry additional information in DNS messages, such as EDNS0 options.
+        /// </summary>
+        OPT     = 41,
 
         /// <summary>
         /// Incremental zone transfer record, which is used to transfer only the changes made to a zone file since the last transfer.

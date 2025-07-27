@@ -33,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                   TimeSpan?        TimeToLive   = null)
 
             => CacheA(DNSClient,
-                      DNSService.Parse(DomainName.FullName),
+                      DNSServiceName.Parse(DomainName.FullName),
                       IPv4Address,
                       Class,
                       TimeToLive);
@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
         public static void CacheA(this DNSClient   DNSClient,
-                                  DNSService       DomainName,
+                                  DNSServiceName       DomainName,
                                   IPv4Address      IPv4Address,
                                   DNSQueryClasses  Class        = DNSQueryClasses.IN,
                                   TimeSpan?        TimeToLive   = null)
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS A resource record type identifier.
         /// </summary>
-        public const DNSResourceRecords TypeId = DNSResourceRecords.A;
+        public const DNSResourceRecordType TypeId = DNSResourceRecordType.A;
 
         #endregion
 
@@ -116,23 +116,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region A(DomainName, Stream)
-
-        public A(DomainName  DomainName,
-                 Stream      Stream)
-
-            : this(DNSService.Parse(DomainName.FullName),
-                   Stream)
-
-        { }
-
+        #region A(DomainName,     Stream)
 
         /// <summary>
-        /// Create a new A resource record from the given name and stream.
+        /// Create a new A resource record from the given domain name and stream.
         /// </summary>
         /// <param name="DomainName">The domain name of this A resource record.</param>
         /// <param name="Stream">A stream containing the A resource record data.</param>
-        public A(DNSService  DomainName,
+        public A(DomainName  DomainName,
                  Stream      Stream)
 
             : base(DomainName,
@@ -140,27 +131,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
-
             this.IPv4Address = new IPv4Address(Stream);
-
         }
 
         #endregion
 
-        #region A(Name, Class, TimeToLive, IPv4Address)
+        #region A(DNSServiceName, Stream)
 
-        public A(DomainName       DomainName,
-                 DNSQueryClasses  Class,
-                 TimeSpan         TimeToLive,
-                 IPv4Address      IPv4Address)
+        /// <summary>
+        /// Create a new A resource record from the given domain name and stream.
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS Service Name of this A resource record.</param>
+        /// <param name="Stream">A stream containing the A resource record data.</param>
+        public A(DNSServiceName  DNSServiceName,
+                 Stream          Stream)
 
-            : this(DNSService.Parse(DomainName.FullName),
-                   Class,
-                   TimeToLive,
-                   IPv4Address)
+            : base(DNSServiceName,
+                   TypeId,
+                   Stream)
 
-        { }
+        {
+            this.IPv4Address = new IPv4Address(Stream);
+        }
 
+        #endregion
+
+        #region A(DomainName,     Class, TimeToLive, IPv4Address)
 
         /// <summary>
         /// Create a new DNS A resource record.
@@ -169,7 +165,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Class">The DNS query class of this resource record.</param>
         /// <param name="TimeToLive">The time to live of this resource record.</param>
         /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
-        public A(DNSService       DomainName,
+        public A(DomainName       DomainName,
                  DNSQueryClasses  Class,
                  TimeSpan         TimeToLive,
                  IPv4Address      IPv4Address)
@@ -177,18 +173,108 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(DomainName,
                    TypeId,
                    Class,
-                   TimeToLive,
-                   IPv4Address.ToString())
+                   TimeToLive)
 
         {
-
             this.IPv4Address = IPv4Address;
+        }
 
+        #endregion
+
+        #region A(DNSServiceName, Class, TimeToLive, IPv4Address)
+
+        /// <summary>
+        /// Create a new DNS A resource record.
+        /// </summary>
+        /// <param name="DNSServiceName">The DNS Service Name of this A resource record.</param>
+        /// <param name="Class">The DNS query class of this resource record.</param>
+        /// <param name="TimeToLive">The time to live of this resource record.</param>
+        /// <param name="IPv4Address">The IPv4 address of this resource record.</param>
+        public A(DNSServiceName   DNSServiceName,
+                 DNSQueryClasses  Class,
+                 TimeSpan         TimeToLive,
+                 IPv4Address      IPv4Address)
+
+            : base(DNSServiceName,
+                   TypeId,
+                   Class,
+                   TimeToLive)
+
+        {
+            this.IPv4Address = IPv4Address;
         }
 
         #endregion
 
         #endregion
+
+
+        public static A Parse(DomainName       DomainName,
+                              DNSQueryClasses  Class,
+                              TimeSpan         TimeToLive,
+                              Byte[]           RData)
+        {
+
+            if (RData.Length != 4)
+                throw new InvalidDataException("Invalid A RData length");
+
+            return new A(
+                       DomainName,
+                       Class,
+                       TimeToLive,
+                       new IPv4Address(RData)
+                   );
+
+        }
+
+        public static async ValueTask<A> Parse(DomainName         DomainName,
+                                               DNSQueryClasses    Class,
+                                               TimeSpan           TimeToLive,
+                                               Stream             RDataStream,
+                                               CancellationToken  CancellationToken   = default)
+        {
+
+            var memory  = new Byte[4];
+            var read    = await RDataStream.ReadAsync(
+                                    memory,
+                                    CancellationToken
+                                );
+
+            if (read != 4)
+                throw new InvalidDataException("Invalid A RData length!");
+
+            return new A(
+                       DomainName,
+                       Class,
+                       TimeToLive,
+                       new IPv4Address(memory)
+                   );
+
+        }
+
+        #region (protected override) SerializeRRData(Stream, UseCompression = true, CompressionOffsets = null)
+
+        /// <summary>
+        /// Serialize the concrete DNS resource record to the given stream.
+        /// </summary>
+        /// <param name="Stream">The stream to write to.</param>
+        /// <param name="UseCompression">Whether to use name compression (true by default).</param>
+        /// <param name="CompressionOffsets">An optional dictionary for name compression offsets.</param>
+        protected override void SerializeRRData(Stream                      Stream,
+                                                Boolean                     UseCompression       = true,
+                                                Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            // RDLENGTH (2 bytes): 4 for A
+            Stream.WriteUInt16BE(4);
+
+            // RDATA: IPv4 address (4 bytes)
+            Stream.Write(IPv4Address.GetBytes(), 0, 4);
+
+        }
+
+        #endregion
+
 
         #region (override) ToString()
 

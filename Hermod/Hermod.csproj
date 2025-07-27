@@ -31,4 +31,8 @@
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DNS\ResourceRecords\" />
+  </ItemGroup>
+
 </Project>
