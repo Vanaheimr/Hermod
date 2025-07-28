@@ -28,6 +28,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         IIPAddress? Source { get; }
         TimeSpan TimeToLive { get; }
 
+
+        void Serialize(Stream                      Stream,
+                       Boolean                     UseCompression       = true,
+                       Dictionary<String, Int32>?  CompressionOffsets   = null);
+
     }
 
 }

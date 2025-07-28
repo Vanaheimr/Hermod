@@ -32,8 +32,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     {
 
         public DNSServiceName          DomainName    { get; }
-        public DNSResourceRecordType  QueryType     { get; }
-        public DNSQueryClasses     QueryClass    { get; }
+        public DNSResourceRecordTypes  QueryType     { get; }
+        public DNSQueryClasses         QueryClass    { get; }
 
 
 
@@ -41,17 +41,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    DNSServiceName.Parse(DNSTools.ReadDomainName(packet, ref position)),
-                   (DNSResourceRecordType) ((packet[position++] << 8) | packet[position++]),
+                   (DNSResourceRecordTypes) ((packet[position++] << 8) | packet[position++]),
                    (DNSQueryClasses)    ((packet[position++] << 8) | packet[position++])
                );
 
+
+        public static DNSQuestion Parse(Stream Stream)
+
+            => new (
+                   DNSTools.ExtractDNSServiceName(Stream),
+                   (DNSResourceRecordTypes) Stream.ReadUInt16BE(),
+                   (DNSQueryClasses)        Stream.ReadUInt16BE()
+               );
+
+
+
+        public void Serialize(Stream                      Stream,
+                              Int32                       CurrentOffset,
+                              Boolean                     UseCompression       = true,
+                              Dictionary<String, Int32>?  CompressionOffsets   = null)
+        {
+
+            DomainName.Serialize(
+                Stream,
+                CurrentOffset,
+                UseCompression,
+                CompressionOffsets
+            );
+
+            Stream.WriteUInt16BE((UInt16) QueryType);
+            Stream.WriteUInt16BE((UInt16) QueryClass);
+
+        }
 
 
 
 
         public DNSQuestion(DNSServiceName          DomainName,
-                           DNSResourceRecordType  QueryType,
-                           DNSQueryClasses     QueryClass)
+                           DNSResourceRecordTypes  QueryType,
+                           DNSQueryClasses         QueryClass)
         {
 
             this.DomainName  = DomainName;

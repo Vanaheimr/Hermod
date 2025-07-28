@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Sender Policy Framework (SPF) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SPF;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.SPF;
 
         #endregion
 

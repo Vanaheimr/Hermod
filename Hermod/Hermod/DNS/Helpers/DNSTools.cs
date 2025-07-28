@@ -18,8 +18,8 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+
 using System.Buffers.Binary;
-using System.Reflection.Emit;
 using System.Text;
 
 #endregion
@@ -221,7 +221,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             while (LengthOfSegment > 0);
 
-            return DNSName.ToString();
+            var name = DNSName.ToString();
+
+            return name != ""
+                       ? name
+                       : ".";
 
         }
 
@@ -377,6 +381,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             // End of name
             Stream.WriteByte(0x00);
+
+        }
+
+
+
+        public static UInt16 ReadUInt16BE(this Stream stream)
+        {
+
+            Span<Byte> buffer = stackalloc Byte[2];
+
+            var totalRead = 0;
+            while (totalRead < buffer.Length)
+            {
+
+                var bytesRead = stream.Read(buffer.Slice(totalRead));
+
+                if (bytesRead == 0)
+                    throw new EndOfStreamException("Unable to read 2 bytes for UInt16");
+
+                totalRead += bytesRead;
+
+            }
+
+            return BinaryPrimitives.ReadUInt16BigEndian(buffer);
+
+        }
+
+        public static UInt32 ReadUInt32BE(this Stream stream)
+        {
+
+            Span<Byte> buffer = stackalloc Byte[4];
+
+            var totalRead = 0;
+            while (totalRead < buffer.Length)
+            {
+
+                var bytesRead = stream.Read(buffer.Slice(totalRead));
+
+                if (bytesRead == 0)
+                    throw new EndOfStreamException("Unable to read 4 bytes for UInt32");
+
+                totalRead += bytesRead;
+
+            }
+
+            return BinaryPrimitives.ReadUInt32BigEndian(buffer);
 
         }
 

@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Pointer (PTR) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.PTR;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.PTR;
 
         #endregion
 

@@ -39,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private readonly ConcurrentDictionary<DNSResourceRecordType, ConstructorInfo>  rrLookup;
+        private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup;
 
         #endregion
 
@@ -208,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                 var actualTypeId = TypeIdField.GetValue(actualType);
 
-                if (actualTypeId is DNSResourceRecordType id)
+                if (actualTypeId is DNSResourceRecordTypes id)
                     rrLookup.TryAdd(id, Constructor);
 
                 else
@@ -314,7 +314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             var resourceName  = DNSTools.ExtractName(DNSStream);
-            var typeId        = (DNSResourceRecordType) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            var typeId        = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
 
             if (resourceName == "")
                 resourceName = ".";
@@ -360,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Query   (DomainName, ResourceRecordTypes, CancellationToken = default)
 
         public Task<DNSInfo> Query(DNSServiceName                       DomainName,
-                                   IEnumerable<DNSResourceRecordType>  ResourceRecordTypes,
+                                   IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                    CancellationToken                CancellationToken   = default)
         {
 
@@ -391,7 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var resourceRecordTypes = ResourceRecordTypes.ToList();
 
             if (resourceRecordTypes.Count == 0)
-                resourceRecordTypes = [ DNSResourceRecordType.Any ];
+                resourceRecordTypes = [ DNSResourceRecordTypes.Any ];
 
             #endregion
 
@@ -439,7 +439,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
                         socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
                         socket.Connect(endPoint);
-                        socket.SendTo(dnsQuery.Serialize(), endPoint);
+
+                        var ms = new MemoryStream();
+                        dnsQuery.Serialize(ms, false, []);
+
+                        socket.SendTo(ms.ToArray(), endPoint);
 
                         length = socket.ReceiveFrom(data, ref endPoint);
 
@@ -449,22 +453,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
                             return new DNSInfo(
-                                       Origin:               new IPSocket(
-                                                                 dnsServer.IPAddress,
-                                                                 dnsServer.Port
-                                                             ),
-                                       QueryId:              dnsQuery.TransactionId,
+                                       Origin:                 new IPSocket(
+                                                                   dnsServer.IPAddress,
+                                                                   dnsServer.Port
+                                                               ),
+                                       QueryId:                dnsQuery.TransactionId,
                                        IsAuthoritativeAnswer:  false,
-                                       IsTruncated:          false,
-                                       RecursionDesired:     false,
-                                       RecursionAvailable:   false,
-                                       ResponseCode:         DNSResponseCodes.ServerFailure,
-                                       Answers:              [],
-                                       Authorities:          [],
-                                       AdditionalRecords:    [],
-                                       IsValid:              true,
-                                       IsTimeout:            false,
-                                       Timeout:              QueryTimeout
+                                       IsTruncated:            false,
+                                       RecursionDesired:       false,
+                                       RecursionAvailable:     false,
+                                       ResponseCode:           DNSResponseCodes.ServerFailure,
+                                       Answers:                [],
+                                       Authorities:            [],
+                                       AdditionalRecords:      [],
+                                       IsValid:                true,
+                                       IsTimeout:              false,
+                                       Timeout:                QueryTimeout
                                    );
 
                         // A SocketException might be thrown after the timeout was reached!
@@ -600,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsInfo      = await Query(
                                          DNSService,
-                                         [ (DNSResourceRecordType) typeIdField.GetValue(typeof(T)) ],
+                                         [ (DNSResourceRecordTypes) typeIdField.GetValue(typeof(T)) ],
                                          CancellationToken
                                      ).ConfigureAwait(false);
 

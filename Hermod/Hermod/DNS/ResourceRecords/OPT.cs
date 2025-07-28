@@ -17,7 +17,7 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// The DNS OPT (pseudo) resource record for DNS Extension Mechanisms (EDNS)
     /// https://www.rfc-editor.org/rfc/rfc6891
     /// </summary>
-    public class OPT : IDNSPseudoResourceRecord
+    public class OPT : IDNSPseudoResourceRecord, IDNSResourceRecord
     {
 
         #region Data
@@ -36,9 +36,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS OPT resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.OPT;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.OPT;
 
-        public DNSResourceRecordType Type
+        public DNSResourceRecordTypes Type
             => TypeId;
 
         #endregion
@@ -50,6 +50,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Byte                     Version           { get; }
         public UInt16                   Flags             { get; }
         public IEnumerable<EDNSOption>  Options           { get; }
+
+
+
+        public DNSQueryClasses          Class             { get; }
+
+        public DNSServiceName   DomainName  => throw new NotImplementedException();
+
+        public DateTime                 EndOfLife         { get; }
+
+        public String?          RText       => throw new NotImplementedException();
+
+        public IIPAddress?      Source      => throw new NotImplementedException();
+
+        public TimeSpan                 TimeToLive        { get; }
 
         #endregion
 
@@ -76,8 +90,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region OPT(DomainName Stream)
 
-        public OPT(DomainName  DomainName,
-                   Stream      Stream)
+        public OPT(DomainName       DomainName,
+                   DNSQueryClasses  Class,
+                   UInt32           TTL,
+                   Stream           Stream)
 
             //: this(DNSService.Parse(DomainName.FullName),
             //       Stream)
@@ -90,14 +106,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name of this OPT resource record.</param>
         /// <param name="Stream">A stream containing the OPT resource record data.</param>
-        public OPT(DNSServiceName  DomainName,
-                   Stream      Stream)
+        public OPT(DNSServiceName   DomainName,
+                   //DNSQueryClasses  Class,
+                   //UInt32           TTL,
+                   Stream           Stream)
 
             //: base(DomainName,
             //       TypeId,
             //       Stream)
 
         {
+
+            this.Class       = (DNSQueryClasses) Stream.ReadUInt16BE();
+            var timeToLife   = Stream.ReadUInt32BE();
+            this.TimeToLive  = TimeSpan.FromSeconds(timeToLife);
+            //this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            this.EndOfLife   = Timestamp.Now + TimeToLive;
 
             //this.IPv6Address = new IPv6Address(Stream);
 
@@ -185,7 +209,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
-        public void Serialize(Stream stream)
+        public void Serialize(Stream                      stream,
+                              Boolean                     UseCompression       = true,
+                              Dictionary<String, Int32>?  CompressionOffsets   = null)
         {
 
             // Name: Root domain (empty label followed by 0)
@@ -225,9 +251,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
 
         }
-
-
-
 
 
 

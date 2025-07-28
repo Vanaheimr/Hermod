@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Canonical Name (CNAME) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.CNAME;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.CNAME;
 
         #endregion
 

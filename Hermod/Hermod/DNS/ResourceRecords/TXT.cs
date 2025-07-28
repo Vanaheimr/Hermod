@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Text (TXT) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.TXT;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.TXT;
 
         #endregion
 

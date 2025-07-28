@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS AAAA resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.AAAA;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.AAAA;
 
         #endregion
 

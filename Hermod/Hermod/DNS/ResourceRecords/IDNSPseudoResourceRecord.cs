@@ -21,7 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public interface IDNSPseudoResourceRecord
     {
 
-        DNSResourceRecordType Type { get; }
+        DNSResourceRecordTypes Type { get; }
 
         String ToString();
 

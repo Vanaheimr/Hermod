@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Service Binding (SVCB) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SVCB;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.SVCB;
 
         #endregion
 

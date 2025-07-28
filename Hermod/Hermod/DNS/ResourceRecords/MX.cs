@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Mail Exchange (MX) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.MX;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.MX;
 
         #endregion
 

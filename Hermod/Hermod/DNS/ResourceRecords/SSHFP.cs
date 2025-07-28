@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS SSH Public Key Fingerprint (SSHFP) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SSHFP;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.SSHFP;
 
         #endregion
 

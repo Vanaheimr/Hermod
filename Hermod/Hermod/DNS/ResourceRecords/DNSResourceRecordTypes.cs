@@ -21,7 +21,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// DNS Resource Record types.
     /// </summary>
-    public enum DNSResourceRecordType : UInt16
+    public enum DNSResourceRecordTypes : UInt16
     {
 
         // Pseudo Types

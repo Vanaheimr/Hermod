@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Service (SRV) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SRV;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.SRV;
 
         #endregion
 
@@ -144,6 +144,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Stream">A stream containing the SRV resource record data.</param>
         public SRV(DNSServiceName  DomainName,
                    Stream          Stream)
+
+            : base(DomainName,
+                   TypeId,
+                   Stream)
+
+        {
+
+            this.Priority  = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Weight    = (UInt16)            ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Port      = IPPort.        Parse((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
+            this.Target    = DNS.DomainName.Parse(DNSTools.ExtractName(Stream));
+
+        }
+
+        #endregion
+
+        #region SRV(DomainName, Stream)
+
+        /// <summary>
+        /// Create a new SRV resource record from the given name and stream.
+        /// </summary>
+        /// <param name="DomainName">The DNS Service Name of this SRV resource record.</param>
+        /// <param name="Stream">A stream containing the SRV resource record data.</param>
+        public SRV(DNSServiceName   DomainName,
+                   DNSQueryClasses  Class,
+                   TimeSpan         TimeToLive,
+                   Stream           Stream)
 
             : base(DomainName,
                    TypeId,

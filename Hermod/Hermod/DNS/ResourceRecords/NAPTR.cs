@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Naming Authority Pointer (NAPTR) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.NAPTR;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.NAPTR;
 
         #endregion
 

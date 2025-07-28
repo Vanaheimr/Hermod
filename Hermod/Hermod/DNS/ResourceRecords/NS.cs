@@ -71,7 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Name Server (NS) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.NS;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.NS;
 
         #endregion
 

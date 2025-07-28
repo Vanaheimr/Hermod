@@ -18,7 +18,6 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -96,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Start of Authority (SOA) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.SOA;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.SOA;
 
         #endregion
 

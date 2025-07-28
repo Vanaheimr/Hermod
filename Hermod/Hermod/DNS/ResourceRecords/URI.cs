@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS Uniform Resource Identifier (URI) resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.URI;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.URI;
 
         #endregion
 

@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS HTTPS resource record type identifier.
         /// </summary>
-        public const DNSResourceRecordType TypeId = DNSResourceRecordType.HTTPS;
+        public const DNSResourceRecordTypes TypeId = DNSResourceRecordTypes.HTTPS;
 
         #endregion
 

@@ -15,16 +15,41 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System.Text;
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
+
+    public static class DNSPacketExtensions
+    {
+
+        public static DNSPacket CreateResponse(this DNSPacket                   Request,
+                                               Byte                             Opcode,
+                                               Boolean                          AuthoritativeAnswer,
+                                               Boolean                          Truncation,
+                                               Boolean                          RecursionDesired,
+                                               Boolean                          RecursionAvailable,
+                                               DNSResponseCodes                 ResponseCode,
+
+                                               IEnumerable<IDNSResourceRecord>  AnswerRRs,
+                                               IEnumerable<IDNSResourceRecord>  AuthorityRRs,
+                                               IEnumerable<IDNSResourceRecord>  AdditionalRRs)
+
+            => new (
+                   TransactionId:         Request.TransactionId,
+                   QueryOrResponse:       DNSQueryResponse.Response,
+                   Opcode:                Opcode,
+                   AuthoritativeAnswer:   AuthoritativeAnswer,
+                   Truncation:            Truncation,
+                   RecursionDesired:      RecursionDesired,
+                   RecursionAvailable:    RecursionAvailable,
+                   ResponseCode:          ResponseCode,
+                   Questions:             Request.Questions,
+                   AnswerRRs:             AnswerRRs,
+                   AuthorityRRs:          AuthorityRRs,
+                   AdditionalRRs:         AdditionalRRs
+               );
+
+    }
+
 
     /// <summary>
     /// A DNS query.
@@ -37,24 +62,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The transaction identifier of this DNS query.
         /// </summary>
-        public Int32                           TransactionId          { get; }
+        public UInt16                           TransactionId          { get; }
 
-        public DNSQueryResponse                QueryOrResponse        { get; }
-        public Byte                            Opcode                 { get; }
-        public Boolean                         AuthoritativeAnswer    { get; }
-        public Boolean                         Truncation             { get; }
+        public DNSQueryResponse                 QueryOrResponse        { get; }
+        public Byte                             Opcode                 { get; }
+        public Boolean                          AuthoritativeAnswer    { get; }
+        public Boolean                          Truncation             { get; }
 
         /// <summary>
         /// Whether recursion is desired or not.
         /// </summary>
-        public Boolean                         RecursionDesired       { get; }
-        public Boolean                         RecursionAvailable     { get; }
-        public DNSResponseCodes                ResponseCode           { get; }
+        public Boolean                          RecursionDesired       { get; }
+        public Boolean                          RecursionAvailable     { get; }
+        public DNSResponseCodes                 ResponseCode           { get; }
 
-        public IEnumerable<DNSQuestion>        Questions              { get; } = [];
-        public IEnumerable<DNSResourceRecord>  AnswerRRs              { get; } = [];
-        public IEnumerable<DNSResourceRecord>  AuthorityRRs           { get; } = [];
-        public IEnumerable<DNSResourceRecord>  AdditionalRRs          { get; } = [];
+        public IEnumerable<DNSQuestion>         Questions              { get; } = [];
+        public IEnumerable<IDNSResourceRecord>  AnswerRRs              { get; } = [];
+        public IEnumerable<IDNSResourceRecord>  AuthorityRRs           { get; } = [];
+        public IEnumerable<IDNSResourceRecord>  AdditionalRRs          { get; } = [];
 
         #endregion
 
@@ -67,19 +92,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// Create a new DNS query.
         /// </summary>
-        public DNSPacket(Int32                           TransactionId,
-                        DNSQueryResponse                QueryOrResponse,
-                        Byte                            Opcode,
-                        Boolean                         AuthoritativeAnswer,
-                        Boolean                         Truncation,
-                        Boolean                         RecursionDesired,
-                        Boolean                         RecursionAvailable,
-                        DNSResponseCodes                ResponseCode,
+        public DNSPacket(UInt16                           TransactionId,
+                         DNSQueryResponse                 QueryOrResponse,
+                         Byte                             Opcode,
+                         Boolean                          AuthoritativeAnswer,
+                         Boolean                          Truncation,
+                         Boolean                          RecursionDesired,
+                         Boolean                          RecursionAvailable,
+                         DNSResponseCodes                 ResponseCode,
 
-                        IEnumerable<DNSQuestion>        Questions,
-                        IEnumerable<DNSResourceRecord>  AnswerRRs,
-                        IEnumerable<DNSResourceRecord>  AuthorityRRs,
-                        IEnumerable<DNSResourceRecord>  AdditionalRRs)
+                         IEnumerable<DNSQuestion>         Questions,
+                         IEnumerable<IDNSResourceRecord>  AnswerRRs,
+                         IEnumerable<IDNSResourceRecord>  AuthorityRRs,
+                         IEnumerable<IDNSResourceRecord>  AdditionalRRs)
 
         {
 
@@ -104,6 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+
         #region Query(DomainName)
 
         /// <summary>
@@ -114,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => Query(DomainName,
                      true,
-                     DNSResourceRecordType.Any);
+                     DNSResourceRecordTypes.Any);
 
         #endregion
 
@@ -126,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name to query.</param>
         /// <param name="DNSResourceRecordTypes">The DNS resource record types to query.</param>
         public static DNSPacket Query(DNSServiceName                   DomainName,
-                                      params DNSResourceRecordType[]  DNSResourceRecordTypes)
+                                      params DNSResourceRecordTypes[]  DNSResourceRecordTypes)
 
             => Query(DomainName,
                      true,
@@ -143,14 +169,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="RecursionDesired">Whether recursion is desired or not.</param>
         /// <param name="ResourceRecordTypes">The DNS resource record types to query.</param>
         public static DNSPacket Query(DNSServiceName                   DomainName,
-                                      Boolean                      RecursionDesired,
-                                      params DNSResourceRecordType[]  ResourceRecordTypes)
+                                      Boolean                          RecursionDesired,
+                                      //IEnumerable<IDNSResourceRecord>  AdditionalRRs,
+                                      params DNSResourceRecordTypes[]  ResourceRecordTypes)
         {
 
             var questions = new List<DNSQuestion>();
 
             if (ResourceRecordTypes is null || ResourceRecordTypes.Length == 0)
-                questions = [ new DNSQuestion(DomainName, DNSResourceRecordType.Any, DNSQueryClasses.IN) ];
+                questions = [ new DNSQuestion(DomainName, DNSResourceRecordTypes.Any, DNSQueryClasses.IN) ];
 
             else
                 foreach (var resourceRecordType in ResourceRecordTypes)
@@ -158,7 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
             return new DNSPacket(
-                       TransactionId:         new Random().Next(65535),
+                       TransactionId:         (UInt16) new Random().Next(UInt16.MaxValue),
                        QueryOrResponse:       DNSQueryResponse.Query,
                        Opcode:                0x00,
                        AuthoritativeAnswer:   false,
@@ -181,38 +208,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
-        private static List<DNSResourceRecord> ParseResourceRecords(Byte[] packet, ref Int32 position, UInt16 count)
+        //private static List<IDNSResourceRecord> ParseResourceRecords(Byte[] packet, ref Int32 position, UInt16 count)
+        private static List<IDNSResourceRecord> ParseResourceRecords(Stream stream, UInt16 count)
         {
 
-            var records = new List<DNSResourceRecord>();
+            var records = new List<IDNSResourceRecord>();
 
             for (var i = 0; i < count; i++)
             {
 
-                var name     = DNSTools.ReadDomainName(packet, ref position);
+                var name         = DNSTools.ExtractName(stream);
 
-                if (name == "")
-                    name = ".";
+                var recordType   = (DNSResourceRecordTypes) stream.ReadUInt16BE(); //((packet[position++] <<  8) |  packet[position++]);
+                //var queryClass   = (DNSQueryClasses)        stream.ReadUInt16BE(); //((packet[position++] <<  8) |  packet[position++]);
+                //var rawTTL       =                          stream.ReadUInt32BE(); //((packet[position++] << 24) | (packet[position++] << 16) | (packet[position++] << 8) | packet[position++]);
+                //var timeToLive   = TimeSpan.FromSeconds     (rawTTL);
+                //var rdataLength  =                          stream.ReadUInt32BE(); //(UInt16) ((packet[position++] <<  8) |  packet[position++]);
+                //var rdataOffset  = position;
 
-                var recordType   = (DNSResourceRecordType) ((packet[position++] <<  8) |  packet[position++]);
-                var queryClass   = (DNSQueryClasses)    ((packet[position++] <<  8) |  packet[position++]);
-                var rawTTL       = (UInt32)             ((packet[position++] << 24) | (packet[position++] << 16) | (packet[position++] << 8) | packet[position++]);
-                var timeToLive   = TimeSpan.FromSeconds (rawTTL);
-                var rdataLength  = (UInt16) ((packet[position++] <<  8) |  packet[position++]);
-                var rdataOffset  = position;
-
-                DNSResourceRecord record = recordType switch {
-                    DNSResourceRecordType.A     => new ARecord      (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                    DNSResourceRecordType.AAAA  => new AAAARecord   (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                    DNSResourceRecordType.SRV   => new SRVRecord    (DNS.DomainName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                    DNSResourceRecordType.URI   => new URIRecord    (DNS.DomainName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                    DNSResourceRecordType.NAPTR => new NAPTRRecord  (DNS.DomainName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
-                    DNSResourceRecordType.OPT   => new OPTRecord    (DNS.DomainName.Parse(name),             queryClass, rawTTL,     rdataLength, packet, rdataOffset),
-                    _                        => new GenericRecord(DNS.DomainName.Parse(name), recordType, queryClass, timeToLive, rdataLength, packet, rdataOffset)
+                IDNSResourceRecord record = recordType switch {
+                    DNSResourceRecordTypes.A     => new A      (DNSServiceName.Parse(name), stream),
+                //    DNSResourceRecordTypes.A     => new ARecord      (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
+                //    DNSResourceRecordTypes.AAAA  => new AAAARecord   (DNS.DNSServiceName.Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
+                //    DNSResourceRecordTypes.SRV   => new SRVRecord    (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
+                //    DNSResourceRecordTypes.URI   => new URIRecord    (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
+                //    DNSResourceRecordTypes.NAPTR => new NAPTRRecord  (DNS.DomainName.    Parse(name),             queryClass, timeToLive, rdataLength, packet, rdataOffset),
+                //    DNSResourceRecordTypes.OPT   => new OPTRecord    (DNS.DomainName.    Parse(name),             queryClass, rawTTL,     rdataLength, packet, rdataOffset),
+                    DNSResourceRecordTypes.OPT   => new OPT    (DNSServiceName.Parse(name), stream),
+                //    _                            => new GenericRecord(DNS.DomainName.    Parse(name), recordType, queryClass, timeToLive, rdataLength, packet, rdataOffset)
                 };
 
                 records.Add(record);
-                position += rdataLength;
+                //position += rdataLength;
 
             }
 
@@ -223,19 +250,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #region Parse(Packet)
 
         // ARSoft.Tools.Net
-        public static DNSPacket Parse(Byte[] Packet)
+        public static DNSPacket Parse(Stream stream)
         {
 
             // host -p 63 -t A heise.de  172.23.32.1
 
-            if (Packet.Length < 12)
-                return null;
+           // if (Packet.Length < 12)
+           //     return null;
 
             var position               = 0;
 
-            var transactionId          = (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var flags1                 = Packet[position++];
-            var flags2                 = Packet[position++];
+            var transactionId          = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var flags1                 = stream.ReadByte();     // Packet[position++];
+            var flags2                 = stream.ReadByte();     // Packet[position++];
 
             var queryOrResponse        = (flags1 & 0x80) != 0 ? DNSQueryResponse.Response : DNSQueryResponse.Query;
             var opcode                 = (Byte)   ((flags1 >> 3) & 0x0F);
@@ -245,19 +272,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var recursionAvailable     = (flags2 & 0x80) != 0;
             var responseCode           = (DNSResponseCodes) (flags2 & 0x0F);
 
-            var numberOfQuestions      = (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var numberOfAnswerRRs      = (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var numberOfAuthorityRRs   = (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var numberOfAdditionalRRs  = (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfQuestions      = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfAnswerRRs      = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfAuthorityRRs   = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfAdditionalRRs  = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
 
             var questions              = new List<DNSQuestion>();
 
             for (var i = 0; i < numberOfQuestions; i++)
-                questions.Add(DNSQuestion.Parse(Packet, ref position));
+                questions.Add(DNSQuestion.Parse(stream));// Packet, ref position));
 
-            var answerRRs              = ParseResourceRecords(Packet, ref position, numberOfAnswerRRs);
-            var authorityRRs           = ParseResourceRecords(Packet, ref position, numberOfAuthorityRRs);
-            var additionalRRs          = ParseResourceRecords(Packet, ref position, numberOfAdditionalRRs);
+            var answerRRs              = ParseResourceRecords(stream, numberOfAnswerRRs);
+            var authorityRRs           = ParseResourceRecords(stream, numberOfAuthorityRRs);
+            var additionalRRs          = ParseResourceRecords(stream, numberOfAdditionalRRs);
 
 
             return new DNSPacket(
@@ -284,64 +311,80 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Serialize()
 
-        public Byte[] Serialize()
+        public void Serialize(Stream                      Stream,
+                              Boolean                     UseCompression       = false,
+                              Dictionary<String, Int32>?  CompressionOffsets   = null)
         {
 
-            var dnsPacket = new Byte[512];
+            //var dnsPacket = new Byte[512];
+            var packetPositionStart = Stream.Position;
 
             #region DNS Query Packet Header
 
             // TransactionId (2 Bytes)
-            dnsPacket[ 0] = (Byte) (TransactionId >> 8);
-            dnsPacket[ 1] = (Byte) (TransactionId & Byte.MaxValue);
+            //dnsPacket[ 0] = (Byte) (TransactionId >> 8);
+            //dnsPacket[ 1] = (Byte) (TransactionId & Byte.MaxValue);
+            Stream.WriteUInt16BE(TransactionId);
 
             // Flags (2 Bytes)
-            dnsPacket[ 2] = 0x00;
-            dnsPacket[ 3] = 0x00;
+            //dnsPacket[ 2] = 0x00;
+            //dnsPacket[ 3] = 0x00;
+            var flags1 = (Byte) 0x00;
+            var flags2 = (Byte) 0x00;
 
             if (QueryOrResponse == DNSQueryResponse.Response)
-                dnsPacket[2] |= 0x80;
+                flags1 |= 0x80;
 
             // Set Opcode
-            dnsPacket[2]     |= (Byte) ((Byte) Opcode << 3);
+            flags1 |= (Byte) ((Byte) Opcode << 3);
 
             // Set Authoritative Answer (AA)
             if (AuthoritativeAnswer)
-                dnsPacket[2] |= 0x04;
+                flags1 |= 0x04;
 
             // Set Truncation (TC)
             if (Truncation)
-                dnsPacket[2] |= 0x02;
+                flags1 |= 0x02;
 
             // Set Recursion Desired (RD)
             if (RecursionDesired)
-                dnsPacket[2] |= 0x01;
+                flags1 |= 0x01;
 
             // Set Recursion Available (RA)
             if (RecursionAvailable)
-                dnsPacket[3] |= 0x80;
+                flags2 |= 0x80;
 
             // Set Response Code (RCODE)
-            dnsPacket[3]     |= (Byte) ((Byte) ResponseCode & 0x0F);
+            flags2 |= (Byte) ((Byte) ResponseCode & 0x0F);
+
+            Stream.WriteByte(flags1);
+            Stream.WriteByte(flags2);
 
 
-            var numberOfQuestions      = Questions.    Count();
-            dnsPacket[ 4] = (Byte) (numberOfQuestions      >> 8);
-            dnsPacket[ 5] = (Byte) (numberOfQuestions     & Byte.MaxValue);
 
-            var numberOfAnswerRRs      = AnswerRRs.    Count();
-            dnsPacket[ 6] = (Byte) (numberOfAnswerRRs     >> 8);
-            dnsPacket[ 7] = (Byte) (numberOfAnswerRRs     & Byte.MaxValue);
+            //var numberOfQuestions      = Questions.    Count();
+            //dnsPacket[ 4] = (Byte) (numberOfQuestions      >> 8);
+            //dnsPacket[ 5] = (Byte) (numberOfQuestions     & Byte.MaxValue);
+            //
+            //var numberOfAnswerRRs      = AnswerRRs.    Count();
+            //dnsPacket[ 6] = (Byte) (numberOfAnswerRRs     >> 8);
+            //dnsPacket[ 7] = (Byte) (numberOfAnswerRRs     & Byte.MaxValue);
+            //
+            //var numberOfAuthorityRRs   = AuthorityRRs. Count();
+            //dnsPacket[ 8] = (Byte) (numberOfAuthorityRRs  >> 8);
+            //dnsPacket[ 9] = (Byte) (numberOfAuthorityRRs  & Byte.MaxValue);
+            //
+            //var numberOfAdditionalRRs  = AdditionalRRs.Count();
+            //dnsPacket[10] = (Byte) (numberOfAdditionalRRs >> 8);
+            //dnsPacket[11] = (Byte) (numberOfAdditionalRRs & Byte.MaxValue);
 
-            var numberOfAuthorityRRs   = AuthorityRRs. Count();
-            dnsPacket[ 8] = (Byte) (numberOfAuthorityRRs  >> 8);
-            dnsPacket[ 9] = (Byte) (numberOfAuthorityRRs  & Byte.MaxValue);
+            Stream.WriteUInt16BE((UInt16) Questions.    Count());
+            Stream.WriteUInt16BE((UInt16) AnswerRRs.    Count());
+            Stream.WriteUInt16BE((UInt16) AuthorityRRs. Count());
+            Stream.WriteUInt16BE((UInt16) AdditionalRRs.Count());
 
-            var numberOfAdditionalRRs  = AdditionalRRs.Count();
-            dnsPacket[10] = (Byte) (numberOfAdditionalRRs >> 8);
-            dnsPacket[11] = (Byte) (numberOfAdditionalRRs & Byte.MaxValue);
 
-            var packetPosition = 12;
+            //var packetPosition = 12;
 
             #endregion
 
@@ -350,35 +393,59 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             foreach (var question in Questions)
             {
 
-                foreach (var domainNameLabel in question.DomainName.Labels)
-                {
+                question.Serialize(
+                    Stream,
+                    (Int32) (Stream.Position - packetPositionStart),
+                    UseCompression,
+                    CompressionOffsets
+                );
 
-                    // Set Length label for domain name segment
-                    dnsPacket[packetPosition++] = (Byte) (domainNameLabel.Length & Byte.MaxValue);
+                //foreach (var domainNameLabel in question.DomainName.Labels)
+                //{
 
-                    foreach (var character in Encoding.ASCII.GetBytes(domainNameLabel))
-                        dnsPacket[packetPosition++] = character;
+                //    // Set Length label for domain name segment
+                //    dnsPacket[packetPosition++] = (Byte) (domainNameLabel.Length & Byte.MaxValue);
 
-                }
+                //    foreach (var character in Encoding.ASCII.GetBytes(domainNameLabel))
+                //        dnsPacket[packetPosition++] = character;
 
-                // End-of-DomainName marker
-                dnsPacket[packetPosition++] = 0x00;
+                //}
 
-                var queryType  = (UInt16) question.QueryType;
-                dnsPacket[packetPosition++] = (Byte) (queryType  >> 8);
-                dnsPacket[packetPosition++] = (Byte) (queryType   & 0xFF);
+                //// End-of-DomainName marker
+                //dnsPacket[packetPosition++] = 0x00;
 
-                var queryClass = (UInt16) question.QueryClass;
-                dnsPacket[packetPosition++] = (Byte) (queryClass >> 8);
-                dnsPacket[packetPosition++] = (Byte) (queryClass  & 0xFF);
+                //var queryType  = (UInt16) question.QueryType;
+                //dnsPacket[packetPosition++] = (Byte) (queryType  >> 8);
+                //dnsPacket[packetPosition++] = (Byte) (queryType   & 0xFF);
+
+                //var queryClass = (UInt16) question.QueryClass;
+                //dnsPacket[packetPosition++] = (Byte) (queryClass >> 8);
+                //dnsPacket[packetPosition++] = (Byte) (queryClass  & 0xFF);
 
             }
 
             #endregion
 
-            Array.Resize(ref dnsPacket, packetPosition);
 
-            return dnsPacket;
+
+            foreach (var answerRR     in AnswerRRs)
+                answerRR.    Serialize(Stream, UseCompression, CompressionOffsets);
+
+            foreach (var authorityRR  in AuthorityRRs)
+                authorityRR. Serialize(Stream, UseCompression, CompressionOffsets);
+
+            foreach (var additionalRR in AdditionalRRs)
+                additionalRR.Serialize(Stream, UseCompression, CompressionOffsets);
+
+
+
+            //var byteArray = Stream.ToByteArray();
+            //Array.Copy(byteArray, 0, dnsPacket, packetPosition, byteArray.Length);
+            //packetPosition += byteArray.Length;
+
+            //Array.Resize(ref dnsPacket, packetPosition);
+
+            //return dnsPacket;
 
         }
 

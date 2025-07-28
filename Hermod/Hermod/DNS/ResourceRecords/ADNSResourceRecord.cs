@@ -17,9 +17,7 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
-using System.IO;
 
 #endregion
 
@@ -38,22 +36,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The domain name of this resource record.
         /// </summary>
-        public DNSServiceName         DomainName    { get; }
+        public DNSServiceName          DomainName    { get; }
 
         /// <summary>
         /// The type of this resource record.
         /// </summary>
-        public DNSResourceRecordType  Type          { get; }
+        public DNSResourceRecordTypes  Type          { get; }
 
         /// <summary>
         /// The class of this resource record.
         /// </summary>
-        public DNSQueryClasses        Class         { get; }
+        public DNSQueryClasses         Class         { get; }
 
         /// <summary>
         /// The time to live of this resource record.
         /// </summary>
-        public TimeSpan               TimeToLive    { get; }
+        public TimeSpan                TimeToLive    { get; }
 
 
 
@@ -61,19 +59,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The end of life of this resource record.
         /// </summary>
         [NoDNSPaketInformation]
-        public DateTime            EndOfLife     { get; }
+        public DateTime                EndOfLife     { get; }
 
         /// <summary>
         /// The source IP address of this resource record, if available.
         /// </summary>
         [NoDNSPaketInformation]
-        public IIPAddress?         Source        { get; }
+        public IIPAddress?             Source        { get; }
 
         /// <summary>
         /// The text representation of this resource record, if available.
         /// </summary>
         [NoDNSPaketInformation]
-        public String?             RText         { get; }
+        public String?                 RText         { get; }
 
         #endregion
 
@@ -86,22 +84,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
         /// <param name="Type">A valid DNS resource record type.</param>
-        protected ADNSResourceRecord(Stream                 DNSStream,
-                                     DNSResourceRecordType  Type)
+        protected ADNSResourceRecord(Stream                  DNSStream,
+                                     DNSResourceRecordTypes  Type)
         {
 
-            this.DomainName  = DNSServiceName.Parse(
-                                   DNSTools.ExtractName(DNSStream)
-                               );
+            this.DomainName  = DNSTools.ExtractDNSServiceName(DNSStream);
 
             this.Type        = Type;
-
-            var type         = (DNSResourceRecordType) ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
+            var type         = (DNSResourceRecordTypes) DNSStream.ReadUInt16BE();  //((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
             if (type != Type)
                 throw new ArgumentException($"Invalid DNS resource record type! Expected '{Type}', but got '{type}'!");
 
-            this.Class       = (DNSQueryClasses)    ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
-            this.TimeToLive  = TimeSpan.FromSeconds ((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            this.Class       = (DNSQueryClasses)        DNSStream.ReadUInt16BE();  //(DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
+            this.TimeToLive  = TimeSpan.FromSeconds    (DNSStream.ReadUInt32BE()); //(DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
             this.EndOfLife   = Timestamp.Now + TimeToLive;
 
             //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
@@ -112,9 +107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(DomainName,     Type, DNSStream)
 
-        protected ADNSResourceRecord(DomainName             DomainName,
-                                     DNSResourceRecordType  Type,
-                                     Stream                 DNSStream)
+        protected ADNSResourceRecord(DomainName              DomainName,
+                                     DNSResourceRecordTypes  Type,
+                                     Stream                  DNSStream)
 
             : this(DNSServiceName.Parse(
                        DomainName.FullName
@@ -134,15 +129,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServiceName">A DNS service name.</param>
         /// <param name="Type">A valid DNS resource record type.</param>
         /// <param name="DNSStream">A stream containing the DNS resource record data.</param>
-        protected ADNSResourceRecord(DNSServiceName         DNSServiceName,
-                                     DNSResourceRecordType  Type,
-                                     Stream                 DNSStream)
+        protected ADNSResourceRecord(DNSServiceName          DNSServiceName,
+                                     DNSResourceRecordTypes  Type,
+                                     Stream                  DNSStream)
         {
 
             this.DomainName  = DNSServiceName;
             this.Type        = Type;
-            this.Class       = (DNSQueryClasses)   ((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
-            this.TimeToLive  = TimeSpan.FromSeconds((DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+            this.Class       = (DNSQueryClasses)    DNSStream.ReadUInt16BE();  //((DNSStream.ReadByte() & Byte.MaxValue) <<  8 |  DNSStream.ReadByte() & Byte.MaxValue);
+            this.TimeToLive  = TimeSpan.FromSeconds(DNSStream.ReadUInt32BE()); // (DNSStream.ReadByte() & Byte.MaxValue) << 24 | (DNSStream.ReadByte() & Byte.MaxValue) << 16 | (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
             this.EndOfLife   = Timestamp.Now + TimeToLive;
 
             //var RDLength     = (DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue;
@@ -153,11 +148,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(DomainName,     Type, Class, TimeToLive, RText = null)
 
-        protected ADNSResourceRecord(DomainName             DomainName,
-                                     DNSResourceRecordType  Type,
-                                     DNSQueryClasses        Class,
-                                     TimeSpan               TimeToLive,
-                                     String?                RText   = null)
+        protected ADNSResourceRecord(DomainName              DomainName,
+                                     DNSResourceRecordTypes  Type,
+                                     DNSQueryClasses         Class,
+                                     TimeSpan                TimeToLive,
+                                     String?                 RText   = null)
 
             : this(DNSServiceName.Parse(
                        DomainName.FullName
@@ -173,11 +168,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (protected) ADNSResourceRecord(DNSServiceName, Type, Class, TimeToLive, RText = null)
 
-        protected ADNSResourceRecord(DNSServiceName         DNSServiceName,
-                                     DNSResourceRecordType  Type,
-                                     DNSQueryClasses        Class,
-                                     TimeSpan               TimeToLive,
-                                     String?                RText   = null)
+        protected ADNSResourceRecord(DNSServiceName          DNSServiceName,
+                                     DNSResourceRecordTypes  Type,
+                                     DNSQueryClasses         Class,
+                                     TimeSpan                TimeToLive,
+                                     String?                 RText   = null)
         {
 
             this.DomainName  = DNSServiceName;
