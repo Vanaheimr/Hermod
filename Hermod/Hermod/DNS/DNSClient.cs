@@ -39,7 +39,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Data
 
-        private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup;
+        private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DomainName = [];
+        private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DNSServiceName = [];
 
         #endregion
 
@@ -189,11 +190,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Reflect ResourceRecordTypes
 
-            this.rrLookup         = [];
-
-            FieldInfo        TypeIdField;
-            ConstructorInfo  Constructor;
-
             foreach (var actualType in typeof(ADNSResourceRecord).
                                            Assembly.GetTypes().
                                            Where(type => type.IsClass &&
@@ -201,15 +197,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                  type.IsSubclassOf(typeof(ADNSResourceRecord))))
             {
 
-                TypeIdField = actualType.GetField      ("TypeId")                               ?? throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was not found!");
-                Constructor = actualType.GetConstructor([ typeof(DomainName), typeof(Stream) ]) ??
-                              actualType.GetConstructor([ typeof(DNSServiceName), typeof(Stream) ])
-                                  ?? throw new ArgumentException($"Constructor<DomainName, Stream> of type '{actualType.Name}' was not found!");
+                var constructor_DomainName      = actualType.GetConstructor([ typeof(DomainName),     typeof(Stream) ]);
+                var constructor_DNSServiceName  = actualType.GetConstructor([ typeof(DNSServiceName), typeof(Stream) ]);
 
-                var actualTypeId = TypeIdField.GetValue(actualType);
+                var typeIdField                 = actualType.GetField("TypeId") ?? throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was not found!");
+                var actualTypeId                = typeIdField.GetValue(actualType);
 
                 if (actualTypeId is DNSResourceRecordTypes id)
-                    rrLookup.TryAdd(id, Constructor);
+                {
+
+                    if (constructor_DomainName is not null)
+                        rrLookup_DomainName.    TryAdd(id, constructor_DomainName);
+
+                    if (constructor_DNSServiceName is not null)
+                        rrLookup_DNSServiceName.TryAdd(id, constructor_DNSServiceName);
+
+                }
 
                 else
                     throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was null!");
@@ -319,9 +322,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (resourceName == "")
                 resourceName = ".";
 
-            if (rrLookup.TryGetValue(typeId, out var constructor))
-                return (ADNSResourceRecord) constructor.Invoke([
-                                                DomainName.Parse(resourceName),
+            if (rrLookup_DNSServiceName. TryGetValue(typeId, out var constructor_DNSServiceName))
+                return (ADNSResourceRecord) constructor_DNSServiceName.Invoke([
+                                                DNSServiceName.Parse(resourceName),
+                                                DNSStream
+                                            ]);
+
+            else if (rrLookup_DomainName.TryGetValue(typeId, out var constructor_DomainName))
+                return (ADNSResourceRecord) constructor_DomainName.Invoke([
+                                                DomainName.    Parse(resourceName),
                                                 DNSStream
                                             ]);
 
