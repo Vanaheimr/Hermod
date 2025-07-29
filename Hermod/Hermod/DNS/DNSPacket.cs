@@ -15,25 +15,31 @@
  * limitations under the License.
  */
 
+using Org.BouncyCastle.Asn1.Ocsp;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     public static class DNSPacketExtensions
     {
 
-        public static DNSPacket CreateResponse(this DNSPacket                   Request,
-                                               Byte                             Opcode,
-                                               Boolean                          AuthoritativeAnswer,
-                                               Boolean                          Truncation,
-                                               Boolean                          RecursionDesired,
-                                               Boolean                          RecursionAvailable,
-                                               DNSResponseCodes                 ResponseCode,
+        public static DNSResponse CreateResponse(this DNSPacket                   Request,
 
-                                               IEnumerable<IDNSResourceRecord>  AnswerRRs,
-                                               IEnumerable<IDNSResourceRecord>  AuthorityRRs,
-                                               IEnumerable<IDNSResourceRecord>  AdditionalRRs)
+                                                 Byte                             Opcode,
+                                                 Boolean                          AuthoritativeAnswer,
+                                                 Boolean                          Truncation,
+                                                 Boolean                          RecursionDesired,
+                                                 Boolean                          RecursionAvailable,
+                                                 DNSResponseCodes                 ResponseCode,
+
+                                                 IEnumerable<IDNSResourceRecord>  AnswerRRs,
+                                                 IEnumerable<IDNSResourceRecord>  AuthorityRRs,
+                                                 IEnumerable<IDNSResourceRecord>  AdditionalRRs)
 
             => new (
+
+                   Request:               Request,
+
                    TransactionId:         Request.TransactionId,
                    QueryOrResponse:       DNSQueryResponse.Response,
                    Opcode:                Opcode,
@@ -42,11 +48,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    RecursionDesired:      RecursionDesired,
                    RecursionAvailable:    RecursionAvailable,
                    ResponseCode:          ResponseCode,
+
                    Questions:             Request.Questions,
                    AnswerRRs:             AnswerRRs,
                    AuthorityRRs:          AuthorityRRs,
                    AdditionalRRs:         AdditionalRRs
+
                );
+
+    }
+
+
+    public class DNSResponse : DNSPacket
+    {
+
+        #region Properties
+
+        public DNSPacket?                       Request                { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region DNSPacket(LocalSocket, RemoteSocket, TransactionId, ... )
+
+        /// <summary>
+        /// Create a new DNS query.
+        /// </summary>
+        public DNSResponse(DNSPacket?                       Request,
+
+                           UInt16                           TransactionId,
+                           DNSQueryResponse                 QueryOrResponse,
+                           Byte                             Opcode,
+                           Boolean                          AuthoritativeAnswer,
+                           Boolean                          Truncation,
+                           Boolean                          RecursionDesired,
+                           Boolean                          RecursionAvailable,
+                           DNSResponseCodes                 ResponseCode,
+
+                           IEnumerable<DNSQuestion>         Questions,
+                           IEnumerable<IDNSResourceRecord>  AnswerRRs,
+                           IEnumerable<IDNSResourceRecord>  AuthorityRRs,
+                           IEnumerable<IDNSResourceRecord>  AdditionalRRs)
+
+            : base(TransactionId,
+                   QueryOrResponse,
+                   Opcode,
+                   AuthoritativeAnswer,
+                   Truncation,
+                   RecursionDesired,
+                   RecursionAvailable,
+                   ResponseCode,
+
+                   Questions,
+                   AnswerRRs,
+                   AuthorityRRs,
+                   AdditionalRRs,
+
+                   Request?.LocalSocket  ?? IPSocket.Zero,
+                   Request?.RemoteSocket ?? IPSocket.Zero)
+
+        {
+
+            this.Request = Request;
+
+        }
+
+        #endregion
+
+        #endregion
 
     }
 
@@ -58,6 +128,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     {
 
         #region Properties
+
+        public IPSocket                         LocalSocket            { get; }
+        public IPSocket                         RemoteSocket           { get; }
+
 
         /// <summary>
         /// The transaction identifier of this DNS query.
@@ -85,9 +159,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
-
-
-        #region DNSPacket(TransactionId, Flags1, Flags2, )
+        #region DNSPacket(LocalSocket, RemoteSocket, TransactionId, ... )
 
         /// <summary>
         /// Create a new DNS query.
@@ -104,9 +176,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                          IEnumerable<DNSQuestion>         Questions,
                          IEnumerable<IDNSResourceRecord>  AnswerRRs,
                          IEnumerable<IDNSResourceRecord>  AuthorityRRs,
-                         IEnumerable<IDNSResourceRecord>  AdditionalRRs)
+                         IEnumerable<IDNSResourceRecord>  AdditionalRRs,
+
+                         IPSocket?                        LocalSocket    = null,
+                         IPSocket?                        RemoteSocket   = null)
 
         {
+
+            this.LocalSocket          = LocalSocket  ?? IPSocket.Zero;
+            this.RemoteSocket         = RemoteSocket ?? IPSocket.Zero;
 
             this.TransactionId        = TransactionId;
             this.QueryOrResponse      = QueryOrResponse;
@@ -127,7 +205,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
         #endregion
-
 
 
         #region Query(DomainName)
@@ -247,10 +324,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
-        #region Parse(Packet)
+        #region Parse(LocalSocket, RemoteSocket, Stream)
 
         // ARSoft.Tools.Net
-        public static DNSPacket Parse(Stream stream)
+        public static DNSPacket Parse(IPSocket  LocalSocket,
+                                      IPSocket  RemoteSocket,
+                                      Stream    Stream)
         {
 
             // host -p 63 -t A heise.de  172.23.32.1
@@ -260,9 +339,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var position               = 0;
 
-            var transactionId          = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var flags1                 = stream.ReadByte();     // Packet[position++];
-            var flags2                 = stream.ReadByte();     // Packet[position++];
+            var transactionId          = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var flags1                 = Stream.ReadByte();     // Packet[position++];
+            var flags2                 = Stream.ReadByte();     // Packet[position++];
 
             var queryOrResponse        = (flags1 & 0x80) != 0 ? DNSQueryResponse.Response : DNSQueryResponse.Query;
             var opcode                 = (Byte)   ((flags1 >> 3) & 0x0F);
@@ -272,19 +351,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var recursionAvailable     = (flags2 & 0x80) != 0;
             var responseCode           = (DNSResponseCodes) (flags2 & 0x0F);
 
-            var numberOfQuestions      = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var numberOfAnswerRRs      = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var numberOfAuthorityRRs   = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
-            var numberOfAdditionalRRs  = stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfQuestions      = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfAnswerRRs      = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfAuthorityRRs   = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
+            var numberOfAdditionalRRs  = Stream.ReadUInt16BE(); // (UInt16) ((Packet[position++] << 8) | Packet[position++]);
 
             var questions              = new List<DNSQuestion>();
 
             for (var i = 0; i < numberOfQuestions; i++)
-                questions.Add(DNSQuestion.Parse(stream));// Packet, ref position));
+                questions.Add(DNSQuestion.Parse(Stream));// Packet, ref position));
 
-            var answerRRs              = ParseResourceRecords(stream, numberOfAnswerRRs);
-            var authorityRRs           = ParseResourceRecords(stream, numberOfAuthorityRRs);
-            var additionalRRs          = ParseResourceRecords(stream, numberOfAdditionalRRs);
+            var answerRRs              = ParseResourceRecords(Stream, numberOfAnswerRRs);
+            var authorityRRs           = ParseResourceRecords(Stream, numberOfAuthorityRRs);
+            var additionalRRs          = ParseResourceRecords(Stream, numberOfAdditionalRRs);
 
 
             return new DNSPacket(
@@ -301,7 +380,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        questions,
                        answerRRs,
                        authorityRRs,
-                       additionalRRs
+                       additionalRRs,
+
+                       LocalSocket,
+                       RemoteSocket
 
                    );
 

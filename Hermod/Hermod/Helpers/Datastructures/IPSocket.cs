@@ -36,9 +36,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Convert this IP socket into an .NET IPEndPoint.
         /// </summary>
         public static IPEndPoint ToIPEndPoint(this IPSocket IPSocket)
+        {
 
-            => new (System.Net.IPAddress.Parse(IPSocket.IPAddress.ToString()),
-                    IPSocket.Port.ToUInt16());
+            if (IPSocket.IPAddress.IsAny)
+                return new IPEndPoint(
+                           System.Net.IPAddress.Any,
+                           IPSocket.Port.ToUInt16()
+                       );
+
+            return new (
+                       System.Net.IPAddress.Parse(
+                           IPSocket.IPAddress.ToString()
+                       ),
+                       IPSocket.Port.ToUInt16()
+                   );
+
+
+        }
 
     }
 
