@@ -52,7 +52,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A domain name (RFC 1035).
     /// </summary>
-    public class DomainName : IEquatable<DomainName>,
+    public class DomainName : IDomainName,
+                              IEquatable<DomainName>,
                               IComparable<DomainName>,
                               IComparable
     {

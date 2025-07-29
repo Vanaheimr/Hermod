@@ -56,7 +56,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// It is a domain name that is used to specify a service provided by a server.
     /// In contrast to domain names it allows "_" as the first character of a label,
     /// </summary>
-    public class DNSServiceName : IEquatable<DNSServiceName>,
+    public class DNSServiceName : IDomainName,
+                                  IEquatable<DNSServiceName>,
                                   IComparable<DNSServiceName>,
                                   IComparable
     {

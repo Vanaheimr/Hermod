@@ -57,7 +57,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// e.g. localController1._ocpp._tls.example.org
     /// https://www.rfc-editor.org/rfc/rfc6763
     /// </summary>
-    public class DNSServiceInstanceName : IEquatable<DNSServiceInstanceName>,
+    public class DNSServiceInstanceName : IDomainName,
+                                          IEquatable<DNSServiceInstanceName>,
                                           IComparable<DNSServiceInstanceName>,
                                           IComparable
     {
