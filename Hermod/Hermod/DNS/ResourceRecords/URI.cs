@@ -148,6 +148,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
+            var rdLength = Stream.ReadUInt16BE();
+
             this.Priority  = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
             this.Weight    = (UInt16) ((Stream.ReadByte() & byte.MaxValue) << 8 | Stream.ReadByte() & byte.MaxValue);
             this.Target    = URL.Parse(DNSTools.ExtractName(Stream));

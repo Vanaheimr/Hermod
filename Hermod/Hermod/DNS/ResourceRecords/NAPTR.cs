@@ -173,6 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
+            var rdLength = Stream.ReadUInt16BE();
+
             this.Order        = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Preference   = (UInt16) ((Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Flags        = DNSTools.ExtractCharacterString(Stream);

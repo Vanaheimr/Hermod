@@ -123,6 +123,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
+            var rdLength = Stream.ReadUInt16BE();
+
             this.CName = DomainName.Parse(
                              DNSTools.ExtractName(Stream)
                          );
