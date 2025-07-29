@@ -17,14 +17,15 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Diagnostics;
+using System.Collections.Concurrent;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -366,16 +367,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query   (DomainName, ResourceRecordTypes, CancellationToken = default)
+        #region Query               (DomainName,     ResourceRecordTypes, CancellationToken = default)
 
-        public Task<DNSInfo> Query(DNSServiceName                       DomainName,
+        public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                   CancellationToken                CancellationToken   = default)
+                                   CancellationToken                    CancellationToken   = default)
+
+            => Query(
+                   DNSServiceName.Parse(DomainName.FullName),
+                   ResourceRecordTypes,
+                   CancellationToken
+               );
+
+        #endregion
+
+        #region Query               (DNSServiceName, ResourceRecordTypes, CancellationToken = default)
+
+        public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
+                                   IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   CancellationToken                    CancellationToken   = default)
         {
 
             #region Initial checks
 
-            if (DomainName.IsNullOrEmpty() || !DNSServers.Any())
+            if (DNSServiceName.IsNullOrEmpty() || !DNSServers.Any())
                 return Task.FromResult(
                            new DNSInfo(
                                Origin:                 new IPSocket(
@@ -406,7 +421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             #region Try to get answers from the DNS cache
 
-            var cachedResults = DNSCache.GetDNSInfo(DomainName);
+            var cachedResults = DNSCache.GetDNSInfo(DNSServiceName);
 
             if (cachedResults is not null)
             {
@@ -424,7 +439,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
             var dnsQuery = DNSPacket.Query(
-                               DomainName,
+                               DNSServiceName,
                                RecursionDesired,
                                [.. resourceRecordTypes]
                            );
@@ -433,7 +448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var allDNSServerRequests = DNSServers.Select(dnsServer =>
 
-                Task<DNSInfo>.Factory.StartNew(() => {
+                Task<DNSInfo>.Factory.StartNew((token) => {
 
                     var data = new Byte[512];
                     Int32  length;
@@ -517,7 +532,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                            );
 
                 },
-                TaskCreationOptions.AttachedToParent)
+                TaskCreationOptions.AttachedToParent,
+                CancellationToken)
 
             ).ToList();
 
@@ -545,7 +561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         {
 
                             AddToCache(
-                                DomainName,
+                                DNSServiceName,
                                 firstResponse.Result
                             );
 
@@ -565,22 +581,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return Task.FromResult(
                        firstResponse?.Result ??
                            new DNSInfo(
-                               Origin:               new IPSocket(
-                                                          IPv4Address.Localhost,
-                                                          IPPort.DNS
-                                                     ),
-                               QueryId:              0,
+                               Origin:                 new IPSocket(
+                                                            IPv4Address.Localhost,
+                                                            IPPort.DNS
+                                                       ),
+                               QueryId:                0,
                                IsAuthoritativeAnswer:  false,
-                               IsTruncated:          false,
-                               RecursionDesired:     true,
-                               RecursionAvailable:   false,
-                               ResponseCode:         DNSResponseCodes.NameError,
-                               Answers:              [],
-                               Authorities:          [],
-                               AdditionalRecords:    [],
-                               IsValid:              true,
-                               IsTimeout:            false,
-                               Timeout:              QueryTimeout
+                               IsTruncated:            false,
+                               RecursionDesired:       true,
+                               RecursionAvailable:     false,
+                               ResponseCode:           DNSResponseCodes.NameError,
+                               Answers:                [],
+                               Authorities:            [],
+                               AdditionalRecords:      [],
+                               IsValid:                true,
+                               IsTimeout:              false,
+                               Timeout:                QueryTimeout
                            )
                    );
 
@@ -588,20 +604,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>(DomainName, CancellationToken = default)
+
+        #region Query<T>            (DomainName,     CancellationToken = default)
 
         public async Task<DNSInfo<T>> Query<T>(DomainName         DomainName,
-                                               CancellationToken  CancellationToken   = default)
-
-            where T : ADNSResourceRecord
-
-            => await Query<T>(
-                         DNSServiceName.Parse(DomainName.FullName),
-                         CancellationToken
-                     ).ConfigureAwait(false);
-
-
-        public async Task<DNSInfo<T>> Query<T>(DNSServiceName         DNSService,
                                                CancellationToken  CancellationToken   = default)
 
             where T : ADNSResourceRecord
@@ -611,15 +617,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var typeIdField  = typeof(T).GetField("TypeId")
                                    ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
 
+            var typeIdValue  = typeIdField.GetValue(typeof(T));
+
+            if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
+                throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not of type '{typeof(DNSResourceRecordTypes).Name}'!");
+
             var dnsInfo      = await Query(
-                                         DNSService,
-                                         [ (DNSResourceRecordTypes) typeIdField.GetValue(typeof(T)) ],
+                                         DomainName,
+                                         [ dnsResourceRecordType ],
                                          CancellationToken
                                      ).ConfigureAwait(false);
-
-            //return dnsInfo.Answers.
-            //           Where(resourceRecord => resourceRecord is T).
-            //           Cast<T>();
 
             return new DNSInfo<T>(dnsInfo);
 
@@ -627,7 +634,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T1, T2>(DomainName, Mapper)
+        #region Query<T>            (DNSServiceName, CancellationToken = default)
+
+        public async Task<DNSInfo<T>> Query<T>(DNSServiceName     DNSServiceName,
+                                               CancellationToken  CancellationToken   = default)
+
+            where T : ADNSResourceRecord
+
+        {
+
+            var typeIdField  = typeof(T).GetField("TypeId")
+                                   ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
+
+            var typeIdValue  = typeIdField.GetValue(typeof(T));
+
+            if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
+                throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not of type '{typeof(DNSResourceRecordTypes).Name}'!");
+
+            var dnsInfo      = await Query(
+                                         DNSServiceName,
+                                         [ dnsResourceRecordType ],
+                                         CancellationToken
+                                     ).ConfigureAwait(false);
+
+            return new DNSInfo<T>(dnsInfo);
+
+        }
+
+        #endregion
+
+        #region Query<T1, T2>       (DomainName,     Mapper)
 
         public async Task<IEnumerable<T2>> Query<TRR, T2>(DomainName     DomainName,
                                                           Func<TRR, T2>  Mapper)
@@ -638,8 +674,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region Query<T1, T2>       (DNSServiceName, Mapper)
 
-        #region Query_IPv4Addresses (DomainName, CancellationToken = default)
+        public async Task<IEnumerable<T2>> Query<TRR, T2>(DNSServiceName  DNSServiceName,
+                                                          Func<TRR, T2>  Mapper)
+
+            where TRR : ADNSResourceRecord
+
+            => (await Query<TRR>(DNSServiceName)).FilteredAnswers.Select(v => Mapper(v));
+
+        #endregion
+
+
+        #region Query_IPv4Addresses (DomainName,     CancellationToken = default)
 
         public async Task<IEnumerable<IPv4Address>>
 
@@ -654,7 +701,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPv6Addresses (DomainName, CancellationToken = default)
+        #region Query_IPv4Addresses (DNSServiceName, CancellationToken = default)
+
+        public async Task<IEnumerable<IPv4Address>>
+
+            Query_IPv4Addresses(DNSServiceName     DNSServiceName,
+                                CancellationToken  CancellationToken = default)
+
+                => await Query<A>(
+                             DNSServiceName,
+                             CancellationToken
+                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
+                           ConfigureAwait(false);
+
+        #endregion
+
+        #region Query_IPv4Addresses (RemoteURL,      CancellationToken = default)
+
+        public async Task<IEnumerable<IPv4Address>>
+
+            Query_IPv4Addresses(URL                RemoteURL,
+                                CancellationToken  CancellationToken = default)
+
+                => await Query<A>(
+                             DomainName.Parse(RemoteURL.Hostname.Name),
+                             CancellationToken
+                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv4Address)).
+                           ConfigureAwait(false);
+
+        #endregion
+
+
+        #region Query_IPv6Addresses (DomainName,     CancellationToken = default)
 
         public async Task<IEnumerable<IPv6Address>>
 
@@ -669,7 +747,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (DomainName, CancellationToken = default)
+        #region Query_IPv6Addresses (DNSServiceName, CancellationToken = default)
+
+        public async Task<IEnumerable<IPv6Address>>
+
+            Query_IPv6Addresses(DNSServiceName     DNSServiceName,
+                                CancellationToken  CancellationToken = default)
+
+                => await Query<AAAA>(
+                             DNSServiceName,
+                             CancellationToken
+                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
+                           ConfigureAwait(false);
+
+        #endregion
+
+        #region Query_IPv6Addresses (RemoteURL,      CancellationToken = default)
+
+        public async Task<IEnumerable<IPv6Address>>
+
+            Query_IPv6Addresses(URL                RemoteURL,
+                                CancellationToken  CancellationToken = default)
+
+                => await Query<AAAA>(
+                             DomainName.Parse(RemoteURL.Hostname.Name),
+                             CancellationToken
+                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
+                           ConfigureAwait(false);
+
+        #endregion
+
+
+        #region Query_IPAddresses   (DomainName,     CancellationToken = default)
 
         public async Task<IEnumerable<IIPAddress>>
 
@@ -693,7 +802,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (RemoteURL,  CancellationToken = default)
+        #region Query_IPAddresses   (DNSServiceName, CancellationToken = default)
+
+        public async Task<IEnumerable<IIPAddress>>
+
+            Query_IPAddresses(DNSServiceName     DNSServiceName,
+                              CancellationToken  CancellationToken = default)
+
+        {
+
+            var ipv4AddressLookupTask = Query_IPv4Addresses(DNSServiceName, CancellationToken);
+            var ipv6AddressLookupTask = Query_IPv6Addresses(DNSServiceName, CancellationToken);
+
+            await Task.WhenAll(
+                      ipv4AddressLookupTask,
+                      ipv6AddressLookupTask
+                  ).ConfigureAwait(false);
+
+            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
+                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
+
+        }
+
+        #endregion
+
+        #region Query_IPAddresses   (RemoteURL,      CancellationToken = default)
 
         public async Task<IEnumerable<IIPAddress>>
 
@@ -718,22 +851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_DNSService    (DNSService, CancellationToken = default)
-
-        public async Task<IEnumerable<SRV>>
-
-            Query_DNSService(DNSServiceName         DNSService,
-                             CancellationToken  CancellationToken = default)
-
-                => await Query<SRV>(
-                             DNSService,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers).
-                           ConfigureAwait(false);
-
-        #endregion
-
-        #region Query_DNSService    (DNSService, CancellationToken = default)
+        #region Query_DNSService    (DomainName,     CancellationToken = default)
 
         public async Task<IEnumerable<SRV>>
 
@@ -746,6 +864,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                  DomainName,
                                  DNSServiceSpec
                              ),
+                             CancellationToken
+                         ).ContinueWith  (query => query.Result.FilteredAnswers).
+                           ConfigureAwait(false);
+
+        #endregion
+
+        #region Query_DNSService    (DNSServiceName, CancellationToken = default)
+
+        public async Task<IEnumerable<SRV>>
+
+            Query_DNSService(DNSServiceName     DNSServiceName,
+                             CancellationToken  CancellationToken = default)
+
+                => await Query<SRV>(
+                             DNSServiceName,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers).
                            ConfigureAwait(false);
