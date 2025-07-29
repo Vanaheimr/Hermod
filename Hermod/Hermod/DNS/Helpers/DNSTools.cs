@@ -45,153 +45,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
-        public static String ReadDomainNameFromBytes(Stream DNSStream)
-        {
-            // Similar to ReadDomainName, but no full message (no pointers expected in this SOA)
-            StringBuilder sb = new StringBuilder();
-            while (true)
-            {
-
-                byte length = (Byte) DNSStream.ReadByte();
-
-                if (length == 0)
-                    break;
-
-                var label = new byte[length];
-                DNSStream.Read(label, 0, length);
-
-                sb.Append(Encoding.ASCII.GetString(label)).Append('.');
-
-            }
-
-            if (sb.Length > 0)
-                sb.Length--;
-
-            return sb.ToString();
-
-        }
-
-        public static String ReadDomainName(byte[] packet, ref int position)
-        {
-
-            var sb = new StringBuilder();
-            int jumps = 0;
-            const int maxJumps = 10; // Prevent infinite loops
-            int originalPosition = position;
-            bool jumped = false;
-
-            while (true)
-            {
-
-                if (position >= packet.Length)
-                    throw new InvalidDataException("Invalid domain name");
-
-                byte len = packet[position];
-
-                if ((len & 0xC0) == 0xC0) // Pointer
-                {
-                    if (jumps++ > maxJumps) throw new InvalidDataException("Compression loop detected");
-
-                    int offset = ((len & 0x3F) << 8) | packet[position + 1];
-                    position += 2; // Move past pointer
-                    if (!jumped)
-                    {
-                        originalPosition = position; // Save for later continuation if needed, but since pointer replaces, no continuation
-                    }
-                    position = offset;
-                    jumped = true;
-                    continue;
-                }
-
-                position++;
-                if (len == 0) break;
-
-                if (sb.Length > 0) sb.Append('.');
-
-                sb.Append(Encoding.ASCII.GetString(packet, position, len));
-                position += len;
-
-            }
-
-            if (jumped)
-            {
-                position = originalPosition; // Restore position after name if jumped
-            }
-
-            return sb.ToString();
-
-        }
-
-        //public static String ReadDomainName(byte[] packet, ref int position)
-        //{
-
-        //    var sb = new StringBuilder();
-        //    int jumps = 0;
-        //    const int maxJumps = 10; // Prevent infinite loops
-        //    int originalPosition = position;
-        //    bool jumped = false;
-
-        //    while (true)
-        //    {
-        //        if (position >= packet.Length) throw new InvalidDataException("Invalid domain name");
-
-        //        byte len = packet[position];
-
-        //        if ((len & 0xC0) == 0xC0) // Pointer
-        //        {
-        //            if (jumps++ > maxJumps) throw new InvalidDataException("Compression loop detected");
-
-        //            int offset = ((len & 0x3F) << 8) | packet[position + 1];
-        //            position += 2; // Move past pointer
-        //            if (!jumped)
-        //            {
-        //                originalPosition = position; // Save for later continuation if needed, but since pointer replaces, no continuation
-        //            }
-        //            position = offset;
-        //            jumped = true;
-        //            continue;
-        //        }
-
-        //        position++;
-        //        if (len == 0) break;
-
-        //        if (sb.Length > 0) sb.Append('.');
-
-        //        sb.Append(Encoding.ASCII.GetString(packet, position, len));
-        //        position += len;
-        //    }
-
-        //    if (jumped)
-        //    {
-        //        position = originalPosition; // Restore position after name if jumped
-        //    }
-
-        //    return sb.ToString();
-        //}
-
-
-
-        public static DomainName     ExtractDomainName    (Stream DNSStream)
+        public static DomainName     ExtractDomainName    (Stream           DNSStream)
             => DomainName.    Parse(ExtractName(DNSStream));
 
-        public static DNSServiceName ExtractDNSServiceName(Stream DNSStream)
+        public static DNSServiceName ExtractDNSServiceName(Stream           DNSStream)
             => DNSServiceName.Parse(ExtractName(DNSStream));
 
-        public static string ExtractName(Stream dnsStream, HashSet<long> visitedOffsets = null)
+        public static String         ExtractName          (Stream           DNSStream,
+                                                           HashSet<Int64>?  VisitedOffsets   = null)
         {
 
             // Track visited offsets to prevent infinite recursion
-            visitedOffsets ??= [];
+            VisitedOffsets ??= [];
 
-            var dnsName       = new StringBuilder();
-            var buffer        = new byte[64]; // Max DNS label length is 63 + null terminator
-            var isCompressed  = false;
+            var dnsNameBuilder  = new StringBuilder();
+            var buffer          = new Byte[64]; // Max DNS label length is 63 + null terminator
 
             while (true)
             {
 
                 // Read the next length byte
-                int lengthByte = dnsStream.ReadByte();
+                var lengthByte = DNSStream.ReadByte();
                 if (lengthByte == -1)
                     throw new IOException("Unexpected end of stream while reading DNS name");
 
@@ -202,34 +76,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 // Handle compression pointer (high two bits are 11)
                 if ((lengthByte & 0xC0) == 0xC0)
                 {
-                    // Ensure we don't recurse infinitely
-                    if (isCompressed)
-                        throw new InvalidDataException("Nested compression pointers are not supported");
 
                     // Read the second byte of the pointer
-                    int secondByte = dnsStream.ReadByte();
+                    var secondByte = DNSStream.ReadByte();
                     if (secondByte == -1)
                         throw new IOException("Unexpected end of stream in compression pointer");
 
                     // Calculate the 14-bit offset
-                    long offset = ((lengthByte & 0x3F) << 8) | (secondByte & 0xFF);
-                    if (!visitedOffsets.Add(offset))
+                    var offset = ((lengthByte & 0x3F) << 8) | (secondByte & 0xFF);
+                    if (!VisitedOffsets.Add(offset))
                         throw new InvalidDataException("Cyclic compression pointer detected");
 
                     // Save current position and move to offset
-                    long currentPosition = dnsStream.Position;
-                    if (offset >= dnsStream.Length)
+                    var currentPosition = DNSStream.Position;
+                    if (offset >= DNSStream.Length)
                         throw new InvalidDataException("Invalid compression pointer offset");
 
-                    dnsStream.Position = offset;
-                    string referencedName = ExtractName(dnsStream, new HashSet<long>(visitedOffsets));
+                    DNSStream.Position = offset;
+                    var referencedName = ExtractName(DNSStream, [.. VisitedOffsets]);
+
                     // Append dot if dnsName is not empty
-                    if (dnsName.Length > 0 && !string.IsNullOrEmpty(referencedName))
-                        dnsName.Append('.');
-                    dnsName.Append(referencedName);
-                    dnsStream.Position = currentPosition; // Restore position
-                    isCompressed = true;
-                    break; // Pointer terminates the name
+                    if (dnsNameBuilder.Length > 0 && !String.IsNullOrEmpty(referencedName))
+                        dnsNameBuilder.Append('.');
+
+                    dnsNameBuilder.Append(referencedName);
+                    DNSStream.Position = currentPosition; // Restore position
+
+                    // A compression pointer terminates the name!
+                    break;
 
                 }
 
@@ -238,89 +112,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     throw new InvalidDataException($"Invalid DNS label length: {lengthByte}");
 
                 // Append dot if the name is not empty
-                if (dnsName.Length > 0)
-                    dnsName.Append('.');
+                if (dnsNameBuilder.Length > 0)
+                    dnsNameBuilder.Append('.');
 
                 // Read the label
-                if (dnsStream.Read(buffer, 0, lengthByte) != lengthByte)
+                if (DNSStream.Read(buffer, 0, lengthByte) != lengthByte)
                     throw new IOException("Unexpected end of stream while reading DNS label");
 
-                dnsName.Append(Encoding.ASCII.GetString(buffer, 0, lengthByte));
+                dnsNameBuilder.Append(Encoding.ASCII.GetString(buffer, 0, lengthByte));
 
             }
 
-            var result = dnsName.ToString();
+            var result = dnsNameBuilder.ToString();
 
             return String.IsNullOrEmpty(result)
                        ? "."
                        : result;
-
-        }
-
-
-
-        public static String ExtractNameUTF8(Stream  DNSStream,
-                                             Int32   Depth   = 0)
-        {
-
-            if (Depth > 10)
-                throw new InvalidDataException("DNS name extraction recursion depth exceeded (possible cycle)");
-
-            var DNSName          = new StringBuilder();
-            var LengthOfSegment  = 0;
-            var buffer           = new Byte[64];
-
-            do
-            {
-
-                if (DNSStream.Position >= DNSStream.Length)
-                    throw new EndOfStreamException("Unexpected end of DNS stream during name extraction");
-
-                LengthOfSegment = DNSStream.ReadByte() & Byte.MaxValue;
-
-                if (LengthOfSegment > 0)
-                {
-
-                    if (LengthOfSegment > 63)
-                        throw new InvalidDataException($"Invalid DNS label length: {LengthOfSegment} (max 63)");
-
-                    if (DNSName.Length > 0)
-                        DNSName.Append('.');
-
-                    // Compression
-                    if ((LengthOfSegment & 0xC0) == 0xC0)
-                    {
-
-                        var pointer = ((LengthOfSegment & 0x3F) << 8) | (DNSStream.ReadByte() & Byte.MaxValue);
-                        if (pointer >= DNSStream.Length || pointer < 0)
-                            throw new InvalidDataException($"Invalid DNS pointer: {pointer}");
-
-                        var oldPosition = DNSStream.Position;
-                        DNSStream.Position = pointer;
-
-                        var alias = ExtractNameUTF8(DNSStream, Depth + 1);
-                        DNSStream.Position = oldPosition;
-
-                        return alias;
-
-                    }
-                    else
-                    {
-
-                        if (DNSStream.Read(buffer, 0, LengthOfSegment) != LengthOfSegment)
-                            throw new EndOfStreamException("Incomplete DNS label read");
-
-                        var bufferHEX = buffer.ToArray().ToHexString();
-
-                        DNSName.Append(Encoding.UTF8.GetString(buffer, 0, LengthOfSegment));
-
-                    }
-
-                }
-
-            } while (LengthOfSegment > 0);
-
-            return DNSName.ToString();
 
         }
 
