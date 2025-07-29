@@ -181,9 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            // Read RD length
-            var a1 = Stream.ReadByte();
-            var a2 = Stream.ReadByte();
+            var rdLength = Stream.ReadUInt16BE();
 
             //var aa = DNSTools.ReadDomainNameFromBytes(Stream);
             //var bb = DNSTools.ReadDomainNameFromBytes(Stream);

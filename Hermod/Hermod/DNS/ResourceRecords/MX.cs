@@ -131,6 +131,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
+            var rdLength     = Stream.ReadUInt16BE();
+
             this.Preference  = (UInt16) ((Stream.ReadByte() << 8) | (Stream.ReadByte() & Byte.MaxValue));
 
             this.Exchange    = DNSTools.ExtractDomainName(Stream);

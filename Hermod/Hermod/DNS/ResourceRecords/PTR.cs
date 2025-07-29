@@ -119,7 +119,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
+
+            var rdLength = Stream.ReadUInt16BE();
+
             this.Target = DNSTools.ExtractDNSServiceName(Stream);
+
         }
 
         #endregion

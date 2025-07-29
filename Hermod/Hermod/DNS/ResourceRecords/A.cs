@@ -131,7 +131,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
+
+            var rdLength = Stream.ReadUInt16BE();
+
             this.IPv4Address = new IPv4Address(Stream);
+
         }
 
         #endregion
@@ -151,7 +155,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Stream)
 
         {
+
+            var rdLength = Stream.ReadUInt16BE();
+
             this.IPv4Address = new IPv4Address(Stream);
+
         }
 
         #endregion

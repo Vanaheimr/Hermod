@@ -123,9 +123,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            this.NameServer = DNS.DomainName.Parse(
-                                  DNSTools.ExtractName(Stream)
-                              );
+            var rdLength = Stream.ReadUInt16BE();
+
+            this.NameServer = DNSTools.ExtractDomainName(Stream);
 
         }
 

@@ -184,6 +184,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
+            var rdLength = Stream.ReadUInt16BE();
+
             this.FingerprintAlgorithm  = ParseAlgorithm      (Stream);
 
             this.FingerprintType       = ParseFingerprintType(Stream);
