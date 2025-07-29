@@ -177,57 +177,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSServiceName ExtractDNSServiceName(Stream DNSStream)
             => DNSServiceName.Parse(ExtractName(DNSStream));
 
-        public static String ExtractName(Stream DNSStream)
+        public static string ExtractName(Stream dnsStream, HashSet<long> visitedOffsets = null)
         {
 
-            var DNSName          = new StringBuilder();
-            var LengthOfSegment  = 0;
-            var OldPosition      = 0L;
-            var Alias            = String.Empty;
-            var buffer           = new Byte[512];
+            // Track visited offsets to prevent infinite recursion
+            visitedOffsets ??= [];
 
-            do
+            var dnsName       = new StringBuilder();
+            var buffer        = new byte[64]; // Max DNS label length is 63 + null terminator
+            var isCompressed  = false;
+
+            while (true)
             {
 
-                LengthOfSegment = DNSStream.ReadByte() & Byte.MaxValue;
+                // Read the next length byte
+                int lengthByte = dnsStream.ReadByte();
+                if (lengthByte == -1)
+                    throw new IOException("Unexpected end of stream while reading DNS name");
 
-                if (LengthOfSegment > 0)
+                // End of name (null terminator)
+                if (lengthByte == 0)
+                    break;
+
+                // Handle compression pointer (high two bits are 11)
+                if ((lengthByte & 0xC0) == 0xC0)
                 {
+                    // Ensure we don't recurse infinitely
+                    if (isCompressed)
+                        throw new InvalidDataException("Nested compression pointers are not supported");
 
-                    if (DNSName.Length > 0)
-                        DNSName.Append('.');
+                    // Read the second byte of the pointer
+                    int secondByte = dnsStream.ReadByte();
+                    if (secondByte == -1)
+                        throw new IOException("Unexpected end of stream in compression pointer");
 
-                    // RDATA Compression
-                    if ((LengthOfSegment & 0xC0) == 0xC0)
-                    {
+                    // Calculate the 14-bit offset
+                    long offset = ((lengthByte & 0x3F) << 8) | (secondByte & 0xFF);
+                    if (!visitedOffsets.Add(offset))
+                        throw new InvalidDataException("Cyclic compression pointer detected");
 
-                        OldPosition         = DNSStream.Position;
-                        DNSStream.Position  = ((LengthOfSegment & 0x3F) << 8) | (DNSStream.ReadByte() & Byte.MaxValue);
-                        Alias               = ExtractName(DNSStream);
-                        DNSStream.Position  = OldPosition + 1;
+                    // Save current position and move to offset
+                    long currentPosition = dnsStream.Position;
+                    if (offset >= dnsStream.Length)
+                        throw new InvalidDataException("Invalid compression pointer offset");
 
-                        return Alias;
-
-                    }
-
-                    else
-                    {
-                        DNSStream.Read(buffer, 0, LengthOfSegment);
-                        DNSName.Append(Encoding.ASCII.GetString(buffer, 0, LengthOfSegment));
-                    }
+                    dnsStream.Position = offset;
+                    string referencedName = ExtractName(dnsStream, new HashSet<long>(visitedOffsets));
+                    // Append dot if dnsName is not empty
+                    if (dnsName.Length > 0 && !string.IsNullOrEmpty(referencedName))
+                        dnsName.Append('.');
+                    dnsName.Append(referencedName);
+                    dnsStream.Position = currentPosition; // Restore position
+                    isCompressed = true;
+                    break; // Pointer terminates the name
 
                 }
 
+                // Validate label length (0–63 per RFC 1035)
+                if (lengthByte > 63)
+                    throw new InvalidDataException($"Invalid DNS label length: {lengthByte}");
+
+                // Append dot if the name is not empty
+                if (dnsName.Length > 0)
+                    dnsName.Append('.');
+
+                // Read the label
+                if (dnsStream.Read(buffer, 0, lengthByte) != lengthByte)
+                    throw new IOException("Unexpected end of stream while reading DNS label");
+
+                dnsName.Append(Encoding.ASCII.GetString(buffer, 0, lengthByte));
+
             }
-            while (LengthOfSegment > 0);
 
-            var name = DNSName.ToString();
+            var result = dnsName.ToString();
 
-            return name != ""
-                       ? name
-                       : ".";
+            return String.IsNullOrEmpty(result)
+                       ? "."
+                       : result;
 
         }
+
 
 
         public static String ExtractNameUTF8(Stream  DNSStream,

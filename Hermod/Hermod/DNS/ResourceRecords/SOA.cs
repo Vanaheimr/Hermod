@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -182,6 +183,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
 
             var rdLength = Stream.ReadUInt16BE();
+
+            var ss = (Stream as MemoryStream).ToArray().ToHexString();
 
             //var aa = DNSTools.ReadDomainNameFromBytes(Stream);
             //var bb = DNSTools.ReadDomainNameFromBytes(Stream);
