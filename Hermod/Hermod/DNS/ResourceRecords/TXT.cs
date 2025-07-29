@@ -106,7 +106,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TypeId)
 
         {
-            this.Text = DNSTools.ExtractName(Stream);
+
+            var rdLength = Stream.ReadUInt16BE();
+
+            this.Text = DNSTools.ExtractCharacterString(Stream);
+
         }
 
         #endregion
@@ -129,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var rdLength = Stream.ReadUInt16BE();
 
-            this.Text = DNSTools.ExtractName(Stream);
+            this.Text = DNSTools.ExtractCharacterString(Stream);
 
         }
 

@@ -58,7 +58,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     RefreshTime:  Timestamp.Now,
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
                     DNSInfo:      new DNSInfo(
-                                      Origin:                 new IPSocket(IPv4Address.Localhost, IPPort.Parse(53)),
+                                      Origin:                 new DNSServerConfig(
+                                                                  IPv4Address.Localhost,
+                                                                  IPPort.Parse(53)
+                                                              ),
                                       QueryId:                0,
                                       IsAuthoritativeAnswer:  true,
                                       IsTruncated:            false,
@@ -74,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                       IsValid:                true,
                                       IsTimeout:              false,
                                       Timeout:                TimeSpan.Zero
-                    )
+                                  )
                 )
             );
 
@@ -88,7 +91,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     RefreshTime:  Timestamp.Now,
                     EndOfLife:    Timestamp.Now + TimeSpan.FromDays(3650),
                     DNSInfo:      new DNSInfo(
-                                      Origin:                 new IPSocket(IPv4Address.Localhost, IPPort.Parse(53)),
+                                      Origin:                 new DNSServerConfig(
+                                                                  IPv4Address.Localhost,
+                                                                  IPPort.Parse(53)
+                                                              ),
                                       QueryId:                0,
                                       IsAuthoritativeAnswer:  true,
                                       IsTruncated:            false,
@@ -173,11 +179,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="DomainName">The domain name.</param>
         /// <param name="ResourceRecords">The DNS resource records to add.</param>
-        public DNSCache Add(DNSServiceName                   DomainName,
+        public DNSCache Add(DNSServiceName               DomainName,
                             params IDNSResourceRecord[]  ResourceRecords)
 
             => Add(DomainName,
-                   IPSocket.LocalhostV4(IPPort.DNS),
+                   new DNSServerConfig(
+                       IPv4Address.Localhost,
+                       IPPort.DNS
+                    ),
                    ResourceRecords);
 
         #endregion
@@ -190,8 +199,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DomainName">The domain name.</param>
         /// <param name="Origin">The origin of the DNS resource record.</param>
         /// <param name="ResourceRecords">The DNS resource records to add.</param>
-        public DNSCache Add(DNSServiceName                   DomainName,
-                            IPSocket                     Origin,
+        public DNSCache Add(DNSServiceName               DomainName,
+                            DNSServerConfig              Origin,
                             params IDNSResourceRecord[]  ResourceRecords)
         {
 

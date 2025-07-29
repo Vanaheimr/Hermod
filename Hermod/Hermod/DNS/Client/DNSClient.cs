@@ -50,22 +50,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The DNS servers used by this DNS client.
         /// </summary>
-        public IEnumerable<IPSocket>  DNSServers          { get; }
+        public IEnumerable<DNSServerConfig>  DNSServers          { get; }
 
         /// <summary>
         /// The DNS query timeout.
         /// </summary>
-        public TimeSpan               QueryTimeout        { get; set; }
+        public TimeSpan                      QueryTimeout        { get; set; }
 
         /// <summary>
         /// Whether DNS recursion is desired.
         /// </summary>
-        public Boolean                RecursionDesired    { get; set; }
+        public Boolean?                      RecursionDesired    { get; set; }
 
         /// <summary>
         /// The DNS cache used by this DNS client.
         /// </summary>
-        public DNSCache               DNSCache            { get; }
+        public DNSCache                      DNSCache            { get; }
 
         #endregion
 
@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServer">The DNS server to query.</param>
         public DNSClient(IIPAddress DNSServer)
 
-            : this([ new IPSocket(DNSServer, IPPort.DNS) ])
+            : this([ new DNSServerConfig(DNSServer, IPPort.DNS) ])
 
         { }
 
@@ -94,7 +94,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The IP port of the DNS server to query.</param>
         public DNSClient(IIPAddress DNSServer, IPPort Port)
 
-            : this([ new IPSocket(DNSServer, Port) ])
+            : this([ new DNSServerConfig(DNSServer, Port) ])
 
         { }
 
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="DNSServers">A list of DNS servers to query.</param>
         public DNSClient(IEnumerable<IIPAddress> DNSServers)
 
-            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, IPPort.DNS)))
+            : this(DNSServers.Select(IPAddress => new DNSServerConfig(IPAddress, IPPort.DNS)))
 
         { }
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="Port">The common IP port of the DNS servers to query.</param>
         public DNSClient(IEnumerable<IIPAddress> DNSServers, IPPort Port)
 
-            : this(DNSServers.Select(IPAddress => new IPSocket(IPAddress, Port)))
+            : this(DNSServers.Select(IPAddress => new DNSServerConfig(IPAddress, Port)))
 
         { }
 
@@ -147,6 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
         #region DNSClient(ManualDNSServers, SearchForIPv4DNSServers = true, SearchForIPv6DNSServers = true)
 
         /// <summary>
@@ -155,9 +156,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="ManualDNSServers">A list of manually configured DNS servers to query.</param>
         /// <param name="SearchForIPv4DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv4 network configuration.</param>
         /// <param name="SearchForIPv6DNSServers">If yes, the DNS client will query a list of DNS servers from the IPv6 network configuration.</param>
-        public DNSClient(IEnumerable<IPSocket>  ManualDNSServers,
-                         Boolean                SearchForIPv4DNSServers = false,
-                         Boolean                SearchForIPv6DNSServers = false)
+        public DNSClient(IEnumerable<DNSServerConfig>  ManualDNSServers,
+                         Boolean                       SearchForIPv4DNSServers = false,
+                         Boolean                       SearchForIPv6DNSServers = false)
 
         {
 
@@ -165,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = true;
             this.QueryTimeout      = TimeSpan.FromSeconds(23.5);
 
-            var dnsServers         = new List<IPSocket>(ManualDNSServers);
+            var dnsServers         = new List<DNSServerConfig>(ManualDNSServers);
 
             #region Search for IPv4/IPv6 DNS Servers...
 
@@ -175,7 +176,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
                                         SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
                                         Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetwork).
-                                        Select    (IPAddress => new IPSocket(new IPv4Address(IPAddress), IPPort.DNS)));
+                                        Select    (IPAddress =>  new DNSServerConfig(
+                                                                     new IPv4Address(IPAddress),
+                                                                     IPPort.DNS
+                                                                 )));
 
             if (SearchForIPv6DNSServers)
                 dnsServers.AddRange(NetworkInterface.
@@ -183,7 +187,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                         Where     (NI        => NI.OperationalStatus == OperationalStatus.Up).
                                         SelectMany(NI        => NI.GetIPProperties().DnsAddresses).
                                         Where     (IPAddress => IPAddress.AddressFamily == AddressFamily.InterNetworkV6).
-                                        Select    (IPAddress => new IPSocket(new IPv6Address(IPAddress), IPPort.DNS)));
+                                        Select    (IPAddress => new DNSServerConfig(
+                                                                    new IPv6Address(IPAddress),
+                                                                    IPPort.DNS
+                                                                )));
 
             #endregion
 
@@ -231,9 +238,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region (private) ReadResponse(Origin, ExpectedTransactionId, DNSResponseStream)
 
-        private DNSInfo ReadResponse(IPSocket  Origin,
-                                     Int32     ExpectedTransactionId,
-                                     Stream    DNSResponseStream)
+        private DNSInfo ReadResponse(DNSServerConfig  Origin,
+                                     Int32            ExpectedTransactionId,
+                                     Stream           DNSResponseStream)
         {
 
             #region DNS Header
@@ -242,8 +249,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             if (ExpectedTransactionId != requestId)
                 //throw new Exception("Security Alert: Mallory might send us faked DNS replies! [" + ExpectedTransactionId + " != " + requestId + "]");
-                return DNSInfo.Invalid(Origin,
-                                       requestId);
+                return DNSInfo.Invalid(
+                           Origin,
+                           requestId
+                       );
 
             var Byte2           = DNSResponseStream.ReadByte();
             var IS              = (Byte2 & 128) == 128;
@@ -367,24 +376,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query               (DomainName,     ResourceRecordTypes, CancellationToken = default)
+        #region Query               (DomainName,     ResourceRecordTypes, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   Boolean                              RecursionDesired    = true,
                                    CancellationToken                    CancellationToken   = default)
 
             => Query(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
+                   RecursionDesired,
                    CancellationToken
                );
 
         #endregion
 
-        #region Query               (DNSServiceName, ResourceRecordTypes, CancellationToken = default)
+        #region Query               (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   Boolean                              RRecursionDesired   = true,
                                    CancellationToken                    CancellationToken   = default)
         {
 
@@ -393,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             if (DNSServiceName.IsNullOrEmpty() || !DNSServers.Any())
                 return Task.FromResult(
                            new DNSInfo(
-                               Origin:                 new IPSocket(
+                               Origin:                 new DNSServerConfig(
                                                            IPv4Address.Localhost,
                                                            IPPort.DNS
                                                        ),
@@ -440,7 +452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
-                               RecursionDesired,
+                               this.RecursionDesired ?? RRecursionDesired,
                                [.. resourceRecordTypes]
                            );
 
@@ -477,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
                             return new DNSInfo(
-                                       Origin:                 new IPSocket(
+                                       Origin:                 new DNSServerConfig(
                                                                    dnsServer.IPAddress,
                                                                    dnsServer.Port
                                                                ),
@@ -498,7 +510,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // A SocketException might be thrown after the timeout was reached!
                         //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                         return DNSInfo.TimedOut(
-                                   new IPSocket(
+                                   new DNSServerConfig(
                                        dnsServer.IPAddress,
                                        dnsServer.Port
                                    ),
@@ -512,7 +524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         // A SocketException might be thrown after the timeout was reached!
                         //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                         return DNSInfo.TimedOut(
-                                   new IPSocket(
+                                   new DNSServerConfig(
                                        dnsServer.IPAddress,
                                        dnsServer.Port
                                    ),
@@ -581,7 +593,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             return Task.FromResult(
                        firstResponse?.Result ??
                            new DNSInfo(
-                               Origin:                 new IPSocket(
+                               Origin:                 new DNSServerConfig(
                                                             IPv4Address.Localhost,
                                                             IPPort.DNS
                                                        ),
@@ -605,9 +617,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query<T>            (DomainName,     CancellationToken = default)
+        #region Query<T>            (DomainName,             RecursionDesired = true, ...)
 
         public async Task<DNSInfo<T>> Query<T>(DomainName         DomainName,
+                                               Boolean            RecursionDesired    = true,
                                                CancellationToken  CancellationToken   = default)
 
             where T : ADNSResourceRecord
@@ -625,6 +638,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsInfo      = await Query(
                                          DomainName,
                                          [ dnsResourceRecordType ],
+                                         RecursionDesired,
                                          CancellationToken
                                      ).ConfigureAwait(false);
 
@@ -634,9 +648,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T>            (DNSServiceName, CancellationToken = default)
+        #region Query<T>            (DNSServiceName,         RecursionDesired = true, ...)
 
         public async Task<DNSInfo<T>> Query<T>(DNSServiceName     DNSServiceName,
+                                               Boolean            RecursionDesired    = true,
                                                CancellationToken  CancellationToken   = default)
 
             where T : ADNSResourceRecord
@@ -654,6 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var dnsInfo      = await Query(
                                          DNSServiceName,
                                          [ dnsResourceRecordType ],
+                                         RecursionDesired,
                                          CancellationToken
                                      ).ConfigureAwait(false);
 
@@ -663,68 +679,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query<T1, T2>       (DomainName,     Mapper)
+        #region Query<T1, T2>       (DomainName,     Mapper, RecursionDesired = true, ...)
 
-        public async Task<IEnumerable<T2>> Query<TRR, T2>(DomainName     DomainName,
-                                                          Func<TRR, T2>  Mapper)
-
-            where TRR : ADNSResourceRecord
-
-            => (await Query<TRR>(DomainName)).FilteredAnswers.Select(v => Mapper(v));
-
-        #endregion
-
-        #region Query<T1, T2>       (DNSServiceName, Mapper)
-
-        public async Task<IEnumerable<T2>> Query<TRR, T2>(DNSServiceName  DNSServiceName,
-                                                          Func<TRR, T2>  Mapper)
+        public async Task<IEnumerable<T2>> Query<TRR, T2>(DomainName         DomainName,
+                                                          Func<TRR, T2>      Mapper,
+                                                          Boolean            RecursionDesired    = true,
+                                                          CancellationToken  CancellationToken   = default)
 
             where TRR : ADNSResourceRecord
 
-            => (await Query<TRR>(DNSServiceName)).FilteredAnswers.Select(v => Mapper(v));
+            => (await Query<TRR>(
+                          DomainName,
+                          RecursionDesired,
+                          CancellationToken
+                      )).FilteredAnswers.Select(v => Mapper(v));
+
+        #endregion
+
+        #region Query<T1, T2>       (DNSServiceName, Mapper, RecursionDesired = true, ...)
+
+        public async Task<IEnumerable<T2>> Query<TRR, T2>(DNSServiceName     DNSServiceName,
+                                                          Func<TRR, T2>      Mapper,
+                                                          Boolean            RecursionDesired    = true,
+                                                          CancellationToken  CancellationToken   = default)
+
+            where TRR : ADNSResourceRecord
+
+            => (await Query<TRR>(
+                          DNSServiceName,
+                          RecursionDesired,
+                          CancellationToken
+                      )).FilteredAnswers.Select(v => Mapper(v));
 
         #endregion
 
 
-        #region Query_IPv4Addresses (DomainName,     CancellationToken = default)
+        #region Query_IPv4Addresses (DomainName,             RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IPv4Address>>
 
             Query_IPv4Addresses(DomainName         DomainName,
-                                CancellationToken  CancellationToken = default)
+                                Boolean            RecursionDesired    = true,
+                                CancellationToken  CancellationToken   = default)
 
                 => await Query<A>(
                              DNSServiceName.Parse(DomainName.FullName),
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
                            ConfigureAwait(false);
 
         #endregion
 
-        #region Query_IPv4Addresses (DNSServiceName, CancellationToken = default)
+        #region Query_IPv4Addresses (DNSServiceName,         RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IPv4Address>>
 
             Query_IPv4Addresses(DNSServiceName     DNSServiceName,
-                                CancellationToken  CancellationToken = default)
+                                Boolean            RecursionDesired    = true,
+                                CancellationToken  CancellationToken   = default)
 
                 => await Query<A>(
                              DNSServiceName,
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
                            ConfigureAwait(false);
 
         #endregion
 
-        #region Query_IPv4Addresses (RemoteURL,      CancellationToken = default)
+        #region Query_IPv4Addresses (RemoteURL,              RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IPv4Address>>
 
             Query_IPv4Addresses(URL                RemoteURL,
-                                CancellationToken  CancellationToken = default)
+                                Boolean            RecursionDesired    = true,
+                                CancellationToken  CancellationToken   = default)
 
                 => await Query<A>(
                              DomainName.Parse(RemoteURL.Hostname.Name),
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv4Address)).
                            ConfigureAwait(false);
@@ -732,45 +766,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_IPv6Addresses (DomainName,     CancellationToken = default)
+        #region Query_IPv6Addresses (DomainName,             RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IPv6Address>>
 
             Query_IPv6Addresses(DomainName         DomainName,
-                                CancellationToken  CancellationToken = default)
+                                Boolean            RecursionDesired    = true,
+                                CancellationToken  CancellationToken   = default)
 
                 => await Query<AAAA>(
                              DNSServiceName.Parse(DomainName.FullName),
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
                            ConfigureAwait(false);
 
         #endregion
 
-        #region Query_IPv6Addresses (DNSServiceName, CancellationToken = default)
+        #region Query_IPv6Addresses (DNSServiceName,         RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IPv6Address>>
 
             Query_IPv6Addresses(DNSServiceName     DNSServiceName,
-                                CancellationToken  CancellationToken = default)
+                                Boolean            RecursionDesired    = true,
+                                CancellationToken  CancellationToken   = default)
 
                 => await Query<AAAA>(
                              DNSServiceName,
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
                            ConfigureAwait(false);
 
         #endregion
 
-        #region Query_IPv6Addresses (RemoteURL,      CancellationToken = default)
+        #region Query_IPv6Addresses (RemoteURL,              RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IPv6Address>>
 
             Query_IPv6Addresses(URL                RemoteURL,
-                                CancellationToken  CancellationToken = default)
+                                Boolean            RecursionDesired    = true,
+                                CancellationToken  CancellationToken   = default)
 
                 => await Query<AAAA>(
                              DomainName.Parse(RemoteURL.Hostname.Name),
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
                            ConfigureAwait(false);
@@ -778,17 +818,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_IPAddresses   (DomainName,     CancellationToken = default)
+        #region Query_IPAddresses   (DomainName,             RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IIPAddress>>
 
             Query_IPAddresses(DomainName         DomainName,
-                              CancellationToken  CancellationToken = default)
+                              Boolean            RecursionDesired    = true,
+                              CancellationToken  CancellationToken   = default)
 
         {
 
-            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName, CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName, CancellationToken);
+            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName, RecursionDesired, CancellationToken);
+            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName, RecursionDesired, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,
@@ -802,17 +843,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (DNSServiceName, CancellationToken = default)
+        #region Query_IPAddresses   (DNSServiceName,         RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IIPAddress>>
 
             Query_IPAddresses(DNSServiceName     DNSServiceName,
-                              CancellationToken  CancellationToken = default)
+                              Boolean            RecursionDesired    = true,
+                              CancellationToken  CancellationToken   = default)
 
         {
 
-            var ipv4AddressLookupTask = Query_IPv4Addresses(DNSServiceName, CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(DNSServiceName, CancellationToken);
+            var ipv4AddressLookupTask = Query_IPv4Addresses(DNSServiceName, RecursionDesired, CancellationToken);
+            var ipv6AddressLookupTask = Query_IPv6Addresses(DNSServiceName, RecursionDesired, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,
@@ -826,17 +868,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query_IPAddresses   (RemoteURL,      CancellationToken = default)
+        #region Query_IPAddresses   (RemoteURL,              RecursionDesired = true, ...)
 
         public async Task<IEnumerable<IIPAddress>>
 
             Query_IPAddresses(URL                RemoteURL,
-                              CancellationToken  CancellationToken = default)
+                              Boolean            RecursionDesired    = true,
+                              CancellationToken  CancellationToken   = default)
 
         {
 
-            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), CancellationToken);
+            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), RecursionDesired, CancellationToken);
+            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), RecursionDesired, CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,
@@ -851,39 +894,81 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query_DNSService    (DomainName,     CancellationToken = default)
+        #region Query_DNSService    (DomainName,             RecursionDesired = true, ...)
 
         public async Task<IEnumerable<SRV>>
 
             Query_DNSService(DomainName         DomainName,
                              SRV_Spec           DNSServiceSpec,
-                             CancellationToken  CancellationToken = default)
+                             Boolean            RecursionDesired    = true,
+                             CancellationToken  CancellationToken   = default)
 
                 => await Query<SRV>(
                              DNSServiceName.From(
                                  DomainName,
                                  DNSServiceSpec
                              ),
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers).
                            ConfigureAwait(false);
 
         #endregion
 
-        #region Query_DNSService    (DNSServiceName, CancellationToken = default)
+        #region Query_DNSService    (DNSServiceName,         RecursionDesired = true, ...)
 
         public async Task<IEnumerable<SRV>>
 
             Query_DNSService(DNSServiceName     DNSServiceName,
-                             CancellationToken  CancellationToken = default)
+                             Boolean            RecursionDesired    = true,
+                             CancellationToken  CancellationToken   = default)
 
                 => await Query<SRV>(
                              DNSServiceName,
+                             RecursionDesired,
                              CancellationToken
                          ).ContinueWith  (query => query.Result.FilteredAnswers).
                            ConfigureAwait(false);
 
         #endregion
+
+
+
+        #region Google DNS
+
+        public static DNSClient Google()
+
+            => new ([
+                   IPv4Address.Parse("8.8.8.8"),
+                   IPv4Address.Parse("8.8.4.4"),
+                   IPv6Address.Parse("2001:4860:4860::8888"),
+                   IPv6Address.Parse("2001:4860:4860::8844")
+               ]);
+
+        #endregion
+
+        #region Google DNS IPv4
+
+        public static DNSClient GoogleIPV4()
+
+            => new ([
+                   IPv4Address.Parse("8.8.8.8"),
+                   IPv4Address.Parse("8.8.4.4")
+               ]);
+
+        #endregion
+
+        #region Google DNS IPv6
+
+        public static DNSClient GoogleIPv6()
+
+            => new ([
+                   IPv6Address.Parse("2001:4860:4860::8888"),
+                   IPv6Address.Parse("2001:4860:4860::8844")
+               ]);
+
+        #endregion
+
 
 
         #region (override) ToString()

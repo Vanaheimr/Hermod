@@ -150,6 +150,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+        #region ExtractCharacterStrings(Stream)
+
+        public static IEnumerable<String> ExtractCharacterStrings(Stream Stream)
+        {
+
+            var list = new List<String>();
+
+            while (true)
+            {
+
+                var length = Stream.ReadByte() & byte.MaxValue;
+                if (length == 0)
+                    return list;
+
+                var buffer = new Byte[length];
+                if (Stream.Read(buffer, 0, length) != length)
+                    throw new EndOfStreamException("Incomplete character-string read");
+
+                list.Add(Encoding.ASCII.GetString(buffer));
+
+            }
+
+        }
+
+        #endregion
+
 
         public static String ReplaceFirstDotWithAt(String input)
         {
@@ -345,40 +371,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
 
 
-        #region Google DNS
 
-        public static DNSClient GoogleDNS()
-
-            => new ([
-                   IPv4Address.Parse("8.8.8.8"),
-                   IPv4Address.Parse("8.8.4.4"),
-                   IPv6Address.Parse("2001:4860:4860::8888"),
-                   IPv6Address.Parse("2001:4860:4860::8844")
-               ]);
-
-        #endregion
-
-        #region Google DNS IPv4
-
-        public static DNSClient GoogleDNSv4()
-
-            => new ([
-                   IPv4Address.Parse("8.8.8.8"),
-                   IPv4Address.Parse("8.8.4.4")
-               ]);
-
-        #endregion
-
-        #region Google DNS IPv6
-
-        public static DNSClient GoogleDNSv6()
-
-            => new ([
-                   IPv6Address.Parse("2001:4860:4860::8888"),
-                   IPv6Address.Parse("2001:4860:4860::8844")
-               ]);
-
-        #endregion
 
 
     }

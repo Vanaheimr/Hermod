@@ -19,7 +19,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
 
-    public class DNSInfo<T>(IPSocket                         Origin,
+    public class DNSInfo<T>(DNSServerConfig                  Origin,
                             Int32                            QueryId,
                             Boolean                          IsAuthoritativeAnswer,
                             Boolean                          IsTruncated,
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The source of the DNS information.
         /// </summary>
-        public IPSocket                         Origin                { get; }
+        public DNSServerConfig                  Origin                { get; }
 
         /// <summary>
         /// The identification of the DNS query.
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
-        public DNSInfo(IPSocket                         Origin,
+        public DNSInfo(DNSServerConfig                  Origin,
                        Int32                            QueryId,
                        Boolean                          IsAuthoritativeAnswer,
                        Boolean                          IsTruncated,
@@ -171,9 +171,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
 
-        public static DNSInfo TimedOut(IPSocket  Origin,
-                                       Int32     QueryId,
-                                       TimeSpan  Timeout)
+        public static DNSInfo TimedOut(DNSServerConfig  Origin,
+                                       Int32            QueryId,
+                                       TimeSpan         Timeout)
 
             => new (Origin,
                     QueryId,
@@ -190,8 +190,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     Timeout);
 
 
-        public static DNSInfo Invalid(IPSocket  Origin,
-                                      Int32     QueryId)
+        public static DNSInfo Invalid(DNSServerConfig  Origin,
+                                      Int32            QueryId)
 
             => new (Origin,
                     QueryId,
