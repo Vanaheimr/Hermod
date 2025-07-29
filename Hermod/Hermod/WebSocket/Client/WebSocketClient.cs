@@ -511,10 +511,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                             RemoteIPAddress = IPv6Address.Localhost;
 
                         else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name.FullName);
+                            RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
 
                         else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name.FullName);
+                            RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
 
                         #region DNS lookup...
 
@@ -523,11 +523,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         {
 
                             var IPv4AddressLookupTask  = DNSClient.
-                                                             Query<A>   (RemoteURL.Hostname.Name).
+                                                             Query<A>   (DNSServiceName.Parse(RemoteURL.Hostname.Name)).
                                                              ContinueWith(query => query.Result.FilteredAnswers.Select(ARecord    => ARecord.IPv4Address));
 
                             var IPv6AddressLookupTask  = DNSClient.
-                                                             Query<AAAA>(RemoteURL.Hostname.Name).
+                                                             Query<AAAA>(DNSServiceName.Parse(RemoteURL.Hostname.Name)).
                                                              ContinueWith(query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address));
 
                             await Task.WhenAll(IPv4AddressLookupTask,
@@ -663,9 +663,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                         {
 
                             await TLSStream.AuthenticateAsClientAsync(
-                                      RemoteURL.Hostname.Name.FullName,
+                                      RemoteURL.Hostname.Name,
                                       ClientCert is not null
-                                          ? new X509CertificateCollection(new X509Certificate[] { ClientCert })
+                                          ? [.. new X509Certificate[] { ClientCert }]
                                           : null,
                                       SslProtocols.Tls12 | SslProtocols.Tls13,
                                       false

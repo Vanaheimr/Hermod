@@ -395,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv4Address">The parsed IPv4 address.</param>
         public static Boolean TryParse(HTTPHostname Hostname, out IPv4Address IPv4Address)
 
-            => TryParse(Hostname.Name.FullName, out IPv4Address);
+            => TryParse(Hostname.Name, out IPv4Address);
 
         #endregion
 

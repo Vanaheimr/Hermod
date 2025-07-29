@@ -382,7 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="IPv6Address">The parsed IPv6 address.</param>
         public static Boolean TryParse(HTTPHostname Hostname, out IPv6Address IPv6Address)
 
-            => TryParse(Hostname.Name.FullName, out IPv6Address);
+            => TryParse(Hostname.Name, out IPv6Address);
 
         #endregion
 

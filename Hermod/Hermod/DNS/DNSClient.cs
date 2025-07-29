@@ -693,8 +693,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         {
 
-            var ipv4AddressLookupTask = Query_IPv4Addresses(RemoteURL.Hostname.Name, CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(RemoteURL.Hostname.Name, CancellationToken);
+            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), CancellationToken);
+            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), CancellationToken);
 
             await Task.WhenAll(
                       ipv4AddressLookupTask,

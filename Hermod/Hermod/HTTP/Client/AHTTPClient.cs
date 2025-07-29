@@ -965,10 +965,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 RemoteIPAddress = IPv6Address.Localhost;
 
                             else if (IPAddress.IsIPv4(RemoteURL.Hostname.Name))
-                                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name.FullName);
+                                RemoteIPAddress = IPv4Address.Parse(RemoteURL.Hostname.Name);
 
                             else if (IPAddress.IsIPv6(RemoteURL.Hostname.Name))
-                                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name.FullName);
+                                RemoteIPAddress = IPv6Address.Parse(RemoteURL.Hostname.Name);
 
                             #endregion
 
@@ -978,11 +978,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             {
 
                                 var IPv4AddressLookupTask = DNSClient.
-                                                                Query<A>   (RemoteURL.Hostname.Name, CancellationToken).
+                                                                Query<A>   (DNSServiceName.Parse(RemoteURL.Hostname.Name), CancellationToken).
                                                                 ContinueWith(query => query.Result.FilteredAnswers.Select(ARecord    => ARecord.   IPv4Address));
 
                                 var IPv6AddressLookupTask = DNSClient.
-                                                                Query<AAAA>(RemoteURL.Hostname.Name, CancellationToken).
+                                                                Query<AAAA>(DNSServiceName.Parse(RemoteURL.Hostname.Name), CancellationToken).
                                                                 ContinueWith(query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address));
 
                                 await Task.WhenAll(IPv4AddressLookupTask,
@@ -1148,7 +1148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name.FullName,
+                                await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
                                                                           clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
                                                                           enabledSslProtocols:         TLSProtocol,
                                                                           checkCertificateRevocation:  false);// true);

@@ -361,10 +361,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         RemoteIPAddress = IPv6Address.Localhost;
 
                     else if (IPAddress.IsIPv4(RemoteURL.Value.Hostname.Name))
-                        RemoteIPAddress = IPv4Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
+                        RemoteIPAddress = IPv4Address.Parse(RemoteURL.Value.Hostname.Name);
 
                     else if (IPAddress.IsIPv6(RemoteURL.Value.Hostname.Name))
-                        RemoteIPAddress = IPv6Address.Parse(RemoteURL.Value.Hostname.Name.FullName);
+                        RemoteIPAddress = IPv6Address.Parse(RemoteURL.Value.Hostname.Name);
 
                     #endregion
 
@@ -376,7 +376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         // Look up the DNS Name or the hostname of the URL...
-                        var serviceRecords         = await DNSClient.Query_DNSService(DNS.DNSServiceName.Parse($"{DNSService}.{DNSName ?? RemoteURL.Value.Hostname.Name}")).
+                        var serviceRecords         = await DNSClient.Query_DNSService(DNSServiceName.Parse($"{DNSService}.{DNSName ?? DomainName.Parse(RemoteURL.Value.Hostname.Name)}")).
                                                                      ConfigureAwait(false);
 
                         var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);
@@ -420,8 +420,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
-                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name);
-                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? RemoteURL.Value.Hostname.Name);
+                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? DomainName.Parse(RemoteURL.Value.Hostname.Name));
+                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? DomainName.Parse(RemoteURL.Value.Hostname.Name));
 
                         await Task.WhenAll(
                                   ipv4AddressLookupTask,

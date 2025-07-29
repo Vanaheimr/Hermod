@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The hostname.
         /// </summary>
-        public DomainName  Name    { get; }
+        public String      Name    { get; }
 
         /// <summary>
         /// The TCP/IP port.
@@ -109,14 +109,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP 'ANY' host or "*".
         /// </summary>
         public static HTTPHostname Any
-            => new (DomainName.Any, null);
+            => new ("*", null);
 
 
         /// <summary>
         /// Return an new HTTP hostname having a hostname wildcard, e.g. "*:443".
         /// </summary>
         public HTTPHostname AnyHost
-            => new (DomainName.Any, Port);
+            => new ("*", Port);
 
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// The HTTP 'localhost' host.
         /// </summary>
         public static HTTPHostname Localhost
-            => new (DomainName.Localhost, null);
+            => new ("localhost", null);
 
         #endregion
 
@@ -139,8 +139,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Generate a new HTTP hostname based on the given name and port.
         /// </summary>
-        private HTTPHostname(DomainName  Name,
-                             UInt16?     Port = null)
+        private HTTPHostname(String   Name,
+                             UInt16?  Port = null)
         {
 
             this.Name  = Name;
@@ -261,20 +261,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var hostname  = parts.Length > 0 ? parts[0]?.Trim() : null;
             var portText  = parts.Length > 1 ? parts[1]?.Trim() : null;
 
+            //if (hostname is not null &&
+            //    hostname == "*")
+            //{
+
+            //    if (portText is null)
+            //    {
+            //        Hostname = HTTPHostname.Parse("*");
+            //        return true;
+            //    }
+
+            //    if (portText is not null && UInt16.TryParse(portText, out var port))
+            //    {
+            //        Hostname = HTTPHostname.Parse($"*:{port}");
+            //        return true;
+            //    }
+
+            //}
+
             if (hostname is not null &&
-            //   (hostname == "*" || regEx.IsMatch(hostname)))
-                DomainName.TryParse(hostname, out var domainName, out ErrorResponse))
+               (hostname == "*" || regEx.IsMatch(hostname)))
+            //    hostname == "*" ||
+            //    DomainName.TryParse(hostname, out var domainName, out ErrorResponse))
             {
 
                 if (portText is null)
                 {
-                    Hostname = new HTTPHostname(domainName);
+                    Hostname = new HTTPHostname(hostname);
                     return true;
                 }
 
                 if (portText is not null && UInt16.TryParse(portText, out var port))
                 {
-                    Hostname = new HTTPHostname(domainName, port);
+                    Hostname = new HTTPHostname(hostname, port);
                     return true;
                 }
 
@@ -302,10 +321,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             Text = Text.Trim().ToLower();
 
-            //if (Text == "*" || regEx.IsMatch(Text))
-            if (DomainName.TryParse(Text, out var domainName, out var _))
+            if (Text == "*" || regEx.IsMatch(Text))
+            //if (DomainName.TryParse(Text, out var domainName, out var _))
             {
-                Hostname = new HTTPHostname(domainName, Port);
+                Hostname = new HTTPHostname(Text, Port);
                 return true;
             }
 
@@ -324,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPHostname Clone()
 
             => new (
-                   Name.Clone(),
+                   Name.CloneString(),
                    Port
                );
 
