@@ -196,8 +196,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             //    server = ".";
             //}
 
-            this.Server   = DomainName.        Parse(DNSTools.ExtractNameUTF8(Stream));
-            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractNameUTF8(Stream)));
+            this.Server   = DomainName.        Parse(DNSTools.ExtractName(Stream));
+            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractName(Stream)));
             this.Serial   = (UInt32) ((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
