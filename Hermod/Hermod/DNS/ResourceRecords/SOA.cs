@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.Mail;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -183,19 +184,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var rdLength = Stream.ReadUInt16BE();
 
-            //var aa = DNSTools.ReadDomainNameFromBytes(Stream);
-            //var bb = DNSTools.ReadDomainNameFromBytes(Stream);
+            //var ss = (Stream as MemoryStream).ToArray().ToHexString();
 
-            //var server = DNSTools.ExtractName(Stream);
-
-            //if (server == "")
-            //{
-            //    var data = Stream.ToByteArray().ToHexString();
-            //    server = ".";
-            //}
-
-            this.Server   = DomainName.        Parse(DNSTools.ExtractNameUTF8(Stream));
-            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractNameUTF8(Stream)));
+            this.Server   = DomainName.        Parse(DNSTools.ExtractName(Stream));
+            this.EMail    = SimpleEMailAddress.Parse(DNSTools.ReplaceFirstDotWithAt(DNSTools.ExtractName(Stream)));
             this.Serial   = (UInt32) ((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Refresh  = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);
             this.Retry    = TimeSpan.FromSeconds((Stream.ReadByte() & Byte.MaxValue) << 24 | (Stream.ReadByte() & Byte.MaxValue) << 16 | (Stream.ReadByte() & Byte.MaxValue) << 8 | Stream.ReadByte() & Byte.MaxValue);

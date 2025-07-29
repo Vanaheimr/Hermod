@@ -7,10 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DNS\**" />
     <Compile Remove="SOAP\**" />
     <Compile Remove="WebSocket\**" />
+    <EmbeddedResource Remove="DNS\**" />
     <EmbeddedResource Remove="SOAP\**" />
     <EmbeddedResource Remove="WebSocket\**" />
+    <None Remove="DNS\**" />
     <None Remove="SOAP\**" />
     <None Remove="WebSocket\**" />
   </ItemGroup>
@@ -29,10 +32,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DNS\ResourceRecords\" />
   </ItemGroup>
 
 </Project>

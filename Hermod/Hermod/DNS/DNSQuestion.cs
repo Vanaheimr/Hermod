@@ -15,37 +15,73 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Collections.Concurrent;
-
-using org.GraphDefined.Vanaheimr.Illias;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
-    public class DNSQuestion
+    /// <summary>
+    /// A DNS question represents a query made to a DNS server.
+    /// </summary>
+    public class DNSQuestion : IEquatable<DNSQuestion>,
+                               IComparable<DNSQuestion>,
+                               IComparable
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The domain name for which the DNS query is made.
+        /// </summary>
         public DNSServiceName          DomainName    { get; }
+
+        /// <summary>
+        /// The type of DNS resource record being queried.
+        /// </summary>
         public DNSResourceRecordTypes  QueryType     { get; }
+
+        /// <summary>
+        /// The class of the DNS query, typically IN for Internet.
+        /// </summary>
         public DNSQueryClasses         QueryClass    { get; }
 
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new DNS question.
+        /// </summary>
+        /// <param name="DomainName">The domain name for which the DNS query is made.</param>
+        /// <param name="QueryType">The type of DNS resource record being queried.</param>
+        /// <param name="QueryClass">The class of the DNS query, typically IN for Internet.</param>
+        public DNSQuestion(DNSServiceName          DomainName,
+                           DNSResourceRecordTypes  QueryType,
+                           DNSQueryClasses         QueryClass)
+        {
+
+            this.DomainName  = DomainName;
+            this.QueryType   = QueryType;
+            this.QueryClass  = QueryClass;
+
+            unchecked
+            {
+
+                hashCode = this.DomainName.GetHashCode() * 5 ^
+                           this.QueryType. GetHashCode() * 3 ^
+                           this.QueryClass.GetHashCode();
+
+            }
+
+        }
+
+        #endregion
 
 
-        public static DNSQuestion Parse(Byte[] packet, ref Int32 position)
+        #region Parse(Stream)
 
-            => new (
-                   DNSServiceName.Parse(DNSTools.ReadDomainName(packet, ref position)),
-                   (DNSResourceRecordTypes) ((packet[position++] << 8) | packet[position++]),
-                   (DNSQueryClasses)    ((packet[position++] << 8) | packet[position++])
-               );
-
-
+        /// <summary>
+        /// Parse a DNS question from the given stream.
+        /// </summary>
+        /// <param name="Stream">A DNS stream.</param>
         public static DNSQuestion Parse(Stream Stream)
 
             => new (
@@ -54,8 +90,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    (DNSQueryClasses)        Stream.ReadUInt16BE()
                );
 
+        #endregion
 
+        #region Serialize(Stream, CurrentOffset, UseCompression = true, CompressionOffsets = null)
 
+        /// <summary>
+        /// Serialize this DNS question to the given stream.
+        /// </summary>
+        /// <param name="Stream">A DNS stream.</param>
+        /// <param name="CurrentOffset">The current offset in the stream.</param>
+        /// <param name="UseCompression">Whether to use compression for domain names.</param>
+        /// <param name="CompressionOffsets">Optional dictionary of compression offsets for domain names.</param>
         public void Serialize(Stream                      Stream,
                               Int32                       CurrentOffset,
                               Boolean                     UseCompression       = true,
@@ -74,19 +119,141 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        #endregion
 
 
+        #region Operator overloading
 
-        public DNSQuestion(DNSServiceName          DomainName,
-                           DNSResourceRecordTypes  QueryType,
-                           DNSQueryClasses         QueryClass)
+        #region Operator == (DNSQuestion1, DNSQuestion2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="DNSQuestion1">A DNS Question.</param>
+        /// <param name="DNSQuestion2">Another DNS Question.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator == (DNSQuestion DNSQuestion1,
+                                           DNSQuestion DNSQuestion2)
+
+            => DNSQuestion1.Equals(DNSQuestion2);
+
+        #endregion
+
+        #region Operator != (DNSQuestion1, DNSQuestion2)
+
+        /// <summary>
+        /// Compares two instances of this object.
+        /// </summary>
+        /// <param name="DNSQuestion1">A DNS Question.</param>
+        /// <param name="DNSQuestion2">Another DNS Question.</param>
+        /// <returns>true|false</returns>
+        public static Boolean operator != (DNSQuestion DNSQuestion1,
+                                           DNSQuestion DNSQuestion2)
+
+            => !DNSQuestion1.Equals(DNSQuestion2);
+
+        #endregion
+
+        #endregion
+
+        #region IComparable<DNSQuestion> Members
+
+        #region CompareTo(Object)
+
+        /// <summary>
+        /// Compares two DNS Questions.
+        /// </summary>
+        /// <param name="Object">A DNS Question to compare with.</param>
+        public Int32 CompareTo(Object? Object)
+
+            => Object is DNSQuestion dnsQuestion
+                   ? CompareTo(dnsQuestion)
+                   : throw new ArgumentException("The given object is not a DNS Question!",
+                                                 nameof(Object));
+
+        #endregion
+
+        #region CompareTo(DNSQuestion)
+
+        /// <summary>
+        /// Compares two DNS Questions.
+        /// </summary>
+        /// <param name="DNSQuestion">A DNS Question to compare with.</param>
+        public Int32 CompareTo(DNSQuestion DNSQuestion)
         {
 
-            this.DomainName  = DomainName;
-            this.QueryType   = QueryType;
-            this.QueryClass  = QueryClass;
+            var c = DomainName.CompareTo(DNSQuestion.DomainName);
+
+            if (c == 0)
+                c = QueryType. CompareTo(DNSQuestion.QueryType);
+
+            if (c == 0)
+                c = QueryClass.CompareTo(DNSQuestion.QueryClass);
+
+            return c;
 
         }
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<DNSQuestion> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two DNS Questions.
+        /// </summary>
+        /// <param name="Object">A DNS Question to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is DNSQuestion dnsQuestion &&
+                   Equals(dnsQuestion);
+
+        #endregion
+
+        #region Equals(DNSQuestion)
+
+        /// <summary>
+        /// Compares two DNS Questions.
+        /// </summary>
+        /// <param name="DNSQuestion">A DNS Question to compare with.</param>
+        public Boolean Equals(DNSQuestion? DNSQuestion)
+
+            => DNSQuestion is not null &&
+
+               DomainName.Equals(DNSQuestion.DomainName) &&
+               QueryType. Equals(DNSQuestion.QueryType)  &&
+               QueryClass.Equals(DNSQuestion.QueryClass);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        private readonly Int32 hashCode;
+
+        /// <summary>
+        /// Return the hash code of this object.
+        /// </summary>
+        /// <returns>The hash code of this object.</returns>
+        public override Int32 GetHashCode()
+            => hashCode;
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Returns a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => $"{DomainName}: {QueryClass} {QueryType}";
+
+        #endregion
 
     }
 
