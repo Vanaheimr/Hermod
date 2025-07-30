@@ -33,6 +33,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
     /// <summary>
+    /// Extensions methods for DNS clients.
+    /// </summary>
+    public static class DNSClientExtensions
+    {
+
+        // ...
+
+    }
+
+
+    /// <summary>
     /// A DNS client.
     /// </summary>
     public class DNSClient : IDisposable,
@@ -972,6 +983,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
+
+        #region Cloudflare DNS
+
+        public static DNSClient Cloudflare()
+
+            => new ([
+                   IPv4Address.Parse("1.1.1.1"),
+                   IPv4Address.Parse("1.0.0.1"),
+                   IPv6Address.Parse("2606:4700:4700::1111"),
+                   IPv6Address.Parse("2606:4700:4700::1001")
+               ]);
+
+        #endregion
+
+        #region Cloudflare DNS IPv4
+
+        public static DNSClient CloudflareIPV4()
+
+            => new ([
+                   IPv4Address.Parse("1.1.1.1"),
+                   IPv4Address.Parse("1.0.0.1")
+               ]);
+
+        #endregion
+
+        #region Cloudflare DNS IPv6
+
+        public static DNSClient CloudflareIPv6()
+
+            => new ([
+                   IPv6Address.Parse("2606:4700:4700::1111"),
+                   IPv6Address.Parse("2606:4700:4700::1001")
+               ]);
+
+        #endregion
 
 
         #region (override) ToString()

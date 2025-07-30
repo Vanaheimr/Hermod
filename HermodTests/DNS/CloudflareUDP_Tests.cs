@@ -26,11 +26,13 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 {
 
+    // ARSoft.Tools.Net
+
     /// <summary>
-    /// Some Google DNS UDP tests.
+    /// Some Cloudflare DNS UDP tests.
     /// </summary>
     [TestFixture]
-    public class GoogleUDP_Tests
+    public class CloudflareUDP_Tests
     {
 
         #region Setup/Teardown
@@ -41,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         public void Init_PublicDNSTests()
         {
 
-            client = DNSClient.Google();
+            client = DNSClient.Cloudflare();
 
         }
 
@@ -56,10 +58,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region GoogleUDP_charging_cloud__A()
+        #region CloudflareUDP_charging_cloud__A()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__A()
+        public async Task CloudflareUDP_charging_cloud__A()
         {
 
             if (client is null)
@@ -89,10 +91,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_charging_cloud__AAAA()
+        #region CloudflareUDP_charging_cloud__AAAA()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__AAAA()
+        public async Task CloudflareUDP_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -122,10 +124,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_charging_cloud__MX()
+        #region CloudflareUDP_charging_cloud__MX()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__MX()
+        public async Task CloudflareUDP_charging_cloud__MX()
         {
 
             if (client is null)
@@ -156,10 +158,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_charging_cloud__TXT()
+        #region CloudflareUDP_charging_cloud__TXT()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__TXT()
+        public async Task CloudflareUDP_charging_cloud__TXT()
         {
 
             if (client is null)
@@ -219,10 +221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region GoogleUDP_open_charging_cloud__A()
+        #region CloudflareUDP_open_charging_cloud__A()
 
         [Test]
-        public async Task GoogleUDP_open_charging_cloud__A()
+        public async Task CloudflareUDP_open_charging_cloud__A()
         {
 
             if (client is null)
@@ -263,10 +265,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_open_charging_cloud__AAAA()
+        #region CloudflareUDP_open_charging_cloud__AAAA()
 
         [Test]
-        public async Task GoogleUDP_open_charging_cloud__AAAA()
+        public async Task CloudflareUDP_open_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -307,10 +309,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_open_charging_cloud__MX()
+        #region CloudflareUDP_open_charging_cloud__MX()
 
         [Test]
-        public async Task GoogleUDP_open_charging_cloud__MX()
+        public async Task CloudflareUDP_open_charging_cloud__MX()
         {
 
             if (client is null)
@@ -353,10 +355,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region GoogleUDP__ocpp_tls_api_charging_cloud__SRV()
+        #region CloudflareUDP__ocpp_tls_api_charging_cloud__SRV()
 
         [Test]
-        public async Task GoogleUDP_ocpp_tls_api_charging_cloud__SRV()
+        public async Task CloudflareUDP_ocpp_tls_api_charging_cloud__SRV()
         {
 
             if (client is null)
