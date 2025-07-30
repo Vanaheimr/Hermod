@@ -21,12 +21,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public interface IDNSResourceRecord : IDNSPseudoResourceRecord
     {
 
-        DNSQueryClasses Class { get; }
-        DNSServiceName DomainName { get; }
-        DateTime EndOfLife { get; }
-        String? RText { get; }
-        IIPAddress? Source { get; }
-        TimeSpan TimeToLive { get; }
+        DNSQueryClasses  Class         { get; }
+        DNSServiceName   DomainName    { get; }
+        DateTime         EndOfLife     { get; }
+        String?          RText         { get; }
+        IIPAddress?      Source        { get; }
+        TimeSpan         TimeToLive    { get; }
 
 
         void Serialize(Stream                      Stream,

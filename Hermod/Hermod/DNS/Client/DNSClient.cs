@@ -35,13 +35,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS client.
     /// </summary>
-    public class DNSClient
+    public class DNSClient : IDisposable,
+                             IAsyncDisposable
     {
 
         #region Data
 
         private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DomainName = [];
         private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DNSServiceName = [];
+
+        private          Boolean                                                        disposedValue;
 
         #endregion
 
@@ -982,6 +985,36 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                DNSServers.SafeSelect(socket => socket.ToString()).AggregateCSV();
 
         #endregion
+
+
+        protected virtual void Dispose(Boolean Disposing)
+        {
+            if (!disposedValue)
+            {
+
+                if (Disposing)
+                {
+                    rrLookup_DomainName.    Clear();
+                    rrLookup_DNSServiceName.Clear();
+                }
+
+                disposedValue = true;
+
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(Disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose(Disposing: false);
+            GC.SuppressFinalize(this);
+            return default;
+        }
 
 
     }
