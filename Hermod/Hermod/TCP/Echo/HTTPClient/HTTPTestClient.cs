@@ -522,7 +522,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
         public Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
 
-            => sendText(Text);
+            => base.SendText(Text);
 
         #endregion
 

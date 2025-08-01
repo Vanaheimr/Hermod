@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         private DNSClient? client;
 
         [OneTimeSetUp]
-        public void Init_PublicDNSTests()
+        public void InitTests()
         {
 
             client = DNSClient.Cloudflare();

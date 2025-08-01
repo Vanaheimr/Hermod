@@ -108,8 +108,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected                 TcpClient?                tcpClient;
         protected                 CancellationTokenSource?  cts;
 
-   //     private                   IIPAddress?               remoteIPAddress;
-
         #endregion
 
         #region Properties
@@ -171,8 +169,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    : null;
 
         public  URL?                     RemoteURL          { get; }
-        public  IIPAddress?              RemoteIPAddress    { get; private set; }
-        public  IPPort?                  RemoteTCPPort      { get; }
+        public  IIPAddress?              RemoteIPAddress    { get; private   set; }
+        public  IPPort?                  RemoteTCPPort      { get; protected set; }
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
         public  TimeSpan                 SendTimeout        { get; }
@@ -182,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public DomainName?               DNSName            { get; }
+        public DomainName?               DomainName            { get; }
 
         /// <summary>
         /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
@@ -289,9 +287,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (protected) ATCPTestClient(DNSName, DNSService,        ..., DNSClient = null)
+        #region (protected) ATCPTestClient(DomainName, DNSService,        ..., DNSClient = null)
 
-        protected ATCPTestClient(DomainName               DNSName,
+        protected ATCPTestClient(DomainName               DomainName,
                                  SRV_Spec                 DNSService,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
@@ -309,7 +307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.DNSName     = DNSName;
+            this.DomainName  = DomainName;
             this.DNSService  = DNSService;
             this.DNSClient   = DNSClient ?? new DNSClient();
 
@@ -320,9 +318,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region ReconnectAsync()
+        #region ReconnectAsync(CancellationToken = default)
 
-        public async Task reconnectAsync()
+        public virtual async Task reconnectAsync(CancellationToken CancellationToken = default)
         {
 
             cts?.      Cancel();
@@ -330,15 +328,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             cts?.      Dispose();
 
             // recreate _cts and tcpClient
-            await connectAsync();
+            await connectAsync(CancellationToken);
 
         }
 
         #endregion
 
-        #region (protected) ConnectAsync()
+        #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected async Task connectAsync()
+        protected virtual async Task connectAsync(CancellationToken CancellationToken = default)
         {
 
             var timings = new HTTPClientConnectTimings();
@@ -376,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         // Look up the DNS Name or the hostname of the URL...
-                        var serviceRecords         = await DNSClient.Query_DNSService(DNSServiceName.Parse($"{DNSService}.{DNSName ?? DomainName.Parse(RemoteURL.Value.Hostname.Name)}")).
+                        var serviceRecords         = await DNSClient.Query_DNSService(DNSServiceName.Parse($"{DNSService}.{DomainName ?? DomainName.Parse(RemoteURL.Value.Hostname.Name)}")).
                                                                      ConfigureAwait(false);
 
                         var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);
@@ -495,17 +493,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region sendText   (Text)
+        #region (protected) SendText   (Text)
 
         /// <summary>
         /// Send the given message to the echo server and receive the echoed response.
         /// </summary>
         /// <param name="Text">The text message to send and echo.</param>
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        protected async Task<(Boolean, String, String?, TimeSpan)> sendText(String Text)
+        protected async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
         {
 
-            var response  = await sendBinary(Encoding.UTF8.GetBytes(Text));
+            var response  = await SendBinary(Encoding.UTF8.GetBytes(Text));
             var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
 
             return (response.Item1,
@@ -517,32 +515,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region sendBinary (Bytes)
+        #region (protected) SendBinary (Bytes)
 
         /// <summary>
         /// Send the given bytes to the echo server and receive the echoed response.
         /// </summary>
         /// <param name="Bytes">The bytes to send and echo.</param>
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        protected async Task<(Boolean, Byte[], String?, TimeSpan)> sendBinary(Byte[] Bytes)
+        protected async Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
         {
 
-            if (!IsConnected)
-                return (false, Array.Empty<byte>(), "Client is not connected.", TimeSpan.Zero);
+            if (!IsConnected || tcpClient is null)
+                return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
 
             try
             {
 
-                var stopwatch = Stopwatch.StartNew();
-                var stream    = tcpClient.GetStream();
+                var stopwatch   = Stopwatch.StartNew();
+                var stream      = tcpClient.GetStream();
+                cts           ??= new CancellationTokenSource();
 
                 // Send the data
                 await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
                 await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
                 using var responseStream = new MemoryStream();
-                var buffer = new Byte[8192];
-                int bytesRead;
+                var buffer     = new Byte[8192];
+                var bytesRead  = 0;
 
                 while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
                 {
@@ -557,7 +556,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             catch (Exception ex)
             {
                 await Log($"Error in SendBinary: {ex.Message}");
-                return (false, Array.Empty<byte>(), ex.Message, TimeSpan.Zero);
+                return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
             }
 
         }
@@ -565,7 +564,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (protected) Log(Message)
+        #region (protected) Log        (Message)
 
         protected Task Log(String Message)
         {
@@ -632,7 +631,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public async ValueTask DisposeAsync()
         {
             await Close();
-            cts.Dispose();
+            cts?.Dispose();
             GC.SuppressFinalize(this);
         }
 

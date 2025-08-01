@@ -37,13 +37,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #region Setup/Teardown
 
-        private DNSClient? client;
+        private DNSUDPClient? client;
 
         [OneTimeSetUp]
-        public void Init_PublicDNSTests()
+        public void InitTests()
         {
 
-            client = DNSClient.Cloudflare();
+            client = DNSUDPClient.Cloudflare_IPv4_1();
 
         }
 

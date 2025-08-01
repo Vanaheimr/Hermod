@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Reflection;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 {
 
@@ -80,6 +84,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public class DNSInfo
     {
 
+        private static readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DomainName = [];
+        private static readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DNSServiceName = [];
+
+
+
         private readonly List<IDNSResourceRecord> answers;
         private readonly List<IDNSResourceRecord> authorities;
         private readonly List<IDNSResourceRecord> additionalRecords;
@@ -127,6 +136,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
+        static DNSInfo()
+        {
+
+            #region Reflect ResourceRecordTypes
+
+            foreach (var actualType in typeof(ADNSResourceRecord).
+                                           Assembly.GetTypes().
+                                           Where(type => type.IsClass &&
+                                                !type.IsAbstract &&
+                                                 type.IsSubclassOf(typeof(ADNSResourceRecord))))
+            {
+
+                var constructor_DomainName      = actualType.GetConstructor([ typeof(DomainName),     typeof(Stream) ]);
+                var constructor_DNSServiceName  = actualType.GetConstructor([ typeof(DNSServiceName), typeof(Stream) ]);
+
+                var typeIdField                 = actualType.GetField("TypeId") ?? throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was not found!");
+                var actualTypeId                = typeIdField.GetValue(actualType);
+
+                if (actualTypeId is DNSResourceRecordTypes id)
+                {
+
+                    if (constructor_DomainName is not null)
+                        rrLookup_DomainName.    TryAdd(id, constructor_DomainName);
+
+                    if (constructor_DNSServiceName is not null)
+                        rrLookup_DNSServiceName.TryAdd(id, constructor_DNSServiceName);
+
+                }
+
+                else
+                    throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was null!");
+
+            }
+
+            #endregion
+
+        }
+
+
         public DNSInfo(DNSServerConfig                  Origin,
                        Int32                            QueryId,
                        Boolean                          IsAuthoritativeAnswer,
@@ -162,6 +210,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         }
 
         #endregion
+
+
+
+
+        #region (internal static) ReadResponse(Origin, ExpectedTransactionId, DNSResponseStream)
+
+        internal static DNSInfo ReadResponse(DNSServerConfig  Origin,
+                                             Int32            ExpectedTransactionId,
+                                             Stream           DNSResponseStream)
+        {
+
+            #region DNS Header
+
+            var requestId       = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) + (DNSResponseStream.ReadByte() & Byte.MaxValue);
+
+            if (ExpectedTransactionId != requestId)
+                //throw new Exception("Security Alert: Mallory might send us faked DNS replies! [" + ExpectedTransactionId + " != " + requestId + "]");
+                return DNSInfo.Invalid(
+                           Origin,
+                           requestId
+                       );
+
+            var Byte2           = DNSResponseStream.ReadByte();
+            var IS              = (Byte2 & 128) == 128;
+            var OpCode          = (Byte2 >> 3 & 15);
+            var AA              = (Byte2 & 4) == 4;
+            var TC              = (Byte2 & 2) == 2;
+            var RD              = (Byte2 & 1) == 1;
+
+            var Byte3           = DNSResponseStream.ReadByte();
+            var RA              = (Byte3 & 128) == 128;
+            var Z               = (Byte3 & 1);    //reserved, not used
+            var ResponseCode    = (DNSResponseCodes) (Byte3 & 15);
+
+            var QuestionCount   = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var AnswerCount     = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var AuthorityCount  = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+            var AdditionalCount = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
+
+            #endregion
+
+            //ToDo: Does this make sense?
+            #region Process Questions
+
+            DNSResponseStream.Seek(12, SeekOrigin.Begin);
+
+            for (var i = 0; i < QuestionCount; ++i) {
+                var questionName  = DNSTools.ExtractName(DNSResponseStream);
+                var typeId        = (UInt16)          ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
+                var classId       = (DNSQueryClasses) ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
+            }
+
+            #endregion
+
+            var answers            = new List<ADNSResourceRecord>();
+            var authorities        = new List<ADNSResourceRecord>();
+            var additionalRecords  = new List<ADNSResourceRecord>();
+
+            for (var i = 0; i < AnswerCount; ++i)
+            {
+                var rr = ReadResourceRecord(DNSResponseStream);
+                if (rr is not null)
+                    answers.Add(rr);
+            }
+
+            for (var i = 0; i < AuthorityCount; ++i)
+            {
+                var rr = ReadResourceRecord(DNSResponseStream);
+                if (rr is not null)
+                    authorities.Add(rr);
+            }
+
+            for (var i = 0; i < AdditionalCount; ++i)
+            {
+                var rr = ReadResourceRecord(DNSResponseStream);
+                if (rr is not null)
+                    additionalRecords.Add(rr);
+            }
+
+            return new DNSInfo(
+                       Origin,
+                       requestId,
+                       AA,
+                       TC,
+                       RD,
+                       RA,
+                       ResponseCode,
+
+                       answers,
+                       authorities,
+                       additionalRecords,
+
+                       true,
+                       false,
+                       TimeSpan.Zero
+                   );
+
+        }
+
+        #endregion
+
+        #region (private  static) ReadResourceRecord(DNSStream)
+
+        private static ADNSResourceRecord? ReadResourceRecord(Stream DNSStream)
+        {
+
+            var resourceName  = DNSTools.ExtractName(DNSStream);
+            var typeId        = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
+
+            if (resourceName == "")
+                resourceName = ".";
+
+            if (rrLookup_DNSServiceName. TryGetValue(typeId, out var constructor_DNSServiceName))
+                return (ADNSResourceRecord) constructor_DNSServiceName.Invoke([
+                                                DNSServiceName.Parse(resourceName),
+                                                DNSStream
+                                            ]);
+
+            else if (rrLookup_DomainName.TryGetValue(typeId, out var constructor_DomainName))
+                return (ADNSResourceRecord) constructor_DomainName.Invoke([
+                                                DomainName.    Parse(resourceName),
+                                                DNSStream
+                                            ]);
+
+            Debug.WriteLine($"Unknown DNS resource record '{typeId}' for '{resourceName}' received!");
+
+            return null;
+
+        }
+
+        #endregion
+
 
 
 

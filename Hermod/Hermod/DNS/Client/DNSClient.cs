@@ -20,9 +20,6 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Diagnostics;
-using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
@@ -46,16 +43,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS client.
     /// </summary>
-    public class DNSClient : IDisposable,
-                             IAsyncDisposable
+    public class DNSClient : IDNSClient
     {
 
         #region Data
 
-        private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DomainName = [];
-        private readonly ConcurrentDictionary<DNSResourceRecordTypes, ConstructorInfo>  rrLookup_DNSServiceName = [];
-
-        private          Boolean                                                        disposedValue;
+        private Boolean disposedValue;
 
         #endregion
 
@@ -210,161 +203,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             this.DNSServers        = dnsServers;
 
-            #region Reflect ResourceRecordTypes
-
-            foreach (var actualType in typeof(ADNSResourceRecord).
-                                           Assembly.GetTypes().
-                                           Where(type => type.IsClass &&
-                                                !type.IsAbstract &&
-                                                 type.IsSubclassOf(typeof(ADNSResourceRecord))))
-            {
-
-                var constructor_DomainName      = actualType.GetConstructor([ typeof(DomainName),     typeof(Stream) ]);
-                var constructor_DNSServiceName  = actualType.GetConstructor([ typeof(DNSServiceName), typeof(Stream) ]);
-
-                var typeIdField                 = actualType.GetField("TypeId") ?? throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was not found!");
-                var actualTypeId                = typeIdField.GetValue(actualType);
-
-                if (actualTypeId is DNSResourceRecordTypes id)
-                {
-
-                    if (constructor_DomainName is not null)
-                        rrLookup_DomainName.    TryAdd(id, constructor_DomainName);
-
-                    if (constructor_DNSServiceName is not null)
-                        rrLookup_DNSServiceName.TryAdd(id, constructor_DNSServiceName);
-
-                }
-
-                else
-                    throw new ArgumentException($"Constant field 'TypeId' of type '{actualType.Name}' was null!");
-
-            }
-
-            #endregion
-
         }
 
         #endregion
 
         #endregion
 
-
-        #region (private) ReadResponse(Origin, ExpectedTransactionId, DNSResponseStream)
-
-        private DNSInfo ReadResponse(DNSServerConfig  Origin,
-                                     Int32            ExpectedTransactionId,
-                                     Stream           DNSResponseStream)
-        {
-
-            #region DNS Header
-
-            var requestId       = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) + (DNSResponseStream.ReadByte() & Byte.MaxValue);
-
-            if (ExpectedTransactionId != requestId)
-                //throw new Exception("Security Alert: Mallory might send us faked DNS replies! [" + ExpectedTransactionId + " != " + requestId + "]");
-                return DNSInfo.Invalid(
-                           Origin,
-                           requestId
-                       );
-
-            var Byte2           = DNSResponseStream.ReadByte();
-            var IS              = (Byte2 & 128) == 128;
-            var OpCode          = (Byte2 >> 3 & 15);
-            var AA              = (Byte2 & 4) == 4;
-            var TC              = (Byte2 & 2) == 2;
-            var RD              = (Byte2 & 1) == 1;
-
-            var Byte3           = DNSResponseStream.ReadByte();
-            var RA              = (Byte3 & 128) == 128;
-            var Z               = (Byte3 & 1);    //reserved, not used
-            var ResponseCode    = (DNSResponseCodes) (Byte3 & 15);
-
-            var QuestionCount   = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-            var AnswerCount     = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-            var AuthorityCount  = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-            var AdditionalCount = ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8) | (DNSResponseStream.ReadByte() & Byte.MaxValue);
-
-            #endregion
-
-            //ToDo: Does this make sense?
-            #region Process Questions
-
-            DNSResponseStream.Seek(12, SeekOrigin.Begin);
-
-            for (var i = 0; i < QuestionCount; ++i) {
-                var questionName  = DNSTools.ExtractName(DNSResponseStream);
-                var typeId        = (UInt16)          ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
-                var classId       = (DNSQueryClasses) ((DNSResponseStream.ReadByte() & Byte.MaxValue) << 8 | DNSResponseStream.ReadByte() & Byte.MaxValue);
-            }
-
-            #endregion
-
-            var answers            = new List<ADNSResourceRecord>();
-            var authorities        = new List<ADNSResourceRecord>();
-            var additionalRecords  = new List<ADNSResourceRecord>();
-
-            for (var i = 0; i < AnswerCount; ++i)
-                answers.          Add(ReadResourceRecord(DNSResponseStream));
-
-            for (var i = 0; i < AuthorityCount; ++i)
-                authorities.      Add(ReadResourceRecord(DNSResponseStream));
-
-            for (var i = 0; i < AdditionalCount; ++i)
-                additionalRecords.Add(ReadResourceRecord(DNSResponseStream));
-
-            return new DNSInfo(
-                       Origin,
-                       requestId,
-                       AA,
-                       TC,
-                       RD,
-                       RA,
-                       ResponseCode,
-
-                       answers,
-                       authorities,
-                       additionalRecords,
-
-                       true,
-                       false,
-                       TimeSpan.Zero
-                   );
-
-        }
-
-        #endregion
-
-        #region (private) ReadResourceRecord(DNSStream)
-
-        private ADNSResourceRecord? ReadResourceRecord(Stream DNSStream)
-        {
-
-            var resourceName  = DNSTools.ExtractName(DNSStream);
-            var typeId        = (DNSResourceRecordTypes) ((DNSStream.ReadByte() & Byte.MaxValue) << 8 | DNSStream.ReadByte() & Byte.MaxValue);
-
-            if (resourceName == "")
-                resourceName = ".";
-
-            if (rrLookup_DNSServiceName. TryGetValue(typeId, out var constructor_DNSServiceName))
-                return (ADNSResourceRecord) constructor_DNSServiceName.Invoke([
-                                                DNSServiceName.Parse(resourceName),
-                                                DNSStream
-                                            ]);
-
-            else if (rrLookup_DomainName.TryGetValue(typeId, out var constructor_DomainName))
-                return (ADNSResourceRecord) constructor_DomainName.Invoke([
-                                                DomainName.    Parse(resourceName),
-                                                DNSStream
-                                            ]);
-
-            Debug.WriteLine($"Unknown DNS resource record '{typeId}' for '{resourceName}' received!");
-
-            return null;
-
-        }
-
-        #endregion
 
         #region (private) AddToCache(DomainName, DNSInformation)
 
@@ -390,7 +234,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region Query               (DomainName,     ResourceRecordTypes, RecursionDesired = true, ...)
+        #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
@@ -406,11 +250,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region Query               (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ...)
+        #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
                                    IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                   Boolean                              RRecursionDesired   = true,
+                                   Boolean                              RecursionDesired    = true,
                                    CancellationToken                    CancellationToken   = default)
         {
 
@@ -466,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var dnsQuery = DNSPacket.Query(
                                DNSServiceName,
-                               this.RecursionDesired ?? RRecursionDesired,
+                               this.RecursionDesired ?? RecursionDesired,
                                [.. resourceRecordTypes]
                            );
 
@@ -551,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         socket?.Shutdown(SocketShutdown.Both);
                     }
 
-                    return ReadResponse(
+                    return DNSInfo.ReadResponse(
                                dnsServer,
                                dnsQuery.TransactionId,
                                new MemoryStream(data)
@@ -627,322 +471,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    );
 
         }
-
-        #endregion
-
-
-        #region Query<T>            (DomainName,             RecursionDesired = true, ...)
-
-        public async Task<DNSInfo<T>> Query<T>(DomainName         DomainName,
-                                               Boolean            RecursionDesired    = true,
-                                               CancellationToken  CancellationToken   = default)
-
-            where T : ADNSResourceRecord
-
-        {
-
-            var typeIdField  = typeof(T).GetField("TypeId")
-                                   ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
-
-            var typeIdValue  = typeIdField.GetValue(typeof(T));
-
-            if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
-                throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not of type '{typeof(DNSResourceRecordTypes).Name}'!");
-
-            var dnsInfo      = await Query(
-                                         DomainName,
-                                         [ dnsResourceRecordType ],
-                                         RecursionDesired,
-                                         CancellationToken
-                                     ).ConfigureAwait(false);
-
-            return new DNSInfo<T>(dnsInfo);
-
-        }
-
-        #endregion
-
-        #region Query<T>            (DNSServiceName,         RecursionDesired = true, ...)
-
-        public async Task<DNSInfo<T>> Query<T>(DNSServiceName     DNSServiceName,
-                                               Boolean            RecursionDesired    = true,
-                                               CancellationToken  CancellationToken   = default)
-
-            where T : ADNSResourceRecord
-
-        {
-
-            var typeIdField  = typeof(T).GetField("TypeId")
-                                   ?? throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not found!");
-
-            var typeIdValue  = typeIdField.GetValue(typeof(T));
-
-            if (typeIdValue is not DNSResourceRecordTypes dnsResourceRecordType)
-                throw new ArgumentException($"Constant field 'TypeId' of type '{typeof(T).Name}' was not of type '{typeof(DNSResourceRecordTypes).Name}'!");
-
-            var dnsInfo      = await Query(
-                                         DNSServiceName,
-                                         [ dnsResourceRecordType ],
-                                         RecursionDesired,
-                                         CancellationToken
-                                     ).ConfigureAwait(false);
-
-            return new DNSInfo<T>(dnsInfo);
-
-        }
-
-        #endregion
-
-        #region Query<T1, T2>       (DomainName,     Mapper, RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<T2>> Query<TRR, T2>(DomainName         DomainName,
-                                                          Func<TRR, T2>      Mapper,
-                                                          Boolean            RecursionDesired    = true,
-                                                          CancellationToken  CancellationToken   = default)
-
-            where TRR : ADNSResourceRecord
-
-            => (await Query<TRR>(
-                          DomainName,
-                          RecursionDesired,
-                          CancellationToken
-                      )).FilteredAnswers.Select(v => Mapper(v));
-
-        #endregion
-
-        #region Query<T1, T2>       (DNSServiceName, Mapper, RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<T2>> Query<TRR, T2>(DNSServiceName     DNSServiceName,
-                                                          Func<TRR, T2>      Mapper,
-                                                          Boolean            RecursionDesired    = true,
-                                                          CancellationToken  CancellationToken   = default)
-
-            where TRR : ADNSResourceRecord
-
-            => (await Query<TRR>(
-                          DNSServiceName,
-                          RecursionDesired,
-                          CancellationToken
-                      )).FilteredAnswers.Select(v => Mapper(v));
-
-        #endregion
-
-
-        #region Query_IPv4Addresses (DomainName,             RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IPv4Address>>
-
-            Query_IPv4Addresses(DomainName         DomainName,
-                                Boolean            RecursionDesired    = true,
-                                CancellationToken  CancellationToken   = default)
-
-                => await Query<A>(
-                             DNSServiceName.Parse(DomainName.FullName),
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
-                           ConfigureAwait(false);
-
-        #endregion
-
-        #region Query_IPv4Addresses (DNSServiceName,         RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IPv4Address>>
-
-            Query_IPv4Addresses(DNSServiceName     DNSServiceName,
-                                Boolean            RecursionDesired    = true,
-                                CancellationToken  CancellationToken   = default)
-
-                => await Query<A>(
-                             DNSServiceName,
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(ARecord => ARecord.IPv4Address)).
-                           ConfigureAwait(false);
-
-        #endregion
-
-        #region Query_IPv4Addresses (RemoteURL,              RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IPv4Address>>
-
-            Query_IPv4Addresses(URL                RemoteURL,
-                                Boolean            RecursionDesired    = true,
-                                CancellationToken  CancellationToken   = default)
-
-                => await Query<A>(
-                             DomainName.Parse(RemoteURL.Hostname.Name),
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv4Address)).
-                           ConfigureAwait(false);
-
-        #endregion
-
-
-        #region Query_IPv6Addresses (DomainName,             RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IPv6Address>>
-
-            Query_IPv6Addresses(DomainName         DomainName,
-                                Boolean            RecursionDesired    = true,
-                                CancellationToken  CancellationToken   = default)
-
-                => await Query<AAAA>(
-                             DNSServiceName.Parse(DomainName.FullName),
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
-                           ConfigureAwait(false);
-
-        #endregion
-
-        #region Query_IPv6Addresses (DNSServiceName,         RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IPv6Address>>
-
-            Query_IPv6Addresses(DNSServiceName     DNSServiceName,
-                                Boolean            RecursionDesired    = true,
-                                CancellationToken  CancellationToken   = default)
-
-                => await Query<AAAA>(
-                             DNSServiceName,
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
-                           ConfigureAwait(false);
-
-        #endregion
-
-        #region Query_IPv6Addresses (RemoteURL,              RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IPv6Address>>
-
-            Query_IPv6Addresses(URL                RemoteURL,
-                                Boolean            RecursionDesired    = true,
-                                CancellationToken  CancellationToken   = default)
-
-                => await Query<AAAA>(
-                             DomainName.Parse(RemoteURL.Hostname.Name),
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers.Select(AAAARecord => AAAARecord.IPv6Address)).
-                           ConfigureAwait(false);
-
-        #endregion
-
-
-        #region Query_IPAddresses   (DomainName,             RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IIPAddress>>
-
-            Query_IPAddresses(DomainName         DomainName,
-                              Boolean            RecursionDesired    = true,
-                              CancellationToken  CancellationToken   = default)
-
-        {
-
-            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName, RecursionDesired, CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName, RecursionDesired, CancellationToken);
-
-            await Task.WhenAll(
-                      ipv4AddressLookupTask,
-                      ipv6AddressLookupTask
-                  ).ConfigureAwait(false);
-
-            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
-
-        }
-
-        #endregion
-
-        #region Query_IPAddresses   (DNSServiceName,         RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IIPAddress>>
-
-            Query_IPAddresses(DNSServiceName     DNSServiceName,
-                              Boolean            RecursionDesired    = true,
-                              CancellationToken  CancellationToken   = default)
-
-        {
-
-            var ipv4AddressLookupTask = Query_IPv4Addresses(DNSServiceName, RecursionDesired, CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(DNSServiceName, RecursionDesired, CancellationToken);
-
-            await Task.WhenAll(
-                      ipv4AddressLookupTask,
-                      ipv6AddressLookupTask
-                  ).ConfigureAwait(false);
-
-            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
-
-        }
-
-        #endregion
-
-        #region Query_IPAddresses   (RemoteURL,              RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<IIPAddress>>
-
-            Query_IPAddresses(URL                RemoteURL,
-                              Boolean            RecursionDesired    = true,
-                              CancellationToken  CancellationToken   = default)
-
-        {
-
-            var ipv4AddressLookupTask = Query_IPv4Addresses(DomainName.Parse(RemoteURL.Hostname.Name), RecursionDesired, CancellationToken);
-            var ipv6AddressLookupTask = Query_IPv6Addresses(DomainName.Parse(RemoteURL.Hostname.Name), RecursionDesired, CancellationToken);
-
-            await Task.WhenAll(
-                      ipv4AddressLookupTask,
-                      ipv6AddressLookupTask
-                  ).ConfigureAwait(false);
-
-            return       ipv4AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress).
-                   Union(ipv6AddressLookupTask.Result.Distinct().Select(v => v as IIPAddress));
-
-        }
-
-        #endregion
-
-
-        #region Query_DNSService    (DomainName,             RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<SRV>>
-
-            Query_DNSService(DomainName         DomainName,
-                             SRV_Spec           DNSServiceSpec,
-                             Boolean            RecursionDesired    = true,
-                             CancellationToken  CancellationToken   = default)
-
-                => await Query<SRV>(
-                             DNSServiceName.From(
-                                 DomainName,
-                                 DNSServiceSpec
-                             ),
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers).
-                           ConfigureAwait(false);
-
-        #endregion
-
-        #region Query_DNSService    (DNSServiceName,         RecursionDesired = true, ...)
-
-        public async Task<IEnumerable<SRV>>
-
-            Query_DNSService(DNSServiceName     DNSServiceName,
-                             Boolean            RecursionDesired    = true,
-                             CancellationToken  CancellationToken   = default)
-
-                => await Query<SRV>(
-                             DNSServiceName,
-                             RecursionDesired,
-                             CancellationToken
-                         ).ContinueWith  (query => query.Result.FilteredAnswers).
-                           ConfigureAwait(false);
 
         #endregion
 
@@ -1037,15 +565,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         {
             if (!disposedValue)
             {
-
-                if (Disposing)
-                {
-                    rrLookup_DomainName.    Clear();
-                    rrLookup_DNSServiceName.Clear();
-                }
-
                 disposedValue = true;
-
             }
         }
 

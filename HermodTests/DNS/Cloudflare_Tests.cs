@@ -20,53 +20,30 @@
 using NUnit.Framework;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 {
 
-    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-tls/
-    // one.one.one.one
-
-    // https://dnscrypt.info
-
-    // https://developers.cloudflare.com/1.1.1.1/infrastructure/extended-dns-error-codes/
+    // ARSoft.Tools.Net
 
     /// <summary>
-    /// Some Cloudflare DNS TLS tests.
+    /// Some Cloudflare DNS tests.
     /// </summary>
     [TestFixture]
-    public class CloudflareTLS_Tests
+    public class Cloudflare_Tests
     {
 
         #region Setup/Teardown
 
-        private DNSTLSClient? client;
+        private DNSClient? client;
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            RemoteTLSServerCertificateValidationHandler<DNSTLSClient> validateServerCertificate = (sender,
-                                                                                                   certificate,
-                                                                                                   certificateChain,
-                                                                                                   tlsClient,
-                                                                                                   policyErrors) => {
-
-                var sans = certificate?.DecodeSubjectAlternativeNames() ?? [];
-
-                // Accept all certificates!
-                return (true, []);
-
-            };
-
-            client = new DNSTLSClient(
-                         URL.Parse("tls://one.one.one.one"),
-                         RemoteCertificateValidationHandler: validateServerCertificate
-                     );
+            client = DNSClient.Cloudflare();
 
         }
 

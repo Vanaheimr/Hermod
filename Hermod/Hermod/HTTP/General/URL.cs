@@ -57,6 +57,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         /// <summary>
+        /// Transmission Control Protocol (TCP)
+        /// </summary>
+        tcp,
+
+        /// <summary>
+        /// Transport Layer Security (TLS)
+        /// </summary>
+        tls,
+
+        /// <summary>
         /// Hypertext Transfer Protocol (HTTP)
         /// </summary>
         http,
@@ -315,6 +325,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     switch (elements[0])
                     {
+
+                        case "tcp:":
+                            protocol = URLProtocols.tcp;
+                            break;
+
+                        case "tls:":
+                            protocol = URLProtocols.tls;
+                            break;
 
                         case "http:":
                             protocol = URLProtocols.http;

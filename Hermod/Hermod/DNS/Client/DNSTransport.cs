@@ -21,7 +21,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     public enum DNSTransport
     {
         UDP,
-        TCP
+        TCP,
+        TLS,
+        HTTP,
+        HTTPS
     }
 
 }
