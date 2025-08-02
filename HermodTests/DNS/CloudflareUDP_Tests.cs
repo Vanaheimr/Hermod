@@ -26,7 +26,7 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 {
 
-    // ARSoft.Tools.Net
+    
 
     /// <summary>
     /// Some Cloudflare DNS UDP tests.
@@ -43,12 +43,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         public void InitTests()
         {
 
-            client = DNSUDPClient.Cloudflare_IPv4_1();
+            // IPv6 seems to be broken sometimes!
+            client = DNSUDPClient.Cloudflare_Random_IPv4();
 
         }
 
         [OneTimeTearDown]
-        public void Shutdown_PublicDNSTests()
+        public void ShutdownTests()
         {
 
             client?.Dispose();
@@ -74,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.IPAddress}:{client.Port} failed!");
 
             if (response.Answers.First() is not A answer)
             {
@@ -107,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.IPAddress}:{client.Port} failed!");
 
             if (response.Answers.First() is not AAAA answer)
             {

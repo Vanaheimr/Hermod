@@ -257,9 +257,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return false;
             }
 
-            var parts     = Text.Split(':');
-            var hostname  = parts.Length > 0 ? parts[0]?.Trim() : null;
-            var portText  = parts.Length > 1 ? parts[1]?.Trim() : null;
+            var hostname = String.Empty;
+            var portText = String.Empty;
+
+            if (Text.StartsWith('[') && Text.Contains(']'))
+            {
+
+                hostname = Text[..(Text.IndexOf(']') + 1)];
+
+                if (Text.Length > hostname.Length + 2)
+                    portText = Text[(Text.IndexOf(']') + 1)..];
+
+            }
+
+            else
+            {
+                var parts = Text.Split(':');
+                hostname  = parts.Length > 0 ? parts[0]?.Trim() : null;
+                portText  = parts.Length > 1 ? parts[1]?.Trim() : null;
+            }
 
             //if (hostname is not null &&
             //    hostname == "*")
@@ -280,12 +296,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //}
 
             if (hostname is not null &&
-               (hostname == "*" || regEx.IsMatch(hostname)))
+               (hostname == "*" || regEx.IsMatch(hostname) || (Text.StartsWith('[') && Text.Contains(']'))))
             //    hostname == "*" ||
             //    DomainName.TryParse(hostname, out var domainName, out ErrorResponse))
             {
 
-                if (portText is null)
+                if (portText.IsNullOrEmpty())
                 {
                     Hostname = new HTTPHostname(hostname);
                     return true;

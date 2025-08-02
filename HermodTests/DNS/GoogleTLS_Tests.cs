@@ -19,7 +19,9 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -27,26 +29,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 {
 
     /// <summary>
-    /// Some Google DNS HTTPS tests.
+    /// Some Google DNS TLS tests.
     /// </summary>
     [TestFixture]
-    public class GoogleHTTPS_Tests
+    public class GoogleTLS_Tests
     {
 
         #region Setup/Teardown
 
-        private DNSClient? client;
+        private DNSTLSClient? client;
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client = DNSClient.Google();
+            RemoteTLSServerCertificateValidationHandler<DNSTLSClient> validateServerCertificate = (sender,
+                                                                                                   certificate,
+                                                                                                   certificateChain,
+                                                                                                   tlsClient,
+                                                                                                   policyErrors) => {
+
+                                                                                                       var sans = certificate?.DecodeSubjectAlternativeNames() ?? [];
+
+                                                                                                       // Accept all certificates!
+                                                                                                       return (true, []);
+
+                                                                                                   };
+
+            client = DNSTLSClient.Google_Random(RemoteCertificateValidationHandler: validateServerCertificate);
 
         }
 
         [OneTimeTearDown]
-        public void Shutdown_PublicDNSTests()
+        public void ShutdownTests()
         {
 
             client?.Dispose();
@@ -56,10 +71,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region GoogleUDP_charging_cloud__A()
+        #region GoogleTLS_charging_cloud__A()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__A()
+        public async Task GoogleTLS_charging_cloud__A()
         {
 
             if (client is null)
@@ -72,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not A answer)
             {
@@ -89,10 +104,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_charging_cloud__AAAA()
+        #region GoogleTLS_charging_cloud__AAAA()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__AAAA()
+        public async Task GoogleTLS_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -105,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not AAAA answer)
             {
@@ -122,10 +137,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_charging_cloud__MX()
+        #region GoogleTLS_charging_cloud__MX()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__MX()
+        public async Task GoogleTLS_charging_cloud__MX()
         {
 
             if (client is null)
@@ -156,10 +171,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_charging_cloud__TXT()
+        #region GoogleTLS_charging_cloud__TXT()
 
         [Test]
-        public async Task GoogleUDP_charging_cloud__TXT()
+        public async Task GoogleTLS_charging_cloud__TXT()
         {
 
             if (client is null)
@@ -219,10 +234,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region GoogleUDP_open_charging_cloud__A()
+        #region GoogleTLS_open_charging_cloud__A()
 
         [Test]
-        public async Task GoogleUDP_open_charging_cloud__A()
+        public async Task GoogleTLS_open_charging_cloud__A()
         {
 
             if (client is null)
@@ -263,10 +278,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_open_charging_cloud__AAAA()
+        #region GoogleTLS_open_charging_cloud__AAAA()
 
         [Test]
-        public async Task GoogleUDP_open_charging_cloud__AAAA()
+        public async Task GoogleTLS_open_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -307,10 +322,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region GoogleUDP_open_charging_cloud__MX()
+        #region GoogleTLS_open_charging_cloud__MX()
 
         [Test]
-        public async Task GoogleUDP_open_charging_cloud__MX()
+        public async Task GoogleTLS_open_charging_cloud__MX()
         {
 
             if (client is null)
@@ -353,10 +368,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region GoogleUDP__ocpp_tls_api_charging_cloud__SRV()
+        #region GoogleTLS__ocpp_tls_api_charging_cloud__SRV()
 
         [Test]
-        public async Task GoogleUDP_ocpp_tls_api_charging_cloud__SRV()
+        public async Task GoogleTLS_ocpp_tls_api_charging_cloud__SRV()
         {
 
             if (client is null)

@@ -17,8 +17,8 @@
 
 #region Usings
 
-using System.Net;
-using System.Net.Sockets;
+using System.Text;
+using System.Diagnostics;
 
 #endregion
 
@@ -133,7 +133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public async Task ReconnectAsync()
         {
-            await reconnectAsync().ConfigureAwait(false);
+            await base.ReconnectAsync().ConfigureAwait(false);
         }
 
         #endregion
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public async Task ConnectAsync()
         {
-            await connectAsync().ConfigureAwait(false);
+            await base.ConnectAsync().ConfigureAwait(false);
         }
 
         #endregion
@@ -155,9 +155,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Text">The text message to send and echo.</param>
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        public Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
+        public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
+        {
 
-            => base.SendText(Text);
+            var response  = await SendBinary(Encoding.UTF8.GetBytes(Text));
+            var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
+
+            return (response.Item1,
+                    text,
+                    response.Item3,
+                    response.Item4);
+
+        }
 
         #endregion
 
@@ -168,9 +177,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Bytes">The bytes to send and echo.</param>
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        public Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
+        public async Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
+        {
 
-            => base.SendBinary(Bytes);
+            if (!IsConnected || tcpClient is null)
+                return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
+
+            try
+            {
+
+                var stopwatch   = Stopwatch.StartNew();
+                var stream      = tcpClient.GetStream();
+                cts           ??= new CancellationTokenSource();
+
+                // Send the data
+                await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
+                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+
+                using var responseStream = new MemoryStream();
+                var buffer     = new Byte[8192];
+                var bytesRead  = 0;
+
+                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+                {
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
+                }
+
+                stopwatch.Stop();
+
+                return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
+
+            }
+            catch (Exception ex)
+            {
+                await Log($"Error in SendBinary: {ex.Message}");
+                return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
+            }
+
+        }
 
         #endregion
 

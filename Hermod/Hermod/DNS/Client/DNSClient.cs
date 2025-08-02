@@ -329,7 +329,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                         var serverAddress  = System.Net.IPAddress.Parse(dnsServer.IPAddress.ToString());
                         var endPoint       = (EndPoint) new IPEndPoint(serverAddress, dnsServer.Port.ToInt32());
-                        socket             = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
+                        socket             = dnsServer.IPAddress.IsIPv4
+                                                 ? new Socket(AddressFamily.InterNetwork,   SocketType.Dgram, ProtocolType.Udp)
+                                                 : new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+
                         socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
                         socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
                         socket.Connect(endPoint);

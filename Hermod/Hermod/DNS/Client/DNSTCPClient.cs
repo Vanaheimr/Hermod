@@ -140,7 +140,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             dnsQuery.Serialize(ms, false, []);
 
             if (!IsConnected || tcpClient is null)
-                await reconnectAsync().ConfigureAwait(false);
+                await ReconnectAsync().ConfigureAwait(false);
 
             var data        = ms.ToArray();
             var dataLength  = data.Length-2;
@@ -198,6 +198,102 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Google DNS
 
+        /// <summary>
+        /// Randomly select one of the Google DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static DNSTCPClient Google_Random(Boolean?   RecursionDesired   = null,
+                                                 TimeSpan?  QueryTimeout       = null)
+
+            => Google_All(RecursionDesired, QueryTimeout).
+                     Skip(Random.Shared.Next(0, 4)).
+                    First();
+
+        /// <summary>
+        /// Randomly select one of the Google IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static DNSTCPClient Google_Random_IPv4(Boolean?   RecursionDesired   = null,
+                                                      TimeSpan?  QueryTimeout       = null)
+
+            => Google_All_IPv4(RecursionDesired, QueryTimeout).
+                          Skip(Random.Shared.Next(0, 2)).
+                         First();
+
+        /// <summary>
+        /// Randomly select one of the Google IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static DNSTCPClient Google_Random_IPv6(Boolean?   RecursionDesired   = null,
+                                                      TimeSpan?  QueryTimeout       = null)
+
+            => Google_All_IPv6(RecursionDesired, QueryTimeout).
+                          Skip(Random.Shared.Next(0, 2)).
+                         First();
+
+
+        /// <summary>
+        /// All Google DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static IEnumerable<DNSTCPClient> Google_All(Boolean?   RecursionDesired   = null,
+                                                           TimeSpan?  QueryTimeout       = null)
+
+            => [
+                   Google_IPv4_1(RecursionDesired, QueryTimeout),
+                   Google_IPv4_2(RecursionDesired, QueryTimeout),
+                   Google_IPv6_1(RecursionDesired, QueryTimeout),
+                   Google_IPv6_2(RecursionDesired, QueryTimeout)
+               ];
+
+        /// <summary>
+        /// All Google IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static IEnumerable<DNSTCPClient> Google_All_IPv4(Boolean?   RecursionDesired   = null,
+                                                                TimeSpan?  QueryTimeout       = null)
+
+            => [
+                   Google_IPv4_1(RecursionDesired, QueryTimeout),
+                   Google_IPv4_2(RecursionDesired, QueryTimeout)
+               ];
+
+        /// <summary>
+        /// All Google IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static IEnumerable<DNSTCPClient> Google_All_IPv6(Boolean?   RecursionDesired   = null,
+                                                                TimeSpan?  QueryTimeout       = null)
+
+            => [
+                   Google_IPv6_1(RecursionDesired, QueryTimeout),
+                   Google_IPv6_2(RecursionDesired, QueryTimeout)
+               ];
+
+
+        /// <summary>
+        /// Google DNS server 8.8.8.8
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Google_IPv4_1(Boolean?   RecursionDesired   = null,
                                                  TimeSpan?  QueryTimeout       = null)
 
@@ -208,6 +304,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Google DNS server 8.8.4.4
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Google_IPv4_2(Boolean?   RecursionDesired   = null,
                                                  TimeSpan?  QueryTimeout       = null)
 
@@ -218,6 +319,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+
+        /// <summary>
+        /// Google DNS server 2001:4860:4860::8888
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Google_IPv6_1(Boolean?   RecursionDesired   = null,
                                                  TimeSpan?  QueryTimeout       = null)
 
@@ -228,6 +335,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Google DNS server 2001:4860:4860::8844
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Google_IPv6_2(Boolean?   RecursionDesired   = null,
                                                  TimeSpan?  QueryTimeout       = null)
 
@@ -242,6 +354,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Cloudflare DNS
 
+        /// <summary>
+        /// Randomly select one of the Cloudflare DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static DNSTCPClient Cloudflare_Random(Boolean?   RecursionDesired   = null,
+                                                     TimeSpan?  QueryTimeout       = null)
+
+            => Cloudflare_All(RecursionDesired, QueryTimeout).
+                         Skip(Random.Shared.Next(0, 8)).
+                        First();
+
+        /// <summary>
+        /// Randomly select one of the Cloudflare IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static DNSTCPClient Cloudflare_Random_IPv4(Boolean?   RecursionDesired   = null,
+                                                          TimeSpan?  QueryTimeout       = null)
+
+            => Cloudflare_All_IPv4(RecursionDesired, QueryTimeout).
+                              Skip(Random.Shared.Next(0, 4)).
+                             First();
+
+        /// <summary>
+        /// Randomly select one of the Cloudflare IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static DNSTCPClient Cloudflare_Random_IPv6(Boolean?   RecursionDesired   = null,
+                                                          TimeSpan?  QueryTimeout       = null)
+
+            => Cloudflare_All_IPv6(RecursionDesired, QueryTimeout).
+                              Skip(Random.Shared.Next(0, 4)).
+                             First();
+
+
+        /// <summary>
+        /// All Cloudflare DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static IEnumerable<DNSTCPClient> Cloudflare_All(Boolean?   RecursionDesired   = null,
+                                                               TimeSpan?  QueryTimeout       = null)
+
+            => [
+                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout)
+               ];
+
+        /// <summary>
+        /// All Cloudflare IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static IEnumerable<DNSTCPClient> Cloudflare_All_IPv4(Boolean?   RecursionDesired   = null,
+                                                                    TimeSpan?  QueryTimeout       = null)
+
+            => [
+                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout),
+               ];
+
+        /// <summary>
+        /// All Cloudflare IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        public static IEnumerable<DNSTCPClient> Cloudflare_All_IPv6(Boolean?   RecursionDesired   = null,
+                                                                    TimeSpan?  QueryTimeout       = null)
+
+            => [
+                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout),
+                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout)
+               ];
+
+
+        /// <summary>
+        /// Cloudflare DNS server 1.1.1.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv4_1(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -252,6 +468,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Cloudflare DNS server 1.0.0.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv4_2(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -262,6 +483,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Cloudflare DNS server 162.159.36.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv4_3(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -272,6 +498,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Cloudflare DNS server 162.159.46.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv4_4(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -282,6 +513,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::1001
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv6_1(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -292,6 +529,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::1111
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv6_2(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -302,6 +544,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::0064
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv6_3(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -312,6 +559,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    QueryTimeout
                );
 
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::6400
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
         public static DNSTCPClient Cloudflare_IPv6_4(Boolean?   RecursionDesired   = null,
                                                      TimeSpan?  QueryTimeout       = null)
 
@@ -323,7 +575,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                );
 
         #endregion
-
 
 
         #region (override) ToString()
@@ -338,28 +589,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        protected virtual void Dispose(Boolean Disposing)
-        {
+        //protected virtual void Dispose(Boolean Disposing)
+        //{
 
-            base.Dispose();
+        //    base.Dispose();
 
-            if (!disposedValue)
-                disposedValue = true;
+        //    if (!disposedValue)
+        //        disposedValue = true;
 
-        }
+        //}
 
-        public void Dispose()
-        {
-            Dispose(Disposing: true);
-            GC.SuppressFinalize(this);
-        }
+        //public override void Dispose()
+        //{ 
+        //    Dispose(Disposing: true);
+        //    GC.SuppressFinalize(this);
+        //}
 
-        public ValueTask DisposeAsync()
-        {
-            Dispose(Disposing: false);
-            GC.SuppressFinalize(this);
-            return default;
-        }
+        //public override ValueTask DisposeAsync()
+        //{
+        //    Dispose(Disposing: false);
+        //    GC.SuppressFinalize(this);
+        //    return default;
+        //}
 
 
     }

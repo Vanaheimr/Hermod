@@ -20,11 +20,55 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
     public enum DNSTransport
     {
+
+        /// <summary>
+        /// Normal binary transport over UDP.
+        /// </summary>
         UDP,
+
+
+        /// <summary>
+        /// Normal binary transport over TCP.
+        /// </summary>
         TCP,
+
+        /// <summary>
+        /// Encrypted binary transport over TLS.
+        /// </summary>
         TLS,
+
+
+        /// <summary>
+        /// DNS-over-HTTP without encryption.
+        /// </summary>
         HTTP,
-        HTTPS
+
+        /// <summary>
+        /// DNS-over-HTTP (DoH) without encryption and with binary payloads.
+        /// </summary>
+        HTTP_Binary,
+
+        /// <summary>
+        /// DNS-over-HTTP (DoH) without encryption and with JSON payloads.
+        /// </summary>
+        HTTP_JSON,
+
+
+        /// <summary>
+        /// DNS-over-HTTPS (DoH)
+        /// </summary>
+        HTTPS,
+
+        /// <summary>
+        /// DNS-over-HTTPS (DoH) with binary payloads.
+        /// </summary>
+        HTTPS_Binary,
+
+        /// <summary>
+        /// DNS-over-HTTPS (DoH) with JSON payloads.
+        /// </summary>
+        HTTPS_JSON
+
     }
 
 }

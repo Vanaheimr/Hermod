@@ -534,6 +534,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
+        public Byte[] ToByteArray()
+        {
+
+            var ms = new MemoryStream();
+            Serialize(
+                ms,
+                UseCompression:      false,
+                CompressionOffsets:  []
+            );
+
+            return ms.ToArray();
+
+        }
+
+
     }
 
 }

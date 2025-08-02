@@ -17,18 +17,13 @@
 
 #region Usings
 
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Security.Authentication;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 #endregion
 
@@ -43,43 +38,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        protected SslStream tlsStream;
+        /// <summary>
+        /// The TLS stream.
+        /// </summary>
+        protected SslStream?                                                    tlsStream;
 
-        protected RemoteTLSServerCertificateValidationHandler<ATLSTestClient>? RemoteCertificateValidationHandler;
+        /// <summary>
+        /// The remote TLS server certificate validation handler.
+        /// </summary>
+        protected RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler;
 
         #endregion
 
         #region Properties
 
+        public Boolean?  AllowRenegotiation    { get; }
+        public Boolean?  AllowTLSResume        { get; }
 
         #endregion
 
         #region Constructor(s)
-
-        #region (protected)   ATLSTestClient(...)
-
-        //protected ATLSTestClient(RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
-        //                         TimeSpan?                                                     ConnectTimeout                       = null,
-        //                         TimeSpan?                                                     ReceiveTimeout                       = null,
-        //                         TimeSpan?                                                     SendTimeout                          = null,
-        //                         UInt32?                                                       BufferSize                           = null,
-        //                         TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
-        //                         DNSClient?                                                    DNSClient                            = null)
-
-        //    : base(ConnectTimeout,
-        //           ReceiveTimeout,
-        //           SendTimeout,
-        //           BufferSize,
-        //           LoggingHandler,
-        //           DNSClient)
-
-        //{
-
-        //    this.RemoteCertificateValidationHandler = RemoteCertificateValidationHandler;
-
-        //}
-
-        #endregion
 
         #region (protected) ATLSTestClient(IPAddress, TCPPort, ...)
 
@@ -90,6 +68,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
 
             : base(IPAddress,
@@ -102,13 +82,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidationHandler = RemoteCertificateValidationHandler;
+            this.AllowRenegotiation                  = AllowRenegotiation;
+            this.AllowTLSResume                      = AllowTLSResume;
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
         #endregion
 
-        #region (protected) ATLSTestClient(URL,     DNSService = null, ..., DNSClient = null)
+        #region (protected) ATLSTestClient(URL,        DNSService = null, ..., DNSClient = null)
 
         protected ATLSTestClient(URL                                                           URL,
                                  SRV_Spec?                                                     DNSService                           = null,
@@ -117,6 +99,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                  DNSClient?                                                    DNSClient                            = null)
 
@@ -131,7 +115,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidationHandler = RemoteCertificateValidationHandler;
+            this.AllowRenegotiation                  = AllowRenegotiation;
+            this.AllowTLSResume                      = AllowTLSResume;
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -146,6 +132,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                  DNSClient?                                                    DNSClient                            = null)
 
@@ -160,7 +148,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteCertificateValidationHandler = RemoteCertificateValidationHandler;
+            this.AllowRenegotiation                  = AllowRenegotiation;
+            this.AllowTLSResume                      = AllowTLSResume;
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -171,12 +161,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync(CancellationToken = default)
 
-        public override async Task reconnectAsync(CancellationToken CancellationToken = default)
+        public override async Task ReconnectAsync(CancellationToken CancellationToken = default)
         {
 
-            await base.reconnectAsync(CancellationToken);
-
-            // Do TLS stuff!
+            await base.ReconnectAsync(CancellationToken);
 
         }
 
@@ -184,10 +172,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected override async Task connectAsync(CancellationToken CancellationToken = default)
+        protected override async Task ConnectAsync(CancellationToken CancellationToken = default)
         {
 
-            await base.connectAsync();
+            await base.ConnectAsync(CancellationToken);
+
+            await StartTLS(CancellationToken);
+
+        }
+
+        #endregion
+
+        #region (protected) StartTLS(CancellationToken = default)
+
+        protected async Task StartTLS(CancellationToken CancellationToken = default)
+        {
 
             if (tcpClient is not null)
             {
@@ -202,23 +201,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                     leaveInnerStreamOpen: false
                                 );
 
-                    var authenticationOptions = new SslClientAuthenticationOptions {
-                        //ApplicationProtocols = new List<SslApplicationProtocol> {
-                        //    SslApplicationProtocol.Http2, // Example: Add HTTP/2 protocol
-                        //    SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
-                        //},
-                        AllowRenegotiation = true, // Allow renegotiation if needed
-                        AllowTlsResume = true, // Allow TLS resumption if needed
-                        LocalCertificateSelectionCallback = null,
-                       // TargetHost = RemoteIPAddress.ToString(),  //SNI!
-                        ClientCertificates = null,
-                        ClientCertificateContext = null,
-                        CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
-                        EncryptionPolicy = EncryptionPolicy.RequireEncryption,
-                        EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13, // Specify the TLS versions you want to support
-                        CipherSuitesPolicy = null, // Use default cipher suites policy
-                        CertificateChainPolicy = null // Use default certificate chain policy
-                    };
+                    var authenticationOptions  = new SslClientAuthenticationOptions {
+                                                     //ApplicationProtocols                = new List<SslApplicationProtocol> {
+                                                     //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
+                                                     //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
+                                                     //                                      },
+                                                     AllowRenegotiation                  = AllowRenegotiation ?? true,
+                                                     AllowTlsResume                      = AllowTLSResume     ?? true,
+                                                     LocalCertificateSelectionCallback   = null,
+                                                     TargetHost                          = RemoteURL.Value.Hostname.ToString(), //SNI!
+                                                     ClientCertificates                  = null,
+                                                     ClientCertificateContext            = null,
+                                                     CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
+                                                     EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
+                                                     EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                     CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
+                                                     CertificateChainPolicy              = null, // new X509ChainPolicy()
+                                                 };
 
                     if (RemoteCertificateValidationHandler is not null)
                     {
@@ -266,127 +265,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (protected) SendText   (Text)
-
-        /// <summary>
-        /// Send the given message to the echo server and receive the echoed response.
-        /// </summary>
-        /// <param name="Text">The text message to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        protected async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
-        {
-
-            var response  = await SendBinary(Encoding.UTF8.GetBytes(Text));
-            var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
-
-            return (response.Item1,
-                    text,
-                    response.Item3,
-                    response.Item4);
-
-        }
-
-        #endregion
-
-        #region (protected) SendBinary (Bytes)
-
-        /// <summary>
-        /// Send the given bytes to the echo server and receive the echoed response.
-        /// </summary>
-        /// <param name="Bytes">The bytes to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        protected async Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
-        {
-
-            if (!IsConnected || tcpClient is null)
-                return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
-
-            try
-            {
-
-                var stopwatch   = Stopwatch.StartNew();
-                var stream      = tcpClient.GetStream();
-                cts           ??= new CancellationTokenSource();
-
-                // Send the data
-                await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
-
-                using var responseStream = new MemoryStream();
-                var buffer     = new Byte[8192];
-                var bytesRead  = 0;
-
-                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
-                {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
-                }
-
-                stopwatch.Stop();
-
-                return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
-
-            }
-            catch (Exception ex)
-            {
-                await Log($"Error in SendBinary: {ex.Message}");
-                return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
-            }
-
-        }
-
-        #endregion
-
-
-        #region (protected) Log        (Message)
-
-        protected Task Log(String Message)
-        {
-
-            if (loggingHandler is not null)
-            {
-                try
-                {
-                    return loggingHandler(Message);
-                }
-                catch (Exception e)
-                {
-                    Debug.WriteLine($"Error in logging handler: {e.Message}");
-                }
-            }
-
-            return Task.CompletedTask;
-
-        }
-
-        #endregion
-
-
-        #region Close()
-
-        /// <summary>
-        /// Close the TCP connection to the echo server.
-        /// </summary>
-        public async Task Close()
-        {
-
-            if (IsConnected)
-            {
-                try
-                {
-                    tcpClient.Client.Shutdown(SocketShutdown.Both);
-                }
-                catch { }
-                tcpClient.Close();
-                await Log("Client closed!");
-            }
-
-            cts.Cancel();
-
-        }
-
-        #endregion
-
-
         #region (override) ToString()
 
         /// <summary>
@@ -401,18 +279,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Dispose / IAsyncDisposable
 
-        public async ValueTask DisposeAsync()
-        {
-            await Close();
-            cts?.Dispose();
-            GC.SuppressFinalize(this);
-        }
+        //public override async ValueTask DisposeAsync()
+        //{
+        //    await Close();
+        //    cts?.Dispose();
+        //    GC.SuppressFinalize(this);
+        //}
 
-        public void Dispose()
-        {
-            DisposeAsync().AsTask().GetAwaiter().GetResult();
-            GC.SuppressFinalize(this);
-        }
+        //public override void Dispose()
+        //{
+        //    DisposeAsync().AsTask().GetAwaiter().GetResult();
+        //    GC.SuppressFinalize(this);
+        //}
 
         #endregion
 

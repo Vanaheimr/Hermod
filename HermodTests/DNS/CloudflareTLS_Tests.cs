@@ -19,9 +19,9 @@
 
 using NUnit.Framework;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -63,15 +63,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             };
 
-            client = new DNSTLSClient(
-                         URL.Parse("tls://one.one.one.one"),
-                         RemoteCertificateValidationHandler: validateServerCertificate
-                     );
+            client = DNSTLSClient.Cloudflare_Random(RemoteCertificateValidationHandler: validateServerCertificate);
+            //    URL.Parse("tls://one.one.one.one"),
+            //    RemoteCertificateValidationHandler: validateServerCertificate
+            //);
 
         }
 
         [OneTimeTearDown]
-        public void Shutdown_PublicDNSTests()
+        public void ShutdownTests()
         {
 
             client?.Dispose();
@@ -81,10 +81,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region CloudflareUDP_charging_cloud__A()
+        #region CloudflareTLS_charging_cloud__A()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__A()
+        public async Task CloudflareTLS_charging_cloud__A()
         {
 
             if (client is null)
@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not A answer)
             {
@@ -114,10 +114,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_charging_cloud__AAAA()
+        #region CloudflareTLS_charging_cloud__AAAA()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__AAAA()
+        public async Task CloudflareTLS_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not AAAA answer)
             {
@@ -147,10 +147,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_charging_cloud__MX()
+        #region CloudflareTLS_charging_cloud__MX()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__MX()
+        public async Task CloudflareTLS_charging_cloud__MX()
         {
 
             if (client is null)
@@ -181,10 +181,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_charging_cloud__TXT()
+        #region CloudflareTLS_charging_cloud__TXT()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__TXT()
+        public async Task CloudflareTLS_charging_cloud__TXT()
         {
 
             if (client is null)
@@ -244,10 +244,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region CloudflareUDP_open_charging_cloud__A()
+        #region CloudflareTLS_open_charging_cloud__A()
 
         [Test]
-        public async Task CloudflareUDP_open_charging_cloud__A()
+        public async Task CloudflareTLS_open_charging_cloud__A()
         {
 
             if (client is null)
@@ -288,10 +288,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_open_charging_cloud__AAAA()
+        #region CloudflareTLS_open_charging_cloud__AAAA()
 
         [Test]
-        public async Task CloudflareUDP_open_charging_cloud__AAAA()
+        public async Task CloudflareTLS_open_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -332,10 +332,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_open_charging_cloud__MX()
+        #region CloudflareTLS_open_charging_cloud__MX()
 
         [Test]
-        public async Task CloudflareUDP_open_charging_cloud__MX()
+        public async Task CloudflareTLS_open_charging_cloud__MX()
         {
 
             if (client is null)
@@ -378,10 +378,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region CloudflareUDP__ocpp_tls_api_charging_cloud__SRV()
+        #region CloudflareTLS__ocpp_tls_api_charging_cloud__SRV()
 
         [Test]
-        public async Task CloudflareUDP_ocpp_tls_api_charging_cloud__SRV()
+        public async Task CloudflareTLS_ocpp_tls_api_charging_cloud__SRV()
         {
 
             if (client is null)

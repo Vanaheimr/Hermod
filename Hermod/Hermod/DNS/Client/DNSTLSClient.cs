@@ -17,9 +17,10 @@
 
 #region Usings
 
-using System.Diagnostics;
-
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using Org.BouncyCastle.Tls;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 
 #endregion
 
@@ -41,8 +42,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
-        private Boolean disposedValue;
-
         #endregion
 
         #region Properties
@@ -61,6 +60,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
+        #region DNSTLSClient(IPAddress, ...)
+
         /// <summary>
         /// Create a new DNS TLS client for the given DNS server.
         /// </summary>
@@ -74,6 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
                             UInt32?                                                     BufferSize                           = null,
+                            Boolean?                                                    AllowRenegotiation                   = null,
+                            Boolean?                                                    AllowTLSResume                       = null,
                             TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
 
             : base(IPAddress,
@@ -95,6 +98,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize ?? 512,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    LoggingHandler)
 
         {
@@ -104,6 +109,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         }
 
+        #endregion
+
+        #region DNSTLSClient(URL, ...)
 
         /// <summary>
         /// Create a new DNS TLS client for the given DNS server.
@@ -117,6 +125,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
                             UInt32?                                                     BufferSize                           = null,
+                            Boolean?                                                    AllowRenegotiation                   = null,
+                            Boolean?                                                    AllowTLSResume                       = null,
                             TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
 
             : base(URL,
@@ -138,6 +148,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize ?? 512,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    LoggingHandler)
 
         {
@@ -148,6 +160,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             RemoteTCPPort ??= URL.Port ?? IPPort.DNS_TLS;
 
         }
+
+        #endregion
 
         #endregion
 
@@ -199,7 +213,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             dnsQuery.Serialize(ms, false, []);
 
             if (!IsConnected || tcpClient is null)
-                await reconnectAsync(CancellationToken).ConfigureAwait(false);
+                await ReconnectAsync(CancellationToken).ConfigureAwait(false);
 
             var data        = ms.ToArray();
             var dataLength  = data.Length-2;
@@ -256,138 +270,445 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Google DNS
 
-        //public static DNSTLSClient Google_IPv4_1(Boolean?   RecursionDesired   = null,
-        //                                         TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Randomly select one of the Google DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_Random(Boolean?                                                    RecursionDesired                     = null,
+                                                 TimeSpan?                                                   QueryTimeout                         = null,
+                                                 RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
-        //    => new (
-        //           IPv4Address.Parse("8.8.8.8"),
-        //           IPPort.DNS,
-        //           RecursionDesired,
-        //           QueryTimeout
-        //       );
+            => Google_All(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler).
+                     Skip(Random.Shared.Next(0, 4)).
+                    First();
 
-        //public static DNSTLSClient Google_IPv4_2(Boolean?   RecursionDesired   = null,
-        //                                         TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Randomly select one of the Google IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_Random_IPv4(Boolean?                                                    RecursionDesired                     = null,
+                                                      TimeSpan?                                                   QueryTimeout                         = null,
+                                                      RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
-        //    => new (
-        //           IPv4Address.Parse("8.8.4.4"),
-        //           IPPort.DNS,
-        //           RecursionDesired,
-        //           QueryTimeout
-        //       );
+            => Google_All_IPv4(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler).
+                          Skip(Random.Shared.Next(0, 2)).
+                         First();
 
-        //public static DNSTLSClient Google_IPv6_1(Boolean?   RecursionDesired   = null,
-        //                                         TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Randomly select one of the Google IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_Random_IPv6(Boolean?                                                    RecursionDesired                     = null,
+                                                      TimeSpan?                                                   QueryTimeout                         = null,
+                                                      RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
-        //    => new (
-        //           IPv6Address.Parse("2001:4860:4860::8888"),
-        //           IPPort.DNS,
-        //           RecursionDesired,
-        //           QueryTimeout
-        //       );
+            => Google_All_IPv6(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler).
+                          Skip(Random.Shared.Next(0, 2)).
+                         First();
 
-        //public static DNSTLSClient Google_IPv6_2(Boolean?   RecursionDesired   = null,
-        //                                         TimeSpan?  QueryTimeout       = null)
 
-        //    => new (
-        //           IPv6Address.Parse("2001:4860:4860::8844"),
-        //           IPPort.DNS,
-        //           RecursionDesired,
-        //           QueryTimeout
-        //       );
+        /// <summary>
+        /// All Google DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static IEnumerable<DNSTLSClient> Google_All(Boolean?                                                    RecursionDesired                     = null,
+                                                           TimeSpan?                                                   QueryTimeout                         = null,
+                                                           RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => [
+                   Google_IPv4_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Google_IPv4_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Google_IPv6_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Google_IPv6_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler)
+               ];
+
+        /// <summary>
+        /// All Google IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static IEnumerable<DNSTLSClient> Google_All_IPv4(Boolean?                                                    RecursionDesired                     = null,
+                                                                TimeSpan?                                                   QueryTimeout                         = null,
+                                                                RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => [
+                   Google_IPv4_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Google_IPv4_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler)
+               ];
+
+        /// <summary>
+        /// All Google IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static IEnumerable<DNSTLSClient> Google_All_IPv6(Boolean?                                                    RecursionDesired                     = null,
+                                                                TimeSpan?                                                   QueryTimeout                         = null,
+                                                                RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => [
+                   Google_IPv6_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Google_IPv6_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler)
+               ];
+
+
+        /// <summary>
+        /// Google DNS server 8.8.8.8
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_IPv4_1(Boolean?                                                    RecursionDesired                     = null,
+                                                 TimeSpan?                                                   QueryTimeout                         = null,
+                                                 RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => new (
+                   IPv4Address.Parse("8.8.8.8"),
+                   IPPort.DNS_TLS,
+                   RecursionDesired,
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
+               );
+
+        /// <summary>
+        /// Google DNS server 8.8.4.4
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_IPv4_2(Boolean?                                                    RecursionDesired                     = null,
+                                                 TimeSpan?                                                   QueryTimeout                         = null,
+                                                 RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => new (
+                   URL.Parse("tls://8.8.4.4:853"),
+                   RecursionDesired,
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
+               );
+
+        /// <summary>
+        /// Google DNS server 2001:4860:4860::8888
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_IPv6_1(Boolean?                                                    RecursionDesired                     = null,
+                                                 TimeSpan?                                                   QueryTimeout                         = null,
+                                                 RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => new (
+                   IPv6Address.Parse("2001:4860:4860::8888"),
+                   IPPort.DNS_TLS,
+                   RecursionDesired,
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
+               );
+
+        /// <summary>
+        /// Google DNS server 2001:4860:4860::8844
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Google_IPv6_2(Boolean?                                                    RecursionDesired                     = null,
+                                                 TimeSpan?                                                   QueryTimeout                         = null,
+                                                 RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => new (
+                   URL.Parse("tls://[2001:4860:4860::8844]:853"),
+                   RecursionDesired,
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
+               );
 
         #endregion
 
         #region Cloudflare DNS
 
-        public static DNSTLSClient Cloudflare(Boolean?   RecursionDesired   = null,
-                                              TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Randomly select one of the Cloudflare DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_Random(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => Cloudflare_All(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler).
+                         Skip(Random.Shared.Next(0, 8)).
+                        First();
+
+        /// <summary>
+        /// Randomly select one of the Cloudflare IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_Random_IPv4(Boolean?                                                    RecursionDesired                     = null,
+                                                          TimeSpan?                                                   QueryTimeout                         = null,
+                                                          RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => Cloudflare_All_IPv4(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler).
+                              Skip(Random.Shared.Next(0, 4)).
+                             First();
+
+        /// <summary>
+        /// Randomly select one of the Cloudflare IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_Random_IPv6(Boolean?                                                    RecursionDesired                     = null,
+                                                          TimeSpan?                                                   QueryTimeout                         = null,
+                                                          RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => Cloudflare_All_IPv6(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler).
+                              Skip(Random.Shared.Next(0, 4)).
+                             First();
+
+
+        /// <summary>
+        /// All Cloudflare DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static IEnumerable<DNSTLSClient> Cloudflare_All(Boolean?                                                    RecursionDesired                     = null,
+                                                               TimeSpan?                                                   QueryTimeout                         = null,
+                                                               RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => [
+                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler)
+               ];
+
+        /// <summary>
+        /// All Cloudflare IPv4 DNS servers.
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static IEnumerable<DNSTLSClient> Cloudflare_All_IPv4(Boolean?                                                    RecursionDesired                     = null,
+                                                                    TimeSpan?                                                   QueryTimeout                         = null,
+                                                                    RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => [
+                   Cloudflare_IPv4_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv4_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv4_3(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv4_4(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+               ];
+
+        /// <summary>
+        /// All Cloudflare IPv6 DNS servers.
+        /// </summary>
+        /// <remarks>
+        /// IPv6 seems to be broken sometimes!
+        /// </remarks>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static IEnumerable<DNSTLSClient> Cloudflare_All_IPv6(Boolean?                                                    RecursionDesired                     = null,
+                                                                    TimeSpan?                                                   QueryTimeout                         = null,
+                                                                    RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
+
+            => [
+                   Cloudflare_IPv6_1(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_2(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_3(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler),
+                   Cloudflare_IPv6_4(RecursionDesired, QueryTimeout, RemoteCertificateValidationHandler)
+               ];
+
+
+        /// <summary>
+        /// Cloudflare DNS server one.one.one.one
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_DNSName(Boolean?                                                    RecursionDesired                     = null,
+                                                      TimeSpan?                                                   QueryTimeout                         = null,
+                                                      RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
                    URL.Parse("tls://one.one.one.one:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-
-        public static DNSTLSClient Cloudflare_IPv4_1(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 1.1.1.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv4_1(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv4Address.Parse("1.1.1.1"),
-                   IPPort.DNS,
+                   URL.Parse("tls://1.1.1.1:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv4_2(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 1.0.0.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv4_2(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv4Address.Parse("1.0.0.1"),
-                   IPPort.DNS,
+                   URL.Parse("tls://1.0.0.1:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv4_3(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 162.159.36.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv4_3(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv4Address.Parse("162.159.36.1"),
-                   IPPort.DNS,
+                   URL.Parse("tls://162.159.36.1:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv4_4(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 162.159.46.1
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv4_4(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv4Address.Parse("162.159.46.1"),
-                   IPPort.DNS,
+                   URL.Parse("tls://162.159.46.1:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv6_1(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::1001
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv6_1(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv6Address.Parse("2606:4700:4700::1001"),
-                   IPPort.DNS,
+                   URL.Parse("tls://[2606:4700:4700::1001]:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv6_2(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::1111
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv6_2(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv6Address.Parse("2606:4700:4700::1111"),
-                   IPPort.DNS,
+                   URL.Parse("tls://[2606:4700:4700::1111]:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv6_3(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::0064
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv6_3(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv6Address.Parse("2606:4700:4700::0064"),
-                   IPPort.DNS,
+                   URL.Parse("tls://[2606:4700:4700::0064]:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
-        public static DNSTLSClient Cloudflare_IPv6_4(Boolean?   RecursionDesired   = null,
-                                                     TimeSpan?  QueryTimeout       = null)
+        /// <summary>
+        /// Cloudflare DNS server 2606:4700:4700::6400
+        /// </summary>
+        /// <param name="RecursionDesired">Whether DNS recursion is desired. Default is true.</param>
+        /// <param name="QueryTimeout">The optional DNS query timeout. Default is 23.5 seconds.</param>
+        /// <param name="RemoteCertificateValidationHandler">An optional remote TLS server certificate validator.</param>
+        public static DNSTLSClient Cloudflare_IPv6_4(Boolean?                                                    RecursionDesired                     = null,
+                                                     TimeSpan?                                                   QueryTimeout                         = null,
+                                                     RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null)
 
             => new (
-                   IPv6Address.Parse("2606:4700:4700::6400"),
-                   IPPort.DNS,
+                   URL.Parse("tls://[2606:4700:4700::6400]:853"),
                    RecursionDesired,
-                   QueryTimeout
+                   QueryTimeout,
+                   RemoteCertificateValidationHandler
                );
 
         #endregion
@@ -403,30 +724,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => $"Using DNS server: {RemoteIPAddress}:{RemoteTCPPort}";
 
         #endregion
-
-
-        protected virtual void Dispose(Boolean Disposing)
-        {
-
-            base.Dispose();
-
-            if (!disposedValue)
-                disposedValue = true;
-
-        }
-
-        public void Dispose()
-        {
-            Dispose(Disposing: true);
-            GC.SuppressFinalize(this);
-        }
-
-        public ValueTask DisposeAsync()
-        {
-            Dispose(Disposing: false);
-            GC.SuppressFinalize(this);
-            return default;
-        }
 
 
     }

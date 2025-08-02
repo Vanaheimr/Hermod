@@ -17,16 +17,16 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using Org.BouncyCastle.Utilities;
-using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Security.Cryptography;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
+
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -36,14 +36,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
-    public class HTTPTestClient : ATCPTestClient,
-                                  IDisposable,
-                                  IAsyncDisposable
+    public abstract class AHTTPTestClient : ATCPTestClient,
+                                            IDisposable,
+                                            IAsyncDisposable
     {
 
         #region Data
 
         public Boolean IsHTTPConnected { get; private set; } = false;
+
+        protected Stream?                                                        httpStream;
+
+        /// <summary>
+        /// The TLS stream.
+        /// </summary>
+        protected SslStream?                                                     tlsStream;
+
+        /// <summary>
+        /// The remote TLS server certificate validation handler.
+        /// </summary>
+        protected RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler;
 
         #endregion
 
@@ -52,19 +64,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Use DNS URI records to resolve the hostname to IP addresses.
         /// </summary>
-        public Boolean  UseDNSURI    { get; }
+        public Boolean   UseDNSURI             { get; }
+
+        public Boolean?  AllowRenegotiation    { get; }
+        public Boolean?  AllowTLSResume        { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        private HTTPTestClient(IIPAddress               Address,
-                               IPPort                   TCPPort,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        protected AHTTPTestClient(IIPAddress                                                     Address,
+                                  IPPort                                                         TCPPort,
+                                  RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                                  Boolean?                                                       AllowRenegotiation                   = null,
+                                  Boolean?                                                       AllowTLSResume                       = null,
+                                  TimeSpan?                                                      ConnectTimeout                       = null,
+                                  TimeSpan?                                                      ReceiveTimeout                       = null,
+                                  TimeSpan?                                                      SendTimeout                          = null,
+                                  UInt32?                                                        BufferSize                           = null,
+                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null)
 
             : base(Address,
                    TCPPort,
@@ -77,14 +95,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         { }
 
 
-        private HTTPTestClient(URL                      URL,
-                               SRV_Spec?                DNSService       = null,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                               DNSClient?               DNSClient        = null)
+        protected AHTTPTestClient(URL                                                            URL,
+                                  SRV_Spec?                                                      DNSService                           = null,
+                                  RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                                  Boolean?                                                       AllowRenegotiation                   = null,
+                                  Boolean?                                                       AllowTLSResume                       = null,
+                                  TimeSpan?                                                      ConnectTimeout                       = null,
+                                  TimeSpan?                                                      ReceiveTimeout                       = null,
+                                  TimeSpan?                                                      SendTimeout                          = null,
+                                  UInt32?                                                        BufferSize                           = null,
+                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
+                                  DNSClient?                                                     DNSClient                            = null)
 
             : base(URL,
                    DNSService,
@@ -98,15 +119,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         { }
 
 
-        private HTTPTestClient(DomainName               DNSName,
-                               SRV_Spec                 DNSService,
-                               Boolean?                 UseDNSURI        = null,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                               DNSClient?               DNSClient        = null)
+        protected AHTTPTestClient(DomainName                                                     DNSName,
+                                  SRV_Spec                                                       DNSService,
+                                  Boolean?                                                       UseDNSURI                            = null,
+                                  RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                                  Boolean?                                                       AllowRenegotiation                   = null,
+                                  Boolean?                                                       AllowTLSResume                       = null,
+                                  TimeSpan?                                                      ConnectTimeout                       = null,
+                                  TimeSpan?                                                      ReceiveTimeout                       = null,
+                                  TimeSpan?                                                      SendTimeout                          = null,
+                                  UInt32?                                                        BufferSize                           = null,
+                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
+                                  DNSClient?                                                     DNSClient                            = null)
 
             : base(DNSName,
                    DNSService,
@@ -126,170 +150,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region ConnectNew (         TCPPort, ...)
-
-        /// <summary>
-        /// Create a new HTTPTestClient and connect to the given address and TCP port.
-        /// </summary>
-        /// <param name="TCPPort">The TCP port to connect to.</param>
-        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
-        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
-        /// <param name="SendTimeout">An optional timeout for sending data.</param>
-        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
-
-            ConnectNew(IPPort                   TCPPort,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null)
-
-                => await ConnectNew(
-                             IPvXAddress.Localhost,
-                             TCPPort,
-                             ConnectTimeout,
-                             ReceiveTimeout,
-                             SendTimeout,
-                             BufferSize,
-                             LoggingHandler
-                         );
-
-        #endregion
-
-        #region ConnectNew (Address, TCPPort, ...)
-
-        /// <summary>
-        /// Create a new HTTPTestClient and connect to the given address and TCP port.
-        /// </summary>
-        /// <param name="IPAddress">The IP address to connect to.</param>
-        /// <param name="TCPPort">The TCP port to connect to.</param>
-        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
-        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
-        /// <param name="SendTimeout">An optional timeout for sending data.</param>
-        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
-
-            ConnectNew(IIPAddress               IPAddress,
-                       IPPort                   TCPPort,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null)
-
-        {
-
-            var client = new HTTPTestClient(
-                             IPAddress,
-                             TCPPort,
-                             ConnectTimeout,
-                             ReceiveTimeout,
-                             SendTimeout,
-                             BufferSize,
-                             LoggingHandler
-                         );
-
-            await client.ConnectAsync();
-
-            return client;
-
-        }
-
-        #endregion
-
-        #region ConnectNew (URL,     DNSService = null, ..., DNSClient = null)
-
-        /// <summary>
-        /// Create a new HTTPTestClient and connect to the given URL.
-        /// </summary>
-        /// <param name="URL">The URL to connect to.</param>
-        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports for the given URL hostname.</param>
-        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
-        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
-        /// <param name="SendTimeout">An optional timeout for sending data.</param>
-        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
-
-            ConnectNew(URL                      URL,
-                       SRV_Spec?                DNSService       = null,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                       DNSClient?               DNSClient        = null)
-
-        {
-
-            var client = new HTTPTestClient(
-                             URL,
-                             DNSService,
-                             ConnectTimeout,
-                             ReceiveTimeout,
-                             SendTimeout,
-                             BufferSize,
-                             LoggingHandler,
-                             DNSClient
-                         );
-
-            await client.ConnectAsync();
-
-            return client;
-
-        }
-
-        #endregion
-
-        #region ConnectNew (DNSName, DNSService,        ..., DNSClient = null)
-
-        /// <summary>
-        /// Create a new HTTPTestClient and connect to the given URL.
-        /// </summary>
-        /// <param name="DNSName">The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.</param>
-        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports.</param>
-  //      /// <param name="UseDNSURI">Whether to use DNS URI records to resolve the hostname to high available URIs.</param>
-        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
-        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
-        /// <param name="SendTimeout">An optional timeout for sending data.</param>
-        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
-
-            ConnectNew(DomainName               DNSName,
-                       SRV_Spec                 DNSService,
-                       Boolean?                 UseDNSURI        = false,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                       DNSClient?               DNSClient        = null)
-
-        {
-
-            var client = new HTTPTestClient(
-                             DNSName,
-                             DNSService,
-                             UseDNSURI,
-                             ConnectTimeout,
-                             ReceiveTimeout,
-                             SendTimeout,
-                             BufferSize,
-                             LoggingHandler,
-                             DNSClient
-                         );
-
-            await client.ConnectAsync();
-
-            return client;
-
-        }
-
-        #endregion
 
 
         #region ReconnectAsync()
@@ -299,20 +159,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             await base.ReconnectAsync().ConfigureAwait(false);
 
-            IsHTTPConnected = true;
+        }
+
+        #endregion
+
+        #region (protected) ConnectAsync(CancellationToken = default)
+
+        protected override async Task ConnectAsync(CancellationToken CancellationToken = default)
+        {
+
+            await base.ConnectAsync(CancellationToken);
+
+            httpStream = tcpClient?.GetStream();
+
+            await StartTLS(CancellationToken);
 
         }
 
         #endregion
 
-        #region ConnectAsync()
+        #region (protected) StartTLS(CancellationToken = default)
 
-        public async Task ConnectAsync()
+        protected async Task StartTLS(CancellationToken CancellationToken = default)
         {
 
-            await base.ConnectAsync().ConfigureAwait(false);
+            if (tcpClient is not null)
+            {
 
-            IsHTTPConnected = true;
+                var tcpStream = tcpClient.GetStream();
+
+                if (tcpStream is not null)
+                {
+
+                    tlsStream   = new SslStream(
+                                      tcpStream,
+                                      leaveInnerStreamOpen: false
+                                  );
+
+                    var authenticationOptions  = new SslClientAuthenticationOptions {
+                                                     //ApplicationProtocols                = new List<SslApplicationProtocol> {
+                                                     //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
+                                                     //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
+                                                     //                                      },
+                                                     AllowRenegotiation                  = AllowRenegotiation ?? true,
+                                                     AllowTlsResume                      = AllowTLSResume     ?? true,
+                                                     LocalCertificateSelectionCallback   = null,
+                                                     TargetHost                          = RemoteURL.Value.Hostname.ToString(), //SNI!
+                                                     ClientCertificates                  = null,
+                                                     ClientCertificateContext            = null,
+                                                     CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
+                                                     EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
+                                                     EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                     CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
+                                                     CertificateChainPolicy              = null, // new X509ChainPolicy()
+                                                 };
+
+                    if (RemoteCertificateValidationHandler is not null)
+                    {
+                        authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
+
+                            var result = RemoteCertificateValidationHandler(
+                                             sender,
+                                             certificate is not null
+                                                 ? new X509Certificate2(certificate)
+                                                 : null,
+                                             chain,
+                                             this,
+                                             policyErrors
+                                         );
+
+                            return result.Item1;
+
+                        };
+                    }
+                    else
+                    {
+                        authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
+                            return true;
+                        };
+                    }
+
+                    try
+                    {
+                        await tlsStream.AuthenticateAsClientAsync(
+                                  authenticationOptions,
+                                  CancellationToken
+                              );
+                    }
+                    catch (Exception e)
+                    {
+                        DebugX.Log($"Error during TLS authentication: {e.Message}");
+                    }
+
+                    IsHTTPConnected  = true;
+                    httpStream       = tlsStream;
+
+                }
+
+            }
 
         }
 
@@ -372,30 +316,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Request">The HTTP Request to send.</param>
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)> SendRequest(HTTPRequest Request)
+        public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)>
+
+            SendRequest(HTTPRequest        Request,
+                        CancellationToken  CancellationToken   = default)
+
         {
 
             if (!IsConnected)
-                return (false, null, "Client is not connected.", TimeSpan.Zero);
+         //       return (false, null, "Client is not connected.", TimeSpan.Zero);
 
-            if (!IsHTTPConnected)
-                await ReconnectAsync().ConfigureAwait(false);
+         //  if (!IsHTTPConnected)
+               await ReconnectAsync().ConfigureAwait(false);
 
             var stopwatch = Stopwatch.StartNew();
 
             try
             {
 
-                var stream     = tcpClient.GetStream();
-
                 #region Send HTTP Request
 
-                await stream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
+                await httpStream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
 
                 if (Request.HTTPBody is not null && Request.ContentLength > 0)
-                    await stream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
+                    await httpStream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
 
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                await httpStream.FlushAsync(cts.Token).ConfigureAwait(false);
 
                 #endregion
 
@@ -414,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         if (dataLength >= buffer.Length - BufferSize)
                             throw new Exception("Header too large.");
 
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
+                        var bytesRead = await httpStream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
                         if (bytesRead == 0)
                         {
                             bufferOwner?.Dispose();
@@ -468,7 +414,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         bodyDataStream = new PrefixStream(
                                              prefix,
-                                             stream,
+                                             httpStream,
                                              LeaveInnerStreamOpen: true
                                          );
 

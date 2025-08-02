@@ -384,19 +384,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     }
 
+                    if (elements[2].Contains('[') && elements[2].Contains(']'))
+                    {
+
+
+
+                    }
+
                     // An HTTP(S) port is given...
                     if (elements[2].Contains(':'))
                     {
 
-                        if (!HTTPHostname.TryParse(elements[2][..elements[2].IndexOf(':')],  out hostname, out _))
+                        if (!HTTPHostname.TryParse(elements[2][..elements[2].LastIndexOf(':')], out hostname, out _))
                             return false;
 
-                        var portText = elements[2][(elements[2].IndexOf(':') + 1)..]?.Trim();
+                        var portText = elements[2][(elements[2].LastIndexOf(':') + 1)..]?.Trim();
 
                         if (portText.IsNotNullOrEmpty())
                         {
 
-                            if (IPPort.TryParse(elements[2][(elements[2].IndexOf(":") + 1)..], out IPPort _port))
+                            if (IPPort.TryParse(elements[2][(elements[2].LastIndexOf(':') + 1)..], out var _port))
                                 port = _port;
 
                             else

@@ -44,12 +44,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         public void InitTests()
         {
 
-            client = DNSTCPClient.Cloudflare_IPv4_1();
+            client = DNSTCPClient.Cloudflare_Random();
 
         }
 
         [OneTimeTearDown]
-        public void Shutdown_PublicDNSTests()
+        public void ShutdownTests()
         {
 
             client?.Dispose();
@@ -75,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteIPAddress}:{client.RemoteTCPPort} failed!");
 
             if (response.Answers.First() is not A answer)
             {
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1));
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteIPAddress}:{client.RemoteTCPPort} failed!");
 
             if (response.Answers.First() is not AAAA answer)
             {

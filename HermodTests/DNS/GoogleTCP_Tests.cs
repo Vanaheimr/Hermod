@@ -26,22 +26,24 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 {
 
+    // ARSoft.Tools.Net
+
     /// <summary>
-    /// Some Cloudflare DNS tests.
+    /// Some Google DNS TCP tests.
     /// </summary>
     [TestFixture]
-    public class Cloudflare_Tests
+    public class GoogleTCP_Tests
     {
 
         #region Setup/Teardown
 
-        private DNSClient? client;
+        private DNSTCPClient? client;
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client = DNSClient.Cloudflare();
+            client = DNSTCPClient.Google_Random();
 
         }
 
@@ -56,10 +58,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region CloudflareUDP_charging_cloud__A()
+        #region GoogleTCP_charging_cloud__A()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__A()
+        public async Task GoogleTCP_charging_cloud__A()
         {
 
             if (client is null)
@@ -72,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client} failed!");
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteIPAddress}:{client.RemoteTCPPort} failed!");
 
             if (response.Answers.First() is not A answer)
             {
@@ -89,10 +91,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_charging_cloud__AAAA()
+        #region GoogleTCP_charging_cloud__AAAA()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__AAAA()
+        public async Task GoogleTCP_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -105,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client} failed!");
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteIPAddress}:{client.RemoteTCPPort} failed!");
 
             if (response.Answers.First() is not AAAA answer)
             {
@@ -122,10 +124,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_charging_cloud__MX()
+        #region GoogleTCP_charging_cloud__MX()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__MX()
+        public async Task GoogleTCP_charging_cloud__MX()
         {
 
             if (client is null)
@@ -156,10 +158,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_charging_cloud__TXT()
+        #region GoogleTCP_charging_cloud__TXT()
 
         [Test]
-        public async Task CloudflareUDP_charging_cloud__TXT()
+        public async Task GoogleTCP_charging_cloud__TXT()
         {
 
             if (client is null)
@@ -219,10 +221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region CloudflareUDP_open_charging_cloud__A()
+        #region GoogleTCP_open_charging_cloud__A()
 
         [Test]
-        public async Task CloudflareUDP_open_charging_cloud__A()
+        public async Task GoogleTCP_open_charging_cloud__A()
         {
 
             if (client is null)
@@ -263,10 +265,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_open_charging_cloud__AAAA()
+        #region GoogleTCP_open_charging_cloud__AAAA()
 
         [Test]
-        public async Task CloudflareUDP_open_charging_cloud__AAAA()
+        public async Task GoogleTCP_open_charging_cloud__AAAA()
         {
 
             if (client is null)
@@ -307,10 +309,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
         #endregion
 
-        #region CloudflareUDP_open_charging_cloud__MX()
+        #region GoogleTCP_open_charging_cloud__MX()
 
         [Test]
-        public async Task CloudflareUDP_open_charging_cloud__MX()
+        public async Task GoogleTCP_open_charging_cloud__MX()
         {
 
             if (client is null)
@@ -353,10 +355,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         #endregion
 
 
-        #region CloudflareUDP__ocpp_tls_api_charging_cloud__SRV()
+        #region GoogleTCP__ocpp_tls_api_charging_cloud__SRV()
 
         [Test]
-        public async Task CloudflareUDP_ocpp_tls_api_charging_cloud__SRV()
+        public async Task GoogleTCP_ocpp_tls_api_charging_cloud__SRV()
         {
 
             if (client is null)

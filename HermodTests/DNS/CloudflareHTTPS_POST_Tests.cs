@@ -26,22 +26,26 @@ using org.GraphDefined.Vanaheimr.Hermod.DNS;
 namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 {
 
+    // https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/
+
+    // => https://dns.cloudflare.com/dns-query
+
     /// <summary>
-    /// Some Cloudflare DNS tests.
+    /// Some Cloudflare DNS HTTPS POST tests.
     /// </summary>
     [TestFixture]
-    public class Cloudflare_Tests
+    public class CloudflareHTTPS_POST_Tests
     {
 
         #region Setup/Teardown
 
-        private DNSClient? client;
+        private DNSHTTPSClient? client;
 
         [OneTimeSetUp]
         public void InitTests()
         {
 
-            client = DNSClient.Cloudflare();
+            client = DNSHTTPSClient.Cloudflare_DNSName(Mode: DNSHTTPSMode.POST);
 
         }
 
@@ -72,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client} failed!");
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not A answer)
             {
@@ -105,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
 
             Assert.That(response,                        Is.Not.Null);
             Assert.That(response.IsValid,                Is.True);
-            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client} failed!");
+            Assert.That(response.Answers.Count,          Is.EqualTo(1), $"{client.RemoteURL} failed!");
 
             if (response.Answers.First() is not AAAA answer)
             {

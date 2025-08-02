@@ -17,15 +17,14 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Text;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
+using System.Diagnostics;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -259,7 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region (protected) ATCPTestClient(URL,     DNSService = null, ..., DNSClient = null)
+        #region (protected) ATCPTestClient(URL,        DNSService = null, ..., DNSClient = null)
 
         protected ATCPTestClient(URL                      URL,
                                  SRV_Spec?                DNSService       = null,
@@ -320,7 +319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync(CancellationToken = default)
 
-        public virtual async Task reconnectAsync(CancellationToken CancellationToken = default)
+        public virtual async Task ReconnectAsync(CancellationToken CancellationToken = default)
         {
 
             cts?.      Cancel();
@@ -328,7 +327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             cts?.      Dispose();
 
             // recreate _cts and tcpClient
-            await connectAsync(CancellationToken);
+            await ConnectAsync(CancellationToken);
 
         }
 
@@ -336,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ConnectAsync(CancellationToken = default)
 
-        protected virtual async Task connectAsync(CancellationToken CancellationToken = default)
+        protected virtual async Task ConnectAsync(CancellationToken CancellationToken = default)
         {
 
             var timings = new HTTPClientConnectTimings();
@@ -495,71 +494,71 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) SendText   (Text)
 
-        /// <summary>
-        /// Send the given message to the echo server and receive the echoed response.
-        /// </summary>
-        /// <param name="Text">The text message to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        protected async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
-        {
+        ///// <summary>
+        ///// Send the given message to the echo server and receive the echoed response.
+        ///// </summary>
+        ///// <param name="Text">The text message to send and echo.</param>
+        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        //protected async Task<(Boolean, String, String?, TimeSpan)> SendXText(String Text)
+        //{
 
-            var response  = await SendBinary(Encoding.UTF8.GetBytes(Text));
-            var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
+        //    var response  = await SendXBinary(Encoding.UTF8.GetBytes(Text));
+        //    var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
 
-            return (response.Item1,
-                    text,
-                    response.Item3,
-                    response.Item4);
+        //    return (response.Item1,
+        //            text,
+        //            response.Item3,
+        //            response.Item4);
 
-        }
+        //}
 
         #endregion
 
         #region (protected) SendBinary (Bytes)
 
-        /// <summary>
-        /// Send the given bytes to the echo server and receive the echoed response.
-        /// </summary>
-        /// <param name="Bytes">The bytes to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        protected async Task<(Boolean, Byte[], String?, TimeSpan)> SendBinary(Byte[] Bytes)
-        {
+        ///// <summary>
+        ///// Send the given bytes to the echo server and receive the echoed response.
+        ///// </summary>
+        ///// <param name="Bytes">The bytes to send and echo.</param>
+        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        //protected async Task<(Boolean, Byte[], String?, TimeSpan)> SendXBinary(Byte[] Bytes)
+        //{
 
-            if (!IsConnected || tcpClient is null)
-                return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
+        //    if (!IsConnected || tcpClient is null)
+        //        return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
 
-            try
-            {
+        //    try
+        //    {
 
-                var stopwatch   = Stopwatch.StartNew();
-                var stream      = tcpClient.GetStream();
-                cts           ??= new CancellationTokenSource();
+        //        var stopwatch   = Stopwatch.StartNew();
+        //        var stream      = tcpClient.GetStream();
+        //        cts           ??= new CancellationTokenSource();
 
-                // Send the data
-                await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+        //        // Send the data
+        //        await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
+        //        await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
-                using var responseStream = new MemoryStream();
-                var buffer     = new Byte[8192];
-                var bytesRead  = 0;
+        //        using var responseStream = new MemoryStream();
+        //        var buffer     = new Byte[8192];
+        //        var bytesRead  = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
-                {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
-                }
+        //        while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+        //        {
+        //            await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
+        //        }
 
-                stopwatch.Stop();
+        //        stopwatch.Stop();
 
-                return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
+        //        return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
 
-            }
-            catch (Exception ex)
-            {
-                await Log($"Error in SendBinary: {ex.Message}");
-                return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
-            }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await Log($"Error in SendBinary: {ex.Message}");
+        //        return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
+        //    }
 
-        }
+        //}
 
         #endregion
 
@@ -628,14 +627,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Dispose / IAsyncDisposable
 
-        public async ValueTask DisposeAsync()
+        public virtual async ValueTask DisposeAsync()
         {
             await Close();
             cts?.Dispose();
             GC.SuppressFinalize(this);
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             DisposeAsync().AsTask().GetAwaiter().GetResult();
             GC.SuppressFinalize(this);
