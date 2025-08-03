@@ -19,8 +19,6 @@
 
 using System.Diagnostics;
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.DNS
@@ -31,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// Requests will be pipelined when the server supports it.
     /// </summary>
     public class DNSTCPClient : ATCPTestClient,
-                                IDNSClient
+                                IDNSClient2
     {
 
         #region Data
@@ -41,7 +39,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
-        private Boolean disposedValue;
+        //private Boolean disposedValue;
 
         #endregion
 
@@ -172,7 +170,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var dnsInfo  = DNSInfo.ReadResponse(
                                    new DNSServerConfig(
                                        RemoteIPAddress!,
-                                       RemoteTCPPort ?? IPPort.DNS,
+                                       RemotePort ?? IPPort.DNS,
                                        DNSTransport.TCP,
                                        QueryTimeout
                                    ),
@@ -584,7 +582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Using DNS server: {RemoteIPAddress}:{RemoteTCPPort}";
+            => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
 
         #endregion
 

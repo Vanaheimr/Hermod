@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The local TCP port of the connected echo server.
         /// </summary>
-        public UInt16?      CurrentLocalTCPPort
+        public UInt16?      CurrentLocalPort
 
             => CurrentLocalEndPoint is not null
                    ? (UInt16) CurrentLocalEndPoint.Port
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The remote TCP port of the connected echo server.
         /// </summary>
-        public UInt16?      CurrentRemoteTCPPort
+        public UInt16?      CurrentRemotePort
 
             => CurrentRemoteEndPoint is not null
                    ? (UInt16) CurrentRemoteEndPoint.Port
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public  URL?                     RemoteURL          { get; }
         public  IIPAddress?              RemoteIPAddress    { get; private   set; }
-        public  IPPort?                  RemoteTCPPort      { get; protected set; }
+        public  IPPort?                  RemotePort      { get; protected set; }
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
         public  TimeSpan                 SendTimeout        { get; }
@@ -251,7 +251,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemoteTCPPort    = TCPPort;
+            this.RemotePort    = TCPPort;
             this.RemoteIPAddress  = IPAddress;
 
         }
@@ -453,10 +453,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (RemoteIPAddress is not null)
                 {
 
-                    var remotePort    = dnsSRVRemotePort ?? RemoteTCPPort;
+                    var remotePort    = dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
-                        throw new ArgumentNullException(nameof(RemoteTCPPort), "The remote TCP port must not be null!");
+                        throw new ArgumentNullException(nameof(RemotePort), "The remote TCP port must not be null!");
 
                     cts               = new CancellationTokenSource();
                     tcpClient         = new TcpClient();
@@ -620,7 +620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(ATCPTestClient)}: {RemoteIPAddress}:{RemoteTCPPort} (Connected: {IsConnected})";
+            => $"{nameof(ATCPTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
 
         #endregion
 

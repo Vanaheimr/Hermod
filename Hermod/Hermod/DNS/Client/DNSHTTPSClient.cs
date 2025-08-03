@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// DNS JSON requests/responses are also supported by Google and Cloudflare.
     /// </summary>
     public class DNSHTTPSClient : AHTTPTestClient,
-                                  IDNSClient
+                                  IDNSClient2
     {
 
         #region Data
@@ -183,7 +183,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
 
-            RemoteTCPPort ??= URL.Port ?? IPPort.HTTPS;
+            RemotePort ??= URL.Port ?? IPPort.HTTPS;
 
         }
 
@@ -405,7 +405,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var dnsInfo  = DNSInfo.ReadResponse(
                                    new DNSServerConfig(
                                        RemoteIPAddress!,
-                                       RemoteTCPPort ?? IPPort.DNS,
+                                       RemotePort ?? IPPort.DNS,
                                        DNSTransport.HTTPS,
                                        QueryTimeout
                                    ),
@@ -495,7 +495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Using DNS server: {RemoteIPAddress}:{RemoteTCPPort}";
+            => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
 
         #endregion
 

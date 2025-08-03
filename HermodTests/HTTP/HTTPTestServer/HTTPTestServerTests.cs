@@ -232,15 +232,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
 
             var file1      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
-            var port1      = httpClient.CurrentLocalTCPPort;
+            var port1      = httpClient.CurrentLocalPort;
             var httpBody1  = file1.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file2      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2.txt")));
-            var port2      = httpClient.CurrentLocalTCPPort;
+            var port2      = httpClient.CurrentLocalPort;
             var httpBody2  = file2.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file3      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2/test3.txt")));
-            var port3      = httpClient.CurrentLocalTCPPort;
+            var port3      = httpClient.CurrentLocalPort;
             var httpBody3  = file3.Item2?.HTTPBodyAsUTF8String ?? "";
 
             Assert.That(httpBody1,  Is.EqualTo("Hello World: 'test1.txt'!"));
@@ -347,15 +347,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
 
             var file1      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
-            var port1      = httpClient.CurrentLocalTCPPort;
+            var port1      = httpClient.CurrentLocalPort;
             var httpBody1  = file1.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file2      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2.txt")));
-            var port2      = httpClient.CurrentLocalTCPPort;
+            var port2      = httpClient.CurrentLocalPort;
             var httpBody2  = file2.Item2?.HTTPBodyAsUTF8String ?? "";
 
             var file3      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/api2/test/test2/test3.txt")));
-            var port3      = httpClient.CurrentLocalTCPPort;
+            var port3      = httpClient.CurrentLocalPort;
             var httpBody3  = file3.Item2?.HTTPBodyAsUTF8String ?? "";
 
             Assert.That(httpBody1,  Is.EqualTo("Hello World: 'test1.txt'!"));

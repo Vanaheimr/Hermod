@@ -272,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{nameof(ATLSTestClient)}: {RemoteIPAddress}:{RemoteTCPPort} (Connected: {IsConnected})";
+            => $"{nameof(ATLSTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
 
         #endregion
 

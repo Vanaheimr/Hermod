@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Net;
 using System.Net.Sockets;
 
@@ -28,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
     /// <summary>
     /// A DNS UDP client for a single DNS server.
     /// </summary>
-    public class DNSUDPClient : IDNSClient
+    public class DNSUDPClient : IDNSClient2
     {
 
         #region Data
@@ -36,7 +37,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The default DNS query timeout.
         /// </summary>
-        public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
+        public static readonly    TimeSpan                  DefaultQueryTimeout              = TimeSpan.FromSeconds(23.5);
+
+        public static readonly    TimeSpan                  DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
+        public static readonly    TimeSpan                  DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
+        public static readonly    TimeSpan                  DefaultSendTimeout               = TimeSpan.FromSeconds(5);
+        public const              Int32                     DefaultBufferSize                = 4096;
 
         private Boolean disposedValue;
 
@@ -47,12 +53,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <summary>
         /// The IP address of the DNS server to query.
         /// </summary>
-        public IIPAddress  IPAddress           { get; }
+        public IIPAddress  RemoteIPAddress     { get; }
 
         /// <summary>
         /// The UDP port of the DNS server to query.
         /// </summary>
-        public IPPort      Port                { get; }
+        public IPPort?     RemotePort          { get; }
 
         /// <summary>
         /// Whether DNS recursion is desired.
@@ -63,6 +69,69 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The DNS query timeout.
         /// </summary>
         public TimeSpan    QueryTimeout        { get; set; }
+
+
+
+
+        /// <summary>
+        /// Whether the client is currently connected to the echo server.
+        /// </summary>
+        public Boolean      IsConnected
+            => false;
+
+
+        /// <summary>
+        /// The local IP end point of the connected echo server.
+        /// </summary>
+        public IPEndPoint?  CurrentLocalEndPoint { get; private set; }
+
+        /// <summary>
+        /// The local TCP port of the connected echo server.
+        /// </summary>
+        public UInt16?      CurrentLocalPort
+
+            => CurrentLocalEndPoint is not null
+                   ? (UInt16) CurrentLocalEndPoint.Port
+                   : null;
+
+        /// <summary>
+        /// The local IP address of the connected echo server.
+        /// </summary>
+        public IIPAddress?  CurrentLocalIPAddress
+
+            => CurrentLocalEndPoint is not null
+                   ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
+                   : null;
+
+
+        /// <summary>
+        /// The remote IP end point of the connected echo server.
+        /// </summary>
+        public IPEndPoint?  CurrentRemoteEndPoint { get; private set; }
+
+        /// <summary>
+        /// The remote TCP port of the connected echo server.
+        /// </summary>
+        public UInt16?      CurrentRemotePort
+
+            => CurrentRemoteEndPoint is not null
+                   ? (UInt16) CurrentRemoteEndPoint.Port
+                   : null;
+
+        /// <summary>
+        /// The remote IP address of the connected echo server.
+        /// </summary>
+        public IIPAddress?  CurrentRemoteIPAddress
+
+            => CurrentRemoteEndPoint is not null
+                   ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
+                   : null;
+
+        public  URL?                     RemoteURL          { get; }
+        public  TimeSpan                 ConnectTimeout     { get; }
+        public  TimeSpan                 ReceiveTimeout     { get; }
+        public  TimeSpan                 SendTimeout        { get; }
+        public  Int32                    BufferSize         { get; }
 
         #endregion
 
@@ -79,14 +148,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             IPPort?                  Port               = null,
                             Boolean?                 RecursionDesired   = null,
                             TimeSpan?                QueryTimeout       = null,
+
+                            TimeSpan?                ConnectTimeout     = null,
+                            TimeSpan?                ReceiveTimeout     = null,
+                            TimeSpan?                SendTimeout        = null,
+                            UInt32?                  BufferSize         = null,
+
                             TCPEchoLoggingDelegate?  LoggingHandler     = null)
 
         {
 
-            this.IPAddress         = IPAddress;
-            this.Port              = Port             ?? IPPort.DNS;
+            this.RemoteIPAddress   = IPAddress;
+            this.RemotePort        = Port             ?? IPPort.DNS;
             this.RecursionDesired  = RecursionDesired ?? true;
             this.QueryTimeout      = QueryTimeout     ?? DefaultQueryTimeout;
+
+
+            if (ConnectTimeout.HasValue && ConnectTimeout.Value.TotalMilliseconds > Int32.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(ConnectTimeout), "Timeout too large for socket.");
+
+            if (ReceiveTimeout.HasValue && ReceiveTimeout.Value.TotalMilliseconds > Int32.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(ReceiveTimeout), "Timeout too large for socket.");
+
+            if (SendTimeout.   HasValue && SendTimeout.   Value.TotalMilliseconds > Int32.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
+
+            this.BufferSize       = BufferSize.HasValue
+                                        ? BufferSize.Value > Int32.MaxValue
+                                              ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
+                                              : (Int32) BufferSize.Value
+                                        : DefaultBufferSize;
+            this.ConnectTimeout   = ConnectTimeout ?? DefaultConnectTimeout;
+            this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;
+            this.SendTimeout      = SendTimeout    ?? DefaultSendTimeout;
+       //     this.loggingHandler   = LoggingHandler;
+
 
         }
 
@@ -162,12 +258,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             try
             {
 
-                var serverAddress  = System.Net.IPAddress.Parse(IPAddress.ToString());
-                var endPoint       = (EndPoint) new IPEndPoint(serverAddress, Port.ToInt32());
-                socket             = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                var serverAddress      = System.Net.IPAddress.Parse(RemoteIPAddress.ToString());
+                CurrentRemoteEndPoint  = new IPEndPoint(serverAddress, RemotePort.Value.ToInt32());
+                var endPoint           = (EndPoint) CurrentRemoteEndPoint;
+                socket                 = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout,    (Int32) QueryTimeout.TotalMilliseconds);
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, (Int32) QueryTimeout.TotalMilliseconds);
                 socket.Connect(endPoint);
+
+                CurrentLocalEndPoint   = endPoint as IPEndPoint;
 
                 var ms = new MemoryStream();
                 dnsQuery.Serialize(ms, false, []);
@@ -183,8 +282,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
                     return new DNSInfo(
                                 Origin:                 new DNSServerConfig(
-                                                            IPAddress,
-                                                            Port
+                                                            RemoteIPAddress,
+                                                            RemotePort.Value
                                                         ),
                                 QueryId:                dnsQuery.TransactionId,
                                 IsAuthoritativeAnswer:  false,
@@ -204,8 +303,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                 return DNSInfo.TimedOut(
                             new DNSServerConfig(
-                                IPAddress,
-                                Port
+                                RemoteIPAddress,
+                                RemotePort.Value
                             ),
                             dnsQuery.TransactionId,
                             QueryTimeout
@@ -218,8 +317,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 //throw new Exception("DNS server '" + DNSServer + "' did not respond within " + QueryTimeout.TotalSeconds + " seconds!");
                 return DNSInfo.TimedOut(
                             new DNSServerConfig(
-                                IPAddress,
-                                Port
+                                RemoteIPAddress,
+                                RemotePort.Value
                             ),
                             dnsQuery.TransactionId,
                             QueryTimeout
@@ -232,8 +331,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             return DNSInfo.ReadResponse(
                         new DNSServerConfig(
-                            IPAddress!,
-                            Port,
+                            RemoteIPAddress!,
+                            RemotePort.Value,
                             DNSTransport.UDP,
                             QueryTimeout
                         ),
@@ -636,7 +735,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public override String ToString()
 
-            => $"Using DNS server: {IPAddress}:{Port}";
+            => $"Using DNS server: {RemoteIPAddress}:{RemotePort}";
 
         #endregion
 
