@@ -140,29 +140,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        #region (internal) GetRequestHandle(Request)
-
-        /// <summary>
-        /// Return the best matching method handler for the given parameters.
-        /// </summary>
-        /// <param name="Request">An HTTP request.</param>
-        internal (HTTPRequestHandleX?, Dictionary<String, String>)
-
-            GetRequestHandle(HTTPRequest  Request,
-                             out String?  ErrorResponse)
-
-                => GetRequestHandle(
-                       Request.Host,
-                       Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
-                       out ErrorResponse,
-                       Request.HTTPMethod,
-                       AvailableContentTypes => Request.Accept.BestMatchingContentType(AvailableContentTypes),// ?? AvailableContentTypes.First(),
-                       ParsedURLParameters   => Request.ParsedURLParameters = ParsedURLParameters.ToArray()
-                   );
-
-        #endregion
-
-
         private readonly ConcurrentDictionary<HTTPHostname, RouteNode> routeNodes = [];
 
         public HTTPAPIX AddHTTPAPI(HTTPPath?                                   Path             = null,
@@ -243,212 +220,121 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         }
 
 
+
+        #region (internal) GetRequestHandle(Request)
+
+        /// <summary>
+        /// Return the best matching method handler for the given parameters.
+        /// </summary>
+        /// <param name="Request">An HTTP request.</param>
+        internal ParsedRequest GetRequestHandle(HTTPRequest Request)
+
+            => GetRequestHandle(
+                   Request.Host,
+                   Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
+                   Request.HTTPMethod,
+                   Request.Accept.BestMatchingContentType
+                 //  ParsedURLParameters => Request.ParsedURLParameters = [.. ParsedURLParameters]
+               );
+
+        #endregion
+
         #region (internal) GetRequestHandle(Host = "*", Path = "/", ErrorResponse, HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
         /// </summary>
-        internal (HTTPRequestHandleX?, Dictionary<String, String>)
+        internal ParsedRequest
 
-            GetRequestHandle(HTTPHostname                               Host,
+            GetRequestHandle(HTTPHostname                               Hostname,
                              HTTPPath                                   Path,
-                             out String?                                ErrorResponse,
                              HTTPMethod?                                HTTPMethod                    = null,
-                             Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
-                             Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
+                             Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null)
+                           //  Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
 
         {
 
-            if (!routeNodes.IsEmpty)
+            if (!routeNodes.TryGetValue(Hostname,         out var host) &&
+                !routeNodes.TryGetValue(HTTPHostname.Any, out     host))
+            {
+                return ParsedRequest.Error($"Unknown hostname '{Hostname}'!");
+            }
+
+            var segments  = Path.ToString().Trim('/').Split('/');
+
+            for (var i=0; i < segments.Length; i++)
             {
 
-                if (!routeNodes.TryGetValue(Host, out var host) && !routeNodes.TryGetValue(HTTPHostname.Any, out host))
+                if (!host.Children.TryGetValue(segments[i], out var xxxx))
                 {
-                    ErrorResponse = "Unknown host!";
-                    return (null, []);
+                    if (!host.Children.TryGetValue("/", out xxxx))
+                    {
+                        return ParsedRequest.Error($"Unknown path segment!");
+                    }
                 }
 
-                var segments  = Path.ToString().Trim('/').Split('/');
+                host = xxxx;
 
-                for (var i=0; i < segments.Length; i++)
+                if (host.HTTPAPI is not null)
                 {
 
-                    if (!host.Children.TryGetValue(segments[i], out var xxxx))
+                    var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(host.HTTPAPI.RootPath.ToString().Length - 1)..]);
+                    var parsedRouteNode  = host.HTTPAPI.GetRequestHandle(newPath);//(Hostname, newPath, HTTPMethod, HTTPContentTypeSelector, ParsedURLParametersDelegate);
+
+                    if (parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodX))
                     {
-                        if (!host.Children.TryGetValue("/", out xxxx))
+
+                        if (methodX.ContentTypes.Any() && HTTPContentTypeSelector is not null)
                         {
-                            ErrorResponse = "Unknown path segment!";
-                            return (null, []);
+
+                            var bestMatchingContentType = HTTPContentTypeSelector([.. methodX.ContentTypes]);
+
+                            if (bestMatchingContentType != HTTPContentType.ALL)
+                            {
+                                if (methodX.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
+                                    return ParsedRequest.Parsed(contentTypeNode, parsedRouteNode.Parameters);
+                            }
+
                         }
+
+                        return ParsedRequest.Parsed(methodX.RequestHandlers, parsedRouteNode.Parameters);
+
                     }
 
-                    host = xxxx;
-
-                    if (host.HTTPAPI is not null)
-                    {
-                        var newPath = HTTPPath.Parse(segments.AggregateWith('/')[(host.HTTPAPI.RootPath.ToString().Length - 1)..]);
-                        var ss = host.HTTPAPI.GetRequestHandle(Host, newPath, out ErrorResponse, HTTPMethod, HTTPContentTypeSelector, ParsedURLParametersDelegate);
-                        return ss;
-                    }
+                    return ParsedRequest.Parsed(parsedRouteNode.RouteNode.RequestHandlers, parsedRouteNode.Parameters);
 
                 }
 
-                ErrorResponse = "error!";
-                return (null, []);
-
             }
 
-
-            Path                       = Path.IsNullOrEmpty
-                                             ? HTTPPath.Parse("/")
-                                             : Path;
-            HTTPMethod               ??= HTTPMethod.GET;
-            HTTPContentTypeSelector  ??= (v => HTTPContentType.Text.HTML_UTF8);
-            ErrorResponse              = null;
-
-            #region Get HostNode or "*" or fail
-
-            if (!hostnameNodes.TryGetValue(Host,             out var hostnameNode) &&
-                !hostnameNodes.TryGetValue(HTTPHostname.Any, out     hostnameNode))
-            {
-                ErrorResponse = "Could not find a matching hostname node!";
-                return (null, []);
-            }
-
-            #endregion
-
-            #region Try to find the best matching URLNode...
-
-            var regexList      = from   urlNode
-                                 in     hostnameNode.URLNodes
-                                 select new {
-                                     URLNode = urlNode,
-                                     Regex   = urlNode.URLRegex
-                                 };
-
-            var allTemplates   = from   regexTupel
-                                 in     regexList
-                                 select new {
-                                     URLNode = regexTupel.URLNode,
-                                     Match   = regexTupel.Regex.Match(Path.ToString())
-                                 };
-
-            var matches        = from    match
-                                 in      allTemplates
-                                 where   match.Match.Success
-                                 orderby 100*match.URLNode.SortLength +
-                                             match.URLNode.ParameterCount
-                                         descending
-                                 select  new {
-                                     match.URLNode,
-                                     match.Match
-                                 };
-
-            var matchesMethod  = from    match
-                                 in      matches
-                                 where   match.URLNode.Contains(HTTPMethod)
-                                 orderby 100*match.URLNode.SortLength +
-                                             match.URLNode.ParameterCount
-                                         descending
-                                 select  new {
-                                     match.URLNode,
-                                     match.Match
-                                 };
-
-            #endregion
-
-            #region ...or fail!
-
-            if (!matchesMethod.Any())
-            {
-
-                ErrorResponse = matches.Any()
-                                    ? "This HTTP method is not allowed!"
-                                    : "No matching URL template found!";
-
-                //if (_HostNode.RequestHandler != null)
-                //    return _HostNode.RequestHandler;
-
-                return (null, []);
-
-            }
-
-            #endregion
+            return ParsedRequest.Error($"error!");
 
 
-            // Caused e.g. by the naming of the variables within the
-            // URL templates, there could be multiple matches!
-            //foreach (var _Match in _Matches)
-            //{
 
-            var filteredByMethod  = matches.Where (match      => match.URLNode.Contains(HTTPMethod)).
-                                            Select(match      => match.URLNode.Get     (HTTPMethod)).
-                                            Where (methodnode => methodnode is not null).
-                                            Select(methodnode => HTTPContentTypeSelector(methodnode!.ContentTypes.ToArray())).
-                                            ToArray();
+            //    var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
 
-            //foreach (var aa in FilteredByMethod)
-            //{
+            //    if (bestMatchingContentType == HTTPContentType.ALL)
+            //    {
 
-            //    var BestMatchingContentType = HTTPContentTypeSelector(aa.HTTPContentTypes.Keys.ToArray());
+            //        // No content types defined...
+            //        if (!httpMethodNode.Any())
+            //            return (HTTPRequestHandleX.FromMethodNode(httpMethodNode), []);
 
-            //    //if (aa.HTTPContentTypes
+            //        // A single content type is defined...
+            //    //    else if (_HTTPMethodNode.Count() == 1)
+            //            return (HTTPRequestHandleX.FromContentTypeNode(httpMethodNode.First()), []);
 
-            //}
+            //    //    else
+            //    //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
 
-            // Use best matching URL Handler!
-            var bestMatch = matches.First();
+            //    }
 
-            #region Copy MethodHandler Parameters
+            //    // The requested content type was found...
+            //    else if (httpMethodNode.TryGet(bestMatchingContentType, out var httpContentTypeNode) && httpContentTypeNode is not null)
+            //        return (HTTPRequestHandleX.FromContentTypeNode(httpContentTypeNode), []);
 
-            var parameters = new List<String>();
-            for (var i = 1; i < bestMatch.Match.Groups.Count; i++)
-                parameters.Add(bestMatch.Match.Groups[i].Value);
-
-            var parsedURLParametersDelegateLocal = ParsedURLParametersDelegate;
-            if (parsedURLParametersDelegateLocal is not null)
-                parsedURLParametersDelegateLocal(parameters);
-
-            #endregion
-
-            // If HTTPMethod was found...
-            if (bestMatch.URLNode.TryGet(HTTPMethod, out var httpMethodNode) &&
-                httpMethodNode is not null)
-            {
-
-                var bestMatchingContentType = HTTPContentTypeSelector(httpMethodNode.ContentTypes.ToArray());
-
-                if (bestMatchingContentType == HTTPContentType.ALL)
-                {
-
-                    // No content types defined...
-                    if (!httpMethodNode.Any())
-                        return (HTTPRequestHandleX.FromMethodNode(httpMethodNode), []);
-
-                    // A single content type is defined...
-                //    else if (_HTTPMethodNode.Count() == 1)
-                        return (HTTPRequestHandleX.FromContentTypeNode(httpMethodNode.First()), []);
-
-                //    else
-                //        throw new ArgumentException(String.Concat(URL, " ", _HTTPMethodNode, " but multiple content type choices!"));
-
-                }
-
-                // The requested content type was found...
-                else if (httpMethodNode.TryGet(bestMatchingContentType, out var httpContentTypeNode) && httpContentTypeNode is not null)
-                    return (HTTPRequestHandleX.FromContentTypeNode(httpContentTypeNode), []);
-
-                else
-                    return (HTTPRequestHandleX.FromMethodNode(httpMethodNode), []);
-
-            }
-
-            //}
-
-            // No HTTPMethod was found => return best matching URL Handler
-            return (HTTPRequestHandleX.FromURLNode(bestMatch.URLNode), []);
-
-            //return GetErrorHandler(Host, URL, HTTPMethod, HTTPContentType, HTTPStatusCode.BadRequest);
+            //    else
+            //        return (HTTPRequestHandleX.FromMethodNode(httpMethodNode), []);
 
         }
 
@@ -711,18 +597,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             if (httpResponse is null)
             {
 
-                var httpRequestHandle = GetRequestHandle(
-                                            Request,
-                                            out var errorResponse
-                                        );
+                var parsedRequest = GetRequestHandle(Request);
 
-                if (httpRequestHandle.Item1 is not null)
+                if (parsedRequest.RequestHandlers is not null)
                 {
 
-                    #region URL specific HTTP request logger
+                    #region Call HTTP request logger
 
                     await LogEvent(
-                              httpRequestHandle.Item1.HTTPRequestLogger,
+                              parsedRequest.RequestHandlers.HTTPRequestLogger,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
                                   Request,
@@ -734,14 +617,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     #region Process HTTP request
 
-                    var httpDelegate = httpRequestHandle.Item1.RequestHandler;
+                    var httpDelegate = parsedRequest.RequestHandlers.RequestHandler;
                     if (httpDelegate is not null)
                     {
 
                         try
                         {
 
-                             Request.ParsedURLParametersX  = httpRequestHandle.Item2;
+                             Request.ParsedURLParametersX  = parsedRequest.Parameters;
                              Request.NetworkStream         = Stream;
 
                              httpResponse                  = await httpDelegate(Request);
@@ -749,8 +632,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         }
                         catch (Exception e)
                         {
-
-                            DebugX.LogT("HTTP server request processing exception: " + e.Message);
 
                             httpResponse = new HTTPResponse.Builder(Request) {
                                                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
@@ -769,6 +650,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         }
 
                     }
+                    else
+                        httpResponse = new HTTPResponse.Builder(Request) {
+                                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                        //   Server          = DefaultServerName,
+                                           ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                           Content         = JSONObject.Create(
+                                                                   new JProperty("request",       Request.FirstPDULine),
+                                                                   new JProperty("description",  "HTTP request handler must not be null!")
+                                                               ).ToUTF8Bytes(),
+                                           Connection      = ConnectionType.Close
+                                       };
 
                     httpResponse ??= new HTTPResponse.Builder(Request) {
                                          HTTPStatusCode  = HTTPStatusCode.InternalServerError,
@@ -776,17 +668,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                          ContentType     = HTTPContentType.Application.JSON_UTF8,
                                          Content         = JSONObject.Create(
                                                                  new JProperty("request",       Request.FirstPDULine),
-                                                                 new JProperty("description",  "HTTP request handler must not be null!")
+                                                                 new JProperty("description",  "HTTP response must not be null!")
                                                              ).ToUTF8Bytes(),
                                          Connection      = ConnectionType.Close
                                      };
 
                     #endregion
 
-                    #region URL specific HTTP response logger
+                    #region Call HTTP response logger
 
                     await LogEvent(
-                              httpRequestHandle.Item1.HTTPResponseLogger,
+                              parsedRequest.RequestHandlers.HTTPResponseLogger,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
                                   httpResponse,
@@ -798,24 +690,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 }
 
-
-                if (errorResponse == "This HTTP method is not allowed!")
+                if (parsedRequest.ErrorResponse == "This HTTP method is not allowed!")
                     httpResponse = new HTTPResponse.Builder(Request) {
                                        HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
                                        Server          = Request.Host.ToString(),
                                        Date            = Timestamp.Now,
                                        ContentType     = HTTPContentType.Text.PLAIN,
-                                       Content         = errorResponse.ToUTF8Bytes()
+                                       Content         = parsedRequest.ErrorResponse.ToUTF8Bytes()
                              //          Connection      = ConnectionType.Close
                                    };
 
                 httpResponse ??= new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                    // Server          = DefaultServerName,
+                                     Server          = Request.Host.ToString(),
+                                     Date            = Timestamp.Now,
                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
                                      Content         = JSONObject.Create(
                                                            new JProperty("request",      Request.FirstPDULine),
-                                                           new JProperty("description",  errorResponse)
+                                                           new JProperty("description",  parsedRequest.ErrorResponse)
                                                        ).ToUTF8Bytes()
                                   //   Connection      = ConnectionType.Close
                                  };

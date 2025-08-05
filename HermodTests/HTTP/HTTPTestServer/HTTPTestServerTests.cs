@@ -17,15 +17,14 @@
 
 #region Usings
 
-using Microsoft.VisualBasic;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
+
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Diagnostics;
-using System.Threading.Tasks;
 
 #endregion
 
@@ -85,20 +84,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         #endregion
 
+        //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
+        //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
-        #region HTTPTestServerTest_01()
+
+        #region PathsAndVariables_01()
 
         [Test]
-        public async Task HTTPTestServerTest_01()
+        public async Task PathsAndVariables_01()
         {
 
-            var httpServer  = await HTTPTestServerX.StartNew();
-            var api1        = httpServer.AddHTTPAPI();
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
 
-            api1.AddHandler(
+            httpAPI.AddHandler(
+
                 HTTPPath.Root + "{filename}",
-                HTTPMethod:   HTTPMethod.GET,
-                HTTPDelegate: request => {
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
                         return Task.FromResult(
@@ -118,27 +125,736 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 }
             );
 
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test3.txt")));
+            Assert.That(response.Item2, Is.Not.Null);
+
+            var httpBody   = response.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World: 'test3.txt'!"));
+
+        }
+
+        #endregion
+
+        #region PathsAndVariables_02()
+
+        [Test]
+        public async Task PathsAndVariables_02()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/test2/{filename}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                       Content         = $"Hello World: '{filename}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/test2/test3.txt")));
+            Assert.That(response.Item2, Is.Not.Null);
+
+            var httpBody   = response.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World: 'test3.txt'!"));
+
+        }
+
+        #endregion
+
+        #region PathsAndVariables_03()
+
+        [Test]
+        public async Task PathsAndVariables_03()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                       Content         = $"Hello World: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/AAA.log/test2/BBB.log/CCC.log")));
+            Assert.That(response.Item2, Is.Not.Null);
+
+            var httpBody   = response.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World: 'AAA.log'/'BBB.log'/'CCC.log'!"));
+
+        }
+
+        #endregion
+
+
+        #region PathsAndVariables_Override_Allowed_01()
+
+        [Test]
+        public async Task PathsAndVariables_Override_Allowed_01()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                AllowReplacement:    URLReplacement.Allow,
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       Content         = $"Hello World v1: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       Content         = $"Hello World v2: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/AAA.log/test2/BBB.log/CCC.log")));
+            Assert.That(response.Item2, Is.Not.Null);
+
+            var httpBody   = response.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World v2: 'AAA.log'/'BBB.log'/'CCC.log'!"));
+
+        }
+
+        #endregion
+
+        #region PathsAndVariables_Override_NotAllowed_01()
+
+        [Test]
+        public async Task PathsAndVariables_Override_NotAllowed_01()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       Content         = $"Hello World v1: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                         () => httpAPI.AddHandler(
+
+                                   HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                                   HTTPMethod:          HTTPMethod.GET,
+                                   HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                                   HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                                   HTTPDelegate:        request => {
+
+                                       if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                                           request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                                           request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                                           return Task.FromResult(
+                                                      new HTTPResponse.Builder(request) {
+                                                          HTTPStatusCode  = HTTPStatusCode.OK,
+                                                          Content         = $"Hello World v2: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                                      }.AsImmutable
+                                                  );
+
+                                       return Task.FromResult(
+                                                  new HTTPResponse.Builder(request) {
+                                                      HTTPStatusCode  = HTTPStatusCode.BadRequest
+                                                  }.AsImmutable
+                                              );
+
+                                   }
+                               )
+            );
+
+            Assert.That(ex?.Message,  Is.EqualTo("Cannot override existing RequestHandlers!"));
+
+        }
+
+        #endregion
+
+        #region PathsAndVariablesContentType_Override_Allowed_01()
+
+        [Test]
+        public async Task PathsAndVariablesContentType_Override_Allowed_01()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                AllowReplacement:    URLReplacement.Allow,
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                       Content         = $"Hello World v1: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                       Content         = $"Hello World v2: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1/AAA.log/test2/BBB.log/CCC.log")));
+            Assert.That(response.Item2, Is.Not.Null);
+
+            var httpBody   = response.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World v2: 'AAA.log'/'BBB.log'/'CCC.log'!"));
+
+        }
+
+        #endregion
+
+        #region PathsAndVariablesContentType_Override_NotAllowed_02()
+
+        [Test]
+        public async Task PathsAndVariablesContentType_Override_NotAllowed_02()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                        request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                        request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.PLAIN,
+                                       Content         = $"Hello World v1: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                         () => httpAPI.AddHandler(
+
+                                   HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
+                                   HTTPMethod:          HTTPMethod.GET,
+                                   HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                                   HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                                   HTTPDelegate:        request => {
+
+                                       if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
+                                           request.ParsedURLParametersX.TryGetValue("filename2", out var filename2) &&
+                                           request.ParsedURLParametersX.TryGetValue("filename3", out var filename3))
+                                           return Task.FromResult(
+                                                      new HTTPResponse.Builder(request) {
+                                                          HTTPStatusCode  = HTTPStatusCode.OK,
+                                                          ContentType     = HTTPContentType.Text.PLAIN,
+                                                          Content         = $"Hello World v2: '{filename1}'/'{filename2}'/'{filename3}'!".ToUTF8Bytes()
+                                                      }.AsImmutable
+                                                  );
+
+                                       return Task.FromResult(
+                                                  new HTTPResponse.Builder(request) {
+                                                      HTTPStatusCode  = HTTPStatusCode.BadRequest
+                                                  }.AsImmutable
+                                              );
+
+                                   }
+                               )
+            );
+
+            Assert.That(ex?.Message,  Is.EqualTo("Cannot override existing RequestHandlers!"));
+
+        }
+
+        #endregion
+
+
+        #region SamePath_MultipleMethods_KeepAlives_01()
+
+        [Test]
+        public async Task SamePath_MultipleMethods_KeepAlives_01()
+        {
+
+            var httpServer          = await HTTPTestServerX.StartNew();
+            var httpAPI             = httpServer.AddHTTPAPI();
+            var getRequestLogger    = new List<HTTPRequest>();
+            var getResponseLogger   = new List<HTTPResponse>();
+            var postRequestLogger   = new List<HTTPRequest>();
+            var postResponseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:          HTTPMethod.GET,
+                //HTTPContentType:     HTTPContentType.Text.PLAIN,
+                HTTPRequestLogger:   (server, request,  ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { getResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.HTML_UTF8,
+                                       Content         = $"GET: '{filename}'!".ToUTF8Bytes(),
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:          HTTPMethod.POST,
+                //HTTPContentType:     HTTPContentType.Text.PLAIN,
+                HTTPRequestLogger:   (server, request,  ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { postResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                       Content         = $"POST: '{filename}'!".ToUTF8Bytes(),
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+
+            var getResponse   = await httpClient.SendRequest(
+                                    httpClient.CreateRequest(
+                                        HTTPMethod.GET,
+                                        HTTPPath.Parse("/test3.txt")
+                                    )
+                                );
+
+            Assert.That(getResponse. Item2?.HTTPBodyAsUTF8String,  Is.EqualTo("GET: 'test3.txt'!"));
+
+
+            var postResponse  = await httpClient.SendRequest(
+                                    httpClient.CreateRequest(
+                                        HTTPMethod.POST,
+                                        HTTPPath.Parse("/test3.txt")
+                                    )
+                                );
+
+            Assert.That(postResponse.Item2?.HTTPBodyAsUTF8String,  Is.EqualTo("POST: 'test3.txt'!"));
+
+        }
+
+        #endregion
+
+        #region SamePath_MultipleContentTypes_KeepAlives_01()
+
+        [Test]
+        public async Task SamePath_MultipleContentTypes_KeepAlives_01()
+        {
+
+            var httpServer  = await HTTPTestServerX.StartNew();
+            var api1        = httpServer.AddHTTPAPI();
+
+            api1.AddHandler(
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:       HTTPMethod.GET,
+                HTTPContentType:  HTTPContentType.Text.HTML_UTF8,
+                HTTPDelegate:     request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.HTML_UTF8,
+                                       Content         = $"Hello World: '{filename}'!".ToUTF8Bytes(),
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            api1.AddHandler(
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:       HTTPMethod.GET,
+                HTTPContentType:  HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate:     request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                       Content         = new JObject(new JProperty("Hello World", filename)).ToUTF8Bytes(),
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
 
             //var client = new HTTPClient(URL.Parse($"http://localhost:{httpServer.TCPPort}/test3.txt"));
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
-            var dd = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test3.txt")));
-            Assert.That(dd.Item2, Is.Not.Null);
+            var d1 = await httpClient.SendRequest(
+                               httpClient.CreateRequest(
+                                   HTTPMethod.GET,
+                                   HTTPPath.Parse("/test3.txt"),
+                                   Accept: AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.HTML_UTF8)
+                               )
+                           );
+            Assert.That(d1.Item2, Is.Not.Null);
 
-            var httpBody = dd.Item2?.HTTPBodyAsUTF8String ?? "";
+            var httpBody1 = d1.Item2?.HTTPBodyAsUTF8String ?? "";
 
-            Assert.That(httpBody,  Is.EqualTo("Hello World: 'test3.txt'!"));
+
+            var d2 = await httpClient.SendRequest(
+                               httpClient.CreateRequest(
+                                   HTTPMethod.GET,
+                                   HTTPPath.Parse("/test3.txt"),
+                                   Accept: AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8)
+                               )
+                           );
+            Assert.That(d2.Item2, Is.Not.Null);
+
+            var httpBody2 = d2.Item2?.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(httpBody1,  Is.EqualTo("Hello World: 'test3.txt'!"));
+            Assert.That(httpBody2,  Is.EqualTo("{\"Hello World\":\"test3.txt\"}"));
 
         }
 
         #endregion
+
+        #region SamePath_MultipleContentTypes_KeepAlives_02()
+
+        [Test]
+        public async Task SamePath_MultipleContentTypes_KeepAlives_02()
+        {
+
+            var httpServer          = await HTTPTestServerX.StartNew();
+            var httpAPI             = httpServer.AddHTTPAPI();
+            var getRequestLogger    = new List<HTTPRequest>();
+            var getResponseLogger   = new List<HTTPResponse>();
+            var postRequestLogger   = new List<HTTPRequest>();
+            var postResponseLogger  = new List<HTTPResponse>();
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPContentType:     HTTPContentType.Text.HTML_UTF8,
+                HTTPRequestLogger:   (server, request,  ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { getResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Text.HTML_UTF8,
+                                       Content         = $"GET HTML: '{filename}'!".ToUTF8Bytes(),
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+            httpAPI.AddHandler(
+
+                HTTPPath.Root + "{filename}",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPContentType:     HTTPContentType.Application.JSON_UTF8,
+                HTTPRequestLogger:   (server, request,  ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (server, response, ct) => { postResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
+
+                    if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
+                        return Task.FromResult(
+                                   new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode  = HTTPStatusCode.OK,
+                                       ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                       Content         = $"GET JSON: '{filename}'!".ToUTF8Bytes(),
+                                       Connection      = ConnectionType.KeepAlive
+                                   }.AsImmutable
+                               );
+
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest
+                               }.AsImmutable
+                           );
+
+                }
+            );
+
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+
+            var getResponse   = await httpClient.SendRequest(
+                                    httpClient.CreateRequest(
+                                        HTTPMethod.GET,
+                                        HTTPPath.Parse("/test3.txt"),
+                                        Accept: AcceptTypes.FromHTTPContentTypes(HTTPContentType.Text.HTML_UTF8)
+                                    )
+                                );
+
+            Assert.That(getResponse. Item2?.HTTPBodyAsUTF8String,  Is.EqualTo("GET HTML: 'test3.txt'!"));
+
+
+            var postResponse  = await httpClient.SendRequest(
+                                    httpClient.CreateRequest(
+                                        HTTPMethod.GET,
+                                        HTTPPath.Parse("/test3.txt"),
+                                        Accept: AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8)
+                                    )
+                                );
+
+            Assert.That(postResponse.Item2?.HTTPBodyAsUTF8String,  Is.EqualTo("GET JSON: 'test3.txt'!"));
+
+        }
+
+        #endregion
+
+
 
         #region MultipleRequests_ExplicitKeepAlives_01()
 
@@ -229,7 +945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var file1      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             var port1      = httpClient.CurrentLocalPort;
@@ -253,7 +969,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
         #region MultipleRequests_ExplicitConnectionClose_01()
 
@@ -344,7 +1059,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             var file1      = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             var port1      = httpClient.CurrentLocalPort;
@@ -368,7 +1083,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
 
         #region ClientServer_ChunkedEncoding_Test01()
@@ -472,7 +1186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             //var xx = await client.GET(HTTPPath.Parse("/test3.txt"));
 
 
-            var httpClient = await HTTPTestClient.ConnectNew(httpServer.TCPPort);
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
             //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
             //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
@@ -507,17 +1221,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-
-
-
-
-
-
-
-        #region HTTPTestServer_DNSTest_01()
+        #region DNSSRV_Tests_01()
 
         [Test]
-        public async Task HTTPTestServer_DNSTest_01()
+        public async Task DNSSRV_Tests_01()
         {
 
             var httpServer1  = await HTTPTestServerX.StartNew(IPv4Address.Localhost);
@@ -612,7 +1319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
             // 
             // netsh interface ipv4 show addresses "Loopback Pseudo-Interface 1"
 
-            var dnsClient  = new DNSClient();
+            var dnsClient  = new DNSClient(SearchForIPv4DNSServers: true, SearchForIPv6DNSServers: false);
             dnsClient.CacheA  (DomainName.Parse("api1.example.local"), IPv4Address.Parse("127.0.0.1"));
             dnsClient.CacheA  (DomainName.Parse("api2.example.local"), IPv4Address.Parse("127.0.0.1"));
             dnsClient.CacheA  (DomainName.Parse("api3.example.local"), IPv4Address.Parse("127.0.0.1"));
@@ -695,15 +1402,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
 
 
-            var httpClientSRV = await HTTPTestClient.ConnectNew(URL.Parse("http://api.example.local"), SRV_Spec.TLS("ocpp"), DNSClient: dnsClient);
+            var httpClientSRV = await HTTPTestClient.ConnectNew(DomainName.Parse("api.example.local"), SRV_Spec.TLS("ocpp"), DNSClient: dnsClient);
 
             var responseSRV = await httpClientSRV.SendRequest(httpClientSRV.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/test1.txt")));
             Assert.That(responseSRV.Item2, Is.Not.Null);
 
             var httpBodySRV = responseSRV.Item2?.HTTPBodyAsUTF8String ?? "";
 
-            Assert.That(httpBodySRV, Is.EqualTo("Hello World (api2): 'test1.txt'!"));
-
+            Assert.That(httpBodySRV, Is.EqualTo("Hello World (api1): 'test1.txt'!")
+                                    .Or.EqualTo("Hello World (api2): 'test1.txt'!"));
 
         }
 

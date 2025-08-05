@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;
             this.SendTimeout      = SendTimeout    ?? DefaultSendTimeout;
             this.loggingHandler   = LoggingHandler;
-            this.DNSClient        = DNSClient ?? new DNSClient();
+            this.DNSClient        = DNSClient      ?? new DNSClient();
 
         }
 
@@ -255,7 +255,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.RemotePort    = TCPPort;
+            this.RemotePort       = TCPPort;
             this.RemoteIPAddress  = IPAddress;
 
         }
@@ -286,7 +286,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.RemoteURL   = URL;
             this.DNSService  = DNSService;
-            this.DNSClient   = DNSClient ?? new DNSClient();
 
         }
 
@@ -354,22 +353,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 DomainName? dnsSRVRemoteHost   = null;
                 IPPort?     dnsSRVRemotePort   = null;
 
-                if (RemoteURL.HasValue)
+                var hostname = (RemoteURL?.Hostname.Name ?? DomainName?.FullName)?.Trim();
+
+                if (hostname.IsNotNullOrEmpty())
                 {
 
                     #region Localhost / URL looks like an IP address...
 
-                    if      (IPAddress.IsIPv4Localhost(RemoteURL.Value.Hostname))
+                    if      (IPAddress.IsIPv4Localhost(hostname))
                         RemoteIPAddress = IPv4Address.Localhost;
 
-                    else if (IPAddress.IsIPv6Localhost(RemoteURL.Value.Hostname))
+                    else if (IPAddress.IsIPv6Localhost(hostname))
                         RemoteIPAddress = IPv6Address.Localhost;
 
-                    else if (IPAddress.IsIPv4(RemoteURL.Value.Hostname.Name))
-                        RemoteIPAddress = IPv4Address.Parse(RemoteURL.Value.Hostname.Name);
+                    else if (IPAddress.IsIPv4(hostname))
+                        RemoteIPAddress = IPv4Address.Parse(hostname);
 
-                    else if (IPAddress.IsIPv6(RemoteURL.Value.Hostname.Name))
-                        RemoteIPAddress = IPv6Address.Parse(RemoteURL.Value.Hostname.Name);
+                    else if (IPAddress.IsIPv6(hostname))
+                        RemoteIPAddress = IPv6Address.Parse(hostname);
 
                     #endregion
 
@@ -381,8 +382,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         // Look up the DNS Name or the hostname of the URL...
-                        var serviceRecords         = await DNSClient.Query_DNSService(DNSServiceName.Parse($"{DNSService}.{DomainName ?? DomainName.Parse(RemoteURL.Value.Hostname.Name)}")).
-                                                                     ConfigureAwait(false);
+                        var serviceRecords         = await DNSClient.Query_DNSService(
+                                                               DNSServiceName.Parse($"{DNSService}.{hostname}"),
+                                                               CancellationToken: CancellationToken
+                                                           ).ConfigureAwait(false);
 
                         var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);
                         var priorityRecords        = serviceRecords. Where(serviceRecord => serviceRecord.Priority == minPriority).ToArray();
@@ -425,8 +428,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
 
                         // Look up the DNS SRV remote host or the hostname of the URL...
-                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? DomainName.Parse(RemoteURL.Value.Hostname.Name));
-                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? DomainName.Parse(RemoteURL.Value.Hostname.Name));
+                        var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? DomainName.Parse(hostname), CancellationToken: CancellationToken);
+                        var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? DomainName.Parse(hostname), CancellationToken: CancellationToken);
 
                         await Task.WhenAll(
                                   ipv4AddressLookupTask,
@@ -464,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     var remotePort    = dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
-                        throw new ArgumentNullException(nameof(RemotePort), "The remote TCP port must not be null!");
+                        throw new Exception("The remote TCP port must not be null!");
 
                     cts               = new CancellationTokenSource();
                     tcpClient         = new TcpClient();

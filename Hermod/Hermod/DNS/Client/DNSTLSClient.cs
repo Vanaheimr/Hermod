@@ -17,11 +17,13 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using Org.BouncyCastle.Tls;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Net.Security;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 
 #endregion
 
@@ -73,6 +75,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
+                            SslProtocols?                                               TLSProtocols                         = null,
+                            CipherSuitesPolicy?                                         CipherSuitesPolicy                   = null,
+                            X509ChainPolicy?                                            CertificateChainPolicy               = null,
+                            IEnumerable<SslApplicationProtocol>?                        ApplicationProtocols                 = null,
                             Boolean?                                                    AllowRenegotiation                   = null,
                             Boolean?                                                    AllowTLSResume                       = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
@@ -97,6 +103,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   null,
+                   null,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   true,
+                   ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
                    ConnectTimeout,
@@ -125,6 +138,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
+                            SslProtocols?                                               TLSProtocols                         = null,
+                            CipherSuitesPolicy?                                         CipherSuitesPolicy                   = null,
+                            X509ChainPolicy?                                            CertificateChainPolicy               = null,
+                            IEnumerable<SslApplicationProtocol>?                        ApplicationProtocols                 = null,
                             Boolean?                                                    AllowRenegotiation                   = null,
                             Boolean?                                                    AllowTLSResume                       = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
@@ -149,6 +166,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   null,
+                   null,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   true,
+                   ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
                    ConnectTimeout,

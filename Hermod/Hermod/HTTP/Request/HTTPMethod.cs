@@ -786,7 +786,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Return a text representation of this object.
         /// </summary>
-        public String DebugView()
+        public String DebugView
 
             => String.Concat(
 

@@ -39,7 +39,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Properties
 
-            private readonly AHTTPClient? httpClient;
+            private readonly AHTTPClient?      httpClient;
+            private readonly AHTTPTestClient?  httpClientX;
 
             #region Non-http header fields
 
@@ -726,6 +727,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 this.httpClient       = Client;
+
+                this.HTTPStatusCode   = HTTPStatusCode.OK;
+                this.HTTPMethod       = HTTPMethod.GET;
+                this.Path             = HTTPPath.Parse("/");
+                this.QueryString      = QueryString.Empty;
+                SetHeaderField(HTTPRequestHeaderField.Accept, new AcceptTypes());
+                this.ProtocolName     = "HTTP";
+                this.ProtocolVersion  = new HTTPVersion(1, 1);
+
+            }
+
+            #endregion
+
+            #region HTTPRequestBuilder(Client = null, CancellationToken = default)
+
+            /// <summary>
+            /// Create a new HTTP request.
+            /// </summary>
+            /// <param name="CancellationToken">An optional cancellation token.</param>
+            public Builder(AHTTPTestClient?   Client              = null,
+                           CancellationToken  CancellationToken   = default)
+
+                : base(CancellationToken)
+
+            {
+
+                this.httpClientX      = Client;
 
                 this.HTTPStatusCode   = HTTPStatusCode.OK;
                 this.HTTPMethod       = HTTPMethod.GET;

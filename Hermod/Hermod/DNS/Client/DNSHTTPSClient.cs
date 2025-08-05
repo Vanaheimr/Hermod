@@ -18,7 +18,9 @@
 #region Usings
 
 using System.Diagnostics;
-
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 
@@ -54,6 +56,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         public static readonly TimeSpan DefaultQueryTimeout = TimeSpan.FromSeconds(23.5);
 
+        public new const  String DefaultHTTPUserAgent    = "Hermod DNS HTTP Test Client";
+
         #endregion
 
         #region Properties
@@ -77,30 +81,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Constructor(s)
 
-        #region DNSHTTPSClient(IPAddress, ...)
+        #region DNSHTTPSClient(TCPPort, ...)
 
         /// <summary>
         /// Create a new DNS HTTPS client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
-        public DNSHTTPSClient(IIPAddress                                                    IPAddress,
-                              IPPort?                                                       TCPPort                              = null,
+        public DNSHTTPSClient(IPPort                                                        TCPPort,
                               I18NString?                                                   Description                          = null,
                               DNSHTTPSMode?                                                 Mode                                 = null,
                               Boolean?                                                      RecursionDesired                     = null,
                               TimeSpan?                                                     QueryTimeout                         = null,
+
+                              String?                                                       HTTPUserAgent                        = null,
+
                               RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                              SslProtocols?                                                 TLSProtocols                         = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
                               Boolean?                                                      AllowRenegotiation                   = null,
                               Boolean?                                                      AllowTLSResume                       = null,
+
                               TimeSpan?                                                     ConnectTimeout                       = null,
                               TimeSpan?                                                     ReceiveTimeout                       = null,
                               TimeSpan?                                                     SendTimeout                          = null,
                               UInt32?                                                       BufferSize                           = null,
                               TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
 
-            : base(IPAddress,
-                   TCPPort ?? IPPort.HTTPS,
+            : base(IPvXAddress.Localhost,
+                   TCPPort,
                    Description,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -114,8 +126,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   null,
+                   null,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   true,
+                   null,
                    AllowRenegotiation,
                    AllowTLSResume,
+
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize ?? 512,
+                   LoggingHandler)
+
+        {
+
+            this.Mode              = Mode             ?? DNSHTTPSMode.GET;
+            this.RecursionDesired  = RecursionDesired ?? true;
+            this.QueryTimeout      = QueryTimeout     ?? TimeSpan.FromSeconds(23.5);
+
+        }
+
+        #endregion
+
+        #region DNSHTTPSClient(IPAddress, ...)
+
+        /// <summary>
+        /// Create a new DNS HTTPS client for the given DNS server.
+        /// </summary>
+        /// <param name="IPAddress">The DNS server to query.</param>
+        public DNSHTTPSClient(IIPAddress                                                    IPAddress,
+                              IPPort?                                                       TCPPort                              = null,
+                              I18NString?                                                   Description                          = null,
+                              DNSHTTPSMode?                                                 Mode                                 = null,
+                              Boolean?                                                      RecursionDesired                     = null,
+                              TimeSpan?                                                     QueryTimeout                         = null,
+
+                              String?                                                       HTTPUserAgent                        = null,
+
+                              RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                              SslProtocols?                                                 TLSProtocols                         = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                              Boolean?                                                      AllowRenegotiation                   = null,
+                              Boolean?                                                      AllowTLSResume                       = null,
+
+                              TimeSpan?                                                     ConnectTimeout                       = null,
+                              TimeSpan?                                                     ReceiveTimeout                       = null,
+                              TimeSpan?                                                     SendTimeout                          = null,
+                              UInt32?                                                       BufferSize                           = null,
+                              TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
+
+            : base(IPAddress,
+                   TCPPort ?? IPPort.HTTPS,
+                   Description,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as DNSHTTPSClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   null,
+                   null,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   true,
+                   null,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -143,9 +235,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               DNSHTTPSMode?                                                 Mode                                 = null,
                               Boolean?                                                      RecursionDesired                     = null,
                               TimeSpan?                                                     QueryTimeout                         = null,
+
+                              String?                                                       HTTPUserAgent                        = null,
+
                               RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                              SslProtocols?                                                 TLSProtocols                         = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy               = null,
                               Boolean?                                                      AllowRenegotiation                   = null,
                               Boolean?                                                      AllowTLSResume                       = null,
+
                               TimeSpan?                                                     ConnectTimeout                       = null,
                               TimeSpan?                                                     ReceiveTimeout                       = null,
                               TimeSpan?                                                     SendTimeout                          = null,
@@ -156,6 +255,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(URL,
                    null,
                    Description,
+                   HTTPUserAgent ?? DefaultHTTPUserAgent,
+
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -169,17 +270,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   null,
+                   null,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   true,
+                   null,
                    AllowRenegotiation,
                    AllowTLSResume,
+
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize  ?? 512,
                    LoggingHandler,
-                   DNSClient   ?? new DNSClient(
-                                      SearchForIPv4DNSServers: true,
-                                      SearchForIPv6DNSServers: false
-                                  ))
+                   DNSClient)
 
         {
 
@@ -196,7 +302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-        #region ConnectNew (Address, TCPPort, ...)
+        #region ConnectNew (IPAddress, ...)
 
         /// <summary>
         /// Create a new DNSHTTPSClient and connect to the given address and TCP port.
@@ -211,14 +317,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static async Task<DNSHTTPSClient>
 
             ConnectNew(IIPAddress                                                    IPAddress,
-                       IPPort                                                        TCPPort,
+                       IPPort?                                                       TCPPort                              = null,
                        I18NString?                                                   Description                          = null,
                        DNSHTTPSMode?                                                 Mode                                 = null,
                        Boolean?                                                      RecursionDesired                     = null,
                        TimeSpan?                                                     QueryTimeout                         = null,
+
+                       String?                                                       HTTPUserAgent                        = null,
+
                        RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                       SslProtocols?                                                 TLSProtocols                         = null,
+                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
                        Boolean?                                                      AllowRenegotiation                   = null,
                        Boolean?                                                      AllowTLSResume                       = null,
+
                        TimeSpan?                                                     ConnectTimeout                       = null,
                        TimeSpan?                                                     ReceiveTimeout                       = null,
                        TimeSpan?                                                     SendTimeout                          = null,
@@ -234,9 +347,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              Mode,
                              RecursionDesired,
                              QueryTimeout,
+
+                             HTTPUserAgent,
+
                              RemoteCertificateValidationHandler,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
                              AllowRenegotiation,
                              AllowTLSResume,
+
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -252,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #endregion
 
-        #region ConnectNew (URL,     DNSService = null, ..., DNSClient = null)
+        #region ConnectNew (URL, DNSService = null, ..., DNSClient = null)
 
         /// <summary>
         /// Create a new DNSHTTPSClient and connect to the given URL.
@@ -267,14 +387,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static async Task<DNSHTTPSClient>
 
             ConnectNew(URL                                                           URL,
+                       SRV_Spec?                                                     DNSService                           = null,
                        I18NString?                                                   Description                          = null,
                        DNSHTTPSMode?                                                 Mode                                 = null,
-                       SRV_Spec?                                                     DNSService                           = null,
                        Boolean?                                                      RecursionDesired                     = null,
                        TimeSpan?                                                     QueryTimeout                         = null,
+
+                       String?                                                       HTTPUserAgent                        = null,
+
                        RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                       SslProtocols?                                                 TLSProtocols                         = null,
+                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
                        Boolean?                                                      AllowRenegotiation                   = null,
                        Boolean?                                                      AllowTLSResume                       = null,
+
                        TimeSpan?                                                     ConnectTimeout                       = null,
                        TimeSpan?                                                     ReceiveTimeout                       = null,
                        TimeSpan?                                                     SendTimeout                          = null,
@@ -290,9 +417,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              Mode,
                              RecursionDesired,
                              QueryTimeout,
+
+                             HTTPUserAgent,
+
                              RemoteCertificateValidationHandler,
+                             TLSProtocols,
+                             CipherSuitesPolicy,
+                             CertificateChainPolicy,
                              AllowRenegotiation,
                              AllowTLSResume,
+
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -440,7 +574,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSHTTPSClient Google(DNSHTTPSMode?                                                 Mode                                 = null,
                                             Boolean?                                                      RecursionDesired                     = null,
                                             TimeSpan?                                                     QueryTimeout                         = null,
-                                            RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null)
+                                            RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                                            SslProtocols?                                                 TLSProtocols                         = null,
+                                            CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                                            X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                            Boolean?                                                      AllowRenegotiation                   = null,
+                                            Boolean?                                                      AllowTLSResume                       = null,
+                                            TimeSpan?                                                     ConnectTimeout                       = null,
+                                            TimeSpan?                                                     ReceiveTimeout                       = null,
+                                            TimeSpan?                                                     SendTimeout                          = null,
+                                            UInt32?                                                       BufferSize                           = null,
+                                            String?                                                       HTTPUserAgent                        = null,
+                                            TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                                            DNSClient?                                                    DNSClient                            = null)
 
             => new (
                    URL.Parse("https://dns.google/dns-query"),
@@ -448,7 +594,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidationHandler
+
+                   HTTPUserAgent,
+
+                   RemoteCertificateValidationHandler,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient
                );
 
         #endregion
@@ -458,7 +619,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static DNSHTTPSClient Cloudflare_DNSName(DNSHTTPSMode?                                                 Mode                                 = null,
                                                         Boolean?                                                      RecursionDesired                     = null,
                                                         TimeSpan?                                                     QueryTimeout                         = null,
-                                                        RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null)
+
+                                                        String?                                                       HTTPUserAgent                        = null,
+
+                                                        RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                                                        SslProtocols?                                                 TLSProtocols                         = null,
+                                                        CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                                                        X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                                        Boolean?                                                      AllowRenegotiation                   = null,
+                                                        Boolean?                                                      AllowTLSResume                       = null,
+
+                                                        TimeSpan?                                                     ConnectTimeout                       = null,
+                                                        TimeSpan?                                                     ReceiveTimeout                       = null,
+                                                        TimeSpan?                                                     SendTimeout                          = null,
+                                                        UInt32?                                                       BufferSize                           = null,
+                                                        TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                                                        DNSClient?                                                    DNSClient                            = null)
 
             => new (
                    URL.Parse("https://one.one.one.one/dns-query"),
@@ -466,13 +642,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidationHandler
+
+                   HTTPUserAgent,
+
+                   RemoteCertificateValidationHandler,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient
                );
 
         public static DNSHTTPSClient Cloudflare_IPv4_1(DNSHTTPSMode?                                                 Mode                                 = null,
                                                        Boolean?                                                      RecursionDesired                     = null,
                                                        TimeSpan?                                                     QueryTimeout                         = null,
-                                                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null)
+
+                                                       String?                                                       HTTPUserAgent                        = null,
+
+                                                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+                                                       SslProtocols?                                                 TLSProtocols                         = null,
+                                                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                                                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                                       Boolean?                                                      AllowRenegotiation                   = null,
+                                                       Boolean?                                                      AllowTLSResume                       = null,
+
+                                                       TimeSpan?                                                     ConnectTimeout                       = null,
+                                                       TimeSpan?                                                     ReceiveTimeout                       = null,
+                                                       TimeSpan?                                                     SendTimeout                          = null,
+                                                       UInt32?                                                       BufferSize                           = null,
+                                                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                                                       DNSClient?                                                    DNSClient                            = null)
 
             => new (
                    URL.Parse("https://1.1.1.1/dns-query"),
@@ -480,13 +686,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidationHandler
+
+                   HTTPUserAgent,
+
+                   RemoteCertificateValidationHandler,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient
                );
 
         public static DNSHTTPSClient Cloudflare_IPv4_2(DNSHTTPSMode?                                                 Mode                                 = null,
                                                        Boolean?                                                      RecursionDesired                     = null,
                                                        TimeSpan?                                                     QueryTimeout                         = null,
-                                                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null)
+                                                       RemoteTLSServerCertificateValidationHandler<DNSHTTPSClient>?  RemoteCertificateValidationHandler   = null,
+
+                                                       String?                                                       HTTPUserAgent                        = null,
+
+                                                       SslProtocols?                                                 TLSProtocols                         = null,
+                                                       CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
+                                                       X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                                       Boolean?                                                      AllowRenegotiation                   = null,
+                                                       Boolean?                                                      AllowTLSResume                       = null,
+
+                                                       TimeSpan?                                                     ConnectTimeout                       = null,
+                                                       TimeSpan?                                                     ReceiveTimeout                       = null,
+                                                       TimeSpan?                                                     SendTimeout                          = null,
+                                                       UInt32?                                                       BufferSize                           = null,
+                                                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                                                       DNSClient?                                                    DNSClient                            = null)
 
             => new (
                    URL.Parse("https://1.0.0.1/dns-query"),
@@ -494,7 +730,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
-                   RemoteCertificateValidationHandler
+
+                   HTTPUserAgent,
+
+                   RemoteCertificateValidationHandler,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient
                );
 
         #endregion

@@ -17,21 +17,24 @@
 
 #region Usings
 
+using System.Text;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
+
+    public delegate HTTPRequest.Builder DefaultRequestBuilderDelegate();
+
 
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
@@ -42,8 +45,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         #region Data
-
-        public Boolean IsHTTPConnected { get; private set; } = false;
 
         protected Stream?                                                        httpStream;
 
@@ -57,37 +58,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         protected RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler;
 
+
+        public const String                                                      DefaultHTTPUserAgent                   = "Hermod HTTP Test Client";
+
         #endregion
 
         #region Properties
 
-        /// <summary>
-        /// Use DNS URI records to resolve the hostname to IP addresses.
-        /// </summary>
-        public Boolean   UseDNSURI             { get; }
+        public String?                        HTTPUserAgent            { get; }
 
-        public Boolean?  AllowRenegotiation    { get; }
-        public Boolean?  AllowTLSResume        { get; }
+        public Boolean                        IsHTTPConnected          { get; private set; } = false;
+
+        public DefaultRequestBuilderDelegate  DefaultRequestBuilder    { get;}
 
         #endregion
 
         #region Constructor(s)
 
-        protected AHTTPTestClient(IIPAddress                                                     Address,
-                                  IPPort                                                         TCPPort,
+        #region AHTTPTestClient(IPAddress, ...)
+
+        protected AHTTPTestClient(IIPAddress                                                     IPAddress,
+                                  IPPort?                                                        TCPPort                              = null,
                                   I18NString?                                                    Description                          = null,
+                                  String?                                                        HTTPUserAgent                        = null,
+
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                                  LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
+                                  IEnumerable<X509Certificate>?                                  ClientCertificateChain               = null,
+                                  SslProtocols?                                                  TLSProtocols                         = null,
+                                  CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
+                                  X509ChainPolicy?                                               CertificateChainPolicy               = null,
+                                  Boolean?                                                       EnforceTLS                           = null,
+                                  IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                 = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
                                   Boolean?                                                       AllowTLSResume                       = null,
+
                                   TimeSpan?                                                      ConnectTimeout                       = null,
                                   TimeSpan?                                                      ReceiveTimeout                       = null,
                                   TimeSpan?                                                      SendTimeout                          = null,
                                   UInt32?                                                        BufferSize                           = null,
                                   TCPEchoLoggingDelegate?                                        LoggingHandler                       = null)
 
-            : base(Address,
-                   TCPPort,
+            : base(IPAddress,
+                   TCPPort ?? IPPort.HTTP,
                    Description,
+
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -101,23 +116,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                policyErrors
                                            )
                        : null,
+                   LocalCertificateSelector,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   EnforceTLS,
+                   ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
+
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize,
                    LoggingHandler)
 
-        { }
+        {
 
+            this.HTTPUserAgent  = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+        }
+
+        #endregion
+
+        #region AHTTPTestClient(URL, DNSService = null, ...)
 
         protected AHTTPTestClient(URL                                                            URL,
                                   SRV_Spec?                                                      DNSService                           = null,
                                   I18NString?                                                    Description                          = null,
+                                  String?                                                        HTTPUserAgent                        = null,
+                                  DefaultRequestBuilderDelegate?                                 DefaultRequestBuilder                = null,
+
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                                  LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
+                                  IEnumerable<X509Certificate>?                                  ClientCertificateChain               = null,
+                                  SslProtocols?                                                  TLSProtocols                         = null,
+                                  CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
+                                  X509ChainPolicy?                                               CertificateChainPolicy               = null,
+                                  Boolean?                                                       EnforceTLS                           = null,
+                                  IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                 = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
                                   Boolean?                                                       AllowTLSResume                       = null,
+
                                   TimeSpan?                                                      ConnectTimeout                       = null,
                                   TimeSpan?                                                      ReceiveTimeout                       = null,
                                   TimeSpan?                                                      SendTimeout                          = null,
@@ -128,6 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             : base(URL,
                    DNSService,
                    Description,
+
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -141,50 +183,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                policyErrors
                                            )
                        : null,
+                   LocalCertificateSelector,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   EnforceTLS,
+                   ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
-                   ConnectTimeout,
-                   ReceiveTimeout,
-                   SendTimeout,
-                   BufferSize,
-                   LoggingHandler,
-                   DNSClient)
 
-        { }
-
-
-        protected AHTTPTestClient(DomainName                                                     DNSName,
-                                  SRV_Spec                                                       DNSService,
-                                  Boolean?                                                       UseDNSURI                            = null,
-                                  I18NString?                                                    Description                          = null,
-                                  RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
-                                  Boolean?                                                       AllowRenegotiation                   = null,
-                                  Boolean?                                                       AllowTLSResume                       = null,
-                                  TimeSpan?                                                      ConnectTimeout                       = null,
-                                  TimeSpan?                                                      ReceiveTimeout                       = null,
-                                  TimeSpan?                                                      SendTimeout                          = null,
-                                  UInt32?                                                        BufferSize                           = null,
-                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
-                                  DNSClient?                                                     DNSClient                            = null)
-
-            : base(DNSName,
-                   DNSService,
-                   Description,
-                   RemoteCertificateValidationHandler is not null
-                       ? (sender,
-                          certificate,
-                          certificateChain,
-                          tlsClient,
-                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
-                                               sender,
-                                               certificate,
-                                               certificateChain,
-                                               tlsClient as DNSHTTPSClient,
-                                               policyErrors
-                                           )
-                       : null,
-                   AllowRenegotiation,
-                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -194,12 +202,88 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.UseDNSURI = UseDNSURI ?? false;
+            this.HTTPUserAgent          = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+            this.DefaultRequestBuilder  = DefaultRequestBuilder
+                                              ?? (() => new HTTPRequest.Builder(this, CancellationToken.None) {
+                                                            Host        = URL.Hostname,
+                                                            Accept      = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
+                                                            UserAgent   = HTTPUserAgent ?? DefaultHTTPUserAgent,
+                                                            Connection  = ConnectionType.KeepAlive
+                                                        });
 
         }
 
         #endregion
 
+        #region AHTTPTestClient(DomainName, DNSService, ...)
+
+        protected AHTTPTestClient(DomainName                                                     DomainName,
+                                  SRV_Spec                                                       DNSService,
+                                  I18NString?                                                    Description                          = null,
+                                  String?                                                        HTTPUserAgent                        = null,
+
+                                  RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                                  LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
+                                  IEnumerable<X509Certificate>?                                  ClientCertificateChain               = null,
+                                  SslProtocols?                                                  TLSProtocols                         = null,
+                                  CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
+                                  X509ChainPolicy?                                               CertificateChainPolicy               = null,
+                                  Boolean?                                                       EnforceTLS                           = null,
+                                  IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                 = null,
+                                  Boolean?                                                       AllowRenegotiation                   = null,
+                                  Boolean?                                                       AllowTLSResume                       = null,
+
+                                  TimeSpan?                                                      ConnectTimeout                       = null,
+                                  TimeSpan?                                                      ReceiveTimeout                       = null,
+                                  TimeSpan?                                                      SendTimeout                          = null,
+                                  UInt32?                                                        BufferSize                           = null,
+                                  TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
+                                  DNSClient?                                                     DNSClient                            = null)
+
+            : base(DomainName,
+                   DNSService,
+                   Description,
+
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as DNSHTTPSClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   LocalCertificateSelector,
+                   ClientCertificateChain,
+                   TLSProtocols,
+                   CipherSuitesPolicy,
+                   CertificateChainPolicy,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
+
+                   ConnectTimeout,
+                   ReceiveTimeout,
+                   SendTimeout,
+                   BufferSize,
+                   LoggingHandler,
+                   DNSClient)
+
+        {
+
+            this.HTTPUserAgent  = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+        }
+
+        #endregion
+
+        #endregion
 
 
 
@@ -223,7 +307,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             httpStream = tcpClient?.GetStream();
 
-            await StartTLS(CancellationToken);
+            if (EnforceTLS ||
+                RemoteURL?.Protocol == URLProtocols.https ||
+                RemoteURL?.Protocol == URLProtocols.wss)
+            {
+                await StartTLS(CancellationToken);
+            }
+
+            IsHTTPConnected = true;
 
         }
 
@@ -234,78 +325,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected async Task StartTLS(CancellationToken CancellationToken = default)
         {
 
-            if (tcpClient is not null)
+            if (httpStream is not null)
             {
 
-                var tcpStream = tcpClient.GetStream();
-
-                if (tcpStream is not null)
-                {
-
-                    tlsStream   = new SslStream(
-                                      tcpStream,
-                                      leaveInnerStreamOpen: false
-                                  );
-
-                    var authenticationOptions  = new SslClientAuthenticationOptions {
-                                                     //ApplicationProtocols                = new List<SslApplicationProtocol> {
-                                                     //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
-                                                     //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
-                                                     //                                      },
-                                                     AllowRenegotiation                  = AllowRenegotiation ?? true,
-                                                     AllowTlsResume                      = AllowTLSResume     ?? true,
-                                                     LocalCertificateSelectionCallback   = null,
-                                                     TargetHost                          = RemoteURL.Value.Hostname.ToString(), //SNI!
-                                                     ClientCertificates                  = null,
-                                                     ClientCertificateContext            = null,
-                                                     CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
-                                                     EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
-                                                     EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
-                                                     CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
-                                                     CertificateChainPolicy              = null, // new X509ChainPolicy()
-                                                 };
-
-                    if (RemoteCertificateValidationHandler is not null)
-                    {
-                        authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-
-                            var result = RemoteCertificateValidationHandler(
-                                             sender,
-                                             certificate is not null
-                                                 ? new X509Certificate2(certificate)
-                                                 : null,
-                                             chain,
-                                             this,
-                                             policyErrors
-                                         );
-
-                            return result.Item1;
-
-                        };
-                    }
-                    else
-                    {
-                        authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-                            return true;
-                        };
-                    }
-
-                    try
-                    {
-                        await tlsStream.AuthenticateAsClientAsync(
-                                  authenticationOptions,
-                                  CancellationToken
+                tlsStream   = new SslStream(
+                                  httpStream,
+                                  leaveInnerStreamOpen: false
                               );
-                    }
-                    catch (Exception e)
-                    {
-                        DebugX.Log($"Error during TLS authentication: {e.Message}");
-                    }
 
-                    IsHTTPConnected  = true;
-                    httpStream       = tlsStream;
+                var authenticationOptions  = new SslClientAuthenticationOptions {
+                                                    //ApplicationProtocols                = new List<SslApplicationProtocol> {
+                                                    //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
+                                                    //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
+                                                    //                                      },
+                                                    AllowRenegotiation                  = AllowRenegotiation ?? true,
+                                                    AllowTlsResume                      = AllowTLSResume     ?? true,
+                                                    LocalCertificateSelectionCallback   = null,
+                                                    TargetHost                          = RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString(), //SNI!
+                                                    ClientCertificates                  = null,
+                                                    ClientCertificateContext            = null,
+                                                    CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
+                                                    EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
+                                                    EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
+                                                    CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
+                                                    CertificateChainPolicy              = null, // new X509ChainPolicy()
+                                                };
 
+                if (RemoteCertificateValidationHandler is not null)
+                {
+                    authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
+
+                        var result = RemoteCertificateValidationHandler(
+                                            sender,
+                                            certificate is not null
+                                                ? new X509Certificate2(certificate)
+                                                : null,
+                                            chain,
+                                            this,
+                                            policyErrors
+                                        );
+
+                        return result.Item1;
+
+                    };
                 }
+                else
+                {
+                    authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
+                        return true;
+                    };
+                }
+
+                try
+                {
+                    await tlsStream.AuthenticateAsClientAsync(
+                                authenticationOptions,
+                                CancellationToken
+                            );
+                }
+                catch (Exception e)
+                {
+                    DebugX.Log($"Error during TLS authentication: {e.Message}");
+                }
+
+                httpStream       = tlsStream;
 
             }
 
@@ -375,10 +458,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             if (!IsConnected)
-         //       return (false, null, "Client is not connected.", TimeSpan.Zero);
+                return (false, null, "Client is not connected.", TimeSpan.Zero);
 
-         //  if (!IsHTTPConnected)
-               await ReconnectAsync().ConfigureAwait(false);
+            if (!IsHTTPConnected)
+                await ReconnectAsync().ConfigureAwait(false);
 
             var stopwatch = Stopwatch.StartNew();
 

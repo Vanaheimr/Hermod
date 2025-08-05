@@ -24,12 +24,12 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
 
-    public class HTTPRequestHandleX(HTTPAPIX                                   HTTPAPI,
-                                    HTTPDelegate?                              RequestHandler,
-                                    OnHTTPRequestLogDelegate?                  HTTPRequestLogger,
-                                    OnHTTPResponseLogDelegate?                 HTTPResponseLogger,
-                                    HTTPDelegate?                              DefaultErrorHandler,
-                                    Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers)
+    public class HTTPRequestHandlersX(HTTPAPIX                                   HTTPAPI,
+                                      HTTPDelegate?                              RequestHandler,
+                                      OnHTTPRequestLogDelegate?                  HTTPRequestLogger,
+                                      OnHTTPResponseLogDelegate?                 HTTPResponseLogger,
+                                      HTTPDelegate?                              DefaultErrorHandler,
+                                      Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers)
     {
 
         #region Properties
@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-        public static HTTPRequestHandleX FromURLNode(URL_NodeX URLNode)
+        public static HTTPRequestHandlersX FromURLNode(URL_NodeX URLNode)
 
             => new (URLNode.HTTPAPI,
                     URLNode.RequestHandler,
@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     URLNode.DefaultErrorHandler,
                     URLNode.ErrorHandlers);
 
-        public static HTTPRequestHandleX FromMethodNode(HTTPMethodNodeX MethodNode)
+        public static HTTPRequestHandlersX FromMethodNode(HTTPMethodNodeX MethodNode)
 
             => new (MethodNode.HTTPAPI,
                     MethodNode.RequestHandler,
@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     MethodNode.DefaultErrorHandler,
                     MethodNode.ErrorHandlers);
 
-        public static HTTPRequestHandleX FromContentTypeNode(ContentTypeNodeX ContentTypeNode)
+        public static HTTPRequestHandlersX FromContentTypeNode(ContentTypeNodeX ContentTypeNode)
 
             => new (ContentTypeNode.HTTPAPI,
                     ContentTypeNode.RequestHandler,

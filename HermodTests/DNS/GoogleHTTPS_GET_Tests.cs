@@ -36,7 +36,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.DNS
         [OneTimeSetUp]
         public void InitTests()
         {
-            client = DNSHTTPSClient.Google(Mode: DNSHTTPSMode.GET);
+
+            client  = DNSHTTPSClient.Google(
+                          Mode:       DNSHTTPSMode.GET,
+                          DNSClient:  new DNSClient(
+                                          SearchForIPv4DNSServers: true,
+                                          SearchForIPv6DNSServers: false
+                                      )
+                      );
+
         }
 
     }
