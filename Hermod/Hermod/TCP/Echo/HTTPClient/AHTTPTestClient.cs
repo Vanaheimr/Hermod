@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
-    public abstract class AHTTPTestClient : ATCPTestClient,
+    public abstract class AHTTPTestClient : ATLSTestClient,
                                             IDisposable,
                                             IAsyncDisposable
     {
@@ -75,6 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected AHTTPTestClient(IIPAddress                                                     Address,
                                   IPPort                                                         TCPPort,
+                                  I18NString?                                                    Description                          = null,
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
                                   Boolean?                                                       AllowTLSResume                       = null,
@@ -86,6 +87,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(Address,
                    TCPPort,
+                   Description,
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as DNSHTTPSClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -97,6 +114,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected AHTTPTestClient(URL                                                            URL,
                                   SRV_Spec?                                                      DNSService                           = null,
+                                  I18NString?                                                    Description                          = null,
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
                                   Boolean?                                                       AllowTLSResume                       = null,
@@ -109,6 +127,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(URL,
                    DNSService,
+                   Description,
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as DNSHTTPSClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -122,6 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected AHTTPTestClient(DomainName                                                     DNSName,
                                   SRV_Spec                                                       DNSService,
                                   Boolean?                                                       UseDNSURI                            = null,
+                                  I18NString?                                                    Description                          = null,
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
                                   Boolean?                                                       AllowTLSResume                       = null,
@@ -134,6 +169,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(DNSName,
                    DNSService,
+                   Description,
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as DNSHTTPSClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,

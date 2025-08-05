@@ -63,17 +63,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATLSTestClient(IIPAddress                                                    IPAddress,
                                  IPPort                                                        TCPPort,
+                                 I18NString?                                                   Description                          = null,
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TimeSpan?                                                     ConnectTimeout                       = null,
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
-                                 Boolean?                                                      AllowRenegotiation                   = null,
-                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
 
             : base(IPAddress,
                    TCPPort,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -82,9 +84,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
             this.AllowRenegotiation                  = AllowRenegotiation;
             this.AllowTLSResume                      = AllowTLSResume;
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -94,18 +96,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATLSTestClient(URL                                                           URL,
                                  SRV_Spec?                                                     DNSService                           = null,
+                                 I18NString?                                                   Description                          = null,
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TimeSpan?                                                     ConnectTimeout                       = null,
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
-                                 Boolean?                                                      AllowRenegotiation                   = null,
-                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                  DNSClient?                                                    DNSClient                            = null)
 
             : base(URL,
                    DNSService,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -115,9 +119,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
             this.AllowRenegotiation                  = AllowRenegotiation;
             this.AllowTLSResume                      = AllowTLSResume;
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -127,18 +131,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATLSTestClient(DomainName                                                    DomainName,
                                  SRV_Spec                                                      DNSService,
+                                 I18NString?                                                   Description                          = null,
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TimeSpan?                                                     ConnectTimeout                       = null,
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
-                                 Boolean?                                                      AllowRenegotiation                   = null,
-                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                  DNSClient?                                                    DNSClient                            = null)
 
             : base(DomainName,
                    DNSService,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -148,9 +154,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
             this.AllowRenegotiation                  = AllowRenegotiation;
             this.AllowTLSResume                      = AllowTLSResume;
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 

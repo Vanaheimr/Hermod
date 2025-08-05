@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public  URL?                     RemoteURL          { get; }
         public  IIPAddress?              RemoteIPAddress    { get; private   set; }
-        public  IPPort?                  RemotePort      { get; protected set; }
+        public  IPPort?                  RemotePort         { get; protected set; }
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
         public  TimeSpan                 SendTimeout        { get; }
@@ -202,7 +202,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (private)   ATCPTestClient(...)
 
-        private ATCPTestClient(TimeSpan?                ConnectTimeout   = null,
+        private ATCPTestClient(I18NString?              Description      = null,
+                               TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
                                UInt32?                  BufferSize       = null,
@@ -228,6 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;
             this.SendTimeout      = SendTimeout    ?? DefaultSendTimeout;
             this.loggingHandler   = LoggingHandler;
+            this.DNSClient        = DNSClient ?? new DNSClient();
 
         }
 
@@ -237,13 +239,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATCPTestClient(IIPAddress               IPAddress,
                                  IPPort                   TCPPort,
+                                 I18NString?              Description      = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
                                  UInt32?                  BufferSize       = null,
                                  TCPEchoLoggingDelegate?  LoggingHandler   = null)
 
-            : this(ConnectTimeout,
+            : this(Description,
+                   ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize,
@@ -262,6 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATCPTestClient(URL                      URL,
                                  SRV_Spec?                DNSService       = null,
+                                 I18NString?              Description      = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -269,7 +274,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TCPEchoLoggingDelegate?  LoggingHandler   = null,
                                  DNSClient?               DNSClient        = null)
 
-            : this(ConnectTimeout,
+            : this(Description,
+                   ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize,
@@ -290,6 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected ATCPTestClient(DomainName               DomainName,
                                  SRV_Spec                 DNSService,
+                                 I18NString?              Description      = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -297,7 +304,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TCPEchoLoggingDelegate?  LoggingHandler   = null,
                                  DNSClient?               DNSClient        = null)
 
-            : this(ConnectTimeout,
+            : this(Description,
+                   ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize,

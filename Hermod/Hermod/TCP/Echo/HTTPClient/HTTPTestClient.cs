@@ -17,16 +17,13 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using Org.BouncyCastle.Utilities;
-using System;
+using System.Text;
 using System.Buffers;
 using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
+
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -42,7 +39,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     {
 
         #region Data
-
         public Boolean IsHTTPConnected { get; private set; } = false;
 
         #endregion
@@ -58,16 +54,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        private HTTPTestClient(IIPAddress               Address,
+        private HTTPTestClient(IIPAddress               IPAddress,
                                IPPort                   TCPPort,
+                               I18NString?              Description      = null,
                                TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
                                UInt32?                  BufferSize       = null,
                                TCPEchoLoggingDelegate?  LoggingHandler   = null)
 
-            : base(Address,
+            : base(IPAddress,
                    TCPPort,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -79,6 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private HTTPTestClient(URL                      URL,
                                SRV_Spec?                DNSService       = null,
+                               I18NString?              Description      = null,
                                TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
@@ -88,6 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(URL,
                    DNSService,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -101,6 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private HTTPTestClient(DomainName               DNSName,
                                SRV_Spec                 DNSService,
                                Boolean?                 UseDNSURI        = null,
+                               I18NString?              Description      = null,
                                TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
@@ -110,6 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(DNSName,
                    DNSService,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -140,6 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPTestClient>
 
             ConnectNew(IPPort                   TCPPort,
+                       I18NString?              Description      = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -149,6 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 => await ConnectNew(
                              IPvXAddress.Localhost,
                              TCPPort,
+                             Description,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -174,6 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             ConnectNew(IIPAddress               IPAddress,
                        IPPort                   TCPPort,
+                       I18NString?              Description      = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -185,6 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var client = new HTTPTestClient(
                              IPAddress,
                              TCPPort,
+                             Description,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -216,6 +222,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             ConnectNew(URL                      URL,
                        SRV_Spec?                DNSService       = null,
+                       I18NString?              Description      = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -228,6 +235,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var client = new HTTPTestClient(
                              URL,
                              DNSService,
+                             Description,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -262,6 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             ConnectNew(DomainName               DNSName,
                        SRV_Spec                 DNSService,
                        Boolean?                 UseDNSURI        = false,
+                       I18NString?              Description      = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -275,6 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              DNSName,
                              DNSService,
                              UseDNSURI,
+                             Description,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -573,7 +583,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             => $"{nameof(HTTPTestClient)}: {RemoteIPAddress}:{RemotePort} (Connected: {IsConnected})";
 
         #endregion
-
 
     }
 

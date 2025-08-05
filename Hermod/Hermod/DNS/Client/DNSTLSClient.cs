@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Illias;
 using Org.BouncyCastle.Tls;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -68,19 +69,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="IPAddress">The DNS server to query.</param>
         public DNSTLSClient(IIPAddress                                                  IPAddress,
                             IPPort?                                                     TCPPort                              = null,
+                            I18NString?                                                 Description                          = null,
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
+                            Boolean?                                                    AllowRenegotiation                   = null,
+                            Boolean?                                                    AllowTLSResume                       = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
                             UInt32?                                                     BufferSize                           = null,
-                            Boolean?                                                    AllowRenegotiation                   = null,
-                            Boolean?                                                    AllowTLSResume                       = null,
                             TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.DNS_TLS,
+                   Description,
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -94,12 +97,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize ?? 512,
-                   AllowRenegotiation,
-                   AllowTLSResume,
                    LoggingHandler)
 
         {
@@ -118,19 +121,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
         public DNSTLSClient(URL                                                         URL,
+                            I18NString?                                                 Description                          = null,
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
+                            Boolean?                                                    AllowRenegotiation                   = null,
+                            Boolean?                                                    AllowTLSResume                       = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
                             UInt32?                                                     BufferSize                           = null,
-                            Boolean?                                                    AllowRenegotiation                   = null,
-                            Boolean?                                                    AllowTLSResume                       = null,
                             TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
 
             : base(URL,
                    null,
+                   Description,
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -144,12 +149,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize ?? 512,
-                   AllowRenegotiation,
-                   AllowTLSResume,
                    LoggingHandler)
 
         {
@@ -386,6 +391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("8.8.8.8"),
                    IPPort.DNS_TLS,
+                   I18NString.Create("Google (8.8.8.8)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -403,6 +409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://8.8.4.4:853"),
+                   I18NString.Create("Google (8.8.4.4)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -421,6 +428,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2001:4860:4860::8888"),
                    IPPort.DNS_TLS,
+                   I18NString.Create("Google (2001:4860:4860::8888)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -438,6 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://[2001:4860:4860::8844]:853"),
+                   I18NString.Create("Google (2001:4860:4860::8844)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -570,6 +579,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://one.one.one.one:853"),
+                   I18NString.Create("Cloudflare (one.one.one.one)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -587,6 +597,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://1.1.1.1:853"),
+                   I18NString.Create("Cloudflare (1.1.1.1)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -604,6 +615,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://1.0.0.1:853"),
+                   I18NString.Create("Cloudflare (1.0.0.1)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -621,6 +633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://162.159.36.1:853"),
+                   I18NString.Create("Cloudflare (162.159.36.1)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -638,6 +651,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://162.159.46.1:853"),
+                   I18NString.Create("Cloudflare (162.159.46.1)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -655,6 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://[2606:4700:4700::1001]:853"),
+                   I18NString.Create("Cloudflare (2606:4700:4700::1001)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -672,6 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://[2606:4700:4700::1111]:853"),
+                   I18NString.Create("Cloudflare (2606:4700:4700::1111)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -689,6 +705,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://[2606:4700:4700::0064]:853"),
+                   I18NString.Create("Cloudflare (2606:4700:4700::0064)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler
@@ -706,6 +723,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("tls://[2606:4700:4700::6400]:853"),
+                   I18NString.Create("Cloudflare (2606:4700:4700::6400)"),
                    RecursionDesired,
                    QueryTimeout,
                    RemoteCertificateValidationHandler

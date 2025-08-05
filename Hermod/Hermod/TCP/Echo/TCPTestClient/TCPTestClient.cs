@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Diagnostics;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -35,6 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private TCPTestClient(IIPAddress               Address,
                               IPPort                   TCPPort,
+                              I18NString?              Description      = null,
                               TimeSpan?                ConnectTimeout   = null,
                               TimeSpan?                ReceiveTimeout   = null,
                               TimeSpan?                SendTimeout      = null,
@@ -43,6 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             : base(Address,
                    TCPPort,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -68,6 +71,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<TCPTestClient>
 
             ConnectNew(IPPort                   TCPPort,
+                       I18NString?              Description      = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -77,6 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 => await ConnectNew(
                              IPvXAddress.Localhost,
                              TCPPort,
+                             Description,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -102,6 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             ConnectNew(IIPAddress               IPAddress,
                        IPPort                   TCPPort,
+                       I18NString?              Description      = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -113,6 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             var client = new TCPTestClient(
                              IPAddress,
                              TCPPort,
+                             Description,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,

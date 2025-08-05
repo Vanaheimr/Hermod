@@ -85,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="IPAddress">The DNS server to query.</param>
         public DNSHTTPSClient(IIPAddress                                                    IPAddress,
                               IPPort?                                                       TCPPort                              = null,
+                              I18NString?                                                   Description                          = null,
                               DNSHTTPSMode?                                                 Mode                                 = null,
                               Boolean?                                                      RecursionDesired                     = null,
                               TimeSpan?                                                     QueryTimeout                         = null,
@@ -99,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
+                   Description,
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -137,6 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
         public DNSHTTPSClient(URL                                                           URL,
+                              I18NString?                                                   Description                          = null,
                               DNSHTTPSMode?                                                 Mode                                 = null,
                               Boolean?                                                      RecursionDesired                     = null,
                               TimeSpan?                                                     QueryTimeout                         = null,
@@ -152,6 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             : base(URL,
                    null,
+                   Description,
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -208,6 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             ConnectNew(IIPAddress                                                    IPAddress,
                        IPPort                                                        TCPPort,
+                       I18NString?                                                   Description                          = null,
                        DNSHTTPSMode?                                                 Mode                                 = null,
                        Boolean?                                                      RecursionDesired                     = null,
                        TimeSpan?                                                     QueryTimeout                         = null,
@@ -225,6 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             var client = new DNSHTTPSClient(
                              IPAddress,
                              TCPPort,
+                             Description,
                              Mode,
                              RecursionDesired,
                              QueryTimeout,
@@ -261,6 +267,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public static async Task<DNSHTTPSClient>
 
             ConnectNew(URL                                                           URL,
+                       I18NString?                                                   Description                          = null,
                        DNSHTTPSMode?                                                 Mode                                 = null,
                        SRV_Spec?                                                     DNSService                           = null,
                        Boolean?                                                      RecursionDesired                     = null,
@@ -279,6 +286,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             var client = new DNSHTTPSClient(
                              URL,
+                             Description,
                              Mode,
                              RecursionDesired,
                              QueryTimeout,
@@ -436,6 +444,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("https://dns.google/dns-query"),
+                   I18NString.Create("Google"),
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
@@ -453,6 +462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("https://one.one.one.one/dns-query"),
+                   I18NString.Create("Cloudflare (one.one.one.one)"),
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
@@ -466,6 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("https://1.1.1.1/dns-query"),
+                   I18NString.Create("Cloudflare (1.1.1.1)"),
                    Mode,
                    RecursionDesired,
                    QueryTimeout,
@@ -479,6 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             => new (
                    URL.Parse("https://1.0.0.1/dns-query"),
+                   I18NString.Create("Cloudflare (1.0.0.1)"),
                    Mode,
                    RecursionDesired,
                    QueryTimeout,

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
 using System.Diagnostics;
 
 #endregion
@@ -65,6 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// <param name="IPAddress">The DNS server to query.</param>
         public DNSTCPClient(IIPAddress               IPAddress,
                             IPPort?                  Port               = null,
+                            I18NString?              Description        = null,
                             Boolean?                 RecursionDesired   = null,
                             TimeSpan?                QueryTimeout       = null,
                             TimeSpan?                ConnectTimeout     = null,
@@ -75,6 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
             : base(IPAddress,
                    Port ?? IPPort.DNS,
+                   Description,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -298,6 +301,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("8.8.8.8"),
                    IPPort.DNS,
+                   I18NString.Create("Google (8.8.8.8)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -313,6 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("8.8.4.4"),
                    IPPort.DNS,
+                   I18NString.Create("Google (8.8.4.4)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -329,6 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2001:4860:4860::8888"),
                    IPPort.DNS,
+                   I18NString.Create("Google (2001:4860:4860::8888)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -344,6 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2001:4860:4860::8844"),
                    IPPort.DNS,
+                   I18NString.Create("Google (2001:4860:4860::8844)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -462,6 +469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("1.1.1.1"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (1.1.1.1)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -477,6 +485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("1.0.0.1"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (1.0.0.1)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -492,6 +501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("162.159.36.1"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (162.159.36.1)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -507,6 +517,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv4Address.Parse("162.159.46.1"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (162.159.46.1)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -523,6 +534,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2606:4700:4700::1001"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (2606:4700:4700::1001)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -538,6 +550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2606:4700:4700::1111"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (2606:4700:4700::1111)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -553,6 +566,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2606:4700:4700::0064"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (2606:4700:4700::0064)"),
                    RecursionDesired,
                    QueryTimeout
                );
@@ -568,6 +582,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             => new (
                    IPv6Address.Parse("2606:4700:4700::6400"),
                    IPPort.DNS,
+                   I18NString.Create("Cloudflare (2606:4700:4700::6400)"),
                    RecursionDesired,
                    QueryTimeout
                );
