@@ -34,11 +34,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Data
 
-        private        readonly Lock              acceptTypesLock = new();
+        private        readonly List<AcceptType>  acceptedTypes  = [];
 
-        private        readonly List<AcceptType>  acceptedTypes;
-
-        private static readonly Char[]            splitter = [','];
+        private static readonly Char[]            splitter       = [','];
 
         #endregion
 
@@ -46,12 +44,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public AcceptTypes(params AcceptType[] AcceptTypes)
         {
-
-            acceptedTypes = [];
-
-            if (AcceptTypes is not null && AcceptTypes.Length != 0)
-                acceptedTypes.AddRange(AcceptTypes);
-
+            foreach (var acceptType in AcceptTypes)
+            {
+                if (acceptType is not null)
+                    acceptedTypes.Add(acceptType.Clone());
+            }
         }
 
         #endregion
@@ -62,6 +59,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String                                AcceptString,
                                        [NotNullWhen(true)] out AcceptTypes?  AcceptTypes)
         {
+
+            // Higher q value means higher priority!
+            // Accept: application/json;q=0.8, text/html;q=1
+
+            // Same q value means the first one wins.
+
+            // More specific content types have higher priority than less specific ones: text/html over text/* or */*!
 
             var elements = AcceptString.Split(splitter, StringSplitOptions.RemoveEmptyEntries);
 
@@ -102,8 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static AcceptTypes FromHTTPContentTypes(params HTTPContentType[] HTTPContentTypes)
 
-            => new (HTTPContentTypes?.Select(contentType => new AcceptType(contentType, 1))?.ToArray()
-                        ?? []);
+            => [.. HTTPContentTypes?.Select(contentType => new AcceptType(contentType, 1))?.ToArray() ?? []];
 
         #endregion
 
@@ -112,8 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public AcceptTypes Clone()
 
-            => new (acceptedTypes.Select (acceptType => acceptType.Clone()).
-                                  ToArray());
+            => [.. acceptedTypes.Select(acceptType => acceptType.Clone()).ToArray()];
 
         #endregion
 
@@ -126,10 +128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (AcceptType is null)
                 return;
 
-            lock (acceptTypesLock)
-            {
-                acceptedTypes.Add(AcceptType);
-            }
+            acceptedTypes.Add(AcceptType);
 
         }
 
@@ -144,15 +143,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPContentType is null)
                 return;
 
-            lock (acceptTypesLock)
-            {
-                acceptedTypes.Add(
-                    new AcceptType(
-                        HTTPContentType,
-                        Quality
-                    )
-                );
-            }
+            acceptedTypes.Add(
+                new AcceptType(
+                    HTTPContentType,
+                    Quality
+                )
+            );
 
         }
 
@@ -164,13 +160,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Will return the best matching content type OR the first given!
         /// </summary>
-        /// <param name="AvailableContentTypes"></param>
+        /// <param name="AvailableContentTypes">A list of available content types.</param>
         public HTTPContentType BestMatchingContentType(params HTTPContentType[] AvailableContentTypes)
         {
 
             var MatchingAcceptHeaders = new AcceptTypes();
 
-            // If no Accept-headerfield was given -> return anything
+            // If no Accept-header field was given -> return anything
             if (acceptedTypes.IsNullOrEmpty())
                 return HTTPContentType.ALL;
 
@@ -215,7 +211,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-
         #region GetEnumerator()
 
         public IEnumerator<AcceptType> GetEnumerator()
@@ -236,7 +231,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Returns a text representation of this object.
         /// </summary>
-        /// <returns>A string representation of this object.</returns>
         public override String ToString()
         {
 

@@ -17,10 +17,10 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
 using System.Collections.Concurrent;
-using static org.GraphDefined.Vanaheimr.Hermod.HTTPTest.HTTPTestServerX;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -113,7 +113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                HTTPDelegate?                              DefaultErrorHandler         = null,
                                Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
-                               URLReplacement                             AllowReplacement            = URLReplacement.Fail)
+                               URLReplacement?                            AllowReplacement            = null)
 
         {
 
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             #endregion
 
-            var requestHandle = new HTTPRequestHandleX(
+            var requestHandle = new HTTPRequestHandlersX(
                                     this,
                                     HTTPDelegate,
                                     HTTPRequestLogger,
@@ -140,30 +140,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var routeNode1    = routeNodes.GetOrAdd(
                                     segments[0],
-                                    hh => {
-                                              if (hh.StartsWith('{') && hh.EndsWith('}'))
-                                              {
+                                    segment => {
+                                        if (segment.StartsWith('{') && segment.EndsWith('}'))
+                                        {
 
-                                                   var paramName = hh[1..^1];
+                                             var paramName = segment[1..^1];
 
-                                                   if (("/" + hh) == URLTemplate.ToString())
-                                                   {
-                                                       return RouteNode2.ForCatchRestOfPath(
-                                                                  "/" + hh,
-                                                                  paramName,
-                                                                  requestHandle
-                                                              );
-                                                   }
+                                             if (("/" + segment) == URLTemplate.ToString())
+                                             {
+                                                 return RouteNode2.ForCatchRestOfPath(
+                                                            "/" + segment,
+                                                            paramName,
+                                                            AllowReplacement: AllowReplacement
+                                                        );
+                                             }
 
-                                                   return RouteNode2.ForParameter(
-                                                              "/" + hh,
-                                                              paramName,
-                                                              requestHandle
-                                                          );
-                                              }
-                                              else
-                                                  return RouteNode2.FromPath("/" + segments[0], HTTPPath.Root.ToString(), requestHandle);
-                                          }
+                                             return RouteNode2.ForParameter(
+                                                        "/" + segment,
+                                                        paramName
+                                                    );
+                                        }
+                                        else
+                                            return RouteNode2.FromPath(
+                                                       "/" + segments[0],
+                                                       HTTPPath.Root.ToString()
+                                                   );
+                                    }
                                 );
 
             foreach (var segment in segments.Skip(1))
@@ -171,40 +173,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 var routeNode2 = routeNode1.Children.GetOrAdd(
                                      segment,
-                                     ss => {
+                                     segment => {
 
-                                               if (ss.StartsWith('{') && ss.EndsWith('}'))
-                                               {
+                                         if (segment.StartsWith('{') && segment.EndsWith('}'))
+                                         {
 
-                                                   var paramName = ss[1..^1];
+                                             var paramName = segment[1..^1];
 
-                                                   if ((routeNode1.FullPath + "/" + ss) == URLTemplate.ToString())
-                                                   {
-                                                       return RouteNode2.ForCatchRestOfPath(
-                                                                  routeNode1.FullPath + "/" + ss,
-                                                                  paramName,
-                                                                  requestHandle
-                                                              );
-                                                   }
+                                             if ((routeNode1.FullPath + "/" + segment) == URLTemplate.ToString())
+                                             {
+                                                 return RouteNode2.ForCatchRestOfPath(
+                                                            routeNode1.FullPath + "/" + segment,
+                                                            paramName
+                                                        );
+                                             }
 
-                                                   return RouteNode2.ForParameter(
-                                                              routeNode1.FullPath + "/" + ss,
-                                                              paramName,
-                                                              requestHandle
-                                                          );
+                                             return RouteNode2.ForParameter(
+                                                        routeNode1.FullPath + "/" + segment,
+                                                        paramName
+                                                    );
 
-                                               }
+                                         }
 
                                          return RouteNode2.FromPath(
-                                                    routeNode1.FullPath + "/" + ss,
-                                                    "/" + ss,
-                                                    requestHandle
+                                                    routeNode1.FullPath + "/" + segment,
+                                                    "/" + segment
                                                 );
 
-                                            }
+                                     }
                                  );
 
                 routeNode1 = routeNode2;
+
+            }
+
+
+            if (HTTPMethod is null)
+                routeNode1.RequestHandlers = requestHandle;
+
+            else
+            {
+
+                var methodNode = routeNode1.Methods.GetOrAdd(
+                                     HTTPMethod,
+                                     new MethodNode(
+                                         HTTPMethod,
+                                         AllowReplacement: AllowReplacement
+                                     )
+                                 );
+
+                if (HTTPContentType is null)
+                    methodNode.RequestHandlers  = requestHandle;
+
+                else
+                    methodNode.AddContentType(
+                        HTTPContentType,
+                        requestHandle
+                    );
 
             }
 
@@ -213,20 +238,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        internal (HTTPRequestHandleX?, Dictionary<String, String>)
+        internal ParsedRequest2
 
-            GetRequestHandle(HTTPHostname                               Host,
-                             HTTPPath                                   Path,
-                             out String?                                ErrorResponse,
-                             HTTPMethod?                                HTTPMethod                    = null,
-                             Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
-                             Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
+            GetRequestHandle(//HTTPHostname                               Host,
+                             HTTPPath                                   Path)
+                         //    out String?                                ErrorResponse,
+                         //    HTTPMethod?                                HTTPMethod                    = null,
+                         //    Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
+                         //    Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
 
         {
 
             var segments    = Path.ToString().Trim('/').Split('/');
             var parameters  = new Dictionary<String, String>();
-            ErrorResponse   = null;
+         //   ErrorResponse   = null;
 
             if (!routeNodes.TryGetValue(segments[0], out var routeNode))
             {
@@ -242,14 +267,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                             : segments[0]
                     );
 
-                    return (parameterCatcher.RequestHandle, parameters);
+                    if (parameterCatcher.CatchRestOfPath)
+                        return ParsedRequest2.Parsed(parameterCatcher, parameters);
 
                 }
                 else
-                {
-                    ErrorResponse = $"Unknown path {Path}!";
-                    return (null, parameters);
-                }
+                    return ParsedRequest2.Error(
+                               $"Unknown path {Path}!",
+                               parameters
+                           );
 
             }
             else
@@ -283,23 +309,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                     : segments[i]
                             );
 
-                            return (parameterCatcher.RequestHandle, parameters);
+                            if (parameterCatcher.CatchRestOfPath)
+                                return ParsedRequest2.Parsed(parameterCatcher, parameters);
 
                         }
                         else
-                        {
-                            ErrorResponse = $"Unknown path {Path}!";
-                            return (null, parameters);
-                        }
+                            return ParsedRequest2.Error(
+                                       $"Unknown path {Path}!",
+                                       parameters
+                                   );
+
+                        routeNode = parameterCatcher;
 
                     }
 
-                    routeNode = routeNode2;
+                    else
+                        routeNode = routeNode2;
 
                 }
 
-            ErrorResponse = "error!";
-            return (null, parameters);
+            return ParsedRequest2.Error(
+                       $"Unknown path {Path}!",
+                       parameters
+                   );
 
         }
 

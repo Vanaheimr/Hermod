@@ -17,10 +17,10 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using Org.BouncyCastle.Tls;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Net.Security;
+
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -71,12 +71,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
+                            IEnumerable<SslApplicationProtocol>?                        ApplicationProtocols                 = null,
+                            Boolean?                                                    AllowRenegotiation                   = null,
+                            Boolean?                                                    AllowTLSResume                       = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
                             UInt32?                                                     BufferSize                           = null,
-                            Boolean?                                                    AllowRenegotiation                   = null,
-                            Boolean?                                                    AllowTLSResume                       = null,
                             TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
 
             : base(IPAddress,
@@ -94,12 +95,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   true,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize ?? 512,
-                   AllowRenegotiation,
-                   AllowTLSResume,
                    LoggingHandler)
 
         {
@@ -121,12 +124,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
+                            IEnumerable<SslApplicationProtocol>?                        ApplicationProtocols                 = null,
+                            Boolean?                                                    AllowRenegotiation                   = null,
+                            Boolean?                                                    AllowTLSResume                       = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
                             UInt32?                                                     BufferSize                           = null,
-                            Boolean?                                                    AllowRenegotiation                   = null,
-                            Boolean?                                                    AllowTLSResume                       = null,
                             TCPEchoLoggingDelegate?                                     LoggingHandler                       = null)
 
             : base(URL,
@@ -144,12 +148,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                policyErrors
                                            )
                        : null,
+                   true,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize ?? 512,
-                   AllowRenegotiation,
-                   AllowTLSResume,
                    LoggingHandler)
 
         {

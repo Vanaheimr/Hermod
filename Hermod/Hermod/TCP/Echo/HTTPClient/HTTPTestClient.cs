@@ -17,16 +17,10 @@
 
 #region Usings
 
+using System.Net.Security;
+
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using Org.BouncyCastle.Utilities;
-using System;
-using System.Buffers;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
 
 #endregion
 
@@ -36,129 +30,152 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
-    public class HTTPTestClient : ATCPTestClient,
+    public class HTTPTestClient : AHTTPTestClient,
                                   IDisposable,
                                   IAsyncDisposable
     {
 
-        #region Data
-
-        public Boolean IsHTTPConnected { get; private set; } = false;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Use DNS URI records to resolve the hostname to IP addresses.
-        /// </summary>
-        public Boolean  UseDNSURI    { get; }
-
-        #endregion
-
         #region Constructor(s)
 
-        private HTTPTestClient(IIPAddress               Address,
-                               IPPort                   TCPPort,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        #region HTTPTestClient(IPAddress, ...)
 
-            : base(Address,
-                   TCPPort,
+        private HTTPTestClient(IIPAddress                                                    IPAddress,
+                               IPPort?                                                       TCPPort                              = null,
+                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                               Boolean?                                                      EnforceTLS                           = null,
+                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                               Boolean?                                                      AllowRenegotiation                   = null,
+                               Boolean?                                                      AllowTLSResume                       = null,
+                               TimeSpan?                                                     ConnectTimeout                       = null,
+                               TimeSpan?                                                     ReceiveTimeout                       = null,
+                               TimeSpan?                                                     SendTimeout                          = null,
+                               UInt32?                                                       BufferSize                           = null,
+                               String?                                                       HTTPUserAgent                        = null,
+                               TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
+
+            : base(IPAddress,
+                   TCPPort ?? IPPort.HTTPS,
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as HTTPTestClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
-                   BufferSize,
+                   BufferSize ?? 512,
+                   HTTPUserAgent,
                    LoggingHandler)
 
         { }
 
+        #endregion
 
-        private HTTPTestClient(URL                      URL,
-                               SRV_Spec?                DNSService       = null,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                               DNSClient?               DNSClient        = null)
+
+        private HTTPTestClient(URL                                                           URL,
+                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                               Boolean?                                                      AllowRenegotiation                   = null,
+                               Boolean?                                                      AllowTLSResume                       = null,
+                               TimeSpan?                                                     ConnectTimeout                       = null,
+                               TimeSpan?                                                     ReceiveTimeout                       = null,
+                               TimeSpan?                                                     SendTimeout                          = null,
+                               UInt32?                                                       BufferSize                           = null,
+                               String?                                                       HTTPUserAgent                        = null,
+                               TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                               DNSClient?                                                    DNSClient                            = null)
 
             : base(URL,
-                   DNSService,
+                   null,
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as HTTPTestClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
-                   BufferSize,
+                   BufferSize  ?? 512,
+                   HTTPUserAgent,
                    LoggingHandler,
                    DNSClient)
 
         { }
 
 
-        private HTTPTestClient(DomainName               DNSName,
-                               SRV_Spec                 DNSService,
-                               Boolean?                 UseDNSURI        = null,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                               DNSClient?               DNSClient        = null)
+        private HTTPTestClient(DomainName                                                    DNSName,
+                               SRV_Spec                                                      DNSService,
+                          //     Boolean?                                                      UseDNSURI                            = null,
+                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                               Boolean?                                                      EnforceTLS                           = null,
+                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                               Boolean?                                                      AllowRenegotiation                   = null,
+                               Boolean?                                                      AllowTLSResume                       = null,
+                               TimeSpan?                                                     ConnectTimeout                       = null,
+                               TimeSpan?                                                     ReceiveTimeout                       = null,
+                               TimeSpan?                                                     SendTimeout                          = null,
+                               UInt32?                                                       BufferSize                           = null,
+                               String?                                                       HTTPUserAgent                        = null,
+                               TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                               DNSClient?                                                    DNSClient                            = null)
 
             : base(DNSName,
                    DNSService,
+                   //UseDNSURI,
+                   RemoteCertificateValidationHandler is not null
+                       ? (sender,
+                          certificate,
+                          certificateChain,
+                          tlsClient,
+                          policyErrors) => RemoteCertificateValidationHandler.Invoke(
+                                               sender,
+                                               certificate,
+                                               certificateChain,
+                                               tlsClient as HTTPTestClient,
+                                               policyErrors
+                                           )
+                       : null,
+                   EnforceTLS,
+                   ApplicationProtocols,
+                   AllowRenegotiation,
+                   AllowTLSResume,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
                    BufferSize,
+                   HTTPUserAgent,
                    LoggingHandler,
                    DNSClient)
 
-        {
-
-            this.UseDNSURI = UseDNSURI ?? false;
-
-        }
+        { }
 
         #endregion
 
 
-        #region ConnectNew (         TCPPort, ...)
-
-        /// <summary>
-        /// Create a new HTTPTestClient and connect to the given address and TCP port.
-        /// </summary>
-        /// <param name="TCPPort">The TCP port to connect to.</param>
-        /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
-        /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
-        /// <param name="SendTimeout">An optional timeout for sending data.</param>
-        /// <param name="BufferSize">An optional buffer size for sending and receiving data.</param>
-        /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
-        public static async Task<HTTPTestClient>
-
-            ConnectNew(IPPort                   TCPPort,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null)
-
-                => await ConnectNew(
-                             IPvXAddress.Localhost,
-                             TCPPort,
-                             ConnectTimeout,
-                             ReceiveTimeout,
-                             SendTimeout,
-                             BufferSize,
-                             LoggingHandler
-                         );
-
-        #endregion
-
-        #region ConnectNew (Address, TCPPort, ...)
+        #region ConnectNew (IPAddress, TCPPort, ...)
 
         /// <summary>
         /// Create a new HTTPTestClient and connect to the given address and TCP port.
@@ -172,23 +189,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<HTTPTestClient>
 
-            ConnectNew(IIPAddress               IPAddress,
-                       IPPort                   TCPPort,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null)
+            ConnectNew(IIPAddress                                                    IPAddress,
+                       IPPort                                                        TCPPort,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                       Boolean?                                                      EnforceTLS                           = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                       Boolean?                                                      AllowRenegotiation                   = null,
+                       Boolean?                                                      AllowTLSResume                       = null,
+                       TimeSpan?                                                     ConnectTimeout                       = null,
+                       TimeSpan?                                                     ReceiveTimeout                       = null,
+                       TimeSpan?                                                     SendTimeout                          = null,
+                       UInt32?                                                       BufferSize                           = null,
+                       String?                                                       HTTPUserAgent                        = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
 
         {
 
             var client = new HTTPTestClient(
                              IPAddress,
                              TCPPort,
+                             RemoteCertificateValidationHandler,
+                             EnforceTLS,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
                              BufferSize,
+                             HTTPUserAgent,
                              LoggingHandler
                          );
 
@@ -206,7 +235,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// Create a new HTTPTestClient and connect to the given URL.
         /// </summary>
         /// <param name="URL">The URL to connect to.</param>
-        /// <param name="DNSService">The DNS service to lookup in order to resolve high available IP addresses and TCP ports for the given URL hostname.</param>
         /// <param name="ConnectTimeout">An optional timeout for the connection attempt.</param>
         /// <param name="ReceiveTimeout">An optional timeout for receiving data.</param>
         /// <param name="SendTimeout">An optional timeout for sending data.</param>
@@ -214,24 +242,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<HTTPTestClient>
 
-            ConnectNew(URL                      URL,
-                       SRV_Spec?                DNSService       = null,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                       DNSClient?               DNSClient        = null)
+            ConnectNew(URL                                                           URL,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                       Boolean?                                                      AllowRenegotiation                   = null,
+                       Boolean?                                                      AllowTLSResume                       = null,
+                       TimeSpan?                                                     ConnectTimeout                       = null,
+                       TimeSpan?                                                     ReceiveTimeout                       = null,
+                       TimeSpan?                                                     SendTimeout                          = null,
+                       UInt32?                                                       BufferSize                           = null,
+                       String?                                                       HTTPUserAgent                        = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                       DNSClient?                                                    DNSClient                            = null)
 
         {
 
             var client = new HTTPTestClient(
                              URL,
-                             DNSService,
+                             RemoteCertificateValidationHandler,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
                              BufferSize,
+                             HTTPUserAgent,
                              LoggingHandler,
                              DNSClient
                          );
@@ -259,26 +295,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<HTTPTestClient>
 
-            ConnectNew(DomainName               DNSName,
-                       SRV_Spec                 DNSService,
-                       Boolean?                 UseDNSURI        = false,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                       DNSClient?               DNSClient        = null)
+            ConnectNew(DomainName                                                    DNSName,
+                       SRV_Spec                                                      DNSService,
+                     //  Boolean?                                                      UseDNSURI                            = null,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidationHandler   = null,
+                       Boolean?                                                      EnforceTLS                           = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                       Boolean?                                                      AllowRenegotiation                   = null,
+                       Boolean?                                                      AllowTLSResume                       = null,
+                       TimeSpan?                                                     ConnectTimeout                       = null,
+                       TimeSpan?                                                     ReceiveTimeout                       = null,
+                       TimeSpan?                                                     SendTimeout                          = null,
+                       UInt32?                                                       BufferSize                           = null,
+                       String?                                                       HTTPUserAgent                        = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
+                       DNSClient?                                                    DNSClient                            = null)
 
         {
 
             var client = new HTTPTestClient(
                              DNSName,
                              DNSService,
-                             UseDNSURI,
+                         //    UseDNSURI,
+                             RemoteCertificateValidationHandler,
+                             EnforceTLS,
+                             ApplicationProtocols,
+                             AllowRenegotiation,
+                             AllowTLSResume,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
                              BufferSize,
+                             HTTPUserAgent,
                              LoggingHandler,
                              DNSClient
                          );
@@ -294,271 +342,271 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region ReconnectAsync()
 
-        public async Task ReconnectAsync()
-        {
+        //public async Task ReconnectAsync()
+        //{
 
-            await base.ReconnectAsync().ConfigureAwait(false);
+        //    await base.ReconnectAsync().ConfigureAwait(false);
 
-            IsHTTPConnected = true;
+        //    //IsHTTPConnected = true;
 
-        }
+        //}
 
-        #endregion
+        //#endregion
 
-        #region ConnectAsync()
+        //#region ConnectAsync()
 
-        public async Task ConnectAsync()
-        {
+        //public async Task ConnectAsync()
+        //{
 
-            await base.ConnectAsync().ConfigureAwait(false);
+        //    await base.ConnectAsync().ConfigureAwait(false);
 
-            IsHTTPConnected = true;
+        //    IsHTTPConnected = true;
 
-        }
+        //}
 
         #endregion
 
 
         #region CreateRequest (HTTPMethod, HTTPPath, ...)
 
-        /// <summary>
-        /// Create a new HTTP request.
-        /// </summary>
-        /// <param name="HTTPMethod">An HTTP method.</param>
-        /// <param name="HTTPPath">An HTTP path.</param>
-        /// <param name="QueryString">An optional HTTP Query String.</param>
-        /// <param name="Accept">An optional HTTP accept header.</param>
-        /// <param name="Authentication">An optional HTTP authentication.</param>
-        /// <param name="UserAgent">An optional HTTP user agent.</param>
-        /// <param name="Connection">An optional HTTP connection type.</param>
-        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-        /// <param name="CancellationToken">An optional cancellation token.</param>
-        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
-                                                 HTTPPath                      HTTPPath,
-                                                 QueryString?                  QueryString         = null,
-                                                 AcceptTypes?                  Accept              = null,
-                                                 IHTTPAuthentication?          Authentication      = null,
-                                                 String?                       UserAgent           = null,
-                                                 ConnectionType?               Connection          = null,
-                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-                                                 CancellationToken             CancellationToken   = default)
-{
+//        /// <summary>
+//        /// Create a new HTTP request.
+//        /// </summary>
+//        /// <param name="HTTPMethod">An HTTP method.</param>
+//        /// <param name="HTTPPath">An HTTP path.</param>
+//        /// <param name="QueryString">An optional HTTP Query String.</param>
+//        /// <param name="Accept">An optional HTTP accept header.</param>
+//        /// <param name="Authentication">An optional HTTP authentication.</param>
+//        /// <param name="UserAgent">An optional HTTP user agent.</param>
+//        /// <param name="Connection">An optional HTTP connection type.</param>
+//        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+//        /// <param name="CancellationToken">An optional cancellation token.</param>
+//        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
+//                                                 HTTPPath                      HTTPPath,
+//                                                 QueryString?                  QueryString         = null,
+//                                                 AcceptTypes?                  Accept              = null,
+//                                                 IHTTPAuthentication?          Authentication      = null,
+//                                                 String?                       UserAgent           = null,
+//                                                 ConnectionType?               Connection          = null,
+//                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
+//                                                 CancellationToken             CancellationToken   = default)
+//{
 
-            var builder = new HTTPRequest.Builder(null, CancellationToken) {
-                              Host           = HTTPHostname.Localhost, // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-                              HTTPMethod     = HTTPMethod,
-                              Path           = HTTPPath,
-                              QueryString    = QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication,
-                            //  UserAgent      = UserAgent   ?? HTTPUserAgent,
-                              Connection     = Connection
-                          };
+//            var builder = new HTTPRequest.Builder(null, CancellationToken) {
+//                              Host           = HTTPHostname.Localhost, // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
+//                              HTTPMethod     = HTTPMethod,
+//                              Path           = HTTPPath,
+//                              QueryString    = QueryString ?? QueryString.Empty,
+//                              Authorization  = Authentication,
+//                            //  UserAgent      = UserAgent   ?? HTTPUserAgent,
+//                              Connection     = Connection
+//                          };
 
-            if (Accept is not null)
-                builder.Accept = Accept;
+//            if (Accept is not null)
+//                builder.Accept = Accept;
 
-            RequestBuilder?.Invoke(builder);
+//            RequestBuilder?.Invoke(builder);
 
-            return builder;
+//            return builder;
 
-        }
+//        }
 
         #endregion
 
         #region SendRequest (Request)
 
-        /// <summary>
-        /// Send the given HTTP Request to the server and receive the HTTP Response.
-        /// </summary>
-        /// <param name="Request">The HTTP Request to send.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)> SendRequest(HTTPRequest Request)
-        {
+        ///// <summary>
+        ///// Send the given HTTP Request to the server and receive the HTTP Response.
+        ///// </summary>
+        ///// <param name="Request">The HTTP Request to send.</param>
+        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        //public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)> SendRequest(HTTPRequest Request)
+        //{
 
-            if (!IsConnected)
-                return (false, null, "Client is not connected.", TimeSpan.Zero);
+        //    if (!IsConnected)
+        //        return (false, null, "Client is not connected.", TimeSpan.Zero);
 
-            if (!IsHTTPConnected)
-                await ReconnectAsync().ConfigureAwait(false);
+        //    if (!IsHTTPConnected)
+        //        await ReconnectAsync().ConfigureAwait(false);
 
-            var stopwatch = Stopwatch.StartNew();
+        //    var stopwatch = Stopwatch.StartNew();
 
-            try
-            {
+        //    try
+        //    {
 
-                var stream     = tcpClient.GetStream();
+        //        var stream     = tcpClient.GetStream();
 
-                #region Send HTTP Request
+        //        #region Send HTTP Request
 
-                await stream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
+        //        await stream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
 
-                if (Request.HTTPBody is not null && Request.ContentLength > 0)
-                    await stream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
+        //        if (Request.HTTPBody is not null && Request.ContentLength > 0)
+        //            await stream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
 
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+        //        await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
-                #endregion
+        //        #endregion
 
-                IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent(BufferSize * 2);
-                var buffer = bufferOwner.Memory;
-                var dataLength = 0;
+        //        IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent(BufferSize * 2);
+        //        var buffer = bufferOwner.Memory;
+        //        var dataLength = 0;
 
-                while (true)
-                {
+        //        while (true)
+        //        {
 
-                    #region Read data if no delimiter found yet
+        //            #region Read data if no delimiter found yet
 
-                    if (dataLength < endOfHTTPHeaderDelimiterLength ||
-                        buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
-                    {
-                        if (dataLength >= buffer.Length - BufferSize)
-                            throw new Exception("Header too large.");
+        //            if (dataLength < endOfHTTPHeaderDelimiterLength ||
+        //                buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
+        //            {
+        //                if (dataLength >= buffer.Length - BufferSize)
+        //                    throw new Exception("Header too large.");
 
-                        var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
-                        if (bytesRead == 0)
-                        {
-                            bufferOwner?.Dispose();
-                            return (false, null, "Timeout!", stopwatch.Elapsed);
-                        }
+        //                var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
+        //                if (bytesRead == 0)
+        //                {
+        //                    bufferOwner?.Dispose();
+        //                    return (false, null, "Timeout!", stopwatch.Elapsed);
+        //                }
 
-                        dataLength += bytesRead;
-                        continue;
-                    }
+        //                dataLength += bytesRead;
+        //                continue;
+        //            }
 
-                    #endregion
+        //            #endregion
 
-                    #region Search for End-of-HTTPHeader
+        //            #region Search for End-of-HTTPHeader
 
-                    var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
-                    if (endOfHTTPHeaderIndex < 0)
-                        continue;  // Should not reach here due to the if-condition above.
+        //            var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
+        //            if (endOfHTTPHeaderIndex < 0)
+        //                continue;  // Should not reach here due to the if-condition above.
 
-                    #endregion
+        //            #endregion
 
-                    #region Parse HTTP Response
+        //            #region Parse HTTP Response
 
-                    var response = HTTPResponse.Parse(
-                                       //Timestamp.Now,
-                                       //httpSource,
-                                       //localSocket,
-                                       //remoteSocket,
-                                       Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-                                       CancellationToken: Request.CancellationToken
-                                   );
+        //            var response = HTTPResponse.Parse(
+        //                               //Timestamp.Now,
+        //                               //httpSource,
+        //                               //localSocket,
+        //                               //remoteSocket,
+        //                               Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
+        //                               CancellationToken: Request.CancellationToken
+        //                           );
 
-                    #endregion
+        //            #endregion
 
-                    #region Shift remaining data
+        //            #region Shift remaining data
 
-                    var remainingStart = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
-                    var remainingLength = dataLength - remainingStart;
-                    buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
-                    dataLength = remainingLength;
+        //            var remainingStart = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+        //            var remainingLength = dataLength - remainingStart;
+        //            buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
+        //            dataLength = remainingLength;
 
-                    #endregion
+        //            #endregion
 
-                    #region Setup HTTP body stream
+        //            #region Setup HTTP body stream
 
-                    Stream? bodyDataStream = null;
-                    Stream? bodyStream = null;
+        //            Stream? bodyDataStream = null;
+        //            Stream? bodyStream = null;
 
-                    var prefix = buffer[..dataLength];
-                    if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
-                    {
+        //            var prefix = buffer[..dataLength];
+        //            if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
+        //            {
 
-                        bodyDataStream = new PrefixStream(
-                                             prefix,
-                                             stream,
-                                             LeaveInnerStreamOpen: true
-                                         );
+        //                bodyDataStream = new PrefixStream(
+        //                                     prefix,
+        //                                     stream,
+        //                                     LeaveInnerStreamOpen: true
+        //                                 );
 
-                        if (response.IsChunkedTransferEncoding)
-                            bodyStream = new ChunkedTransferEncodingStream(
-                                             bodyDataStream,
-                                             LeaveInnerStreamOpen: true
-                                         );
-                        else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
-                            bodyStream = new LengthLimitedStream(
-                                             bodyDataStream,
-                                             response.ContentLength.Value,
-                                             LeaveInnerStreamOpen: true
-                                         );
+        //                if (response.IsChunkedTransferEncoding)
+        //                    bodyStream = new ChunkedTransferEncodingStream(
+        //                                     bodyDataStream,
+        //                                     LeaveInnerStreamOpen: true
+        //                                 );
+        //                else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
+        //                    bodyStream = new LengthLimitedStream(
+        //                                     bodyDataStream,
+        //                                     response.ContentLength.Value,
+        //                                     LeaveInnerStreamOpen: true
+        //                                 );
 
-                    }
+        //            }
 
-                    response.HTTPBodyStream = bodyStream;
-                 //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
+        //            response.HTTPBodyStream = bodyStream;
+        //         //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
 
-                    #endregion
+        //            #endregion
 
-                    if (response.IsConnectionClose)
-                    {
-                        IsHTTPConnected = false;  // Mark connection for closure after response handling
-                    }
+        //            if (response.IsConnectionClose)
+        //            {
+        //                IsHTTPConnected = false;  // Mark connection for closure after response handling
+        //            }
 
-                    return (true, response, null, stopwatch.Elapsed);
+        //            return (true, response, null, stopwatch.Elapsed);
 
-                }
-            }
-            catch (Exception ex)
-            {
-                await Log($"Error in SendRequest: {ex.Message}");
-                return (false, null, ex.Message, stopwatch.Elapsed);
-            }
-            finally
-            {
-                stopwatch.Stop();
-            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await Log($"Error in SendRequest: {ex.Message}");
+        //        return (false, null, ex.Message, stopwatch.Elapsed);
+        //    }
+        //    finally
+        //    {
+        //        stopwatch.Stop();
+        //    }
 
-        }
+        //}
 
         #endregion
 
         #region SendText    (Text)
 
-        /// <summary>
-        /// Send the given message to the echo server and receive the echoed response.
-        /// </summary>
-        /// <param name="Text">The text message to send and echo.</param>
-        /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
-        {
+        ///// <summary>
+        ///// Send the given message to the echo server and receive the echoed response.
+        ///// </summary>
+        ///// <param name="Text">The text message to send and echo.</param>
+        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
+        //public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
+        //{
 
-            if (!IsConnected || tcpClient is null)
-                return (false, "", "Client is not connected.", TimeSpan.Zero);
+        //    if (!IsConnected || tcpClient is null)
+        //        return (false, "", "Client is not connected.", TimeSpan.Zero);
 
-            try
-            {
+        //    try
+        //    {
 
-                var stopwatch = Stopwatch.StartNew();
-                var stream = tcpClient.GetStream();
-                cts ??= new CancellationTokenSource();
+        //        var stopwatch = Stopwatch.StartNew();
+        //        var stream = tcpClient.GetStream();
+        //        cts ??= new CancellationTokenSource();
 
-                // Send the data
-                await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), cts.Token).ConfigureAwait(false);
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+        //        // Send the data
+        //        await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), cts.Token).ConfigureAwait(false);
+        //        await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
-                using var responseStream = new MemoryStream();
-                var buffer = new Byte[8192];
-                var bytesRead = 0;
+        //        using var responseStream = new MemoryStream();
+        //        var buffer = new Byte[8192];
+        //        var bytesRead = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
-                {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
-                }
+        //        while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+        //        {
+        //            await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
+        //        }
 
-                stopwatch.Stop();
+        //        stopwatch.Stop();
 
-                return (true, Encoding.UTF8.GetString(responseStream.ToArray()), null, stopwatch.Elapsed);
+        //        return (true, Encoding.UTF8.GetString(responseStream.ToArray()), null, stopwatch.Elapsed);
 
-            }
-            catch (Exception ex)
-            {
-                await Log($"Error in SendBinary: {ex.Message}");
-                return (false, "", ex.Message, TimeSpan.Zero);
-            }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await Log($"Error in SendBinary: {ex.Message}");
+        //        return (false, "", ex.Message, TimeSpan.Zero);
+        //    }
 
-        }
+        //}
 
         #endregion
 

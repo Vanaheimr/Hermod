@@ -52,8 +52,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Properties
 
-        public Boolean?  AllowRenegotiation    { get; }
-        public Boolean?  AllowTLSResume        { get; }
+        public IEnumerable<SslApplicationProtocol>  ApplicationProtocols    { get; } = [];
+        public Boolean                              EnforceTLS              { get; }
+        public Boolean?                             AllowRenegotiation      { get; }
+        public Boolean?                             AllowTLSResume          { get; }
 
         #endregion
 
@@ -64,12 +66,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSTestClient(IIPAddress                                                    IPAddress,
                                  IPPort                                                        TCPPort,
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
+                                 Boolean?                                                      EnforceTLS                           = null,
+                                 IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TimeSpan?                                                     ConnectTimeout                       = null,
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
-                                 Boolean?                                                      AllowRenegotiation                   = null,
-                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null)
 
             : base(IPAddress,
@@ -82,9 +86,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
+            this.EnforceTLS                          = EnforceTLS                       ?? false;
+            this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
             this.AllowRenegotiation                  = AllowRenegotiation;
             this.AllowTLSResume                      = AllowTLSResume;
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -95,12 +101,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSTestClient(URL                                                           URL,
                                  SRV_Spec?                                                     DNSService                           = null,
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
+                                 Boolean?                                                      EnforceTLS                           = null,
+                                 IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TimeSpan?                                                     ConnectTimeout                       = null,
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
-                                 Boolean?                                                      AllowRenegotiation                   = null,
-                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                  DNSClient?                                                    DNSClient                            = null)
 
@@ -115,9 +123,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
+            this.EnforceTLS                          = EnforceTLS                       ?? false;
+            this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
             this.AllowRenegotiation                  = AllowRenegotiation;
             this.AllowTLSResume                      = AllowTLSResume;
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -128,12 +138,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSTestClient(DomainName                                                    DomainName,
                                  SRV_Spec                                                      DNSService,
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidationHandler   = null,
+                                 Boolean?                                                      EnforceTLS                           = null,
+                                 IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols                 = null,
+                                 Boolean?                                                      AllowRenegotiation                   = null,
+                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TimeSpan?                                                     ConnectTimeout                       = null,
                                  TimeSpan?                                                     ReceiveTimeout                       = null,
                                  TimeSpan?                                                     SendTimeout                          = null,
                                  UInt32?                                                       BufferSize                           = null,
-                                 Boolean?                                                      AllowRenegotiation                   = null,
-                                 Boolean?                                                      AllowTLSResume                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                       = null,
                                  DNSClient?                                                    DNSClient                            = null)
 
@@ -148,9 +160,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
+            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
+            this.EnforceTLS                          = EnforceTLS                       ?? false;
+            this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
             this.AllowRenegotiation                  = AllowRenegotiation;
             this.AllowTLSResume                      = AllowTLSResume;
-            this.RemoteCertificateValidationHandler  = RemoteCertificateValidationHandler;
 
         }
 
@@ -177,7 +191,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             await base.ConnectAsync(CancellationToken);
 
-            await StartTLS(CancellationToken);
+            if (EnforceTLS ||
+                RemoteURL?.Protocol == URLProtocols.tls   ||
+                RemoteURL?.Protocol == URLProtocols.https ||
+                RemoteURL?.Protocol == URLProtocols.wss)
+            {
+                await StartTLS(CancellationToken);
+            }
 
         }
 
@@ -209,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                      AllowRenegotiation                  = AllowRenegotiation ?? true,
                                                      AllowTlsResume                      = AllowTLSResume     ?? true,
                                                      LocalCertificateSelectionCallback   = null,
-                                                     TargetHost                          = RemoteURL.Value.Hostname.ToString(), //SNI!
+                                                     TargetHost                          = RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString(), //SNI!
                                                      ClientCertificates                  = null,
                                                      ClientCertificateContext            = null,
                                                      CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
