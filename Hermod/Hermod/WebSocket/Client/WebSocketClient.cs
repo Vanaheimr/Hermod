@@ -730,7 +730,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             var swkaSHA1Base64      = RandomExtensions.RandomBytes(16).ToBase64();
             var expectedWSAccept    = SHA1.HashData((swkaSHA1Base64 + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").ToUTF8Bytes()).ToBase64();
 
-            var httpRequestBuilder  = new HTTPRequest.Builder {
+            var httpRequestBuilder  = new HTTPRequest.Builder() {
                                           Path                  = RemoteURL.Path,
                                           Host                  = HTTPHostname.Parse(String.Concat(RemoteURL.Hostname, ":", RemoteURL.Port)),
                                           Connection            = ConnectionType.Upgrade,

@@ -746,7 +746,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Create a new HTTP request.
             /// </summary>
             /// <param name="CancellationToken">An optional cancellation token.</param>
-            public Builder(AHTTPTestClient?   Client              = null,
+            public Builder(AHTTPTestClient?   Client,
                            CancellationToken  CancellationToken   = default)
 
                 : base(CancellationToken)

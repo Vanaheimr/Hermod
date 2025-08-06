@@ -255,17 +255,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var stopwatch = Stopwatch.StartNew();
-                cts ??= new CancellationTokenSource();
+                clientCancellationTokenSource ??= new CancellationTokenSource();
 
                 // Send the data
-                await tlsStream.WriteAsync(data, cts.Token).ConfigureAwait(false);
-                await tlsStream.FlushAsync(cts.Token).      ConfigureAwait(false);
+                await tlsStream.WriteAsync(data, clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await tlsStream.FlushAsync(clientCancellationTokenSource.Token).      ConfigureAwait(false);
 
                 var responseLength = tlsStream.ReadUInt16BE();
 
                 using var responseStream = new MemoryStream();
                 var buffer    = new Byte[responseLength];
-                var bytesRead = await tlsStream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
+                var bytesRead = await tlsStream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false);
 
                 stopwatch.Stop();
 

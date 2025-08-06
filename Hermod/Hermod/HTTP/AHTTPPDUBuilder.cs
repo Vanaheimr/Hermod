@@ -217,7 +217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The cancellation token.
         /// </summary>
-        public CancellationToken  CancellationToken    { get; }
+        public CancellationToken  CancellationToken    { get; internal set; }
 
         #endregion
 

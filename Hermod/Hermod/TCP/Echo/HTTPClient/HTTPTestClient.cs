@@ -61,6 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               IPPort?                                                       TCPPort                      = null,
                               I18NString?                                                   Description                  = null,
                               String?                                                       HTTPUserAgent                = null,
+                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
 
                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
                               LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
@@ -84,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    Description,
 
                    HTTPUserAgent,
+                   DefaultRequestBuilder,
 
                    RemoteCertificateValidator is not null
                        ? (sender,
@@ -190,6 +192,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                           //     Boolean?                                                      UseDNSURI                    = null,
                                I18NString?                                                   Description                  = null,
                                String?                                                       HTTPUserAgent                = null,
+                               DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
 
                                RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
                                LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
@@ -215,6 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    Description,
 
                    HTTPUserAgent,
+                   DefaultRequestBuilder,
 
                    RemoteCertificateValidator is not null
                        ? (sender,
@@ -269,6 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             ConnectNew(IPPort                                                        TCPPort,
                        I18NString?                                                   Description                  = null,
                        String?                                                       HTTPUserAgent                = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
 
                        RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
                        LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
@@ -292,6 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TCPPort,
                              Description,
                              HTTPUserAgent,
+                             DefaultRequestBuilder,
 
                              RemoteCertificateValidator,
                              LocalCertificateSelector,
@@ -331,6 +337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        IPPort                                                        TCPPort,
                        I18NString?                                                   Description                  = null,
                        String?                                                       HTTPUserAgent                = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
 
                        RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
                        LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
@@ -356,6 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TCPPort,
                              Description,
                              HTTPUserAgent,
+                             DefaultRequestBuilder,
 
                              RemoteCertificateValidator,
                              LocalCertificateSelector,
@@ -399,6 +407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             ConnectNew(URL                                                           URL,
                        I18NString?                                                   Description                  = null,
                        String?                                                       HTTPUserAgent                = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
 
                        RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
                        LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
@@ -423,6 +432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              URL,
                              Description,
                              HTTPUserAgent,
+                             DefaultRequestBuilder,
 
                              RemoteCertificateValidator,
                              LocalCertificateSelector,
@@ -469,6 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                      //  Boolean?                                                      UseDNSURI                    = null,
                        I18NString?                                                   Description                  = null,
                        String?                                                       HTTPUserAgent                = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
 
                        RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
                        LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
@@ -495,6 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              DNSService,
                              Description,
                              HTTPUserAgent,
+                             DefaultRequestBuilder,
 
                              RemoteCertificateValidator,
                              LocalCertificateSelector,

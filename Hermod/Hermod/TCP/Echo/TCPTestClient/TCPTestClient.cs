@@ -195,19 +195,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var stopwatch   = Stopwatch.StartNew();
                 var stream      = tcpClient.GetStream();
-                cts           ??= new CancellationTokenSource();
+                clientCancellationTokenSource           ??= new CancellationTokenSource();
 
                 // Send the data
-                await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                await stream.WriteAsync(Bytes, clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await stream.FlushAsync(clientCancellationTokenSource.Token).ConfigureAwait(false);
 
                 using var responseStream = new MemoryStream();
                 var buffer     = new Byte[8192];
                 var bytesRead  = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+                while ((bytesRead = await stream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false)) > 0)
                 {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientCancellationTokenSource.Token).ConfigureAwait(false);
                 }
 
                 stopwatch.Stop();

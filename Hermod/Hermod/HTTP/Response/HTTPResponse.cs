@@ -659,6 +659,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region (static) Parse(ResponseHeader,                     Request = null, SubprotocolResponse = null)
+
+        /// <summary>
+        /// Parse the HTTP response from its text representation and
+        /// attach the given HTTP body.
+        /// </summary>
+        /// <param name="ResponseHeader">The HTTP header of the response.</param>
+        /// <param name="Request">An optional HTTP request leading to this response.</param>
+        /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
+        public static HTTPResponse Parse(DateTimeOffset      Time,
+                                         HTTPRequest         Request,
+                                         IPSocket            LocalSocket,
+                                         IPSocket            RemoteSocket,
+                                         HTTPSource          HTTPSource,
+                                         String              ResponseHeader,
+                                         Object?             SubprotocolResponse   = null,
+
+                                         EventTracking_Id?   EventTrackingId       = null,
+                                         TimeSpan?           Runtime               = null,
+                                         Byte                NumberOfRetries       = 0,
+                                         CancellationToken   CancellationToken     = default)
+
+            => new (Time.Date,
+                    HTTPSource,
+                    LocalSocket,
+                    RemoteSocket,
+                    ResponseHeader,
+                    Request,
+                    null,
+                    null,
+                    null,
+                    SubprotocolResponse,
+
+                    EventTrackingId,
+                    Runtime,
+                    NumberOfRetries,
+                    CancellationToken);
+
+        #endregion
+
         #region (static) Parse(ResponseHeader, ResponseBody,       Request = null, SubprotocolResponse = null)
 
         /// <summary>

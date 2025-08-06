@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
     /// <summary>
-    /// A simple TCP echo test client that can connect to a TCP echo server,
+    /// An abstract TCP client.
     /// </summary>
     public abstract class ATCPTestClient : IDisposable,
                                            IAsyncDisposable
@@ -95,37 +95,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        protected static readonly Byte[]                    endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
-        protected const           Byte                      endOfHTTPHeaderDelimiterLength   = 4;
+        protected static readonly Byte[]                   endOfHTTPHeaderDelimiter         = Encoding.UTF8.GetBytes("\r\n\r\n");
+        protected const           Byte                     endOfHTTPHeaderDelimiterLength   = 4;
 
-        public static readonly    TimeSpan                  DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
-        public static readonly    TimeSpan                  DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
-        public static readonly    TimeSpan                  DefaultSendTimeout               = TimeSpan.FromSeconds(5);
-        public const              Int32                     DefaultBufferSize                = 4096;
+        public static readonly    TimeSpan                 DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
+        public static readonly    TimeSpan                 DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
+        public static readonly    TimeSpan                 DefaultSendTimeout               = TimeSpan.FromSeconds(5);
+        public const              Int32                    DefaultBufferSize                = 4096;
 
-        protected readonly        TCPEchoLoggingDelegate?   loggingHandler;
-        protected                 TcpClient?                tcpClient;
-        protected                 CancellationTokenSource?  cts;
+        protected readonly        TCPEchoLoggingDelegate?  loggingHandler;
+        protected                 TcpClient?               tcpClient;
+        protected                 CancellationTokenSource  clientCancellationTokenSource;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// Whether the client is currently connected to the echo server.
+        /// The description of this TCP client.
+        /// </summary>
+        public I18NString?  Description    { get; }
+
+        /// <summary>
+        /// Whether the client is currently connected to the.
         /// </summary>
         public Boolean      IsConnected
             => tcpClient?.Connected ?? false;
 
 
         /// <summary>
-        /// The local IP end point of the connected echo server.
+        /// The local IP socket.
+        /// </summary>
+        public IPSocket?    LocalSocket
+            => tcpClient is not null
+                   ? IPSocket.FromIPEndPoint(tcpClient.Client.LocalEndPoint)
+                   : null;
+
+        /// <summary>
+        /// The local IP end point.
         /// </summary>
         public IPEndPoint?  CurrentLocalEndPoint
             => tcpClient?.Client.LocalEndPoint as IPEndPoint;
 
         /// <summary>
-        /// The local TCP port of the connected echo server.
+        /// The local TCP port.
         /// </summary>
         public UInt16?      CurrentLocalPort
 
@@ -134,7 +147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    : null;
 
         /// <summary>
-        /// The local IP address of the connected echo server.
+        /// The local IP address.
         /// </summary>
         public IIPAddress?  CurrentLocalIPAddress
 
@@ -144,13 +157,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
 
         /// <summary>
-        /// The remote IP end point of the connected echo server.
+        /// The remote IP socket.
+        /// </summary>
+        public IPSocket?    RemoteSocket
+            => tcpClient is not null
+                   ? IPSocket.FromIPEndPoint(tcpClient.Client.RemoteEndPoint)
+                   : null;
+
+        /// <summary>
+        /// The remote IP end point.
         /// </summary>
         public IPEndPoint?  CurrentRemoteEndPoint
             => tcpClient?.Client.RemoteEndPoint as IPEndPoint;
 
         /// <summary>
-        /// The remote TCP port of the connected echo server.
+        /// The remote TCP port.
         /// </summary>
         public UInt16?      CurrentRemotePort
 
@@ -159,7 +180,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    : null;
 
         /// <summary>
-        /// The remote IP address of the connected echo server.
+        /// The remote IP address.
         /// </summary>
         public IIPAddress?  CurrentRemoteIPAddress
 
@@ -220,16 +241,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (SendTimeout.   HasValue && SendTimeout.   Value.TotalMilliseconds > Int32.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
-            this.BufferSize       = BufferSize.HasValue
-                                        ? BufferSize.Value > Int32.MaxValue
-                                              ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                              : (Int32) BufferSize.Value
-                                        : DefaultBufferSize;
-            this.ConnectTimeout   = ConnectTimeout ?? DefaultConnectTimeout;
-            this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;
-            this.SendTimeout      = SendTimeout    ?? DefaultSendTimeout;
-            this.loggingHandler   = LoggingHandler;
-            this.DNSClient        = DNSClient      ?? new DNSClient();
+            this.Description                    = Description;
+            this.BufferSize                     = BufferSize.HasValue
+                                                      ? BufferSize.Value > Int32.MaxValue
+                                                            ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
+                                                            : (Int32) BufferSize.Value
+                                                      : DefaultBufferSize;
+            this.ConnectTimeout                 = ConnectTimeout ?? DefaultConnectTimeout;
+            this.ReceiveTimeout                 = ReceiveTimeout ?? DefaultReceiveTimeout;
+            this.SendTimeout                    = SendTimeout    ?? DefaultSendTimeout;
+            this.loggingHandler                 = LoggingHandler;
+            this.clientCancellationTokenSource  = new CancellationTokenSource();
+            this.DNSClient                      = DNSClient      ?? new DNSClient();
 
         }
 
@@ -315,7 +338,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             this.DomainName  = DomainName;
             this.DNSService  = DNSService;
-            this.DNSClient   = DNSClient ?? new DNSClient();
 
         }
 
@@ -329,9 +351,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public virtual async Task ReconnectAsync(CancellationToken CancellationToken = default)
         {
 
-            cts?.      Cancel();
+            clientCancellationTokenSource?.      Cancel();
             tcpClient?.Close();
-            cts?.      Dispose();
+            clientCancellationTokenSource?.      Dispose();
 
             // recreate _cts and tcpClient
             await ConnectAsync(CancellationToken);
@@ -469,11 +491,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     if (!remotePort.HasValue)
                         throw new Exception("The remote TCP port must not be null!");
 
-                    cts               = new CancellationTokenSource();
+                    clientCancellationTokenSource               = new CancellationTokenSource();
                     tcpClient         = new TcpClient();
                     var connectTask   = tcpClient.ConnectAsync(RemoteIPAddress.ToDotNet(), remotePort.Value.ToUInt16());
 
-                    if (await Task.WhenAny(connectTask, Task.Delay(ConnectTimeout, cts.Token)) == connectTask)
+                    if (await Task.WhenAny(connectTask, Task.Delay(ConnectTimeout, clientCancellationTokenSource.Token)) == connectTask)
                     {
                         await connectTask; // Await to throw if failed
                         tcpClient.ReceiveTimeout = (Int32) ReceiveTimeout.TotalMilliseconds;
@@ -506,7 +528,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) SendText   (Text)
 
         ///// <summary>
-        ///// Send the given message to the echo server and receive the echoed response.
+        ///// Send the given message to the and receive the echoed response.
         ///// </summary>
         ///// <param name="Text">The text message to send and echo.</param>
         ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
@@ -528,7 +550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (protected) SendBinary (Bytes)
 
         ///// <summary>
-        ///// Send the given bytes to the echo server and receive the echoed response.
+        ///// Send the given bytes to the and receive the echoed response.
         ///// </summary>
         ///// <param name="Bytes">The bytes to send and echo.</param>
         ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
@@ -601,7 +623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Close()
 
         /// <summary>
-        /// Close the TCP connection to the echo server.
+        /// Close the TCP connection to the.
         /// </summary>
         public async Task Close()
         {
@@ -617,7 +639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 await Log("Client closed!");
             }
 
-            cts.Cancel();
+            clientCancellationTokenSource.Cancel();
 
         }
 
@@ -641,7 +663,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public virtual async ValueTask DisposeAsync()
         {
             await Close();
-            cts?.Dispose();
+            clientCancellationTokenSource?.Dispose();
             GC.SuppressFinalize(this);
         }
 

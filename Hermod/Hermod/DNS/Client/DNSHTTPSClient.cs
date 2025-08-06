@@ -112,6 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TCPPort,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -184,6 +185,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TCPPort ?? IPPort.HTTPS,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -256,6 +258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    null,
                    Description,
                    HTTPUserAgent ?? DefaultHTTPUserAgent,
+                   null,
 
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
@@ -494,11 +497,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             {
 
                 var stopwatch = Stopwatch.StartNew();
-                cts ??= new CancellationTokenSource();
+                clientCancellationTokenSource ??= new CancellationTokenSource();
 
-                var httpRequestBuilder = new HTTPRequest.Builder() {
+                var httpRequestBuilder = DefaultRequestBuilder();// {
                                              //Host:   RemoteURL.Value.Hostname
-                                         };
+                                         //};
 
                 httpRequestBuilder.SetHost(RemoteURL.Value.Hostname);
 
@@ -529,6 +532,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 var httpResponse  = await SendRequest(httpRequest, CancellationToken);
 
                 stopwatch.Stop();
+
+                // GET /dns-query?dns=9q8BAAABAAAAAAAACGNoYXJnaW5nBWNsb3VkAAABAAE HTTP/1.1
+                // Accept:      application/dns-message; charset=utf-8; q=1
+                // Host:        one.one.one.one
+                // User-Agent:  Hermod DNS HTTP Test Client
+                // Connection:  keep-alive
 
                 // HTTP/1.1 200 OK
                 // X-Content-Type-Options:       nosniff

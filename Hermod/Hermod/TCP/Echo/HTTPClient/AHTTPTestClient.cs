@@ -46,28 +46,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Data
 
-        protected Stream?                                                        httpStream;
+        protected Stream?    httpStream;
 
-        /// <summary>
-        /// The TLS stream.
-        /// </summary>
-        protected SslStream?                                                     tlsStream;
-
-        /// <summary>
-        /// The remote TLS server certificate validation handler.
-        /// </summary>
-        protected RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler;
-
-
-        public const String                                                      DefaultHTTPUserAgent                   = "Hermod HTTP Test Client";
+        public const String  DefaultHTTPUserAgent  = "Hermod HTTP Test Client";
 
         #endregion
 
         #region Properties
 
-        public String?                        HTTPUserAgent            { get; }
-
         public Boolean                        IsHTTPConnected          { get; private set; } = false;
+
+        public String?                        HTTPUserAgent            { get; }
 
         public DefaultRequestBuilderDelegate  DefaultRequestBuilder    { get;}
 
@@ -81,6 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   IPPort?                                                        TCPPort                              = null,
                                   I18NString?                                                    Description                          = null,
                                   String?                                                        HTTPUserAgent                        = null,
+                                  DefaultRequestBuilderDelegate?                                 DefaultRequestBuilder                = null,
 
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
@@ -134,7 +124,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.HTTPUserAgent  = HTTPUserAgent ?? DefaultHTTPUserAgent;
+            this.HTTPUserAgent          = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+            this.DefaultRequestBuilder  = DefaultRequestBuilder
+                                              ?? (() => new HTTPRequest.Builder(this, CancellationToken.None) {
+                                                            Host        = HTTPHostname.Parse(IPAddress.ToString()),
+                                                            Accept      = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
+                                                            UserAgent   = HTTPUserAgent ?? DefaultHTTPUserAgent,
+                                                            Connection  = ConnectionType.KeepAlive
+                                                        });
 
         }
 
@@ -222,6 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   SRV_Spec                                                       DNSService,
                                   I18NString?                                                    Description                          = null,
                                   String?                                                        HTTPUserAgent                        = null,
+                                  DefaultRequestBuilderDelegate?                                 DefaultRequestBuilder                = null,
 
                                   RemoteTLSServerCertificateValidationHandler<AHTTPTestClient>?  RemoteCertificateValidationHandler   = null,
                                   LocalCertificateSelectionHandler?                              LocalCertificateSelector             = null,
@@ -277,7 +276,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            this.HTTPUserAgent  = HTTPUserAgent ?? DefaultHTTPUserAgent;
+            this.HTTPUserAgent          = HTTPUserAgent ?? DefaultHTTPUserAgent;
+
+            this.DefaultRequestBuilder  = DefaultRequestBuilder
+                                              ?? (() => new HTTPRequest.Builder(this, CancellationToken.None) {
+                                                            Host        = HTTPHostname.Parse(DomainName.FullName.TrimEnd('.')),
+                                                            Accept      = AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
+                                                            UserAgent   = HTTPUserAgent ?? DefaultHTTPUserAgent,
+                                                            Connection  = ConnectionType.KeepAlive
+                                                        });
 
         }
 
@@ -311,7 +318,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 RemoteURL?.Protocol == URLProtocols.https ||
                 RemoteURL?.Protocol == URLProtocols.wss)
             {
-                await StartTLS(CancellationToken);
+                //await StartTLS(CancellationToken);
+                httpStream = tlsStream;
             }
 
             IsHTTPConnected = true;
@@ -322,77 +330,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) StartTLS(CancellationToken = default)
 
-        protected async Task StartTLS(CancellationToken CancellationToken = default)
-        {
+        //protected async Task StartTLS(CancellationToken CancellationToken = default)
+        //{
 
-            if (httpStream is not null)
-            {
+        //    if (httpStream is not null)
+        //    {
 
-                tlsStream   = new SslStream(
-                                  httpStream,
-                                  leaveInnerStreamOpen: false
-                              );
+        //        tlsStream   = new SslStream(
+        //                          httpStream,
+        //                          leaveInnerStreamOpen: false
+        //                      );
 
-                var authenticationOptions  = new SslClientAuthenticationOptions {
-                                                    //ApplicationProtocols                = new List<SslApplicationProtocol> {
-                                                    //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
-                                                    //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
-                                                    //                                      },
-                                                    AllowRenegotiation                  = AllowRenegotiation ?? true,
-                                                    AllowTlsResume                      = AllowTLSResume     ?? true,
-                                                    LocalCertificateSelectionCallback   = null,
-                                                    TargetHost                          = RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString(), //SNI!
-                                                    ClientCertificates                  = null,
-                                                    ClientCertificateContext            = null,
-                                                    CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
-                                                    EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
-                                                    EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
-                                                    CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
-                                                    CertificateChainPolicy              = null, // new X509ChainPolicy()
-                                                };
+        //        var authenticationOptions  = new SslClientAuthenticationOptions {
+        //                                            //ApplicationProtocols                = new List<SslApplicationProtocol> {
+        //                                            //                                          SslApplicationProtocol.Http2,  // Example: Add HTTP/2   protocol
+        //                                            //                                          SslApplicationProtocol.Http11  // Example: Add HTTP/1.1 protocol
+        //                                            //                                      },
+        //                                            AllowRenegotiation                  = AllowRenegotiation ?? true,
+        //                                            AllowTlsResume                      = AllowTLSResume     ?? true,
+        //                                            LocalCertificateSelectionCallback   = null,
+        //                                            TargetHost                          = RemoteURL?.Hostname.ToString() ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString(), //SNI!
+        //                                            ClientCertificates                  = null,
+        //                                            ClientCertificateContext            = null,
+        //                                            CertificateRevocationCheckMode      = X509RevocationMode.NoCheck,
+        //                                            EncryptionPolicy                    = EncryptionPolicy.RequireEncryption,
+        //                                            EnabledSslProtocols                 = SslProtocols.Tls12 | SslProtocols.Tls13,
+        //                                            CipherSuitesPolicy                  = null, // new CipherSuitesPolicy(TlsCipherSuite.),
+        //                                            CertificateChainPolicy              = null, // new X509ChainPolicy()
+        //                                        };
 
-                if (RemoteCertificateValidationHandler is not null)
-                {
-                    authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
+        //        if (RemoteCertificateValidationHandler is not null)
+        //        {
+        //            authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
 
-                        var result = RemoteCertificateValidationHandler(
-                                            sender,
-                                            certificate is not null
-                                                ? new X509Certificate2(certificate)
-                                                : null,
-                                            chain,
-                                            this,
-                                            policyErrors
-                                        );
+        //                var result = RemoteCertificateValidationHandler(
+        //                                    sender,
+        //                                    certificate is not null
+        //                                        ? new X509Certificate2(certificate)
+        //                                        : null,
+        //                                    chain,
+        //                                    this,
+        //                                    policyErrors
+        //                                );
 
-                        return result.Item1;
+        //                return result.Item1;
 
-                    };
-                }
-                else
-                {
-                    authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
-                        return true;
-                    };
-                }
+        //            };
+        //        }
+        //        else
+        //        {
+        //            authenticationOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, policyErrors) => {
+        //                return true;
+        //            };
+        //        }
 
-                try
-                {
-                    await tlsStream.AuthenticateAsClientAsync(
-                                authenticationOptions,
-                                CancellationToken
-                            );
-                }
-                catch (Exception e)
-                {
-                    DebugX.Log($"Error during TLS authentication: {e.Message}");
-                }
+        //        try
+        //        {
+        //            await tlsStream.AuthenticateAsClientAsync(
+        //                        authenticationOptions,
+        //                        CancellationToken
+        //                    );
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            DebugX.Log($"Error during TLS authentication: {e.Message}");
+        //        }
 
-                httpStream       = tlsStream;
+        //        httpStream       = tlsStream;
 
-            }
+        //    }
 
-        }
+        //}
 
         #endregion
 
@@ -420,20 +428,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
                                                  CancellationToken             CancellationToken   = default)
-{
+        {
 
-            var builder = new HTTPRequest.Builder(null, CancellationToken) {
-                              Host           = HTTPHostname.Localhost, // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-                              HTTPMethod     = HTTPMethod,
-                              Path           = HTTPPath,
-                              QueryString    = QueryString ?? QueryString.Empty,
-                              Authorization  = Authentication,
-                            //  UserAgent      = UserAgent   ?? HTTPUserAgent,
-                              Connection     = Connection
-                          };
+            var builder = DefaultRequestBuilder();
 
-            if (Accept is not null)
-                builder.Accept = Accept;
+            builder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
+          //  builder.Host        = HTTPHostname.Parse((RemoteURL?.Hostname ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
+          //                                           (RemoteURL?.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
+          //                                                ? ":" + RemoteURL.Port.ToString()
+          //                                                : String.Empty));
+            builder.HTTPMethod  = HTTPMethod;
+            builder.Path        = HTTPPath;
+
+            if (QueryString    is not null)
+                builder.QueryString    = QueryString;
+
+            if (Accept         is not null)
+                builder.Accept         = Accept;
+
+            if (Authentication is not null)
+                builder.Authorization  = Authentication;
+
+            if (UserAgent      is not null)
+                builder.UserAgent      = UserAgent;
+
+            if (Connection     is not null)
+                builder.Connection     = Connection;
+
+            builder.CancellationToken  = CancellationToken;
 
             RequestBuilder?.Invoke(builder);
 
@@ -463,19 +485,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (!IsHTTPConnected)
                 await ReconnectAsync().ConfigureAwait(false);
 
+            if (httpStream is null)
+                return (false, null, "HTTP stream is not available.", TimeSpan.Zero);
+
             var stopwatch = Stopwatch.StartNew();
 
             try
             {
 
+                using var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
+                                                        clientCancellationTokenSource.Token,
+                                                        CancellationToken
+                                                    );
+
                 #region Send HTTP Request
 
-                await httpStream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
+                await httpStream.WriteAsync(
+                          Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"),
+                          linkedCancellationToken.Token
+                      ).ConfigureAwait(false);
 
                 if (Request.HTTPBody is not null && Request.ContentLength > 0)
-                    await httpStream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
+                    await httpStream.WriteAsync(
+                              Request.HTTPBody,
+                              linkedCancellationToken.Token
+                          ).ConfigureAwait(false);
 
-                await httpStream.FlushAsync(cts.Token).ConfigureAwait(false);
+                await httpStream.FlushAsync(
+                          linkedCancellationToken.Token
+                      ).ConfigureAwait(false);
 
                 #endregion
 
@@ -491,10 +529,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     if (dataLength < endOfHTTPHeaderDelimiterLength ||
                         buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
                     {
-                        if (dataLength >= buffer.Length - BufferSize)
+
+                        if (dataLength > buffer.Length - BufferSize)
                             throw new Exception("Header too large.");
 
-                        var bytesRead = await httpStream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
+                        var bytesRead = await httpStream.ReadAsync(
+                                                  buffer.Slice(dataLength, BufferSize),
+                                                  linkedCancellationToken.Token
+                                              );
+
                         if (bytesRead == 0)
                         {
                             bufferOwner?.Dispose();
@@ -503,6 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                         dataLength += bytesRead;
                         continue;
+
                     }
 
                     #endregion
@@ -518,10 +562,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #region Parse HTTP Response
 
                     var response = HTTPResponse.Parse(
-                                       //Timestamp.Now,
-                                       //httpSource,
-                                       //localSocket,
-                                       //remoteSocket,
+                                       Timestamp.Now,
+                                       Request,
+                                       LocalSocket!. Value,
+                                       RemoteSocket!.Value,
+                                       HTTPSource.Parse(RemoteSocket?.ToString() ?? ""),
                                        Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
                                        CancellationToken: Request.CancellationToken
                                    );
@@ -530,7 +575,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     #region Shift remaining data
 
-                    var remainingStart = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                    var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
                     var remainingLength = dataLength - remainingStart;
                     buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
                     dataLength = remainingLength;
@@ -579,6 +624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     return (true, response, null, stopwatch.Elapsed);
 
                 }
+
             }
             catch (Exception ex)
             {
@@ -612,19 +658,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 var stopwatch = Stopwatch.StartNew();
                 var stream = tcpClient.GetStream();
-                cts ??= new CancellationTokenSource();
+                clientCancellationTokenSource ??= new CancellationTokenSource();
 
                 // Send the data
-                await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), cts.Token).ConfigureAwait(false);
-                await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), clientCancellationTokenSource.Token).ConfigureAwait(false);
+                await stream.FlushAsync(clientCancellationTokenSource.Token).ConfigureAwait(false);
 
                 using var responseStream = new MemoryStream();
                 var buffer = new Byte[8192];
                 var bytesRead = 0;
 
-                while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
+                while ((bytesRead = await stream.ReadAsync(buffer, clientCancellationTokenSource.Token).ConfigureAwait(false)) > 0)
                 {
-                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), clientCancellationTokenSource.Token).ConfigureAwait(false);
                 }
 
                 stopwatch.Stop();
