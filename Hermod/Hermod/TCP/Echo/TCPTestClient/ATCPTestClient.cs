@@ -224,6 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region (private)   ATCPTestClient(...)
 
         private ATCPTestClient(I18NString?              Description      = null,
+                               Boolean?                 PreferIPv4       = null,
                                TimeSpan?                ConnectTimeout   = null,
                                TimeSpan?                ReceiveTimeout   = null,
                                TimeSpan?                SendTimeout      = null,
@@ -242,6 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
             this.Description                    = Description;
+            this.PreferIPv4                     = PreferIPv4     ?? false;
             this.BufferSize                     = BufferSize.HasValue
                                                       ? BufferSize.Value > Int32.MaxValue
                                                             ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
@@ -263,6 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPTestClient(IIPAddress               IPAddress,
                                  IPPort                   TCPPort,
                                  I18NString?              Description      = null,
+                                 Boolean?                 PreferIPv4       = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -270,6 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TCPEchoLoggingDelegate?  LoggingHandler   = null)
 
             : this(Description,
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -290,6 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPTestClient(URL                      URL,
                                  SRV_Spec?                DNSService       = null,
                                  I18NString?              Description      = null,
+                                 Boolean?                 PreferIPv4       = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -298,6 +303,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  DNSClient?               DNSClient        = null)
 
             : this(Description,
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -319,6 +325,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATCPTestClient(DomainName               DomainName,
                                  SRV_Spec                 DNSService,
                                  I18NString?              Description      = null,
+                                 Boolean?                 PreferIPv4       = null,
                                  TimeSpan?                ConnectTimeout   = null,
                                  TimeSpan?                ReceiveTimeout   = null,
                                  TimeSpan?                SendTimeout      = null,
@@ -327,6 +334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  DNSClient?               DNSClient        = null)
 
             : this(Description,
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -351,11 +359,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public virtual async Task ReconnectAsync(CancellationToken CancellationToken = default)
         {
 
-            clientCancellationTokenSource?.      Cancel();
+            clientCancellationTokenSource?.Cancel();
             tcpClient?.Close();
-            clientCancellationTokenSource?.      Dispose();
+            clientCancellationTokenSource?.Dispose();
 
-            // recreate _cts and tcpClient
+            // recreates _cts and tcpClient
             await ConnectAsync(CancellationToken);
 
         }

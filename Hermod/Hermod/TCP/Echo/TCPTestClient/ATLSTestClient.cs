@@ -70,6 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSTestClient(IIPAddress                                                    IPAddress,
                                  IPPort                                                        TCPPort,
                                  I18NString?                                                   Description                  = null,
+
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator   = null,
                                  LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
                                  IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
@@ -80,6 +81,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
                                  Boolean?                                                      AllowRenegotiation           = null,
                                  Boolean?                                                      AllowTLSResume               = null,
+
+                                 Boolean?                                                      PreferIPv4                   = null,
                                  TimeSpan?                                                     ConnectTimeout               = null,
                                  TimeSpan?                                                     ReceiveTimeout               = null,
                                  TimeSpan?                                                     SendTimeout                  = null,
@@ -89,6 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             : base(IPAddress,
                    TCPPort,
                    Description,
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -101,6 +105,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.LocalCertificateSelector            = LocalCertificateSelector;
             this.ClientCertificateChain              = ClientCertificateChain           ?? [];
             this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.CipherSuitesPolicy                  = CipherSuitesPolicy;
+            this.CertificateChainPolicy              = CertificateChainPolicy;
             this.EnforceTLS                          = EnforceTLS                       ?? false;
             this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
             this.AllowRenegotiation                  = AllowRenegotiation;
@@ -115,6 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSTestClient(URL                                                           URL,
                                  SRV_Spec?                                                     DNSService                   = null,
                                  I18NString?                                                   Description                  = null,
+
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator   = null,
                                  LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
                                  IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
@@ -125,6 +132,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
                                  Boolean?                                                      AllowRenegotiation           = null,
                                  Boolean?                                                      AllowTLSResume               = null,
+
+                                 Boolean?                                                      PreferIPv4                   = null,
                                  TimeSpan?                                                     ConnectTimeout               = null,
                                  TimeSpan?                                                     ReceiveTimeout               = null,
                                  TimeSpan?                                                     SendTimeout                  = null,
@@ -135,6 +144,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             : base(URL,
                    DNSService,
                    Description,
+
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -148,6 +159,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.LocalCertificateSelector            = LocalCertificateSelector;
             this.ClientCertificateChain              = ClientCertificateChain           ?? [];
             this.TLSProtocols                        = TLSProtocols                     ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.CipherSuitesPolicy                  = CipherSuitesPolicy;
+            this.CertificateChainPolicy              = CertificateChainPolicy;
             this.EnforceTLS                          = EnforceTLS                       ?? false;
             this.ApplicationProtocols                = ApplicationProtocols?.Distinct() ?? [];
             this.AllowRenegotiation                  = AllowRenegotiation;
@@ -162,6 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         protected ATLSTestClient(DomainName                                                    DomainName,
                                  SRV_Spec                                                      DNSService,
                                  I18NString?                                                   Description                  = null,
+
                                  RemoteTLSServerCertificateValidationHandler<ATLSTestClient>?  RemoteCertificateValidator   = null,
                                  LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
                                  IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
@@ -172,6 +186,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
                                  Boolean?                                                      AllowRenegotiation           = null,
                                  Boolean?                                                      AllowTLSResume               = null,
+
+                                 Boolean?                                                      PreferIPv4                   = null,
                                  TimeSpan?                                                     ConnectTimeout               = null,
                                  TimeSpan?                                                     ReceiveTimeout               = null,
                                  TimeSpan?                                                     SendTimeout                  = null,
@@ -182,6 +198,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             : base(DomainName,
                    DNSService,
                    Description,
+
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,

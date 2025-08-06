@@ -69,6 +69,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             I18NString?              Description        = null,
                             Boolean?                 RecursionDesired   = null,
                             TimeSpan?                QueryTimeout       = null,
+
+                            Boolean?                 PreferIPv4         = null,
                             TimeSpan?                ConnectTimeout     = null,
                             TimeSpan?                ReceiveTimeout     = null,
                             TimeSpan?                SendTimeout        = null,
@@ -78,6 +80,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(IPAddress,
                    Port ?? IPPort.DNS,
                    Description,
+
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,

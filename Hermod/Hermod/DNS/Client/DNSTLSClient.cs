@@ -74,6 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             I18NString?                                                 Description                          = null,
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
+
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
                             SslProtocols?                                               TLSProtocols                         = null,
                             CipherSuitesPolicy?                                         CipherSuitesPolicy                   = null,
@@ -81,6 +82,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             IEnumerable<SslApplicationProtocol>?                        ApplicationProtocols                 = null,
                             Boolean?                                                    AllowRenegotiation                   = null,
                             Boolean?                                                    AllowTLSResume                       = null,
+
+                            Boolean?                                                    PreferIPv4                           = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
@@ -90,6 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(IPAddress,
                    TCPPort ?? IPPort.DNS_TLS,
                    Description,
+
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -112,6 +116,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
+
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -137,6 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             I18NString?                                                 Description                          = null,
                             Boolean?                                                    RecursionDesired                     = null,
                             TimeSpan?                                                   QueryTimeout                         = null,
+
                             RemoteTLSServerCertificateValidationHandler<DNSTLSClient>?  RemoteCertificateValidationHandler   = null,
                             SslProtocols?                                               TLSProtocols                         = null,
                             CipherSuitesPolicy?                                         CipherSuitesPolicy                   = null,
@@ -144,6 +151,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                             IEnumerable<SslApplicationProtocol>?                        ApplicationProtocols                 = null,
                             Boolean?                                                    AllowRenegotiation                   = null,
                             Boolean?                                                    AllowTLSResume                       = null,
+
+                            Boolean?                                                    PreferIPv4                           = null,
                             TimeSpan?                                                   ConnectTimeout                       = null,
                             TimeSpan?                                                   ReceiveTimeout                       = null,
                             TimeSpan?                                                   SendTimeout                          = null,
@@ -153,6 +162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             : base(URL,
                    null,
                    Description,
+
                    RemoteCertificateValidationHandler is not null
                        ? (sender,
                           certificate,
@@ -175,6 +185,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ApplicationProtocols,
                    AllowRenegotiation,
                    AllowTLSResume,
+
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,

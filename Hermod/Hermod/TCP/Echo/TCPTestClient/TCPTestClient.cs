@@ -37,6 +37,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         private TCPTestClient(IIPAddress               Address,
                               IPPort                   TCPPort,
                               I18NString?              Description      = null,
+
+                              Boolean?                 PreferIPv4       = null,
                               TimeSpan?                ConnectTimeout   = null,
                               TimeSpan?                ReceiveTimeout   = null,
                               TimeSpan?                SendTimeout      = null,
@@ -46,6 +48,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             : base(Address,
                    TCPPort,
                    Description,
+
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -72,6 +76,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             ConnectNew(IPPort                   TCPPort,
                        I18NString?              Description      = null,
+
+                       Boolean?                 PreferIPv4       = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -82,6 +88,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              IPvXAddress.Localhost,
                              TCPPort,
                              Description,
+
+                             PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -108,6 +116,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             ConnectNew(IIPAddress               IPAddress,
                        IPPort                   TCPPort,
                        I18NString?              Description      = null,
+
+                       Boolean?                 PreferIPv4       = null,
                        TimeSpan?                ConnectTimeout   = null,
                        TimeSpan?                ReceiveTimeout   = null,
                        TimeSpan?                SendTimeout      = null,
@@ -120,6 +130,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              IPAddress,
                              TCPPort,
                              Description,
+
+                             PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,

@@ -74,6 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Boolean?                                                      AllowRenegotiation           = null,
                               Boolean?                                                      AllowTLSResume               = null,
 
+                              Boolean?                                                      PreferIPv4                   = null,
                               TimeSpan?                                                     ConnectTimeout               = null,
                               TimeSpan?                                                     ReceiveTimeout               = null,
                               TimeSpan?                                                     SendTimeout                  = null,
@@ -110,6 +111,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -137,6 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Boolean?                                                      AllowRenegotiation           = null,
                               Boolean?                                                      AllowTLSResume               = null,
 
+                              Boolean?                                                      PreferIPv4                   = null,
                               TimeSpan?                                                     ConnectTimeout               = null,
                               TimeSpan?                                                     ReceiveTimeout               = null,
                               TimeSpan?                                                     SendTimeout                  = null,
@@ -174,6 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -205,6 +209,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                Boolean?                                                      AllowRenegotiation           = null,
                                Boolean?                                                      AllowTLSResume               = null,
 
+                               Boolean?                                                      PreferIPv4                   = null,
                                TimeSpan?                                                     ConnectTimeout               = null,
                                TimeSpan?                                                     ReceiveTimeout               = null,
                                TimeSpan?                                                     SendTimeout                  = null,
@@ -243,6 +248,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    AllowRenegotiation,
                    AllowTLSResume,
 
+                   PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
@@ -286,6 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowRenegotiation           = null,
                        Boolean?                                                      AllowTLSResume               = null,
 
+                       Boolean?                                                      PreferIPv4                   = null,
                        TimeSpan?                                                     ConnectTimeout               = null,
                        TimeSpan?                                                     ReceiveTimeout               = null,
                        TimeSpan?                                                     SendTimeout                  = null,
@@ -310,6 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              AllowRenegotiation,
                              AllowTLSResume,
 
+                             PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -350,6 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowRenegotiation           = null,
                        Boolean?                                                      AllowTLSResume               = null,
 
+                       Boolean?                                                      PreferIPv4                   = null,
                        TimeSpan?                                                     ConnectTimeout               = null,
                        TimeSpan?                                                     ReceiveTimeout               = null,
                        TimeSpan?                                                     SendTimeout                  = null,
@@ -376,6 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              AllowRenegotiation,
                              AllowTLSResume,
 
+                             PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -419,6 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowRenegotiation           = null,
                        Boolean?                                                      AllowTLSResume               = null,
 
+                       Boolean?                                                      PreferIPv4                   = null,
                        TimeSpan?                                                     ConnectTimeout               = null,
                        TimeSpan?                                                     ReceiveTimeout               = null,
                        TimeSpan?                                                     SendTimeout                  = null,
@@ -444,6 +455,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              AllowRenegotiation,
                              AllowTLSResume,
 
+                             PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
@@ -492,6 +504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        Boolean?                                                      AllowRenegotiation           = null,
                        Boolean?                                                      AllowTLSResume               = null,
 
+                       Boolean?                                                      PreferIPv4                   = null,
                        TimeSpan?                                                     ConnectTimeout               = null,
                        TimeSpan?                                                     ReceiveTimeout               = null,
                        TimeSpan?                                                     SendTimeout                  = null,
@@ -519,6 +532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              AllowRenegotiation,
                              AllowTLSResume,
 
+                             PreferIPv4,
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
