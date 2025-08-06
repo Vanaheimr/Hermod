@@ -21,6 +21,7 @@ using System.Text;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.Security;
+using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -59,6 +60,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public String?                        HTTPUserAgent            { get; }
 
         public DefaultRequestBuilderDelegate  DefaultRequestBuilder    { get;}
+
+        #endregion
+
+        #region Events
+
+        public event ClientRequestLogHandlerX?   ClientRequestLogDelegate;
+        public event ClientResponseLogHandlerX?  ClientResponseLogDelegate;
 
         #endregion
 
@@ -299,7 +307,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-
         #region ReconnectAsync()
 
         public async Task ReconnectAsync()
@@ -480,8 +487,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
         public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)>
 
-            SendRequest(HTTPRequest        Request,
-                        CancellationToken  CancellationToken   = default)
+            SendRequest(HTTPRequest                 Request,
+                        ClientRequestLogHandlerX?   RequestLogDelegate    = null,
+                        ClientResponseLogHandlerX?  ResponseLogDelegate   = null,
+                        CancellationToken           CancellationToken     = default)
 
         {
 
@@ -503,6 +512,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                         clientCancellationTokenSource.Token,
                                                         CancellationToken
                                                     );
+
+                #region Log  HTTP Request
+
+                await LogEvent(
+                          ClientRequestLogDelegate,
+                          async loggingDelegate => await loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              Request
+                          ),
+                          nameof(SendRequest)
+                      );
+
+                await LogEvent(
+                          RequestLogDelegate,
+                          async loggingDelegate => await loggingDelegate.Invoke(
+                              Timestamp.Now,
+                              this,
+                              Request
+                          ),
+                          nameof(SendRequest)
+                      );
+
+                #endregion
 
                 #region Send HTTP Request
 
@@ -569,6 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                     var response = HTTPResponse.Parse(
                                        Timestamp.Now,
+                                       stopwatch.Elapsed,
                                        Request,
                                        LocalSocket!. Value,
                                        RemoteSocket!.Value,
@@ -626,6 +660,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     {
                         IsHTTPConnected = false;  // Mark connection for closure after response handling
                     }
+
+                    #region Log HTTP Response
+
+                    await LogEvent(
+                              ClientResponseLogDelegate,
+                              async loggingDelegate => await loggingDelegate.Invoke(
+                                  Timestamp.Now,
+                                  this,
+                                  Request,
+                                  response
+                              ),
+                              nameof(SendRequest)
+                          );
+
+                    await LogEvent(
+                              ResponseLogDelegate,
+                              async loggingDelegate => await loggingDelegate.Invoke(
+                                  Timestamp.Now,
+                                  this,
+                                  Request,
+                                  response
+                              ),
+                              nameof(SendRequest)
+                          );
+
+                    #endregion
 
                     return (true, response, null, stopwatch.Elapsed);
 
@@ -691,6 +751,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
         }
+
+        #endregion
+
+
+        #region (private)   LogEvent     (Logger, LogHandler, ...)
+
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
+                                         [CallerMemberName()]                       String  OICPCommand   = "")
+
+            where TDelegate : Delegate
+
+            => LogEvent(
+                   nameof(AHTTPTestClient),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   OICPCommand
+               );
 
         #endregion
 

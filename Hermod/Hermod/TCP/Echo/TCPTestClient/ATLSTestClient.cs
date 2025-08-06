@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Net.Security;
+using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
@@ -351,6 +352,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
         }
+
+        #endregion
+
+
+        #region (private)   LogEvent     (Logger, LogHandler, ...)
+
+        private Task LogEvent<TDelegate>(TDelegate?                                         Logger,
+                                         Func<TDelegate, Task>                              LogHandler,
+                                         [CallerArgumentExpression(nameof(Logger))] String  EventName     = "",
+                                         [CallerMemberName()]                       String  OICPCommand   = "")
+
+            where TDelegate : Delegate
+
+            => LogEvent(
+                   nameof(ATLSTestClient),
+                   Logger,
+                   LogHandler,
+                   EventName,
+                   OICPCommand
+               );
 
         #endregion
 

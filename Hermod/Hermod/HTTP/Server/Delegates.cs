@@ -125,6 +125,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
+    /// The delegate for logging the HTTP request send by a HTTP client.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the outgoing HTTP request.</param>
+    /// <param name="HTTPClient">The HTTP client sending the HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request.</param>
+    public delegate Task ClientRequestLogHandlerX(DateTime        Timestamp,
+                                                 AHTTPTestClient  HTTPClient,
+                                                 HTTPRequest      Request);
+
+
+    /// <summary>
+    /// The delegate for logging the HTTP response received by a HTTP client.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming HTTP response.</param>
+    /// <param name="HTTPClient">The HTTP client receiving the HTTP request.</param>
+    /// <param name="Request">The outgoing HTTP request.</param>
+    /// <param name="Response">The incoming HTTP response.</param>
+    public delegate Task ClientResponseLogHandlerX(DateTime         Timestamp,
+                                                  AHTTPTestClient   HTTPClient,
+                                                  HTTPRequest       Request,
+                                                  HTTPResponse      Response);
+
+
+    /// <summary>
     /// An HTTP delegate.
     /// </summary>
     /// <param name="Request">The HTTP request.</param>

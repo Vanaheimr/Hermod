@@ -21,8 +21,9 @@ using System.Diagnostics;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -457,7 +458,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         #endregion
 
 
-
         #region Query (DomainName,     ResourceRecordTypes, RecursionDesired = true, ...)
 
         public Task<DNSInfo> Query(DomainName                           DomainName,
@@ -465,10 +465,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                    Boolean                              RecursionDesired    = true,
                                    CancellationToken                    CancellationToken   = default)
 
-            => Query(
+            => QueryHTTP(
                    DNSServiceName.Parse(DomainName.FullName),
                    ResourceRecordTypes,
                    RecursionDesired,
+                   null,
+                   null,
+                   CancellationToken
+               );
+
+
+        public Task<DNSInfo> QueryHTTP(DomainName                           DomainName,
+                                       IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                       Boolean                              RecursionDesired          = true,
+                                       ClientRequestLogHandlerX?            HTTPRequestLogDelegate    = null,
+                                       ClientResponseLogHandlerX?           HTTPResponseLogDelegate   = null,
+                                       CancellationToken                    CancellationToken         = default)
+
+            => QueryHTTP(
+                   DNSServiceName.Parse(DomainName.FullName),
+                   ResourceRecordTypes,
+                   RecursionDesired,
+                   HTTPRequestLogDelegate,
+                   HTTPResponseLogDelegate,
                    CancellationToken
                );
 
@@ -476,10 +495,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         #region Query (DNSServiceName, ResourceRecordTypes, RecursionDesired = true, ...)
 
-        public async Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
-                                         IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
-                                         Boolean                              RecursionDesired    = true,
-                                         CancellationToken                    CancellationToken   = default)
+        public Task<DNSInfo> Query(DNSServiceName                       DNSServiceName,
+                                   IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                   Boolean                              RecursionDesired    = true,
+                                   CancellationToken                    CancellationToken   = default)
+
+            => QueryHTTP(
+                   DNSServiceName,
+                   ResourceRecordTypes,
+                   RecursionDesired,
+                   null,
+                   null,
+                   CancellationToken
+               );
+
+        public async Task<DNSInfo> QueryHTTP(DNSServiceName                       DNSServiceName,
+                                             IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
+                                             Boolean                              RecursionDesired          = true,
+                                             ClientRequestLogHandlerX?            HTTPRequestLogDelegate    = null,
+                                             ClientResponseLogHandlerX?           HTTPResponseLogDelegate   = null,
+                                             CancellationToken                    CancellationToken         = default)
         {
 
             #region Initial checks
@@ -538,8 +573,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     throw new ArgumentException($"Unsupported DNS HTTPS mode: {Mode}");
                 }
 
-                var httpRequest   = httpRequestBuilder.AsImmutable;
-                var httpResponse  = await SendRequest(httpRequest, CancellationToken);
+                var httpResponse  = await SendRequest(
+                                              httpRequestBuilder.AsImmutable,
+                                              HTTPRequestLogDelegate,
+                                              HTTPResponseLogDelegate,
+                                              CancellationToken
+                                          );
 
                 stopwatch.Stop();
 

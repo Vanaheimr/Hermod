@@ -659,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Parse(ResponseHeader,                     Request = null, SubprotocolResponse = null)
+        #region (static) Parse(Time, Runtime, Request, LocalSocket, RemoteSocket, HTTPSource, ResponseHeader, SubprotocolResponse = null)
 
         /// <summary>
         /// Parse the HTTP response from its text representation and
@@ -669,6 +669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">An optional HTTP request leading to this response.</param>
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
         public static HTTPResponse Parse(DateTimeOffset      Time,
+                                         TimeSpan            Runtime,
                                          HTTPRequest         Request,
                                          IPSocket            LocalSocket,
                                          IPSocket            RemoteSocket,
@@ -677,7 +678,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          Object?             SubprotocolResponse   = null,
 
                                          EventTracking_Id?   EventTrackingId       = null,
-                                         TimeSpan?           Runtime               = null,
                                          Byte                NumberOfRetries       = 0,
                                          CancellationToken   CancellationToken     = default)
 

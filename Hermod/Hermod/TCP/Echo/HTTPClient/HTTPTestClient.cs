@@ -30,6 +30,93 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
 
+    public static class HTTPTestClientExtensions
+    {
+
+        public static async Task<HTTPResponse> POST(this HTTPTestClient           HTTPTestClient,
+                                                    HTTPPath                      Path,
+                                                    Byte[]                        Content,
+                                                    HTTPContentType?              ContentType           = null,
+                                                    QueryString?                  QueryString           = null,
+                                                    AcceptTypes?                  Accept                = null,
+                                                    IHTTPAuthentication?          Authentication        = null,
+                                                    ConnectionType?               Connection            = null,
+                                                    TimeSpan?                     RequestTimeout        = null,
+                                                    EventTracking_Id?             EventTrackingId       = null,
+                                                    Byte                          NumberOfRetry         = 0,
+                                                    Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+                                                    ClientRequestLogHandlerX?     RequestLogDelegate    = null,
+                                                    ClientResponseLogHandlerX?    ResponseLogDelegate   = null,
+                                                    CancellationToken             CancellationToken     = default)
+
+          //  => HTTPClientCommand.Execute(
+          //         client => client.CreateRequest(
+          //                       HTTPMethod.POST,
+          //                       Path,
+          //                       Content,
+          //                       ContentType    ?? HTTPClientCommand.ContentType,
+          //                       QueryString,
+          //                       Accept         ?? HTTPClientCommand.Accept,
+          //                       Authentication ?? HTTPClientCommand.Authentication,
+          //                       UserAgent      ?? HTTPClientCommand.HTTPUserAgent,
+          //                       Connection     ?? HTTPClientCommand.Connection,
+          //                       RequestBuilder,
+          //                       CancellationToken
+          //                   ).SetContentLength(0), // Always send a Content-Length header, even when it's value is zero!
+          //         RequestLogDelegate,
+          //         ResponseLogDelegate,
+          //         EventTrackingId,
+          //         RequestTimeout,
+          //         NumberOfRetry,
+          //         CancellationToken
+          //     );
+        {
+
+            var requestBuilder = HTTPTestClient.DefaultRequestBuilder();
+
+            requestBuilder.HTTPMethod         = HTTPMethod.POST;
+            requestBuilder.Path               = Path;
+            requestBuilder.Content            = Content;
+            requestBuilder.CancellationToken  = CancellationToken;
+
+            if (ContentType is not null)
+                requestBuilder.ContentType      = ContentType;
+
+            if (QueryString is not null)
+                requestBuilder.QueryString      = QueryString;
+
+            if (Accept is not null)
+                requestBuilder.Accept           = Accept;
+
+            if (Authentication is not null)
+                requestBuilder.Authorization    = Authentication;
+
+            if (Connection is not null)
+                requestBuilder.Connection       = Connection;
+
+            if (RequestTimeout is not null)
+                requestBuilder.Timeout          = RequestTimeout.Value;
+
+            if (EventTrackingId is not null)
+                requestBuilder.EventTrackingId  = EventTrackingId;
+
+            RequestBuilder?.Invoke(requestBuilder);
+
+
+            var cv = await HTTPTestClient.SendRequest(
+                               requestBuilder.AsImmutable,
+                               RequestLogDelegate,
+                               ResponseLogDelegate,
+                               CancellationToken
+                           );
+
+            return cv.Item2;
+
+        }
+
+    }
+
+
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
