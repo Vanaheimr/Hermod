@@ -19,7 +19,9 @@
 
 using System.Text;
 using System.Diagnostics;
+
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -34,16 +36,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        private TCPTestClient(IIPAddress               Address,
-                              IPPort                   TCPPort,
-                              I18NString?              Description      = null,
+        private TCPTestClient(IIPAddress                       Address,
+                              IPPort                           TCPPort,
+                              I18NString?                      Description              = null,
 
-                              Boolean?                 PreferIPv4       = null,
-                              TimeSpan?                ConnectTimeout   = null,
-                              TimeSpan?                ReceiveTimeout   = null,
-                              TimeSpan?                SendTimeout      = null,
-                              UInt32?                  BufferSize       = null,
-                              TCPEchoLoggingDelegate?  LoggingHandler   = null)
+                              Boolean?                         PreferIPv4               = null,
+                              TimeSpan?                        ConnectTimeout           = null,
+                              TimeSpan?                        ReceiveTimeout           = null,
+                              TimeSpan?                        SendTimeout              = null,
+                              TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                              UInt16?                          MaxNumberOfRetries       = null,
+                              UInt32?                          BufferSize               = null,
+                              TCPEchoLoggingDelegate?          LoggingHandler           = null)
 
             : base(Address,
                    TCPPort,
@@ -53,6 +57,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler)
 
@@ -74,15 +80,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<TCPTestClient>
 
-            ConnectNew(IPPort                   TCPPort,
-                       I18NString?              Description      = null,
+            ConnectNew(IPPort                           TCPPort,
+                       I18NString?                      Description              = null,
 
-                       Boolean?                 PreferIPv4       = null,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null)
+                       Boolean?                         PreferIPv4               = null,
+                       TimeSpan?                        ConnectTimeout           = null,
+                       TimeSpan?                        ReceiveTimeout           = null,
+                       TimeSpan?                        SendTimeout              = null,
+                       UInt32?                          BufferSize               = null,
+                       TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                       UInt16?                          MaxNumberOfRetries       = null,
+                       TCPEchoLoggingDelegate?          LoggingHandler           = null)
 
                 => await ConnectNew(
                              IPvXAddress.Localhost,
@@ -93,6 +101,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
                              BufferSize,
                              LoggingHandler
                          );
@@ -113,16 +123,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="LoggingHandler">An optional logging handler to log messages.</param>
         public static async Task<TCPTestClient>
 
-            ConnectNew(IIPAddress               IPAddress,
-                       IPPort                   TCPPort,
-                       I18NString?              Description      = null,
+            ConnectNew(IIPAddress                       IPAddress,
+                       IPPort                           TCPPort,
+                       I18NString?                      Description              = null,
 
-                       Boolean?                 PreferIPv4       = null,
-                       TimeSpan?                ConnectTimeout   = null,
-                       TimeSpan?                ReceiveTimeout   = null,
-                       TimeSpan?                SendTimeout      = null,
-                       UInt32?                  BufferSize       = null,
-                       TCPEchoLoggingDelegate?  LoggingHandler   = null)
+                       Boolean?                         PreferIPv4               = null,
+                       TimeSpan?                        ConnectTimeout           = null,
+                       TimeSpan?                        ReceiveTimeout           = null,
+                       TimeSpan?                        SendTimeout              = null,
+                       TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                       UInt16?                          MaxNumberOfRetries       = null,
+                       UInt32?                          BufferSize               = null,
+                       TCPEchoLoggingDelegate?          LoggingHandler           = null)
 
         {
 
@@ -135,6 +147,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              ConnectTimeout,
                              ReceiveTimeout,
                              SendTimeout,
+                             TransmissionRetryDelay,
+                             MaxNumberOfRetries,
                              BufferSize,
                              LoggingHandler
                          );

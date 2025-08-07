@@ -17,8 +17,9 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Net;
+
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -456,7 +457,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         TimeSpan     ConnectTimeout            { get; }
         TimeSpan     ReceiveTimeout            { get; }
         TimeSpan     SendTimeout               { get; }
-        Int32        BufferSize                { get; }
+        UInt32       BufferSize                { get; }
 
     }
 

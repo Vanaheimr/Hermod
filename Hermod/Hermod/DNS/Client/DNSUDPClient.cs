@@ -131,7 +131,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public  TimeSpan                 ConnectTimeout     { get; }
         public  TimeSpan                 ReceiveTimeout     { get; }
         public  TimeSpan                 SendTimeout        { get; }
-        public  Int32                    BufferSize         { get; }
+        public  UInt32                   BufferSize         { get; }
 
         #endregion
 
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             this.BufferSize       = BufferSize.HasValue
                                         ? BufferSize.Value > Int32.MaxValue
                                               ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                              : (Int32) BufferSize.Value
+                                              : BufferSize.Value
                                         : DefaultBufferSize;
             this.ConnectTimeout   = ConnectTimeout ?? DefaultConnectTimeout;
             this.ReceiveTimeout   = ReceiveTimeout ?? DefaultReceiveTimeout;

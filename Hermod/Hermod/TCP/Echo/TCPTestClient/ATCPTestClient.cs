@@ -102,7 +102,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static readonly    TimeSpan                 DefaultConnectTimeout            = TimeSpan.FromSeconds(5);
         public static readonly    TimeSpan                 DefaultReceiveTimeout            = TimeSpan.FromSeconds(5);
         public static readonly    TimeSpan                 DefaultSendTimeout               = TimeSpan.FromSeconds(5);
-        public const              Int32                    DefaultBufferSize                = 4096;
+
+        /// <summary>
+        /// The default maximum number of transmission retries for HTTP request.
+        /// </summary>
+        public const              UInt16                   DefaultMaxNumberOfRetries        = 3;
+
+        /// <summary>
+        /// The default delay between transmission retries.
+        /// </summary>
+        public static readonly    TimeSpan                 DefaultTransmissionRetryDelay    = TimeSpan.FromSeconds(2);
+
+        public const              UInt32                   DefaultBufferSize                = 4096;
 
         protected readonly        TCPEchoLoggingDelegate?  loggingHandler;
         protected                 TcpClient?               tcpClient;
@@ -115,14 +126,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The description of this TCP client.
         /// </summary>
-        public I18NString   Description    { get; }
+        public I18NString                        Description               { get; }
 
-        /// <summary>
-        /// Whether the client is currently connected to the.
-        /// </summary>
-        public Boolean      IsConnected
-            => tcpClient?.Connected ?? false;
 
+        #region Local Socket
 
         /// <summary>
         /// The local IP socket.
@@ -156,6 +163,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ? IPAddress.Parse(CurrentLocalEndPoint.Address.GetAddressBytes())
                    : null;
 
+        #endregion
+
+        #region Remote Socket
 
         /// <summary>
         /// The remote IP socket.
@@ -189,34 +199,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ? IPAddress.Parse(CurrentRemoteEndPoint.Address.GetAddressBytes())
                    : null;
 
-        public  URL?                     RemoteURL          { get; }
-        public  IIPAddress?              RemoteIPAddress    { get; private   set; }
-        public  IPPort?                  RemotePort         { get; protected set; }
-        public  TimeSpan                 ConnectTimeout     { get; }
-        public  TimeSpan                 ReceiveTimeout     { get; }
-        public  TimeSpan                 SendTimeout        { get; }
-        public  Int32                    BufferSize         { get; }
+        #endregion
+
+
+        public  URL?                             RemoteURL                 { get; }
+        public  IIPAddress?                      RemoteIPAddress           { get; private   set; }
+        public  IPPort?                          RemotePort                { get; protected set; }
 
 
         /// <summary>
         /// The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public DomainName?               DomainName            { get; }
+        public DomainName?                       DomainName                { get; }
 
         /// <summary>
         /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public SRV_Spec?                 DNSService         { get; }
+        public SRV_Spec?                         DNSService                { get; }
+
+
+        /// <summary>
+        /// Whether the client is currently connected to the.
+        /// </summary>
+        public Boolean                           IsConnected
+            => tcpClient?.Connected ?? false;
+
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
         /// </summary>
-        public Boolean                   PreferIPv4         { get; }
+        public  Boolean                          PreferIPv4                { get; }
+        public  TimeSpan                         ConnectTimeout            { get; }
+        public  TimeSpan                         ReceiveTimeout            { get; }
+        public  TimeSpan                         SendTimeout               { get; }
+        public  TransmissionRetryDelayDelegate?  TransmissionRetryDelay    { get; }
+        public  UInt16?                          MaxNumberOfRetries        { get; }
+        public  UInt32                           BufferSize                { get; }
+
 
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient?                DNSClient          { get; }
+        public DNSClient?                        DNSClient                 { get; }
 
         #endregion
 
@@ -224,14 +248,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (private)   ATCPTestClient(...)
 
-        private ATCPTestClient(I18NString?              Description      = null,
-                               Boolean?                 PreferIPv4       = null,
-                               TimeSpan?                ConnectTimeout   = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               UInt32?                  BufferSize       = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                               DNSClient?               DNSClient        = null)
+        private ATCPTestClient(I18NString?                      Description              = null,
+                               Boolean?                         PreferIPv4               = null,
+                               TimeSpan?                        ConnectTimeout           = null,
+                               TimeSpan?                        ReceiveTimeout           = null,
+                               TimeSpan?                        SendTimeout              = null,
+                               TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                               UInt16?                          MaxNumberOfRetries       = null,
+                               UInt32?                          BufferSize               = null,
+                               TCPEchoLoggingDelegate?          LoggingHandler           = null,
+                               DNSClient?                       DNSClient                = null)
         {
 
             if (ConnectTimeout.HasValue && ConnectTimeout.Value.TotalMilliseconds > Int32.MaxValue)
@@ -243,41 +269,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (SendTimeout.   HasValue && SendTimeout.   Value.TotalMilliseconds > Int32.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
-            this.Description                    = Description    ?? I18NString.Empty;
-            this.PreferIPv4                     = PreferIPv4     ?? false;
+            this.Description                    = Description            ?? I18NString.Empty;
+            this.PreferIPv4                     = PreferIPv4             ?? false;
             this.BufferSize                     = BufferSize.HasValue
                                                       ? BufferSize.Value > Int32.MaxValue
                                                             ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
-                                                            : (Int32) BufferSize.Value
+                                                            : BufferSize.Value
                                                       : DefaultBufferSize;
-            this.ConnectTimeout                 = ConnectTimeout ?? DefaultConnectTimeout;
-            this.ReceiveTimeout                 = ReceiveTimeout ?? DefaultReceiveTimeout;
-            this.SendTimeout                    = SendTimeout    ?? DefaultSendTimeout;
+            this.ConnectTimeout                 = ConnectTimeout         ?? DefaultConnectTimeout;
+            this.ReceiveTimeout                 = ReceiveTimeout         ?? DefaultReceiveTimeout;
+            this.SendTimeout                    = SendTimeout            ?? DefaultSendTimeout;
+            this.TransmissionRetryDelay         = TransmissionRetryDelay ?? (retryCounter => TimeSpan.FromSeconds(retryCounter * retryCounter * DefaultTransmissionRetryDelay.TotalSeconds));
+            this.MaxNumberOfRetries             = MaxNumberOfRetries     ?? DefaultMaxNumberOfRetries;
             this.loggingHandler                 = LoggingHandler;
             this.clientCancellationTokenSource  = new CancellationTokenSource();
-            this.DNSClient                      = DNSClient      ?? new DNSClient();
+            this.DNSClient                      = DNSClient              ?? new DNSClient();
 
         }
 
         #endregion
 
-        #region (protected) ATCPTestClient(IPAddress, TCPPort, ...)
+        #region (protected) ATCPTestClient(IPAddress,  TCPPort,           ...)
 
-        protected ATCPTestClient(IIPAddress               IPAddress,
-                                 IPPort                   TCPPort,
-                                 I18NString?              Description      = null,
-                                 Boolean?                 PreferIPv4       = null,
-                                 TimeSpan?                ConnectTimeout   = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        protected ATCPTestClient(IIPAddress                       IPAddress,
+                                 IPPort                           TCPPort,
+                                 I18NString?                      Description              = null,
+                                 Boolean?                         PreferIPv4               = null,
+                                 TimeSpan?                        ConnectTimeout           = null,
+                                 TimeSpan?                        ReceiveTimeout           = null,
+                                 TimeSpan?                        SendTimeout              = null,
+                                 TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                                 UInt16?                          MaxNumberOfRetries       = null,
+                                 UInt32?                          BufferSize               = null,
+                                 TCPEchoLoggingDelegate?          LoggingHandler           = null)
 
             : this(Description,
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler)
 
@@ -292,22 +324,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ATCPTestClient(URL,        DNSService = null, ..., DNSClient = null)
 
-        protected ATCPTestClient(URL                      URL,
-                                 SRV_Spec?                DNSService       = null,
-                                 I18NString?              Description      = null,
-                                 Boolean?                 PreferIPv4       = null,
-                                 TimeSpan?                ConnectTimeout   = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                                 DNSClient?               DNSClient        = null)
+        protected ATCPTestClient(URL                              URL,
+                                 SRV_Spec?                        DNSService               = null,
+                                 I18NString?                      Description              = null,
+                                 Boolean?                         PreferIPv4               = null,
+                                 TimeSpan?                        ConnectTimeout           = null,
+                                 TimeSpan?                        ReceiveTimeout           = null,
+                                 TimeSpan?                        SendTimeout              = null,
+                                 TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                                 UInt16?                          MaxNumberOfRetries       = null,
+                                 UInt32?                          BufferSize               = null,
+                                 TCPEchoLoggingDelegate?          LoggingHandler           = null,
+                                 DNSClient?                       DNSClient                = null)
 
             : this(Description,
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler,
                    DNSClient)
@@ -323,22 +359,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region (protected) ATCPTestClient(DomainName, DNSService,        ..., DNSClient = null)
 
-        protected ATCPTestClient(DomainName               DomainName,
-                                 SRV_Spec                 DNSService,
-                                 I18NString?              Description      = null,
-                                 Boolean?                 PreferIPv4       = null,
-                                 TimeSpan?                ConnectTimeout   = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null,
-                                 DNSClient?               DNSClient        = null)
+        protected ATCPTestClient(DomainName                       DomainName,
+                                 SRV_Spec                         DNSService,
+                                 I18NString?                      Description              = null,
+                                 Boolean?                         PreferIPv4               = null,
+                                 TimeSpan?                        ConnectTimeout           = null,
+                                 TimeSpan?                        ReceiveTimeout           = null,
+                                 TimeSpan?                        SendTimeout              = null,
+                                 TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                                 UInt16?                          MaxNumberOfRetries       = null,
+                                 UInt32?                          BufferSize               = null,
+                                 TCPEchoLoggingDelegate?          LoggingHandler           = null,
+                                 DNSClient?                       DNSClient                = null)
 
             : this(Description,
                    PreferIPv4,
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler,
                    DNSClient)
@@ -505,7 +545,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     var remotePort    = RemoteURL?.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
+                    {
+                        await Log("The remote TCP port must not be null!");
                         throw new Exception("The remote TCP port must not be null!");
+                    }
 
                     clientCancellationTokenSource = new CancellationTokenSource();
                     tcpClient         = new TcpClient();
@@ -527,7 +570,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
 
                 else
-                    throw new ArgumentNullException(nameof(RemoteIPAddress), "The remote IP address must not be null!");
+                {
+                    await Log("The remote IP address must not be null!");
+                    throw new Exception("The remote IP address must not be null!");
+                }
 
             }
             catch (Exception ex)

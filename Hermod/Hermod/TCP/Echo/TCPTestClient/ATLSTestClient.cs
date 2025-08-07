@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #region Constructor(s)
 
-        #region (protected) ATLSTestClient(IPAddress, TCPPort, ...)
+        #region (protected) ATLSTestClient(IPAddress,  TCPPort,           ...)
 
         protected ATLSTestClient(IIPAddress                                                    IPAddress,
                                  IPPort                                                        TCPPort,
@@ -89,6 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                                                     ConnectTimeout                   = null,
                                  TimeSpan?                                                     ReceiveTimeout                   = null,
                                  TimeSpan?                                                     SendTimeout                      = null,
+                                 TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
+                                 UInt16?                                                       MaxNumberOfRetries               = null,
                                  UInt32?                                                       BufferSize                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                   = null)
 
@@ -99,6 +101,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler)
 
@@ -142,6 +146,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                                                     ConnectTimeout                   = null,
                                  TimeSpan?                                                     ReceiveTimeout                   = null,
                                  TimeSpan?                                                     SendTimeout                      = null,
+                                 TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
+                                 UInt16?                                                       MaxNumberOfRetries               = null,
                                  UInt32?                                                       BufferSize                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
                                  DNSClient?                                                    DNSClient                        = null)
@@ -154,6 +160,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler,
                    DNSClient)
@@ -198,6 +206,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  TimeSpan?                                                     ConnectTimeout                   = null,
                                  TimeSpan?                                                     ReceiveTimeout                   = null,
                                  TimeSpan?                                                     SendTimeout                      = null,
+                                 TransmissionRetryDelayDelegate?                               TransmissionRetryDelay           = null,
+                                 UInt16?                                                       MaxNumberOfRetries               = null,
                                  UInt32?                                                       BufferSize                       = null,
                                  TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
                                  DNSClient?                                                    DNSClient                        = null)
@@ -210,6 +220,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler,
                    DNSClient)

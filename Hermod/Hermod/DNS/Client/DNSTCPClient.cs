@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Illias;
 using System.Diagnostics;
 
@@ -64,18 +65,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// Create a new DNS TCP client for the given DNS server.
         /// </summary>
         /// <param name="IPAddress">The DNS server to query.</param>
-        public DNSTCPClient(IIPAddress               IPAddress,
-                            IPPort?                  Port               = null,
-                            I18NString?              Description        = null,
-                            Boolean?                 RecursionDesired   = null,
-                            TimeSpan?                QueryTimeout       = null,
+        public DNSTCPClient(IIPAddress                       IPAddress,
+                            IPPort?                          Port                     = null,
+                            I18NString?                      Description              = null,
+                            Boolean?                         RecursionDesired         = null,
+                            TimeSpan?                        QueryTimeout             = null,
 
-                            Boolean?                 PreferIPv4         = null,
-                            TimeSpan?                ConnectTimeout     = null,
-                            TimeSpan?                ReceiveTimeout     = null,
-                            TimeSpan?                SendTimeout        = null,
-                            UInt32?                  BufferSize         = null,
-                            TCPEchoLoggingDelegate?  LoggingHandler     = null)
+                            Boolean?                         PreferIPv4               = null,
+                            TimeSpan?                        ConnectTimeout           = null,
+                            TimeSpan?                        ReceiveTimeout           = null,
+                            TimeSpan?                        SendTimeout              = null,
+                            TransmissionRetryDelayDelegate?  TransmissionRetryDelay   = null,
+                            UInt16?                          MaxNumberOfRetries       = null,
+                            UInt32?                          BufferSize               = null,
+                            TCPEchoLoggingDelegate?          LoggingHandler           = null)
 
             : base(IPAddress,
                    Port ?? IPPort.DNS,
@@ -85,6 +88,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize ?? 512,
                    LoggingHandler)
 

@@ -37,6 +37,180 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public delegate HTTPRequest.Builder DefaultRequestBuilderDelegate();
 
 
+
+    public static class HTTPTestClientExtensions
+    {
+
+        #region GET  (Path, ...)
+
+        public static Task<HTTPResponse> GET(this AHTTPTestClient          HTTPTestClient,
+                                             HTTPPath                      Path,
+                                             //Byte[]?                       Content               = null,
+                                             //HTTPContentType?              ContentType           = null,
+                                             QueryString?                  QueryString           = null,
+                                             AcceptTypes?                  Accept                = null,
+                                             IHTTPAuthentication?          Authentication        = null,
+                                             ConnectionType?               Connection            = null,
+                                             TimeSpan?                     RequestTimeout        = null,
+                                             EventTracking_Id?             EventTrackingId       = null,
+                                             Byte                          NumberOfRetry         = 0,
+                                             Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                                             ClientRequestLogHandler?      RequestLogDelegate    = null,
+                                             ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                                             CancellationToken             CancellationToken     = default)
+
+            => HTTPTestClient.RunRequest(
+
+                   HTTPMethod.GET,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   null, //UserAgent
+                   null, //Content,
+                   null, //ContentType,
+                   Connection,
+                   RequestBuilder,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+            //  => HTTPClientCommand.Execute(
+            //         client => client.CreateRequest(
+            //                       HTTPMethod.POST,
+            //                       Path,
+            //                       Content,
+            //                       ContentType    ?? HTTPClientCommand.ContentType,
+            //                       QueryString,
+            //                       Accept         ?? HTTPClientCommand.Accept,
+            //                       Authentication ?? HTTPClientCommand.Authentication,
+            //                       UserAgent      ?? HTTPClientCommand.HTTPUserAgent,
+            //                       Connection     ?? HTTPClientCommand.Connection,
+            //                       RequestBuilder,
+            //                       CancellationToken
+            //                   ).SetContentLength(0), // Always send a Content-Length header, even when it's value is zero!
+            //         RequestLogDelegate,
+            //         ResponseLogDelegate,
+            //         EventTrackingId,
+            //         RequestTimeout,
+            //         NumberOfRetry,
+            //         CancellationToken
+            //     );
+
+        #endregion
+
+        #region POST (Path, Content, ...)
+
+        public static Task<HTTPResponse> POST(this AHTTPTestClient          HTTPTestClient,
+                                              HTTPPath                      Path,
+                                              Byte[]                        Content,
+                                              HTTPContentType?              ContentType           = null,
+                                              QueryString?                  QueryString           = null,
+                                              AcceptTypes?                  Accept                = null,
+                                              IHTTPAuthentication?          Authentication        = null,
+                                              ConnectionType?               Connection            = null,
+                                              TimeSpan?                     RequestTimeout        = null,
+                                              EventTracking_Id?             EventTrackingId       = null,
+                                              Byte                          NumberOfRetry         = 0,
+                                              Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                                              ClientRequestLogHandler?      RequestLogDelegate    = null,
+                                              ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                                              CancellationToken             CancellationToken     = default)
+
+            => HTTPTestClient.RunRequest(
+
+                   HTTPMethod.POST,
+                   Path,
+                   QueryString,
+                   Accept,
+                   Authentication,
+                   Content,
+                   ContentType,
+                   null, //UserAgent
+                   Connection,
+                   RequestBuilder,
+
+                   RequestLogDelegate,
+                   ResponseLogDelegate,
+                   CancellationToken
+
+               );
+
+          //  => HTTPClientCommand.Execute(
+          //         client => client.CreateRequest(
+          //                       HTTPMethod.POST,
+          //                       Path,
+          //                       Content,
+          //                       ContentType    ?? HTTPClientCommand.ContentType,
+          //                       QueryString,
+          //                       Accept         ?? HTTPClientCommand.Accept,
+          //                       Authentication ?? HTTPClientCommand.Authentication,
+          //                       UserAgent      ?? HTTPClientCommand.HTTPUserAgent,
+          //                       Connection     ?? HTTPClientCommand.Connection,
+          //                       RequestBuilder,
+          //                       CancellationToken
+          //                   ).SetContentLength(0), // Always send a Content-Length header, even when it's value is zero!
+          //         RequestLogDelegate,
+          //         ResponseLogDelegate,
+          //         EventTrackingId,
+          //         RequestTimeout,
+          //         NumberOfRetry,
+          //         CancellationToken
+          //     );
+        //{
+
+        //    var requestBuilder = HTTPTestClient.DefaultRequestBuilder();
+
+        //    requestBuilder.HTTPMethod         = HTTPMethod.POST;
+        //    requestBuilder.Path               = Path;
+        //    requestBuilder.Content            = Content;
+        //    requestBuilder.CancellationToken  = CancellationToken;
+
+        //    if (ContentType is not null)
+        //        requestBuilder.ContentType      = ContentType;
+
+        //    if (QueryString is not null)
+        //        requestBuilder.QueryString      = QueryString;
+
+        //    if (Accept is not null)
+        //        requestBuilder.Accept           = Accept;
+
+        //    if (Authentication is not null)
+        //        requestBuilder.Authorization    = Authentication;
+
+        //    if (Connection is not null)
+        //        requestBuilder.Connection       = Connection;
+
+        //    if (RequestTimeout is not null)
+        //        requestBuilder.Timeout          = RequestTimeout.Value;
+
+        //    if (EventTrackingId is not null)
+        //        requestBuilder.EventTrackingId  = EventTrackingId;
+
+        //    RequestBuilder?.Invoke(requestBuilder);
+
+
+        //    var xx = await HTTPTestClient.SendRequest(
+        //                       requestBuilder.AsImmutable,
+        //                       RequestLogDelegate,
+        //                       ResponseLogDelegate,
+        //                       CancellationToken
+        //                   );
+
+        //    return xx.Item2;
+
+        //}
+
+        #endregion
+
+    }
+
+
     /// <summary>
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
@@ -129,6 +303,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   TimeSpan?                                                      ConnectTimeout                       = null,
                                   TimeSpan?                                                      ReceiveTimeout                       = null,
                                   TimeSpan?                                                      SendTimeout                          = null,
+                                  TransmissionRetryDelayDelegate?                                TransmissionRetryDelay               = null,
+                                  UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
                                   TCPEchoLoggingDelegate?                                        LoggingHandler                       = null)
 
@@ -164,6 +340,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler)
 
@@ -207,6 +385,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   TimeSpan?                                                      ConnectTimeout                       = null,
                                   TimeSpan?                                                      ReceiveTimeout                       = null,
                                   TimeSpan?                                                      SendTimeout                          = null,
+                                  TransmissionRetryDelayDelegate?                                TransmissionRetryDelay               = null,
+                                  UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
                                   TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
                                   DNSClient?                                                     DNSClient                            = null)
@@ -243,6 +423,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler,
                    DNSClient)
@@ -287,6 +469,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   TimeSpan?                                                      ConnectTimeout                       = null,
                                   TimeSpan?                                                      ReceiveTimeout                       = null,
                                   TimeSpan?                                                      SendTimeout                          = null,
+                                  TransmissionRetryDelayDelegate?                                TransmissionRetryDelay               = null,
+                                  UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
                                   TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
                                   DNSClient?                                                     DNSClient                            = null)
@@ -323,6 +507,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    ConnectTimeout,
                    ReceiveTimeout,
                    SendTimeout,
+                   TransmissionRetryDelay,
+                   MaxNumberOfRetries,
                    BufferSize,
                    LoggingHandler,
                    DNSClient)
@@ -475,48 +661,117 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                  QueryString?                  QueryString         = null,
                                                  AcceptTypes?                  Accept              = null,
                                                  IHTTPAuthentication?          Authentication      = null,
+                                                 Byte[]?                       Content             = null,
+                                                 HTTPContentType?              ContentType         = null,
                                                  String?                       UserAgent           = null,
                                                  ConnectionType?               Connection          = null,
                                                  Action<HTTPRequest.Builder>?  RequestBuilder      = null,
                                                  CancellationToken             CancellationToken   = default)
         {
 
-            var builder = DefaultRequestBuilder();
+            var requestBuilder = DefaultRequestBuilder();
 
-            builder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
+            requestBuilder.Host        = HTTPHostname.Localhost; // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
           //  builder.Host        = HTTPHostname.Parse((RemoteURL?.Hostname ?? DomainName?.ToString() ?? RemoteIPAddress?.ToString()) +
           //                                           (RemoteURL?.Port.HasValue == true && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS
           //                                                ? ":" + RemoteURL.Port.ToString()
           //                                                : String.Empty));
-            builder.HTTPMethod  = HTTPMethod;
-            builder.Path        = HTTPPath;
+            requestBuilder.HTTPMethod  = HTTPMethod;
+            requestBuilder.Path        = HTTPPath;
 
             if (QueryString    is not null)
-                builder.QueryString    = QueryString;
+                requestBuilder.QueryString    = QueryString;
 
             if (Accept         is not null)
-                builder.Accept         = Accept;
+                requestBuilder.Accept         = Accept;
 
             if (Authentication is not null)
-                builder.Authorization  = Authentication;
+                requestBuilder.Authorization  = Authentication;
 
-            if (UserAgent      is not null)
-                builder.UserAgent      = UserAgent;
+            if (UserAgent.IsNotNullOrEmpty())
+                requestBuilder.UserAgent      = UserAgent;
+
+            if (Content        is not null)
+                requestBuilder.Content        = Content;
+
+            if (ContentType    is not null)
+                requestBuilder.ContentType    = ContentType;
+
+            if (Content is not null && ContentType is null)
+                requestBuilder.ContentType    = HTTPContentType.Application.OCTETSTREAM;
 
             if (Connection     is not null)
-                builder.Connection     = Connection;
+                requestBuilder.Connection     = Connection;
 
-            builder.CancellationToken  = CancellationToken;
+            requestBuilder.CancellationToken  = CancellationToken;
 
-            RequestBuilder?.Invoke(builder);
+            RequestBuilder?.Invoke(requestBuilder);
 
-            return builder;
+            return requestBuilder;
 
         }
 
         #endregion
 
-        #region SendRequest (Request)
+        #region RunRequest    (HTTPMethod, HTTPPath, ...)
+
+        /// <summary>
+        /// Create a new HTTP request.
+        /// </summary>u
+        /// <param name="HTTPMethod">An HTTP method.</param>
+        /// <param name="HTTPPath">An HTTP path.</param>
+        /// <param name="QueryString">An optional HTTP Query String.</param>
+        /// <param name="Accept">An optional HTTP accept header.</param>
+        /// <param name="Authentication">An optional HTTP authentication.</param>
+        /// <param name="UserAgent">An optional HTTP user agent.</param>
+        /// <param name="Connection">An optional HTTP connection type.</param>
+        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        public async Task<HTTPResponse>
+
+            RunRequest(HTTPMethod                    HTTPMethod,
+                       HTTPPath                      HTTPPath,
+                       QueryString?                  QueryString           = null,
+                       AcceptTypes?                  Accept                = null,
+                       IHTTPAuthentication?          Authentication        = null,
+                       Byte[]?                       Content               = null,
+                       HTTPContentType?              ContentType           = null,
+                       String?                       UserAgent             = null,
+                       ConnectionType?               Connection            = null,
+                       Action<HTTPRequest.Builder>?  RequestBuilder        = null,
+
+                       ClientRequestLogHandler?      RequestLogDelegate    = null,
+                       ClientResponseLogHandler?     ResponseLogDelegate   = null,
+                       CancellationToken             CancellationToken     = default)
+
+        {
+
+            var response = await SendRequest(
+                                     CreateRequest(
+                                         HTTPMethod,
+                                         HTTPPath,
+                                         QueryString,
+                                         Accept,
+                                         Authentication,
+                                         Content,
+                                         ContentType,
+                                         UserAgent,
+                                         Connection,
+                                         RequestBuilder,
+                                         CancellationToken
+                                     ).AsImmutable,
+                                     RequestLogDelegate,
+                                     ResponseLogDelegate,
+                                     CancellationToken
+                                 );
+
+            return response.Item2;
+
+        }
+
+        #endregion
+
+        #region SendRequest   (Request)
 
         /// <summary>
         /// Send the given HTTP Request to the server and receive the HTTP Response.
@@ -595,7 +850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                 #endregion
 
-                IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent(BufferSize * 2);
+                IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
                 var buffer = bufferOwner.Memory;
                 var dataLength = 0;
 
@@ -612,7 +867,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                             throw new Exception("Header too large.");
 
                         var bytesRead = await httpStream.ReadAsync(
-                                                  buffer.Slice(dataLength, BufferSize),
+                                                  buffer.Slice(dataLength, (Int32) BufferSize),
                                                   linkedCancellationToken.Token
                                               );
 
@@ -745,7 +1000,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region SendText    (Text)
+        #region SendText      (Text)
 
         /// <summary>
         /// Send the given message to the echo server and receive the echoed response.
