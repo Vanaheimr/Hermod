@@ -214,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The remote TLS certificate validator.
         /// </summary>
-        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; }
+        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>?  RemoteCertificateValidator    { get; protected internal set; }
 
         /// <summary>
         /// A delegate to select a TLS client certificate.
@@ -229,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                                               TLSProtocol                   { get; }
+        public SslProtocols                                               TLSProtocols                   { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
@@ -612,7 +612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.RemoteCertificateValidator  = RemoteCertificateValidator;
             this.LocalCertificateSelector    = LocalCertificateSelector;
             this.ClientCert                  = ClientCert;
-            this.TLSProtocol                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
+            this.TLSProtocols                 = TLSProtocol            ?? SslProtocols.Tls12|SslProtocols.Tls13;
             this.ContentType                 = ContentType;
             this.Accept                      = Accept;
             this.Authentication              = HTTPAuthentication;
@@ -1150,7 +1150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                 await tlsStream.AuthenticateAsClientAsync(targetHost:                  RemoteURL.Hostname.Name,
                                                                           clientCertificates:          null,  // new X509CertificateCollection(new X509Certificate[] { ClientCert })
-                                                                          enabledSslProtocols:         TLSProtocol,
+                                                                          enabledSslProtocols:         TLSProtocols,
                                                                           checkCertificateRevocation:  false);// true);
 
                                 timings.TLSHandshake = timings.Elapsed;

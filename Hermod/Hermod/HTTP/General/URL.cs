@@ -47,6 +47,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    _                     => "https://",
                };
 
+
+        /// <summary>
+        /// Whether the URL protocol enforces TLS, or not.
+        /// </summary>
+        /// <param name="URLProtocol">An URL protocol.</param>
+        public static Boolean EnforcesTLS(this URLProtocols URLProtocol)
+
+            => URLProtocol switch {
+                   URLProtocols.tcp      => false,
+                   URLProtocols.udp      => false,
+                   URLProtocols.tls      => true,
+                   URLProtocols.http     => false,
+                   URLProtocols.https    => true,
+                   URLProtocols.ws       => false,
+                   URLProtocols.wss      => true,
+                   URLProtocols.modbus   => false,
+                   URLProtocols.smodbus  => true,
+                   _                     => false
+               };
+
+
+        /// <summary>
+        /// Whether the URL protocol enforces TLS, or not.
+        /// </summary>
+        /// <param name="URLProtocol">An URL protocol.</param>
+        public static IPPort? DefaultPorts(this URLProtocols URLProtocol)
+
+            => URLProtocol switch {
+                   URLProtocols.http     => IPPort.HTTP,
+                   URLProtocols.https    => IPPort.HTTPS,
+                   URLProtocols.ws       => IPPort.HTTP,
+                   URLProtocols.wss      => IPPort.HTTPS,
+                   URLProtocols.modbus   => IPPort.ModbusTCP,
+                   URLProtocols.smodbus  => IPPort.ModbusTLS,
+                   _                     => null
+               };
+
     }
 
 

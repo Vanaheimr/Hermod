@@ -100,6 +100,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               SslProtocols?                                                 TLSProtocols                         = null,
                               CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                               X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                               Boolean?                                                      AllowRenegotiation                   = null,
                               Boolean?                                                      AllowTLSResume                       = null,
 
@@ -134,6 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    true,
                    null,
                    AllowRenegotiation,
@@ -175,6 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               SslProtocols?                                                 TLSProtocols                         = null,
                               CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                               X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                               Boolean?                                                      AllowRenegotiation                   = null,
                               Boolean?                                                      AllowTLSResume                       = null,
 
@@ -209,6 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    true,
                    null,
                    AllowRenegotiation,
@@ -249,6 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                               SslProtocols?                                                 TLSProtocols                         = null,
                               CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                               X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                               Boolean?                                                      AllowRenegotiation                   = null,
                               Boolean?                                                      AllowTLSResume                       = null,
 
@@ -270,12 +275,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        ? (sender,
                           certificate,
                           certificateChain,
-                          tlsClient,
+                          aHTTPTestClient,
                           policyErrors) => RemoteCertificateValidationHandler.Invoke(
                                                sender,
                                                certificate,
                                                certificateChain,
-                                               tlsClient as DNSHTTPSClient,
+                                               aHTTPTestClient as DNSHTTPSClient,
                                                policyErrors
                                            )
                        : null,
@@ -284,6 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    true,
                    null,
                    AllowRenegotiation,
@@ -339,6 +345,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        SslProtocols?                                                 TLSProtocols                         = null,
                        CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                        X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                        Boolean?                                                      AllowRenegotiation                   = null,
                        Boolean?                                                      AllowTLSResume                       = null,
 
@@ -365,6 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              TLSProtocols,
                              CipherSuitesPolicy,
                              CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
                              AllowRenegotiation,
                              AllowTLSResume,
 
@@ -411,6 +419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                        SslProtocols?                                                 TLSProtocols                         = null,
                        CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                        X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                        Boolean?                                                      AllowRenegotiation                   = null,
                        Boolean?                                                      AllowTLSResume                       = null,
 
@@ -437,6 +446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                              TLSProtocols,
                              CipherSuitesPolicy,
                              CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
                              AllowRenegotiation,
                              AllowTLSResume,
 
@@ -478,8 +488,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public Task<DNSInfo> QueryHTTP(DomainName                           DomainName,
                                        IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                        Boolean                              RecursionDesired          = true,
-                                       ClientRequestLogHandlerX?            HTTPRequestLogDelegate    = null,
-                                       ClientResponseLogHandlerX?           HTTPResponseLogDelegate   = null,
+                                       ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
+                                       ClientResponseLogHandler?            HTTPResponseLogDelegate   = null,
                                        CancellationToken                    CancellationToken         = default)
 
             => QueryHTTP(
@@ -512,8 +522,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         public async Task<DNSInfo> QueryHTTP(DNSServiceName                       DNSServiceName,
                                              IEnumerable<DNSResourceRecordTypes>  ResourceRecordTypes,
                                              Boolean                              RecursionDesired          = true,
-                                             ClientRequestLogHandlerX?            HTTPRequestLogDelegate    = null,
-                                             ClientResponseLogHandlerX?           HTTPResponseLogDelegate   = null,
+                                             ClientRequestLogHandler?             HTTPRequestLogDelegate    = null,
+                                             ClientResponseLogHandler?            HTTPResponseLogDelegate   = null,
                                              CancellationToken                    CancellationToken         = default)
         {
 
@@ -637,6 +647,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                             SslProtocols?                                                 TLSProtocols                         = null,
                                             CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                                             X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                            X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                                             Boolean?                                                      AllowRenegotiation                   = null,
                                             Boolean?                                                      AllowTLSResume                       = null,
 
@@ -662,6 +673,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
 
@@ -688,6 +700,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                         SslProtocols?                                                 TLSProtocols                         = null,
                                                         CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                                                         X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                                        X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                                                         Boolean?                                                      AllowRenegotiation                   = null,
                                                         Boolean?                                                      AllowTLSResume                       = null,
 
@@ -712,6 +725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
 
@@ -734,6 +748,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                        SslProtocols?                                                 TLSProtocols                         = null,
                                                        CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                                                        X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                                                        Boolean?                                                      AllowRenegotiation                   = null,
                                                        Boolean?                                                      AllowTLSResume                       = null,
 
@@ -758,6 +773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
 
@@ -780,6 +796,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                                        SslProtocols?                                                 TLSProtocols                         = null,
                                                        CipherSuitesPolicy?                                           CipherSuitesPolicy                   = null,
                                                        X509ChainPolicy?                                              CertificateChainPolicy               = null,
+                                                       X509RevocationMode?                                           CertificateRevocationCheckMode       = null,
                                                        Boolean?                                                      AllowRenegotiation                   = null,
                                                        Boolean?                                                      AllowTLSResume                       = null,
 
@@ -804,6 +821,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    AllowRenegotiation,
                    AllowTLSResume,
 

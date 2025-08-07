@@ -45,8 +45,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                     EventTracking_Id?             EventTrackingId       = null,
                                                     Byte                          NumberOfRetry         = 0,
                                                     Action<HTTPRequest.Builder>?  RequestBuilder        = null,
-                                                    ClientRequestLogHandlerX?     RequestLogDelegate    = null,
-                                                    ClientResponseLogHandlerX?    ResponseLogDelegate   = null,
+                                                    ClientRequestLogHandler?      RequestLogDelegate    = null,
+                                                    ClientResponseLogHandler?     ResponseLogDelegate   = null,
                                                     CancellationToken             CancellationToken     = default)
 
           //  => HTTPClientCommand.Execute(
@@ -103,14 +103,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             RequestBuilder?.Invoke(requestBuilder);
 
 
-            var cv = await HTTPTestClient.SendRequest(
+            var xx = await HTTPTestClient.SendRequest(
                                requestBuilder.AsImmutable,
                                RequestLogDelegate,
                                ResponseLogDelegate,
                                CancellationToken
                            );
 
-            return cv.Item2;
+            return xx.Item2;
 
         }
 
@@ -145,28 +145,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region HTTPTestClient(IPAddress, ...)
 
         public HTTPTestClient(IIPAddress                                                    IPAddress,
-                              IPPort?                                                       TCPPort                      = null,
-                              I18NString?                                                   Description                  = null,
-                              String?                                                       HTTPUserAgent                = null,
-                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                              IPPort?                                                       TCPPort                          = null,
+                              I18NString?                                                   Description                      = null,
+                              String?                                                       HTTPUserAgent                    = null,
+                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                              IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                              SslProtocols?                                                 TLSProtocols                 = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                              Boolean?                                                      EnforceTLS                   = null,
-                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                              Boolean?                                                      AllowRenegotiation           = null,
-                              Boolean?                                                      AllowTLSResume               = null,
+                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                              LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                              IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                              SslProtocols?                                                 TLSProtocols                     = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                              Boolean?                                                      EnforceTLS                       = null,
+                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                              Boolean?                                                      AllowRenegotiation               = null,
+                              Boolean?                                                      AllowTLSResume                   = null,
 
-                              Boolean?                                                      PreferIPv4                   = null,
-                              TimeSpan?                                                     ConnectTimeout               = null,
-                              TimeSpan?                                                     ReceiveTimeout               = null,
-                              TimeSpan?                                                     SendTimeout                  = null,
-                              UInt32?                                                       BufferSize                   = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler               = null)
+                              Boolean?                                                      PreferIPv4                       = null,
+                              TimeSpan?                                                     ConnectTimeout                   = null,
+                              TimeSpan?                                                     ReceiveTimeout                   = null,
+                              TimeSpan?                                                     SendTimeout                      = null,
+                              UInt32?                                                       BufferSize                       = null,
+                              TCPEchoLoggingDelegate?                                       LoggingHandler                   = null)
 
             : base(IPAddress,
                    TCPPort ?? IPPort.HTTPS,
@@ -193,6 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    EnforceTLS,
                    ApplicationProtocols,
                    AllowRenegotiation,
@@ -212,27 +214,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region HTTPTestClient(URL, ...)
 
         public HTTPTestClient(URL                                                           URL,
-                              I18NString?                                                   Description                  = null,
-                              String?                                                       HTTPUserAgent                = null,
-                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                              I18NString?                                                   Description                      = null,
+                              String?                                                       HTTPUserAgent                    = null,
+                              DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                              LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                              IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                              SslProtocols?                                                 TLSProtocols                 = null,
-                              CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                              X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                              Boolean?                                                      AllowRenegotiation           = null,
-                              Boolean?                                                      AllowTLSResume               = null,
+                              RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                              LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                              IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                              SslProtocols?                                                 TLSProtocols                     = null,
+                              CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                              X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                              X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                              IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                              Boolean?                                                      AllowRenegotiation               = null,
+                              Boolean?                                                      AllowTLSResume                   = null,
 
-                              Boolean?                                                      PreferIPv4                   = null,
-                              TimeSpan?                                                     ConnectTimeout               = null,
-                              TimeSpan?                                                     ReceiveTimeout               = null,
-                              TimeSpan?                                                     SendTimeout                  = null,
-                              UInt32?                                                       BufferSize                   = null,
-                              TCPEchoLoggingDelegate?                                       LoggingHandler               = null,
-                              DNSClient?                                                    DNSClient                    = null)
+                              Boolean?                                                      PreferIPv4                       = null,
+                              TimeSpan?                                                     ConnectTimeout                   = null,
+                              TimeSpan?                                                     ReceiveTimeout                   = null,
+                              TimeSpan?                                                     SendTimeout                      = null,
+                              UInt32?                                                       BufferSize                       = null,
+                              TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
+                              DNSClient?                                                    DNSClient                        = null)
 
             : base(URL,
                    null,
@@ -259,6 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    null,
                    ApplicationProtocols,
                    AllowRenegotiation,
@@ -280,29 +284,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         private HTTPTestClient(DomainName                                                    DNSName,
                                SRV_Spec                                                      DNSService,
-                          //     Boolean?                                                      UseDNSURI                    = null,
-                               I18NString?                                                   Description                  = null,
-                               String?                                                       HTTPUserAgent                = null,
-                               DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                          //     Boolean?                                                      UseDNSURI                        = null,
+                               I18NString?                                                   Description                      = null,
+                               String?                                                       HTTPUserAgent                    = null,
+                               DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                               LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                               IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                               SslProtocols?                                                 TLSProtocols                 = null,
-                               CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                               X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                               Boolean?                                                      EnforceTLS                   = null,
-                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                               Boolean?                                                      AllowRenegotiation           = null,
-                               Boolean?                                                      AllowTLSResume               = null,
+                               RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                               LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                               IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                               SslProtocols?                                                 TLSProtocols                     = null,
+                               CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                               X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                               X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                               Boolean?                                                      EnforceTLS                       = null,
+                               IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                               Boolean?                                                      AllowRenegotiation               = null,
+                               Boolean?                                                      AllowTLSResume                   = null,
 
-                               Boolean?                                                      PreferIPv4                   = null,
-                               TimeSpan?                                                     ConnectTimeout               = null,
-                               TimeSpan?                                                     ReceiveTimeout               = null,
-                               TimeSpan?                                                     SendTimeout                  = null,
-                               UInt32?                                                       BufferSize                   = null,
-                               TCPEchoLoggingDelegate?                                       LoggingHandler               = null,
-                               DNSClient?                                                    DNSClient                    = null)
+                               Boolean?                                                      PreferIPv4                       = null,
+                               TimeSpan?                                                     ConnectTimeout                   = null,
+                               TimeSpan?                                                     ReceiveTimeout                   = null,
+                               TimeSpan?                                                     SendTimeout                      = null,
+                               UInt32?                                                       BufferSize                       = null,
+                               TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
+                               DNSClient?                                                    DNSClient                        = null)
 
             : base(DNSName,
                    DNSService,
@@ -330,6 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    EnforceTLS,
                    ApplicationProtocols,
                    AllowRenegotiation,
@@ -350,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region ConnectNew (         TCPPort, ...)
+        #region ConnectNew (           TCPPort, ...)
 
         /// <summary>
         /// Create a new HTTPTestClient and connect to the given address and TCP port.
@@ -364,27 +370,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPTestClient>
 
             ConnectNew(IPPort                                                        TCPPort,
-                       I18NString?                                                   Description                  = null,
-                       String?                                                       HTTPUserAgent                = null,
-                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                       I18NString?                                                   Description                      = null,
+                       String?                                                       HTTPUserAgent                    = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                       LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                       IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                       SslProtocols?                                                 TLSProtocols                 = null,
-                       CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                       X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                       Boolean?                                                      EnforceTLS                   = null,
-                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                       Boolean?                                                      AllowRenegotiation           = null,
-                       Boolean?                                                      AllowTLSResume               = null,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                       LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                       IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                       SslProtocols?                                                 TLSProtocols                     = null,
+                       CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                       X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                       X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                       Boolean?                                                      EnforceTLS                       = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                       Boolean?                                                      AllowRenegotiation               = null,
+                       Boolean?                                                      AllowTLSResume                   = null,
 
-                       Boolean?                                                      PreferIPv4                   = null,
-                       TimeSpan?                                                     ConnectTimeout               = null,
-                       TimeSpan?                                                     ReceiveTimeout               = null,
-                       TimeSpan?                                                     SendTimeout                  = null,
-                       UInt32?                                                       BufferSize                   = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler               = null)
+                       Boolean?                                                      PreferIPv4                       = null,
+                       TimeSpan?                                                     ConnectTimeout                   = null,
+                       TimeSpan?                                                     ReceiveTimeout                   = null,
+                       TimeSpan?                                                     SendTimeout                      = null,
+                       UInt32?                                                       BufferSize                       = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                   = null)
 
                 => await ConnectNew(
                              IPvXAddress.Localhost,
@@ -399,6 +406,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TLSProtocols,
                              CipherSuitesPolicy,
                              CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
                              EnforceTLS,
                              ApplicationProtocols,
                              AllowRenegotiation,
@@ -430,27 +438,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             ConnectNew(IIPAddress                                                    IPAddress,
                        IPPort                                                        TCPPort,
-                       I18NString?                                                   Description                  = null,
-                       String?                                                       HTTPUserAgent                = null,
-                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                       I18NString?                                                   Description                      = null,
+                       String?                                                       HTTPUserAgent                    = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                       LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                       IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                       SslProtocols?                                                 TLSProtocols                 = null,
-                       CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                       X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                       Boolean?                                                      EnforceTLS                   = null,
-                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                       Boolean?                                                      AllowRenegotiation           = null,
-                       Boolean?                                                      AllowTLSResume               = null,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                       LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                       IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                       SslProtocols?                                                 TLSProtocols                     = null,
+                       CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                       X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                       X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                       Boolean?                                                      EnforceTLS                       = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                       Boolean?                                                      AllowRenegotiation               = null,
+                       Boolean?                                                      AllowTLSResume                   = null,
 
-                       Boolean?                                                      PreferIPv4                   = null,
-                       TimeSpan?                                                     ConnectTimeout               = null,
-                       TimeSpan?                                                     ReceiveTimeout               = null,
-                       TimeSpan?                                                     SendTimeout                  = null,
-                       UInt32?                                                       BufferSize                   = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler               = null)
+                       Boolean?                                                      PreferIPv4                       = null,
+                       TimeSpan?                                                     ConnectTimeout                   = null,
+                       TimeSpan?                                                     ReceiveTimeout                   = null,
+                       TimeSpan?                                                     SendTimeout                      = null,
+                       UInt32?                                                       BufferSize                       = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                   = null)
 
         {
 
@@ -467,6 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TLSProtocols,
                              CipherSuitesPolicy,
                              CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
                              EnforceTLS,
                              ApplicationProtocols,
                              AllowRenegotiation,
@@ -488,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ConnectNew (URL,     DNSService = null, ..., DNSClient = null)
+        #region ConnectNew (URL,       DNSService = null, ..., DNSClient = null)
 
         /// <summary>
         /// Create a new HTTPTestClient and connect to the given URL.
@@ -502,27 +512,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPTestClient>
 
             ConnectNew(URL                                                           URL,
-                       I18NString?                                                   Description                  = null,
-                       String?                                                       HTTPUserAgent                = null,
-                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                       I18NString?                                                   Description                      = null,
+                       String?                                                       HTTPUserAgent                    = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                       LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                       IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                       SslProtocols?                                                 TLSProtocols                 = null,
-                       CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                       X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                       Boolean?                                                      AllowRenegotiation           = null,
-                       Boolean?                                                      AllowTLSResume               = null,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                       LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                       IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                       SslProtocols?                                                 TLSProtocols                     = null,
+                       CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                       X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                       X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                       Boolean?                                                      AllowRenegotiation               = null,
+                       Boolean?                                                      AllowTLSResume                   = null,
 
-                       Boolean?                                                      PreferIPv4                   = null,
-                       TimeSpan?                                                     ConnectTimeout               = null,
-                       TimeSpan?                                                     ReceiveTimeout               = null,
-                       TimeSpan?                                                     SendTimeout                  = null,
-                       UInt32?                                                       BufferSize                   = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler               = null,
-                       DNSClient?                                                    DNSClient                    = null)
+                       Boolean?                                                      PreferIPv4                       = null,
+                       TimeSpan?                                                     ConnectTimeout                   = null,
+                       TimeSpan?                                                     ReceiveTimeout                   = null,
+                       TimeSpan?                                                     SendTimeout                      = null,
+                       UInt32?                                                       BufferSize                       = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
+                       DNSClient?                                                    DNSClient                        = null)
 
         {
 
@@ -538,6 +549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TLSProtocols,
                              CipherSuitesPolicy,
                              CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
                              ApplicationProtocols,
                              AllowRenegotiation,
                              AllowTLSResume,
@@ -559,7 +571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         #endregion
 
-        #region ConnectNew (DNSName, DNSService,        ..., DNSClient = null)
+        #region ConnectNew (DNSName,   DNSService,        ..., DNSClient = null)
 
         /// <summary>
         /// Create a new HTTPTestClient and connect to the given URL.
@@ -575,29 +587,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static async Task<HTTPTestClient>
             ConnectNew(DomainName                                                    DNSName,
                        SRV_Spec                                                      DNSService,
-                     //  Boolean?                                                      UseDNSURI                    = null,
-                       I18NString?                                                   Description                  = null,
-                       String?                                                       HTTPUserAgent                = null,
-                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder        = null,
+                     //  Boolean?                                                      UseDNSURI                        = null,
+                       I18NString?                                                   Description                      = null,
+                       String?                                                       HTTPUserAgent                    = null,
+                       DefaultRequestBuilderDelegate?                                DefaultRequestBuilder            = null,
 
-                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator   = null,
-                       LocalCertificateSelectionHandler?                             LocalCertificateSelector     = null,
-                       IEnumerable<X509Certificate>?                                 ClientCertificateChain       = null,
-                       SslProtocols?                                                 TLSProtocols                 = null,
-                       CipherSuitesPolicy?                                           CipherSuitesPolicy           = null,
-                       X509ChainPolicy?                                              CertificateChainPolicy       = null,
-                       Boolean?                                                      EnforceTLS                   = null,
-                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols         = null,
-                       Boolean?                                                      AllowRenegotiation           = null,
-                       Boolean?                                                      AllowTLSResume               = null,
+                       RemoteTLSServerCertificateValidationHandler<HTTPTestClient>?  RemoteCertificateValidator       = null,
+                       LocalCertificateSelectionHandler?                             LocalCertificateSelector         = null,
+                       IEnumerable<X509Certificate>?                                 ClientCertificateChain           = null,
+                       SslProtocols?                                                 TLSProtocols                     = null,
+                       CipherSuitesPolicy?                                           CipherSuitesPolicy               = null,
+                       X509ChainPolicy?                                              CertificateChainPolicy           = null,
+                       X509RevocationMode?                                           CertificateRevocationCheckMode   = null,
+                       Boolean?                                                      EnforceTLS                       = null,
+                       IEnumerable<SslApplicationProtocol>?                          ApplicationProtocols             = null,
+                       Boolean?                                                      AllowRenegotiation               = null,
+                       Boolean?                                                      AllowTLSResume                   = null,
 
-                       Boolean?                                                      PreferIPv4                   = null,
-                       TimeSpan?                                                     ConnectTimeout               = null,
-                       TimeSpan?                                                     ReceiveTimeout               = null,
-                       TimeSpan?                                                     SendTimeout                  = null,
-                       UInt32?                                                       BufferSize                   = null,
-                       TCPEchoLoggingDelegate?                                       LoggingHandler               = null,
-                       DNSClient?                                                    DNSClient                    = null)
+                       Boolean?                                                      PreferIPv4                       = null,
+                       TimeSpan?                                                     ConnectTimeout                   = null,
+                       TimeSpan?                                                     ReceiveTimeout                   = null,
+                       TimeSpan?                                                     SendTimeout                      = null,
+                       UInt32?                                                       BufferSize                       = null,
+                       TCPEchoLoggingDelegate?                                       LoggingHandler                   = null,
+                       DNSClient?                                                    DNSClient                        = null)
 
         {
 
@@ -614,6 +627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                              TLSProtocols,
                              CipherSuitesPolicy,
                              CertificateChainPolicy,
+                             CertificateRevocationCheckMode,
                              EnforceTLS,
                              ApplicationProtocols,
                              AllowRenegotiation,
@@ -633,277 +647,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             return client;
 
         }
-
-        #endregion
-
-
-        #region ReconnectAsync()
-
-        //public async Task ReconnectAsync()
-        //{
-
-        //    await base.ReconnectAsync().ConfigureAwait(false);
-
-        //    //IsHTTPConnected = true;
-
-        //}
-
-        //#endregion
-
-        //#region ConnectAsync()
-
-        //public async Task ConnectAsync()
-        //{
-
-        //    await base.ConnectAsync().ConfigureAwait(false);
-
-        //    IsHTTPConnected = true;
-
-        //}
-
-        #endregion
-
-
-        #region CreateRequest (HTTPMethod, HTTPPath, ...)
-
-//        /// <summary>
-//        /// Create a new HTTP request.
-//        /// </summary>
-//        /// <param name="HTTPMethod">An HTTP method.</param>
-//        /// <param name="HTTPPath">An HTTP path.</param>
-//        /// <param name="QueryString">An optional HTTP Query String.</param>
-//        /// <param name="Accept">An optional HTTP accept header.</param>
-//        /// <param name="Authentication">An optional HTTP authentication.</param>
-//        /// <param name="UserAgent">An optional HTTP user agent.</param>
-//        /// <param name="Connection">An optional HTTP connection type.</param>
-//        /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
-//        /// <param name="CancellationToken">An optional cancellation token.</param>
-//        public HTTPRequest.Builder CreateRequest(HTTPMethod                    HTTPMethod,
-//                                                 HTTPPath                      HTTPPath,
-//                                                 QueryString?                  QueryString         = null,
-//                                                 AcceptTypes?                  Accept              = null,
-//                                                 IHTTPAuthentication?          Authentication      = null,
-//                                                 String?                       UserAgent           = null,
-//                                                 ConnectionType?               Connection          = null,
-//                                                 Action<HTTPRequest.Builder>?  RequestBuilder      = null,
-//                                                 CancellationToken             CancellationToken   = default)
-//{
-
-//            var builder = new HTTPRequest.Builder(null, CancellationToken) {
-//                              Host           = HTTPHostname.Localhost, // HTTPHostname.Parse((VirtualHostname ?? RemoteURL.Hostname) + (RemoteURL.Port.HasValue && RemoteURL.Port != IPPort.HTTP && RemoteURL.Port != IPPort.HTTPS ? ":" + RemoteURL.Port.ToString() : String.Empty)),
-//                              HTTPMethod     = HTTPMethod,
-//                              Path           = HTTPPath,
-//                              QueryString    = QueryString ?? QueryString.Empty,
-//                              Authorization  = Authentication,
-//                            //  UserAgent      = UserAgent   ?? HTTPUserAgent,
-//                              Connection     = Connection
-//                          };
-
-//            if (Accept is not null)
-//                builder.Accept = Accept;
-
-//            RequestBuilder?.Invoke(builder);
-
-//            return builder;
-
-//        }
-
-        #endregion
-
-        #region SendRequest (Request)
-
-        ///// <summary>
-        ///// Send the given HTTP Request to the server and receive the HTTP Response.
-        ///// </summary>
-        ///// <param name="Request">The HTTP Request to send.</param>
-        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        //public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)> SendRequest(HTTPRequest Request)
-        //{
-
-        //    if (!IsConnected)
-        //        return (false, null, "Client is not connected.", TimeSpan.Zero);
-
-        //    if (!IsHTTPConnected)
-        //        await ReconnectAsync().ConfigureAwait(false);
-
-        //    var stopwatch = Stopwatch.StartNew();
-
-        //    try
-        //    {
-
-        //        var stream     = tcpClient.GetStream();
-
-        //        #region Send HTTP Request
-
-        //        await stream.WriteAsync(Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"), cts.Token).ConfigureAwait(false);
-
-        //        if (Request.HTTPBody is not null && Request.ContentLength > 0)
-        //            await stream.WriteAsync(Request.HTTPBody, cts.Token).ConfigureAwait(false);
-
-        //        await stream.FlushAsync(cts.Token).ConfigureAwait(false);
-
-        //        #endregion
-
-        //        IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent(BufferSize * 2);
-        //        var buffer = bufferOwner.Memory;
-        //        var dataLength = 0;
-
-        //        while (true)
-        //        {
-
-        //            #region Read data if no delimiter found yet
-
-        //            if (dataLength < endOfHTTPHeaderDelimiterLength ||
-        //                buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
-        //            {
-        //                if (dataLength >= buffer.Length - BufferSize)
-        //                    throw new Exception("Header too large.");
-
-        //                var bytesRead = await stream.ReadAsync(buffer.Slice(dataLength, BufferSize), Request.CancellationToken);
-        //                if (bytesRead == 0)
-        //                {
-        //                    bufferOwner?.Dispose();
-        //                    return (false, null, "Timeout!", stopwatch.Elapsed);
-        //                }
-
-        //                dataLength += bytesRead;
-        //                continue;
-        //            }
-
-        //            #endregion
-
-        //            #region Search for End-of-HTTPHeader
-
-        //            var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
-        //            if (endOfHTTPHeaderIndex < 0)
-        //                continue;  // Should not reach here due to the if-condition above.
-
-        //            #endregion
-
-        //            #region Parse HTTP Response
-
-        //            var response = HTTPResponse.Parse(
-        //                               //Timestamp.Now,
-        //                               //httpSource,
-        //                               //localSocket,
-        //                               //remoteSocket,
-        //                               Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-        //                               CancellationToken: Request.CancellationToken
-        //                           );
-
-        //            #endregion
-
-        //            #region Shift remaining data
-
-        //            var remainingStart = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
-        //            var remainingLength = dataLength - remainingStart;
-        //            buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
-        //            dataLength = remainingLength;
-
-        //            #endregion
-
-        //            #region Setup HTTP body stream
-
-        //            Stream? bodyDataStream = null;
-        //            Stream? bodyStream = null;
-
-        //            var prefix = buffer[..dataLength];
-        //            if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
-        //            {
-
-        //                bodyDataStream = new PrefixStream(
-        //                                     prefix,
-        //                                     stream,
-        //                                     LeaveInnerStreamOpen: true
-        //                                 );
-
-        //                if (response.IsChunkedTransferEncoding)
-        //                    bodyStream = new ChunkedTransferEncodingStream(
-        //                                     bodyDataStream,
-        //                                     LeaveInnerStreamOpen: true
-        //                                 );
-        //                else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
-        //                    bodyStream = new LengthLimitedStream(
-        //                                     bodyDataStream,
-        //                                     response.ContentLength.Value,
-        //                                     LeaveInnerStreamOpen: true
-        //                                 );
-
-        //            }
-
-        //            response.HTTPBodyStream = bodyStream;
-        //         //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
-
-        //            #endregion
-
-        //            if (response.IsConnectionClose)
-        //            {
-        //                IsHTTPConnected = false;  // Mark connection for closure after response handling
-        //            }
-
-        //            return (true, response, null, stopwatch.Elapsed);
-
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await Log($"Error in SendRequest: {ex.Message}");
-        //        return (false, null, ex.Message, stopwatch.Elapsed);
-        //    }
-        //    finally
-        //    {
-        //        stopwatch.Stop();
-        //    }
-
-        //}
-
-        #endregion
-
-        #region SendText    (Text)
-
-        ///// <summary>
-        ///// Send the given message to the echo server and receive the echoed response.
-        ///// </summary>
-        ///// <param name="Text">The text message to send and echo.</param>
-        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        //public async Task<(Boolean, String, String?, TimeSpan)> SendText(String Text)
-        //{
-
-        //    if (!IsConnected || tcpClient is null)
-        //        return (false, "", "Client is not connected.", TimeSpan.Zero);
-
-        //    try
-        //    {
-
-        //        var stopwatch = Stopwatch.StartNew();
-        //        var stream = tcpClient.GetStream();
-        //        cts ??= new CancellationTokenSource();
-
-        //        // Send the data
-        //        await stream.WriteAsync(Encoding.UTF8.GetBytes(Text), cts.Token).ConfigureAwait(false);
-        //        await stream.FlushAsync(cts.Token).ConfigureAwait(false);
-
-        //        using var responseStream = new MemoryStream();
-        //        var buffer = new Byte[8192];
-        //        var bytesRead = 0;
-
-        //        while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
-        //        {
-        //            await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
-        //        }
-
-        //        stopwatch.Stop();
-
-        //        return (true, Encoding.UTF8.GetString(responseStream.ToArray()), null, stopwatch.Elapsed);
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await Log($"Error in SendBinary: {ex.Message}");
-        //        return (false, "", ex.Message, TimeSpan.Zero);
-        //    }
-
-        //}
 
         #endregion
 

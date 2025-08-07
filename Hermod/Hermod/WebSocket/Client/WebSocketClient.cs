@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        public SslProtocols                                                    TLSProtocol                               { get; }
+        public SslProtocols                                                    TLSProtocols                               { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.
@@ -435,7 +435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             this.LocalCertificateSelector           = LocalCertificateSelector;
             this.ClientCert                         = ClientCert;
             this.HTTPUserAgent                      = HTTPUserAgent           ?? DefaultHTTPUserAgent;
-            this.TLSProtocol                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
+            this.TLSProtocols                        = TLSProtocol             ?? SslProtocols.Tls12 | SslProtocols.Tls13;
             this.PreferIPv4                         = PreferIPv4              ?? false;
             this.Authentication                     = HTTPAuthentication;
             this.RequestTimeout                     = RequestTimeout          ?? TimeSpan.FromMinutes(10);

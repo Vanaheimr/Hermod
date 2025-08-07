@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         /// <summary>
-        /// The remote URL of the OICP HTTP endpoint to connect to.
+        /// The remote URL of the HTTP endpoint to connect to.
         /// </summary>
         URL                                                        RemoteURL                     { get; }
 
@@ -50,9 +50,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         HTTPHostname?                                              VirtualHostname               { get; }
 
         /// <summary>
-        /// An optional description of this CPO client.
+        /// An optional description of this HTTP client.
         /// </summary>
-        I18NString                                                 Description                   { get; set; }
+        I18NString                                                 Description                   { get; }
 
         /// <summary>
         /// The remote TLS certificate validator.
@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The TLS protocol to use.
         /// </summary>
-        SslProtocols                                               TLSProtocol                   { get; }
+        SslProtocols                                               TLSProtocols                  { get; }
 
         /// <summary>
         /// Prefer IPv4 instead of IPv6.

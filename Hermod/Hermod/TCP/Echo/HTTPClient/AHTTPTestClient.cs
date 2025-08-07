@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     /// A simple TCP echo test client that can connect to a TCP echo server,
     /// </summary>
     public abstract class AHTTPTestClient : ATLSTestClient,
-                                            IDisposable,
+                                            IHTTPClient,
                                             IAsyncDisposable
     {
 
@@ -61,12 +61,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         public DefaultRequestBuilderDelegate  DefaultRequestBuilder    { get;}
 
+
+
+
+
+
+        URL IHTTPClient.RemoteURL => throw new NotImplementedException();
+
+        public HTTPHostname? VirtualHostname => throw new NotImplementedException();
+
+        public RemoteTLSServerCertificateValidationHandler<IHTTPClient>? RemoteCertificateValidator => throw new NotImplementedException();
+
+        public X509Certificate? ClientCert => throw new NotImplementedException();
+
+        public HTTPContentType? ContentType => throw new NotImplementedException();
+
+        public AcceptTypes? Accept => throw new NotImplementedException();
+
+        public IHTTPAuthentication? Authentication => throw new NotImplementedException();
+
+        public ConnectionType? Connection => throw new NotImplementedException();
+
+        public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public TransmissionRetryDelayDelegate TransmissionRetryDelay => throw new NotImplementedException();
+
+        public UInt16 MaxNumberOfRetries => throw new NotImplementedException();
+
+        public Boolean UseHTTPPipelining => throw new NotImplementedException();
+
+        public HTTPClientLogger? HTTPLogger => throw new NotImplementedException();
+
+        public Boolean Connected => throw new NotImplementedException();
+
         #endregion
 
         #region Events
 
-        public event ClientRequestLogHandlerX?   ClientRequestLogDelegate;
-        public event ClientResponseLogHandlerX?  ClientResponseLogDelegate;
+        public event ClientRequestLogHandler?   ClientRequestLogDelegate;
+        public event ClientResponseLogHandler?  ClientResponseLogDelegate;
 
         #endregion
 
@@ -86,6 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   SslProtocols?                                                  TLSProtocols                         = null,
                                   CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
                                   X509ChainPolicy?                                               CertificateChainPolicy               = null,
+                                  X509RevocationMode?                                            CertificateRevocationCheckMode       = null,
                                   Boolean?                                                       EnforceTLS                           = null,
                                   IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                 = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
@@ -120,6 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    EnforceTLS,
                    ApplicationProtocols,
                    AllowRenegotiation,
@@ -162,6 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   SslProtocols?                                                  TLSProtocols                         = null,
                                   CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
                                   X509ChainPolicy?                                               CertificateChainPolicy               = null,
+                                  X509RevocationMode?                                            CertificateRevocationCheckMode       = null,
                                   Boolean?                                                       EnforceTLS                           = null,
                                   IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                 = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
@@ -197,6 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    EnforceTLS,
                    ApplicationProtocols,
                    AllowRenegotiation,
@@ -240,6 +277,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   SslProtocols?                                                  TLSProtocols                         = null,
                                   CipherSuitesPolicy?                                            CipherSuitesPolicy                   = null,
                                   X509ChainPolicy?                                               CertificateChainPolicy               = null,
+                                  X509RevocationMode?                                            CertificateRevocationCheckMode       = null,
                                   Boolean?                                                       EnforceTLS                           = null,
                                   IEnumerable<SslApplicationProtocol>?                           ApplicationProtocols                 = null,
                                   Boolean?                                                       AllowRenegotiation                   = null,
@@ -275,6 +313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                    TLSProtocols,
                    CipherSuitesPolicy,
                    CertificateChainPolicy,
+                   CertificateRevocationCheckMode,
                    EnforceTLS,
                    ApplicationProtocols,
                    AllowRenegotiation,
@@ -328,8 +367,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             httpStream = tcpClient?.GetStream();
 
             if (EnforceTLS ||
-                RemoteURL?.Protocol == URLProtocols.https ||
-                RemoteURL?.Protocol == URLProtocols.wss)
+                RemoteURL?.Protocol.EnforcesTLS() == true)
             {
                 //await StartTLS(CancellationToken);
                 httpStream = tlsStream;
@@ -487,15 +525,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
         public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)>
 
-            SendRequest(HTTPRequest                 Request,
-                        ClientRequestLogHandlerX?   RequestLogDelegate    = null,
-                        ClientResponseLogHandlerX?  ResponseLogDelegate   = null,
-                        CancellationToken           CancellationToken     = default)
+            SendRequest(HTTPRequest                Request,
+                        ClientRequestLogHandler?   RequestLogDelegate    = null,
+                        ClientResponseLogHandler?  ResponseLogDelegate   = null,
+                        CancellationToken          CancellationToken     = default)
 
         {
 
             if (!IsConnected)
-                return (false, null, "Client is not connected.", TimeSpan.Zero);
+                //return (false, null, "Client is not connected.", TimeSpan.Zero);
+                await ReconnectAsync().ConfigureAwait(false);
 
             if (!IsHTTPConnected)
                 await ReconnectAsync().ConfigureAwait(false);

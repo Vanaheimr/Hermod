@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The description of this TCP client.
         /// </summary>
-        public I18NString?  Description    { get; }
+        public I18NString   Description    { get; }
 
         /// <summary>
         /// Whether the client is currently connected to the.
@@ -243,7 +243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (SendTimeout.   HasValue && SendTimeout.   Value.TotalMilliseconds > Int32.MaxValue)
                 throw new ArgumentOutOfRangeException(nameof(SendTimeout),    "Timeout too large for socket.");
 
-            this.Description                    = Description;
+            this.Description                    = Description    ?? I18NString.Empty;
             this.PreferIPv4                     = PreferIPv4     ?? false;
             this.BufferSize                     = BufferSize.HasValue
                                                       ? BufferSize.Value > Int32.MaxValue
@@ -360,9 +360,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public virtual async Task ReconnectAsync(CancellationToken CancellationToken = default)
         {
 
-            clientCancellationTokenSource?.Cancel();
-            tcpClient?.Close();
-            clientCancellationTokenSource?.Dispose();
+            try
+            {
+                clientCancellationTokenSource?.Cancel();
+                tcpClient?.Close();
+                clientCancellationTokenSource?.Dispose();
+            }
+            catch (Exception e)
+            {
+                DebugX.LogException(e);
+            }
 
             // recreates _cts and tcpClient
             await ConnectAsync(CancellationToken);
@@ -495,12 +502,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (RemoteIPAddress is not null)
                 {
 
-                    var remotePort    = dnsSRVRemotePort ?? RemotePort;
+                    var remotePort    = RemoteURL?.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
                         throw new Exception("The remote TCP port must not be null!");
 
-                    clientCancellationTokenSource               = new CancellationTokenSource();
+                    clientCancellationTokenSource = new CancellationTokenSource();
                     tcpClient         = new TcpClient();
                     var connectTask   = tcpClient.ConnectAsync(RemoteIPAddress.ToDotNet(), remotePort.Value.ToUInt16());
 
