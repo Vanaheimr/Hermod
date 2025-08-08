@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
@@ -43,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <summary>
         /// The timestamp of the packet arrival at the UDP receiver.
         /// </summary>
-        public DateTime            ServerTimestamp    { get; }
+        public DateTimeOffset      ServerTimestamp    { get; }
 
         /// <summary>
         /// The message/payload of the UDP packet.
@@ -62,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="RemoteSocket">The remote  IP socket of the UDP packet.</param>
         /// <param name="Payload">The message/payload of the UDP packet.</param>
         public UDPPacket(UDPReceiver<TData>  UDPReceiver,
-                         DateTime            ServerTimestamp,
+                         DateTimeOffset      ServerTimestamp,
                          IPSocket            LocalSocket,
                          IPSocket            RemoteSocket,
                          TData               Payload)

@@ -100,9 +100,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task RegisterOptionsHTTPRequest(DateTime     Timestamp,
-                                                           HTTPAPI      API,
-                                                           HTTPRequest  Request)
+        protected internal Task RegisterOptionsHTTPRequest(DateTimeOffset  Timestamp,
+                                                           HTTPAPI         API,
+                                                           HTTPRequest     Request)
 
             => OnRegisterOptions.WhenAll(Timestamp,
                                          API ?? this,
@@ -124,10 +124,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task RegisterOptionsHTTPResponse(DateTime      Timestamp,
-                                                            HTTPAPI       API,
-                                                            HTTPRequest   Request,
-                                                            HTTPResponse  Response)
+        protected internal Task RegisterOptionsHTTPResponse(DateTimeOffset  Timestamp,
+                                                            HTTPAPI         API,
+                                                            HTTPRequest     Request,
+                                                            HTTPResponse    Response)
 
             => OnRegisterOptionsResponse.WhenAll(Timestamp,
                                                  API ?? this,
@@ -150,9 +150,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task RegisterHTTPRequest(DateTime     Timestamp,
-                                                    HTTPAPI      API,
-                                                    HTTPRequest  Request)
+        protected internal Task RegisterHTTPRequest(DateTimeOffset  Timestamp,
+                                                    HTTPAPI         API,
+                                                    HTTPRequest     Request)
 
             => OnRegister.WhenAll(Timestamp,
                                   API ?? this,
@@ -174,10 +174,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task RegisterHTTPResponse(DateTime      Timestamp,
-                                                     HTTPAPI       API,
-                                                     HTTPRequest   Request,
-                                                     HTTPResponse  Response)
+        protected internal Task RegisterHTTPResponse(DateTimeOffset  Timestamp,
+                                                     HTTPAPI         API,
+                                                     HTTPRequest     Request,
+                                                     HTTPResponse    Response)
 
             => OnRegisterResponse.WhenAll(Timestamp,
                                           API ?? this,
@@ -200,9 +200,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task LoginOptionsHTTPRequest(DateTime     Timestamp,
-                                                        HTTPAPI      API,
-                                                        HTTPRequest  Request)
+        protected internal Task LoginOptionsHTTPRequest(DateTimeOffset  Timestamp,
+                                                        HTTPAPI         API,
+                                                        HTTPRequest     Request)
 
             => OnLoginOptions.WhenAll(Timestamp,
                                       API ?? this,
@@ -224,10 +224,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task LoginOptionsHTTPResponse(DateTime      Timestamp,
-                                                         HTTPAPI       API,
-                                                         HTTPRequest   Request,
-                                                         HTTPResponse  Response)
+        protected internal Task LoginOptionsHTTPResponse(DateTimeOffset  Timestamp,
+                                                         HTTPAPI         API,
+                                                         HTTPRequest     Request,
+                                                         HTTPResponse    Response)
 
             => OnLoginOptionsResponse.WhenAll(Timestamp,
                                               API ?? this,
@@ -250,9 +250,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task LoginHTTPRequest(DateTime     Timestamp,
-                                                 HTTPAPI      API,
-                                                 HTTPRequest  Request)
+        protected internal Task LoginHTTPRequest(DateTimeOffset  Timestamp,
+                                                 HTTPAPI         API,
+                                                 HTTPRequest     Request)
 
             => OnLogin.WhenAll(Timestamp,
                                API ?? this,
@@ -274,10 +274,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
         /// <param name="API">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task LoginHTTPResponse(DateTime      Timestamp,
-                                                  HTTPAPI       API,
-                                                  HTTPRequest   Request,
-                                                  HTTPResponse  Response)
+        protected internal Task LoginHTTPResponse(DateTimeOffset  Timestamp,
+                                                  HTTPAPI         API,
+                                                  HTTPRequest     Request,
+                                                  HTTPResponse    Response)
 
             => OnLoginResponse.WhenAll(Timestamp,
                                        API ?? this,
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Passkeys
 
         #region (private)   GenerateCookieSettings(Expires)
 
-        private String GenerateCookieSettings(DateTime Expires)
+        private String GenerateCookieSettings(DateTimeOffset Expires)
 
             => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()

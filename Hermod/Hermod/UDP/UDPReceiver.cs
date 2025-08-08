@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Payload">The payload of the UDP packet.</param>
         /// <returns>The payload/message of the UDP packet transformed into custom data structures.</returns>
         public delegate TData MapperDelegate(UDPReceiver<TData>  UDPReceiver,
-                                             DateTime            Timestamp,
+                                             DateTimeOffset      Timestamp,
                                              IPSocket            LocalSocket,
                                              IPSocket            RemoteSocket,
                                              Byte[]              Payload);
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Payload">The payload of the UDP packet.</param>
         /// <returns>The payload/message of the UDP packet transformed into custom data structures.</returns>
         public delegate IEnumerable<TData> MapReduceDelegate(UDPReceiver<TData>  UDPReceiver,
-                                                             DateTime            Timestamp,
+                                                             DateTimeOffset      Timestamp,
                                                              IPSocket            LocalSocket,
                                                              IPSocket            RemoteSocket,
                                                              Byte[]              Payload);
@@ -414,11 +414,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                     Thread.CurrentThread.IsBackground  = PacketThreadsAreBackground;
 #endif
 
-                    EndPoint?  RemoteEndPoint = null;
-                    Byte[]     UDPPayload;
-                    Int32      NumberOfReceivedBytes;
-                    DateTime   timestamp;
-                    Int32      WaitForChildTaskCreation = 0;
+                    EndPoint?       RemoteEndPoint = null;
+                    Byte[]          UDPPayload;
+                    Int32           NumberOfReceivedBytes;
+                    DateTimeOffset  timestamp;
+                    Int32           WaitForChildTaskCreation = 0;
 
                     Interlocked.Exchange(ref _IsRunning, 1);
 

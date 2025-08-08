@@ -34,7 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
     #region UDPSender
 
     /// <summary>
-    /// A generic UDP sender acceptiong Vanaheimr Stxy arrows
+    /// A generic UDP sender accepting Vanaheimr Styx arrows
     /// in order to send them through the internet.
     /// </summary>
     public class UDPSender : UDPSender<Byte[]>
@@ -84,7 +84,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
     #region UDPSender<T>
 
     /// <summary>
-    /// A generic UDP sender acceptiong Vanaheimr Stxy arrows
+    /// A generic UDP sender accepting Vanaheimr Styx arrows
     /// in order to send them through the internet.
     /// </summary>
     public class UDPSender<T> : IArrowReceiver<T>,
@@ -484,7 +484,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="ExceptionMessage">The exception leading to this error.</param>
-        public virtual void ProcessExceptionOccurred(dynamic Sender, DateTime Timestamp, EventTracking_Id EventTrackingId, Exception ExceptionMessage)
+        public virtual void ProcessExceptionOccurred(dynamic Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, Exception ExceptionMessage)
         {
             // Error handling should better be part of the application logic!
             // Overwrite this method to signal the error, e.g. by sending a nice UDP packet.
@@ -500,7 +500,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         /// <param name="Sender">The sender of this completed message.</param>
         /// <param name="Timestamp">The timestamp of the shutdown.</param>
         /// <param name="Message">An optional completion message.</param>
-        public void ProcessCompleted(dynamic Sender, DateTime Timestamp, EventTracking_Id EventTrackingId, String? Message = null)
+        public void ProcessCompleted(dynamic Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null)
         {
             Close();
         }

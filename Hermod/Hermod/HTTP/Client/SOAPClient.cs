@@ -172,22 +172,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public async Task<HTTPResponse<T>>
 
-            Query<T>(XElement                                                         QueryXML,
-                     String                                                           SOAPAction,
-                     Func<HTTPResponse<XElement>,                   HTTPResponse<T>>  OnSuccess,
-                     Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
-                     Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
-                     Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                     Action<HTTPRequest.Builder>?                                     HTTPRequestBuilder    = null,
-                     ClientRequestLogHandler?                                         RequestLogDelegate    = null,
-                     ClientResponseLogHandler?                                        ResponseLogDelegate   = null,
-                     HTTPContentType?                                                 ContentType           = null,
-                     XNamespace?                                                      Namespace             = null,
+            Query<T>(XElement                                                               QueryXML,
+                     String                                                                 SOAPAction,
+                     Func<HTTPResponse<XElement>,                         HTTPResponse<T>>  OnSuccess,
+                     Func<DateTimeOffset, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
+                     Func<DateTimeOffset, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
+                     Func<DateTimeOffset, Object, Exception,              HTTPResponse<T>>  OnException,
+                     Action<HTTPRequest.Builder>?                                           HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler?                                               RequestLogDelegate    = null,
+                     ClientResponseLogHandler?                                              ResponseLogDelegate   = null,
+                     HTTPContentType?                                                       ContentType           = null,
+                     XNamespace?                                                            Namespace             = null,
 
-                     EventTracking_Id?                                                EventTrackingId       = null,
-                     TimeSpan?                                                        RequestTimeout        = null,
-                     Byte                                                             NumberOfRetry         = 0,
-                     CancellationToken                                                CancellationToken     = default)
+                     EventTracking_Id?                                                      EventTrackingId       = null,
+                     TimeSpan?                                                              RequestTimeout        = null,
+                     Byte                                                                   NumberOfRetry         = 0,
+                     CancellationToken                                                      CancellationToken     = default)
 
         {
 
@@ -472,22 +472,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
         /// <returns>The data structured after it had been processed by the OnSuccess delegate, or a fault.</returns>
         public async Task<HTTPResponse<T>>
 
-            Query<T>(XElement                                                         QueryXML,
-                     String                                                           SOAPAction,
-                     Func<HTTPResponse<XElement>,                   HTTPResponse<T>>  OnSuccess,
-                     Func<DateTime, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
-                     Func<DateTime, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
-                     Func<DateTime, Object, Exception,              HTTPResponse<T>>  OnException,
-                     Action<HTTPRequest.Builder>?                                     HTTPRequestBuilder    = null,
-                     ClientRequestLogHandler?                                         RequestLogDelegate    = null,
-                     ClientResponseLogHandler?                                        ResponseLogDelegate   = null,
-                     HTTPContentType?                                                 ContentType           = null,
-                     XNamespace?                                                      Namespace             = null,
+            Query<T>(XElement                                                               QueryXML,
+                     String                                                                 SOAPAction,
+                     Func<HTTPResponse<XElement>,                         HTTPResponse<T>>  OnSuccess,
+                     Func<DateTimeOffset, Object, HTTPResponse<XElement>, HTTPResponse<T>>  OnSOAPFault,
+                     Func<DateTimeOffset, Object, HTTPResponse,           HTTPResponse<T>>  OnHTTPError,
+                     Func<DateTimeOffset, Object, Exception,              HTTPResponse<T>>  OnException,
+                     Action<HTTPRequest.Builder>?                                           HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler?                                               RequestLogDelegate    = null,
+                     ClientResponseLogHandler?                                              ResponseLogDelegate   = null,
+                     HTTPContentType?                                                       ContentType           = null,
+                     XNamespace?                                                            Namespace             = null,
 
-                     EventTracking_Id?                                                EventTrackingId       = null,
-                     TimeSpan?                                                        RequestTimeout        = null,
-                     Byte                                                             NumberOfRetry         = 0,
-                     CancellationToken                                                CancellationToken     = default)
+                     EventTracking_Id?                                                      EventTrackingId       = null,
+                     TimeSpan?                                                              RequestTimeout        = null,
+                     Byte                                                                   NumberOfRetry         = 0,
+                     CancellationToken                                                      CancellationToken     = default)
 
         {
 

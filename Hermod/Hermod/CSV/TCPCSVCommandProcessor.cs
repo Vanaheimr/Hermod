@@ -17,13 +17,12 @@
 
 #region Usings
 
-using System;
 using System.Text;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -34,8 +33,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
     /// A TCP service accepting incoming CSV lines
     /// with ending 0x00 or 0x0d 0x0a (\r\n) characters.
     /// </summary>
-    public class TCPCSVCommandProcessor : IBoomerangReceiver<TCPConnection, DateTime, String[], String>,
-                                          IBoomerangSender  <String,        DateTime, String[], TCPResult<String>>
+    public class TCPCSVCommandProcessor : IBoomerangReceiver<TCPConnection, DateTimeOffset, String[], String>,
+                                          IBoomerangSender  <String,        DateTimeOffset, String[], TCPResult<String>>
     {
 
         #region Properties
@@ -46,14 +45,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event StartedEventHandler?                                                    OnStarted;
+        public event StartedEventHandler?                                                          OnStarted;
 
-        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>>?  OnNotification;
+        public event BoomerangSenderHandler<String, DateTimeOffset, String[], TCPResult<String>>?  OnNotification;
 
-        public event CompletedEventHandler?                                                  OnCompleted;
+        public event CompletedEventHandler?                                                        OnCompleted;
 
 
-        public event ExceptionOccurredEventHandler?                                           OnExceptionOccurred;
+        public event ExceptionOccurredEventHandler?                                                OnExceptionOccurred;
 
         #endregion
 
@@ -67,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region ProcessBoomerang(TCPConnection, Timestamp, CSVArray)
 
-        public String ProcessBoomerang(TCPConnection TCPConnection, DateTime Timestamp, String[] CSVArray)
+        public String ProcessBoomerang(TCPConnection TCPConnection, DateTimeOffset Timestamp, String[] CSVArray)
         {
 
             var stringBuilder  = new StringBuilder();
@@ -196,9 +195,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #region ProcessExceptionOccurred(Sender, Timestamp, EventTracking, ExceptionMessage)
 
         public void ProcessExceptionOccurred(Object            Sender,
-                                            DateTime          Timestamp,
-                                            EventTracking_Id  EventTracking,
-                                            Exception         ExceptionMessage)
+                                             DateTimeOffset    Timestamp,
+                                             EventTracking_Id  EventTracking,
+                                             Exception         ExceptionMessage)
         {
 
             OnExceptionOccurred?.Invoke(
@@ -215,7 +214,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #region ProcessCompleted(Sender, Timestamp, EventTracking, Message = null)
 
         public void ProcessCompleted(Object            Sender,
-                                     DateTime          Timestamp,
+                                     DateTimeOffset    Timestamp,
                                      EventTracking_Id  EventTracking,
                                      String?           Message = null)
         {

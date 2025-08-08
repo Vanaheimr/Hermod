@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// The timestamp of the HTTP response.
             /// </summary>
-            public DateTime           Timestamp              { get; set; }
+            public DateTimeOffset     Timestamp              { get; set; }
 
             /// <summary>
             /// The runtime of the HTTP request/response pair.

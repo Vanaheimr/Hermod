@@ -42,7 +42,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         public ModbusTCPRequest?  Request             { get; }
 
-        public DateTime           Timestamp           { get; }
+        public DateTimeOffset     Timestamp           { get; }
 
         public IPSocket?          LocalSocket         { get; internal set; }
 
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         }
 
         public ModbusTCPResponse(ModbusTCPRequest?  Request,
-                                 DateTime?          ResponseTimestamp,
+                                 DateTimeOffset?    ResponseTimestamp,
                                  UInt16             TransactionId,
                                  UInt16             ProtocolId,
                                  UInt16             Length,

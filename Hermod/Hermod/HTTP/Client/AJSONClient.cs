@@ -166,19 +166,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="RequestTimeout">An optional timeout of the HTTP client [default 60 sec.]</param>
         public async Task<HTTPResponse<T>>
 
-            Query<T>(JObject                                                         JSONRequest,
-                     Func<HTTPResponse<JObject>,                   HTTPResponse<T>>  OnSuccess,
-                     Func<DateTime, Object, HTTPResponse<JObject>, HTTPResponse<T>>  OnJSONFault,
-                     Func<DateTime, Object, HTTPResponse,          HTTPResponse<T>>  OnHTTPError,
-                     Func<DateTime, Object, Exception,             HTTPResponse<T>>  OnException,
-                     Action<HTTPRequest.Builder>?                                    HTTPRequestBuilder    = null,
-                     ClientRequestLogHandler?                                        RequestLogDelegate    = null,
-                     ClientResponseLogHandler?                                       ResponseLogDelegate   = null,
+            Query<T>(JObject                                                               JSONRequest,
+                     Func<HTTPResponse<JObject>,                         HTTPResponse<T>>  OnSuccess,
+                     Func<DateTimeOffset, Object, HTTPResponse<JObject>, HTTPResponse<T>>  OnJSONFault,
+                     Func<DateTimeOffset, Object, HTTPResponse,          HTTPResponse<T>>  OnHTTPError,
+                     Func<DateTimeOffset, Object, Exception,             HTTPResponse<T>>  OnException,
+                     Action<HTTPRequest.Builder>?                                          HTTPRequestBuilder    = null,
+                     ClientRequestLogHandler?                                              RequestLogDelegate    = null,
+                     ClientResponseLogHandler?                                             ResponseLogDelegate   = null,
 
-                     EventTracking_Id?                                               EventTrackingId       = null,
-                     TimeSpan?                                                       RequestTimeout        = null,
-                     Byte                                                            NumberOfRetry         = 0,
-                     CancellationToken                                               CancellationToken     = default)
+                     EventTracking_Id?                                                     EventTrackingId       = null,
+                     TimeSpan?                                                             RequestTimeout        = null,
+                     Byte                                                                  NumberOfRetry         = 0,
+                     CancellationToken                                                     CancellationToken     = default)
 
         {
 

@@ -24,9 +24,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate Task RequestLogHandler(DateTime     Timestamp,
-                                           IHTTPServer  HTTPServer,
-                                           HTTPRequest  Request);
+    public delegate Task RequestLogHandler(DateTimeOffset  Timestamp,
+                                           IHTTPServer     HTTPServer,
+                                           HTTPRequest     Request);
 
     /// <summary>
     /// The delegate for the HTTP request log.
@@ -34,9 +34,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate Task HTTPRequestLogHandler(DateTime     Timestamp,
-                                               HTTPAPI      HTTPAPI,
-                                               HTTPRequest  Request);
+    public delegate Task HTTPRequestLogHandler(DateTimeOffset  Timestamp,
+                                               HTTPAPI         HTTPAPI,
+                                               HTTPRequest     Request);
 
 
     /// <summary>
@@ -46,10 +46,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPServer">The sending HTTP server.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate Task AccessLogHandler(DateTime      Timestamp,
-                                          IHTTPServer   HTTPServer,
-                                          HTTPRequest   Request,
-                                          HTTPResponse  Response);
+    public delegate Task AccessLogHandler(DateTimeOffset  Timestamp,
+                                          IHTTPServer     HTTPServer,
+                                          HTTPRequest     Request,
+                                          HTTPResponse    Response);
 
     /// <summary>
     /// The delegate for the HTTP access log.
@@ -58,10 +58,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate Task HTTPResponseLogHandler(DateTime      Timestamp,
-                                                HTTPAPI       HTTPAPI,
-                                                HTTPRequest   Request,
-                                                HTTPResponse  Response);
+    public delegate Task HTTPResponseLogHandler(DateTimeOffset  Timestamp,
+                                                HTTPAPI         HTTPAPI,
+                                                HTTPRequest     Request,
+                                                HTTPResponse    Response);
 
 
     /// <summary>
@@ -73,12 +73,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate Task ErrorLogHandler(DateTime      Timestamp,
-                                         IHTTPServer   HTTPServer,
-                                         HTTPRequest   Request,
-                                         HTTPResponse  Response,
-                                         String?       Error           = null,
-                                         Exception?    LastException   = null);
+    public delegate Task ErrorLogHandler(DateTimeOffset  Timestamp,
+                                         IHTTPServer     HTTPServer,
+                                         HTTPRequest     Request,
+                                         HTTPResponse    Response,
+                                         String?         Error           = null,
+                                         Exception?      LastException   = null);
 
     /// <summary>
     /// The delegate for the HTTP error log.
@@ -89,12 +89,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Response">The outgoing response.</param>
     /// <param name="Error">The occured error.</param>
     /// <param name="LastException">The last occured exception.</param>
-    public delegate Task HTTPErrorLogHandler(DateTime      Timestamp,
-                                             HTTPAPI       HTTPAPI,
-                                             HTTPRequest   Request,
-                                             HTTPResponse  Response,
-                                             String?       Error           = null,
-                                             Exception?    LastException   = null);
+    public delegate Task HTTPErrorLogHandler(DateTimeOffset  Timestamp,
+                                             HTTPAPI         HTTPAPI,
+                                             HTTPRequest     Request,
+                                             HTTPResponse    Response,
+                                             String?         Error           = null,
+                                             Exception?      LastException   = null);
 
 
 
@@ -104,9 +104,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Timestamp">The timestamp of the outgoing HTTP request.</param>
     /// <param name="HTTPClient">The HTTP client sending the HTTP request.</param>
     /// <param name="Request">The outgoing HTTP request.</param>
-    public delegate Task ClientRequestLogHandler(DateTime     Timestamp,
-                                                 IHTTPClient  HTTPClient,
-                                                 HTTPRequest  Request);
+    public delegate Task ClientRequestLogHandler(DateTimeOffset  Timestamp,
+                                                 IHTTPClient     HTTPClient,
+                                                 HTTPRequest     Request);
 
 
     /// <summary>
@@ -116,10 +116,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPClient">The HTTP client receiving the HTTP request.</param>
     /// <param name="Request">The outgoing HTTP request.</param>
     /// <param name="Response">The incoming HTTP response.</param>
-    public delegate Task ClientResponseLogHandler(DateTime      Timestamp,
-                                                  IHTTPClient   HTTPClient,
-                                                  HTTPRequest   Request,
-                                                  HTTPResponse  Response);
+    public delegate Task ClientResponseLogHandler(DateTimeOffset  Timestamp,
+                                                  IHTTPClient     HTTPClient,
+                                                  HTTPRequest     Request,
+                                                  HTTPResponse    Response);
 
 
 

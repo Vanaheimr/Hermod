@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// The timestamp of the packet.
         /// </summary>
-        public DateTime           ServerTimestamp      { get; }
+        public DateTimeOffset     ServerTimestamp      { get; }
 
         /// <summary>
         /// The TCP connection identification.

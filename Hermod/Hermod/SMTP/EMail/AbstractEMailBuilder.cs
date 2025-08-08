@@ -274,12 +274,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region Date
 
-        private DateTime? _Date;
+        private DateTimeOffset? _Date;
 
         /// <summary>
         /// The sending timestamp of this e-mail.
         /// </summary>
-        public DateTime Date
+        public DateTimeOffset Date
         {
 
             get
@@ -294,11 +294,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 if (_String.Key != null)
                 {
-                    _Date = DateTime.Parse(_String.Value);
+                    _Date = DateTimeOffset.Parse(_String.Value);
                     return _Date.Value;
                 }
 
-                return DateTime.MinValue;
+                return DateTimeOffset.MinValue;
 
             }
 

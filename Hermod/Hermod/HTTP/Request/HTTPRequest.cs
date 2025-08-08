@@ -1169,7 +1169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        public HTTPRequest(DateTime                     Timestamp,
+        public HTTPRequest(DateTimeOffset               Timestamp,
                            HTTPSource                   HTTPSource,
                            IPSocket                     LocalSocket,
                            IPSocket                     RemoteSocket,
@@ -1242,7 +1242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        internal HTTPRequest(DateTime           Timestamp,
+        internal HTTPRequest(DateTimeOffset     Timestamp,
                              HTTPSource         HTTPSource,
                              IPSocket           LocalSocket,
                              IPSocket           RemoteSocket,
@@ -1485,7 +1485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
-        public static HTTPRequest Parse(DateTime           Timestamp,
+        public static HTTPRequest Parse(DateTimeOffset     Timestamp,
                                         HTTPSource         HTTPSource,
                                         IPSocket           LocalSocket,
                                         IPSocket           RemoteSocket,
@@ -1724,7 +1724,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String                                Text,
                                        [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?                             Timestamp           = null,
+                                       DateTimeOffset?                       Timestamp           = null,
                                        HTTPSource?                           HTTPSource          = null,
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,
@@ -1810,7 +1810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        Byte[]                                Body,
                                        [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?                             Timestamp           = null,
+                                       DateTimeOffset?                       Timestamp           = null,
                                        HTTPSource?                           HTTPSource          = null,
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,
@@ -1945,7 +1945,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(IEnumerable<String>                   Lines,
                                        [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?                             Timestamp           = null,
+                                       DateTimeOffset?                       Timestamp           = null,
                                        HTTPSource?                           HTTPSource          = null,
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,
@@ -2011,7 +2011,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        Byte[]                                Body,
                                        [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?                             Timestamp           = null,
+                                       DateTimeOffset?                       Timestamp           = null,
                                        HTTPSource?                           HTTPSource          = null,
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,
@@ -2138,7 +2138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(Byte[]                                Bytes,
                                        [NotNullWhen(true)] out HTTPRequest?  Request,
 
-                                       DateTime?                             Timestamp           = null,
+                                       DateTimeOffset?                       Timestamp           = null,
                                        HTTPSource?                           HTTPSource          = null,
                                        IPSocket?                             LocalSocket         = null,
                                        IPSocket?                             RemoteSocket        = null,

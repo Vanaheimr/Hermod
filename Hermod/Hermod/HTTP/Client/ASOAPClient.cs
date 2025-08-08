@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Timestamp">The timestamp of the error.</param>
         /// <param name="Sender">The sender of the error.</param>
         /// <param name="SOAPXML">The SOAP error message.</param>
-        public delegate void OnSOAPErrorDelegate(DateTime Timestamp, Object Sender, XElement SOAPXML);
+        public delegate void OnSOAPErrorDelegate(DateTimeOffset Timestamp, Object Sender, XElement SOAPXML);
 
         /// <summary>
         /// An event fired whenever a SOAP error occured.
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// A delegate called whenever a HTTP error occured.
         /// </summary>
-        public delegate void OnHTTPErrorDelegate(DateTime Timestamp, Object Sender, HTTPResponse HttpResponse);
+        public delegate void OnHTTPErrorDelegate(DateTimeOffset Timestamp, Object Sender, HTTPResponse HttpResponse);
 
         /// <summary>
         /// An event fired whenever a HTTP error occured.
@@ -191,9 +191,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Timestamp">The timestamp of the error received.</param>
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="SOAPXML">The SOAP fault/error.</param>
-        protected void SendSOAPError(DateTime  Timestamp,
-                                     Object    Sender,
-                                     XElement  SOAPXML)
+        protected void SendSOAPError(DateTimeOffset  Timestamp,
+                                     Object          Sender,
+                                     XElement        SOAPXML)
         {
 
             DebugX.Log("ASOAPClient => SOAP Fault: " + SOAPXML != null ? SOAPXML.ToString() : "<null>");
@@ -212,9 +212,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Timestamp">The timestamp of the error received.</param>
         /// <param name="Sender">The sender of this error message.</param>
         /// <param name="HTTPResponse">The HTTP response related to this error message.</param>
-        protected void SendHTTPError(DateTime      Timestamp,
-                                     Object        Sender,
-                                     HTTPResponse  HTTPResponse)
+        protected void SendHTTPError(DateTimeOffset  Timestamp,
+                                     Object          Sender,
+                                     HTTPResponse    HTTPResponse)
         {
 
             DebugX.Log("ASOAPClient => HTTP Status Code: " + HTTPResponse is not null
@@ -235,9 +235,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Timestamp">The timestamp of the exception.</param>
         /// <param name="Sender">The sender of this exception.</param>
         /// <param name="Exception">The exception itself.</param>
-        protected void SendException(DateTime   Timestamp,
-                                     Object     Sender,
-                                     Exception  Exception)
+        protected void SendException(DateTimeOffset  Timestamp,
+                                     Object          Sender,
+                                     Exception       Exception)
         {
 
             DebugX.Log("ASOAPClient => Exception: " + Exception.Message);

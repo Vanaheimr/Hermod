@@ -376,14 +376,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var data         = String.Concat(
                                            loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
                                                ? $"{loggingData.Request.LocalSocket} -> {loggingData.Request.RemoteSocket}"
-                                               : $"{loggingData.Request.HTTPSource } -> {loggingData.Request.LocalSocket}",                                                                  Environment.NewLine,
-                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                                                               Environment.NewLine,
-                                           loggingData.Request. Timestamp.ToISO8601(),                                                                                                       Environment.NewLine,
-                                           loggingData.Request. EntirePDU,                                                                                                                   Environment.NewLine,
-                                           "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                                                               Environment.NewLine,
-                                        $"{loggingData.Response.Timestamp.ToISO8601()} -> {(loggingData.Response.Timestamp - loggingData.Request.Timestamp).TotalMilliseconds} ms runtime",  Environment.NewLine,
-                                           loggingData.Response.EntirePDU,                                                                                                                   Environment.NewLine,
-                                           "--------------------------------------------------------------------------------",                                                               Environment.NewLine
+                                               : $"{loggingData.Request.HTTPSource } -> {loggingData.Request.LocalSocket}",                              Environment.NewLine,
+                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                           Environment.NewLine,
+                                           loggingData.Request. Timestamp.ToISO8601(),                                                                   Environment.NewLine,
+                                           loggingData.Request. EntirePDU,                                                                               Environment.NewLine,
+                                           "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                           Environment.NewLine,
+                                        $"{loggingData.Response.Timestamp.ToISO8601()} -> {loggingData.Response.Runtime.TotalMilliseconds} ms runtime",  Environment.NewLine,
+                                           loggingData.Response.EntirePDU,                                                                               Environment.NewLine,
+                                           "--------------------------------------------------------------------------------",                           Environment.NewLine
                                        );
 
                     do

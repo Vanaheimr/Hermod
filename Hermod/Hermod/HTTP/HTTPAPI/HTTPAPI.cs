@@ -127,9 +127,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerTimestamp">The timestamp of the event.</param>
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
-        public async Task InvokeAsync(DateTime     ServerTimestamp,
-                                      HTTPAPI      HTTPAPI,
-                                      HTTPRequest  Request)
+        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
+                                      HTTPAPI         HTTPAPI,
+                                      HTTPRequest     Request)
         {
 
             HTTPRequestLogHandler[] invocationList;
@@ -155,10 +155,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTime      ServerTimestamp,
-                            HTTPAPI       HTTPAPI,
-                            HTTPRequest   Request,
-                            TimeSpan?     Timeout   = null)
+        public Task WhenAny(DateTimeOffset  ServerTimestamp,
+                            HTTPAPI         HTTPAPI,
+                            HTTPRequest     Request,
+                            TimeSpan?       Timeout   = null)
         {
 
             List<Task> invocationList;
@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTime            ServerTimestamp,
+        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
                                     HTTPAPI             HTTPAPI,
                                     HTTPRequest         Request,
                                     Func<T, Boolean>    VerifyResult,
@@ -203,11 +203,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            List<Task>  invocationList;
-            Task?       WorkDone;
-            Task<T>?    Result;
-            DateTime    StartTime     = Timestamp.Now;
-            Task?       TimeoutTask   = null;
+            List<Task>      invocationList;
+            Task?           WorkDone;
+            Task<T>?        Result;
+            DateTimeOffset  StartTime     = Timestamp.Now;
+            Task?           TimeoutTask   = null;
 
             #endregion
 
@@ -271,9 +271,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ServerTimestamp">The timestamp of the event.</param>
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
-        public Task WhenAll(DateTime      ServerTimestamp,
-                            HTTPAPI       HTTPAPI,
-                            HTTPRequest   Request)
+        public Task WhenAll(DateTimeOffset  ServerTimestamp,
+                            HTTPAPI         HTTPAPI,
+                            HTTPRequest     Request)
         {
 
             Task[] invocationList;
@@ -386,10 +386,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
-        public async Task InvokeAsync(DateTime      ServerTimestamp,
-                                      HTTPAPI       HTTPAPI,
-                                      HTTPRequest   Request,
-                                      HTTPResponse  Response)
+        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
+                                      HTTPAPI         HTTPAPI,
+                                      HTTPRequest     Request,
+                                      HTTPResponse    Response)
         {
 
             HTTPResponseLogHandler[] invocationList;
@@ -416,11 +416,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTime      ServerTimestamp,
-                            HTTPAPI       HTTPAPI,
-                            HTTPRequest   Request,
-                            HTTPResponse  Response,
-                            TimeSpan?     Timeout = null)
+        public Task WhenAny(DateTimeOffset  ServerTimestamp,
+                            HTTPAPI         HTTPAPI,
+                            HTTPRequest     Request,
+                            HTTPResponse    Response,
+                            TimeSpan?       Timeout = null)
         {
 
             List<Task> invocationList;
@@ -456,22 +456,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTime            ServerTimestamp,
+        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
                                     HTTPAPI             HTTPAPI,
                                     HTTPRequest         Request,
                                     HTTPResponse        Response,
                                     Func<T, Boolean>    VerifyResult,
-                                    TimeSpan?           Timeout        = null,
-                                    Func<TimeSpan, T>?  DefaultResult  = null)
+                                    TimeSpan?           Timeout         = null,
+                                    Func<TimeSpan, T>?  DefaultResult   = null)
         {
 
             #region Data
 
-            List<Task>  invocationList;
-            Task?       WorkDone;
-            Task<T>?    Result;
-            DateTime    StartTime     = Timestamp.Now;
-            Task?       TimeoutTask   = null;
+            List<Task>      invocationList;
+            Task?           WorkDone;
+            Task<T>?        Result;
+            DateTimeOffset  StartTime     = Timestamp.Now;
+            Task?           TimeoutTask   = null;
 
             #endregion
 
@@ -536,10 +536,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
-        public Task WhenAll(DateTime      ServerTimestamp,
-                            HTTPAPI       HTTPAPI,
-                            HTTPRequest   Request,
-                            HTTPResponse  Response)
+        public Task WhenAll(DateTimeOffset  ServerTimestamp,
+                            HTTPAPI         HTTPAPI,
+                            HTTPRequest     Request,
+                            HTTPResponse    Response)
         {
 
             Task[] invocationList;
@@ -656,12 +656,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Error">An error message.</param>
         /// <param name="LastException">The last exception occured.</param>
-        public async Task InvokeAsync(DateTime      ServerTimestamp,
-                                      HTTPAPI       HTTPAPI,
-                                      HTTPRequest   Request,
-                                      HTTPResponse  Response,
-                                      String?       Error           = null,
-                                      Exception?    LastException   = null)
+        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
+                                      HTTPAPI         HTTPAPI,
+                                      HTTPRequest     Request,
+                                      HTTPResponse    Response,
+                                      String?         Error           = null,
+                                      Exception?      LastException   = null)
         {
 
             HTTPErrorLogHandler[] invocationList;
@@ -690,13 +690,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Error">An error message.</param>
         /// <param name="LastException">The last exception occured.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTime      ServerTimestamp,
-                            HTTPAPI       HTTPAPI,
-                            HTTPRequest   Request,
-                            HTTPResponse  Response,
-                            String?       Error           = null,
-                            Exception?    LastException   = null,
-                            TimeSpan?     Timeout         = null)
+        public Task WhenAny(DateTimeOffset  ServerTimestamp,
+                            HTTPAPI         HTTPAPI,
+                            HTTPRequest     Request,
+                            HTTPResponse    Response,
+                            String?         Error           = null,
+                            Exception?      LastException   = null,
+                            TimeSpan?       Timeout         = null)
         {
 
             List<Task> invocationList;
@@ -734,15 +734,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="VerifyResult">A delegate to verify and filter results.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
         /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
-        public Task<T> WhenFirst<T>(DateTime            ServerTimestamp,
+        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
                                     HTTPAPI             HTTPAPI,
                                     HTTPRequest         Request,
                                     HTTPResponse        Response,
                                     String              Error,
                                     Exception           LastException,
                                     Func<T, Boolean>    VerifyResult,
-                                    TimeSpan?           Timeout        = null,
-                                    Func<TimeSpan, T>?  DefaultResult  = null)
+                                    TimeSpan?           Timeout         = null,
+                                    Func<TimeSpan, T>?  DefaultResult   = null)
 
             where T: notnull
 
@@ -750,11 +750,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Data
 
-            List<Task>  invocationList;
-            Task?       WorkDone;
-            Task<T>?    Result;
-            DateTime    StartTime     = Timestamp.Now;
-            Task?       TimeoutTask   = null;
+            List<Task>      invocationList;
+            Task?           WorkDone;
+            Task<T>?        Result;
+            DateTimeOffset  StartTime     = Timestamp.Now;
+            Task?           TimeoutTask   = null;
 
             #endregion
 
@@ -823,12 +823,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Error">An error message.</param>
         /// <param name="LastException">The last exception occured.</param>
-        public Task WhenAll(DateTime      ServerTimestamp,
-                            HTTPAPI       HTTPAPI,
-                            HTTPRequest   Request,
-                            HTTPResponse  Response,
-                            String?       Error          = null,
-                            Exception?    LastException  = null)
+        public Task WhenAll(DateTimeOffset  ServerTimestamp,
+                            HTTPAPI         HTTPAPI,
+                            HTTPRequest     Request,
+                            HTTPResponse    Response,
+                            String?         Error           = null,
+                            Exception?      LastException   = null)
         {
 
             Task[] invocationList;
@@ -869,15 +869,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                     HTTPAPI,
-                                                                  HTTPEventSource_Id               EventIdentification,
-                                                                  UInt32                           MaxNumberOfCachedEvents      = 500,
-                                                                  TimeSpan?                        RetryInterval                = null,
-                                                                  Boolean                          EnableLogging                = true,
-                                                                  String?                          LogfilePath                  = null,
-                                                                  String?                          LogfilePrefix                = null,
-                                                                  Func<String, DateTime, String>?  LogfileName                  = null,
-                                                                  String?                          LogfileReloadSearchPattern   = null)
+        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
+                                                                  HTTPEventSource_Id                     EventIdentification,
+                                                                  UInt32                                 MaxNumberOfCachedEvents      = 500,
+                                                                  TimeSpan?                              RetryInterval                = null,
+                                                                  Boolean                                EnableLogging                = true,
+                                                                  String?                                LogfilePath                  = null,
+                                                                  String?                                LogfilePrefix                = null,
+                                                                  Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                                                                  String?                                LogfileReloadSearchPattern   = null)
 
             => HTTPAPI.AddEventSource(
 
@@ -920,27 +920,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                        HTTPAPI,
-                                                                  HTTPEventSource_Id                  EventIdentification,
-                                                                  HTTPPath                            URLTemplate,
+        public static HTTPEventSource<JObject> AddJSONEventSource(this HTTPAPI                           HTTPAPI,
+                                                                  HTTPEventSource_Id                     EventIdentification,
+                                                                  HTTPPath                               URLTemplate,
 
-                                                                  UInt32                              MaxNumberOfCachedEvents      = 500,
-                                                                  Func<HTTPEvent<JObject>, Boolean>?  IncludeFilterAtRuntime       = null,
-                                                                  TimeSpan?                           RetryInterval                = null,
-                                                                  Boolean                             EnableLogging                = false,
-                                                                  String?                             LogfilePath                  = null,
-                                                                  String?                             LogfilePrefix                = null,
-                                                                  Func<String, DateTime, String>?     LogfileName                  = null,
-                                                                  String?                             LogfileReloadSearchPattern   = null,
+                                                                  UInt32                                 MaxNumberOfCachedEvents      = 500,
+                                                                  Func<HTTPEvent<JObject>, Boolean>?     IncludeFilterAtRuntime       = null,
+                                                                  TimeSpan?                              RetryInterval                = null,
+                                                                  Boolean                                EnableLogging                = false,
+                                                                  String?                                LogfilePath                  = null,
+                                                                  String?                                LogfilePrefix                = null,
+                                                                  Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                                                                  String?                                LogfileReloadSearchPattern   = null,
 
-                                                                  HTTPHostname?                       Hostname                     = null,
-                                                                  HTTPMethod?                         HTTPMethod                   = null,
-                                                                  HTTPContentType?                    HTTPContentType              = null,
+                                                                  HTTPHostname?                          Hostname                     = null,
+                                                                  HTTPMethod?                            HTTPMethod                   = null,
+                                                                  HTTPContentType?                       HTTPContentType              = null,
 
-                                                                  HTTPAuthentication?                 URIAuthentication            = null,
-                                                                  HTTPAuthentication?                 HTTPMethodAuthentication     = null,
+                                                                  HTTPAuthentication?                    URIAuthentication            = null,
+                                                                  HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
-                                                                  HTTPDelegate?                       DefaultErrorHandler          = null)
+                                                                  HTTPDelegate?                          DefaultErrorHandler          = null)
 
             => HTTPAPI.AddEventSource(
 
@@ -1805,16 +1805,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfilePrefix">A prefix for the log file names or locations.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing and reloading events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id               EventIdentification,
-                                                            UInt32                           MaxNumberOfCachedEvents      = 500,
-                                                            TimeSpan?                        RetryInterval                = null,
-                                                            Func<TData, String>?             DataSerializer               = null,
-                                                            Func<String, TData>?             DataDeserializer             = null,
-                                                            Boolean                          EnableLogging                = true,
-                                                            String?                          LogfilePath                  = null,
-                                                            String?                          LogfilePrefix                = null,
-                                                            Func<String, DateTime, String>?  LogfileName                  = null,
-                                                            String?                          LogfileReloadSearchPattern   = null)
+        public HTTPEventSource<TData> AddEventSource<TData>(HTTPEventSource_Id                     EventIdentification,
+                                                            UInt32                                 MaxNumberOfCachedEvents      = 500,
+                                                            TimeSpan?                              RetryInterval                = null,
+                                                            Func<TData, String>?                   DataSerializer               = null,
+                                                            Func<String, TData>?                   DataDeserializer             = null,
+                                                            Boolean                                EnableLogging                = true,
+                                                            String?                                LogfilePath                  = null,
+                                                            String?                                LogfilePrefix                = null,
+                                                            Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                                                            String?                                LogfileReloadSearchPattern   = null)
 
             => HTTPServer.AddEventSource(
                    EventIdentification,
@@ -1858,29 +1858,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPMethodAuthentication">Whether this method needs explicit HTTP method authentication or not.</param>
         /// 
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id               EventIdentification,
-                                                    HTTPPath                         URITemplate,
+        public HTTPEventSource<T> AddEventSource<T>(HTTPEventSource_Id                     EventIdentification,
+                                                    HTTPPath                               URITemplate,
 
-                                                    UInt32                           MaxNumberOfCachedEvents      = 500,
-                                                    Func<HTTPEvent<T>, Boolean>?     IncludeFilterAtRuntime       = null,
-                                                    TimeSpan?                        RetryInterval                = null,
-                                                    Func<T, String>?                 DataSerializer               = null,
-                                                    Func<String, T>?                 DataDeserializer             = null,
-                                                    Boolean                          EnableLogging                = true,
-                                                    String?                          LogfilePath                  = null,
-                                                    String?                          LogfilePrefix                = null,
-                                                    Func<String, DateTime, String>?  LogfileName                  = null,
-                                                    String?                          LogfileReloadSearchPattern   = null,
+                                                    UInt32                                 MaxNumberOfCachedEvents      = 500,
+                                                    Func<HTTPEvent<T>, Boolean>?           IncludeFilterAtRuntime       = null,
+                                                    TimeSpan?                              RetryInterval                = null,
+                                                    Func<T, String>?                       DataSerializer               = null,
+                                                    Func<String, T>?                       DataDeserializer             = null,
+                                                    Boolean                                EnableLogging                = true,
+                                                    String?                                LogfilePath                  = null,
+                                                    String?                                LogfilePrefix                = null,
+                                                    Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                                                    String?                                LogfileReloadSearchPattern   = null,
 
-                                                    HTTPHostname?                    Hostname                     = null,
-                                                    HTTPMethod?                      HttpMethod                   = null,
-                                                    HTTPContentType?                 HTTPContentType              = null,
+                                                    HTTPHostname?                          Hostname                     = null,
+                                                    HTTPMethod?                            HttpMethod                   = null,
+                                                    HTTPContentType?                       HTTPContentType              = null,
 
-                                                    Boolean                          RequireAuthentication        = true,
-                                                    HTTPAuthentication?              URIAuthentication            = null,
-                                                    HTTPAuthentication?              HTTPMethodAuthentication     = null,
+                                                    Boolean                                RequireAuthentication        = true,
+                                                    HTTPAuthentication?                    URIAuthentication            = null,
+                                                    HTTPAuthentication?                    HTTPMethodAuthentication     = null,
 
-                                                    HTTPDelegate?                    DefaultErrorHandler          = null)
+                                                    HTTPDelegate?                          DefaultErrorHandler          = null)
 
             => HTTPServer.AddEventSource(
                    EventIdentification,

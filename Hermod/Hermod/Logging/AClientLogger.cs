@@ -135,7 +135,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             public String                              LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<APIClientRequestLogHandler>  SubscribeToEventDelegate        { get; }
 
@@ -323,7 +323,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             public String                               LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<APIClientResponseLogHandler>  SubscribeToEventDelegate        { get; }
 
@@ -599,7 +599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
         #endregion
 
 
-        #region (protected) RegisterRequestEvent(LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
+        #region (protected) RegisterRequestEvent  (LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
 
         /// <summary>
         /// Register a log event for the linked HTTP API event.
@@ -659,7 +659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #endregion
 
-        #region (protected) RegisterResponseEvent(LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
+        #region (protected) RegisterResponseEvent (LogEventName, SubscribeToEventDelegate, UnsubscribeFromEventDelegate, params GroupTags)
 
         /// <summary>
         /// Register a log event for the linked HTTP API event.
@@ -720,7 +720,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
         #endregion
 
 
-        #region (protected) InternalDebug  (LogEventName, LogTarget)
+        #region (protected) InternalDebug   (LogEventName, LogTarget)
 
         protected override Boolean InternalDebug(String      LogEventName,
                                                  LogTargets  LogTarget)
@@ -741,7 +741,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
 
         #endregion
 
-        #region (protected) InternalUndebug(LogEventName, LogTarget)
+        #region (protected) InternalUndebug (LogEventName, LogTarget)
 
         protected override Boolean InternalUndebug(String      LogEventName,
                                                    LogTargets  LogTarget)

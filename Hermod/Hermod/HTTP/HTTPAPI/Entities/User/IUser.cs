@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Timestamp when the user accepted the End-User-License-Agreement.
         /// </summary>
         [Mandatory]
-        public DateTime?                  AcceptedEULA         { get; }
+        public DateTimeOffset?            AcceptedEULA         { get; }
 
         /// <summary>
         /// The user will not be shown in user listings, as its

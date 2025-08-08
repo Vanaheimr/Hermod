@@ -90,7 +90,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// </summary>
         internal event InternalErrorLogHandler?                        ErrorLog;
 
-        public   event ExceptionOccurredEventHandler?                   OnExceptionOccurred;
+        public   event ExceptionOccurredEventHandler?                  OnExceptionOccurred;
 
         #endregion
 
@@ -115,11 +115,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #endregion
 
 
-
         #region NotifyErrors(...)
 
         private void NotifyErrors(TCPConnection          TCPConnection,
-                                  DateTime               Timestamp,
+                                  DateTimeOffset         Timestamp,
                                   String                 SMTPCommand,
                                   SMTPStatusCode         SMTPStatusCode,
                                   EMail?                 EMail             = null,
@@ -710,9 +709,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #region ProcessExceptionOccurred(Sender, Timestamp, EventTrackingId, ExceptionMessage)
 
         public void ProcessExceptionOccurred(Object            Sender,
-                                            DateTime          Timestamp,
-                                            EventTracking_Id  EventTrackingId,
-                                            Exception         ExceptionMessage)
+                                             DateTimeOffset    Timestamp,
+                                             EventTracking_Id  EventTrackingId,
+                                             Exception         ExceptionMessage)
         {
 
             OnExceptionOccurred?.Invoke(
@@ -729,7 +728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         #region ProcessCompleted(Sender, Timestamp, EventTrackingId, Message = null)
 
         public void ProcessCompleted(Object            Sender,
-                                     DateTime          Timestamp,
+                                     DateTimeOffset    Timestamp,
                                      EventTracking_Id  EventTrackingId,
                                      String?           Message = null)
         {

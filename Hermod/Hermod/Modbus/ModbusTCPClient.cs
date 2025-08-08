@@ -34,13 +34,13 @@ using org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox;
 namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
-    public delegate Task ReadHoldingRegistersClientRequestDelegate (DateTime                       Timestamp,
+    public delegate Task ReadHoldingRegistersClientRequestDelegate (DateTimeOffset                 Timestamp,
                                                                     ModbusTCPClient                Sender,
                                                                     IPSocket                       RemoteSocket,
                                                                     String                         ConnectionId,
                                                                     ReadHoldingRegistersRequest    ReadHoldingRegistersRequest);
 
-    public delegate Task ReadHoldingRegistersClientResponseDelegate(DateTime                       Timestamp,
+    public delegate Task ReadHoldingRegistersClientResponseDelegate(DateTimeOffset                 Timestamp,
                                                                     ModbusTCPClient                Sender,
                                                                     IPSocket                       RemoteSocket,
                                                                     String                         ConnectionId,

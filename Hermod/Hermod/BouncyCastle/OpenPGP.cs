@@ -371,10 +371,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Returns a stream to write your data into.
         /// </summary>
-        internal static Stream LiteralOutputPipe(String    Name,
-                                                 UInt64    Length,
-                                                 DateTime  ModificationTime,
-                                                 Stream    OutputStream)
+        internal static Stream LiteralOutputPipe(String          Name,
+                                                 UInt64          Length,
+                                                 DateTimeOffset  ModificationTime,
+                                                 Stream          OutputStream)
         {
 
             var LiteralDataGenerator = new PgpLiteralDataGenerator();
@@ -383,7 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                              PgpLiteralData.Binary,
                                              Name,
                                              (Int64) Length,
-                                             ModificationTime);
+                                             ModificationTime.DateTime);
 
         }
 
@@ -430,7 +430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                              CompressionAlgorithmTag   CompressionAlgorithm    = CompressionAlgorithmTag.Zip,
                                              Boolean                   ArmoredOutput           = true,
                                              String                    Filename                = "encrypted.asc",
-                                             DateTime?                 LastModificationTime    = null)
+                                             DateTimeOffset?           LastModificationTime    = null)
         {
 
             #region Initial checks

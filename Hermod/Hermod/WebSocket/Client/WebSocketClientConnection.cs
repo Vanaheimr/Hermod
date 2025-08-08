@@ -90,17 +90,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The creation timestamp.
         /// </summary>
-        public DateTime                 ConnectedSince                { get; }
+        public DateTimeOffset           ConnectedSince                { get; }
 
         /// <summary>
         /// The last time data was sent.
         /// </summary>
-        public DateTime?                LastSentTimestamp             { get; set; }
+        public DateTimeOffset?          LastSentTimestamp             { get; set; }
 
         /// <summary>
         /// The last time data was received.
         /// </summary>
-        public DateTime?                LastReceivedTimestamp         { get; set; }
+        public DateTimeOffset?          LastReceivedTimestamp         { get; set; }
 
         /// <summary>
         /// Whether the connection is still assumed to be alive.

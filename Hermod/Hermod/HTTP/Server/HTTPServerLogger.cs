@@ -64,7 +64,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String                     LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<RequestLogHandler>  SubscribeToEventDelegate        { get; }
 
@@ -241,7 +241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String                         LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<HTTPRequestLogHandler>  SubscribeToEventDelegate        { get; }
 
@@ -418,7 +418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String                    LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<AccessLogHandler>  SubscribeToEventDelegate        { get; }
 
@@ -595,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String                          LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<HTTPResponseLogHandler>  SubscribeToEventDelegate        { get; }
 

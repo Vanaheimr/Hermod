@@ -252,8 +252,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.TLS
                                    BigIntegers.CreateRandomInRange(BigInteger.One, BigInteger.ValueOf(long.MaxValue), secureRandom));
             x509v3.SetSubjectDN   (new X509Name($"CN={SubjectName}, O=GraphDefined GmbH, OU=GraphDefined PKI Services"));
             x509v3.SetPublicKey   (SubjectKeyPair.Public);
-            x509v3.SetNotBefore   (now);
-            x509v3.SetNotAfter    (now + (LifeTime ?? TimeSpan.FromDays(365)));
+            x509v3.SetNotBefore   (now.DateTime);
+            x509v3.SetNotAfter   ((now + (LifeTime ?? TimeSpan.FromDays(365))).DateTime);
 
             if (Issuer is null)
                 x509v3.SetIssuerDN(new X509Name($"CN={SubjectName}")); // self-signed

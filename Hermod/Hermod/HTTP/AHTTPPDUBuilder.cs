@@ -466,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The date and time of the request/response in rfc1123 format.
         /// </summary>
-        public DateTime? Date
+        public DateTimeOffset? Date
         {
 
             get

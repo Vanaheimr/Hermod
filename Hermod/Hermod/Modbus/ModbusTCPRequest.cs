@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         /// <summary>
         /// The request timestamp.
         /// </summary>
-        public DateTime         Timestamp       { get; }
+        public DateTimeOffset   Timestamp       { get; }
 
         /// <summary>
         /// The Modbus/TCP transaction identification.

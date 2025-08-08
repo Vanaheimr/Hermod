@@ -23,7 +23,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         DNSQueryClasses  Class         { get; }
         DNSServiceName   DomainName    { get; }
-        DateTime         EndOfLife     { get; }
+        DateTimeOffset   EndOfLife     { get; }
         String?          RText         { get; }
         IIPAddress?      Source        { get; }
         TimeSpan         TimeToLive    { get; }

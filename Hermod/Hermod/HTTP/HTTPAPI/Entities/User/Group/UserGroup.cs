@@ -511,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                          IEnumerable<AttachedFile>?             AttachedFiles                 = default,
                          JSONLDContext?                         JSONLDContext                 = default,
                          String?                                DataSource                    = default,
-                         DateTime?                              LastChange                    = default)
+                         DateTimeOffset?                        LastChange                    = default)
 
             : base(Id,
 
@@ -1184,7 +1184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<AttachedFile>?             AttachedFiles                 = default,
                            JSONLDContext?                         JSONLDContext                 = default,
                            String?                                DataSource                    = default,
-                           DateTime?                              LastChange                    = default)
+                           DateTimeOffset?                        LastChange                    = default)
 
                 : base(Id ?? UserGroup_Id.Random(),
                        JSONLDContext ?? DefaultJSONLDContext,
@@ -1243,23 +1243,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public UserGroup ToImmutable
 
-                => new UserGroup(Id,
+                => new (Id,
 
-                                 Name,
-                                 Description,
-                                 Members,
-                                 ParentGroup,
-                                 Subgroups,
+                        Name,
+                        Description,
+                        Members,
+                        ParentGroup,
+                        Subgroups,
 
-                                 _User2UserGroup_Edges,
-                                 _UserGroup2UserGroup_InEdges,
-                                 _UserGroup2UserGroup_OutEdges,
+                        _User2UserGroup_Edges,
+                        _UserGroup2UserGroup_InEdges,
+                        _UserGroup2UserGroup_OutEdges,
 
-                                 CustomData,
-                                 AttachedFiles,
-                                 JSONLDContext,
-                                 DataSource,
-                                 LastChangeDate);
+                        CustomData,
+                        AttachedFiles,
+                        JSONLDContext,
+                        DataSource,
+                        LastChangeDate);
 
             #endregion
 

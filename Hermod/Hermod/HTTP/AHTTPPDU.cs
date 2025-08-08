@@ -74,7 +74,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The timestamp of the HTTP PDU generation.
         /// </summary>
-        public DateTime                 Timestamp            { get; }
+        public DateTimeOffset           Timestamp            { get; }
 
         /// <summary>
         /// The cancellation token.
@@ -616,7 +616,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPBodyReceiveBufferSize">The size of the HTTP body receive buffer.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP request processing.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        protected AHTTPPDU(DateTime           Timestamp,
+        protected AHTTPPDU(DateTimeOffset     Timestamp,
                            HTTPSource         HTTPSource,
                            IPSocket           LocalSocket,
                            IPSocket           RemoteSocket,

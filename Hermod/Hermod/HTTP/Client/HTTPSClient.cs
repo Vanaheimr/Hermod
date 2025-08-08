@@ -382,7 +382,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     RevocationMode       = X509RevocationMode.Online,
                                     RevocationFlag       = X509RevocationFlag.ExcludeRoot,
                                     VerificationFlags    = X509VerificationFlags.NoFlag,
-                                    VerificationTime     = Timestamp.Now,
+                                    VerificationTime     = Timestamp.Now.DateTime,
                                     UrlRetrievalTimeout  = TimeSpan.FromSeconds(15),
                                 };
 

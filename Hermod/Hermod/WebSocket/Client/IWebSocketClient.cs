@@ -27,7 +27,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
     #region Delegates
 
-    public delegate Task  OnWebSocketClientFrameSentDelegate             (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientFrameSentDelegate             (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           EventTracking_Id                   EventTrackingId,
@@ -35,7 +35,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           SentStatus                         SentStatus,
                                                                           CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientFrameReceivedDelegate         (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientFrameReceivedDelegate         (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           EventTracking_Id                   EventTrackingId,
@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           CancellationToken                  CancellationToken);
 
 
-    public delegate Task  OnWebSocketClientTextMessageSentDelegate       (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientTextMessageSentDelegate       (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -52,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           SentStatus                         SentStatus,
                                                                           CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientTextMessageReceivedDelegate   (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientTextMessageReceivedDelegate   (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           CancellationToken                  CancellationToken);
 
 
-    public delegate Task  OnWebSocketClientBinaryMessageSentDelegate     (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientBinaryMessageSentDelegate     (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -70,7 +70,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           SentStatus                         SentStatus,
                                                                           CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientBinaryMessageReceivedDelegate (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientBinaryMessageReceivedDelegate (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -79,7 +79,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           CancellationToken                  CancellationToken);
 
 
-    public delegate Task  OnWebSocketClientPingMessageSentDelegate       (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientPingMessageSentDelegate       (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           SentStatus                         SentStatus,
                                                                           CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientPingMessageReceivedDelegate   (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientPingMessageReceivedDelegate   (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           CancellationToken                  CancellationToken);
 
 
-    public delegate Task  OnWebSocketClientPongMessageSentDelegate       (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientPongMessageSentDelegate       (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           SentStatus                         SentStatus,
                                                                           CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientPongMessageReceivedDelegate   (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientPongMessageReceivedDelegate   (DateTimeOffset                     Timestamp,
                                                                           WebSocketClient                    Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           CancellationToken                  CancellationToken);
 
 
-    public delegate Task  OnWebSocketClientCloseMessageSentDelegate      (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientCloseMessageSentDelegate      (DateTimeOffset                     Timestamp,
                                                                           IWebSocketClient                   Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,
@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                           SentStatus                         SentStatus,
                                                                           CancellationToken                  CancellationToken);
 
-    public delegate Task  OnWebSocketClientCloseMessageReceivedDelegate  (DateTime                           Timestamp,
+    public delegate Task  OnWebSocketClientCloseMessageReceivedDelegate  (DateTimeOffset                     Timestamp,
                                                                           IWebSocketClient                   Client,
                                                                           WebSocketClientConnection          Connection,
                                                                           WebSocketFrame                     Frame,

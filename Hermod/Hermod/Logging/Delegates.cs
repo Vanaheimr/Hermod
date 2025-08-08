@@ -24,9 +24,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     /// <param name="Timestamp">The timestamp of the outgoing request.</param>
     /// <param name="Client">The client sending the request.</param>
     /// <param name="Request">The outgoing HTTP request.</param>
-    public delegate Task APIClientRequestLogHandler(DateTime  Timestamp,
-                                                    Object    Client,
-                                                    String?   Request);
+    public delegate Task APIClientRequestLogHandler(DateTimeOffset  Timestamp,
+                                                    Object          Client,
+                                                    String?         Request);
 
 
     /// <summary>
@@ -36,14 +36,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     /// <param name="Client">The client receiving the request.</param>
     /// <param name="Request">The outgoing request.</param>
     /// <param name="Response">The incoming response.</param>
-    public delegate Task APIClientResponseLogHandler(DateTime  Timestamp,
-                                                     Object    Client,
-                                                     String?   Request,
-                                                     String?   Response,
-                                                     TimeSpan  Runtime);
+    public delegate Task APIClientResponseLogHandler(DateTimeOffset  Timestamp,
+                                                     Object          Client,
+                                                     String?         Request,
+                                                     String?         Response,
+                                                     TimeSpan        Runtime);
 
 
-    public delegate Task   RequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, String? Request);
-    public delegate Task   ResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, String? Request, String? Response, TimeSpan Runtime);
+    public delegate Task  RequestLoggerDelegate (String LoggingPath, String Context, String LogEventName, String? Request);
+    public delegate Task  ResponseLoggerDelegate(String LoggingPath, String Context, String LogEventName, String? Request, String? Response, TimeSpan Runtime);
 
 }

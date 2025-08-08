@@ -595,7 +595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Connection">The TCP connection to validate.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CancellationToken">A cancellation token to cancel the validation.</param>
-        public virtual Task<ConnectionFilterResponse> ValidateConnection(DateTime           Timestamp,
+        public virtual Task<ConnectionFilterResponse> ValidateConnection(DateTimeOffset     Timestamp,
                                                                          ITCPServer         Server,
                                                                          TcpClient          Connection,
                                                                          EventTracking_Id   EventTrackingId,

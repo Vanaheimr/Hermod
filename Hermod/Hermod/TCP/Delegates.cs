@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="TCPSocket">The new TCP socket.</param>
     /// <param name="Message">An optional message.</param>
     public delegate void TCPSocketAttachedHandler(ATCPServers       TCPServer,
-                                                  DateTime          Timestamp,
+                                                  DateTimeOffset    Timestamp,
                                                   EventTracking_Id  EventTrackingId,
                                                   IPSocket          TCPSocket,
                                                   String?           Message   = null);
@@ -97,7 +97,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
     /// <param name="TCPSocket">The TCP socket.</param>
     public delegate void TCPSocketDetachedHandler(ATCPServers       TCPServer,
-                                                  DateTime          Timestamp,
+                                                  DateTimeOffset    Timestamp,
                                                   EventTracking_Id  EventTrackingId,
                                                   IPSocket          TCPSocket,
                                                   String?           Message   = null);

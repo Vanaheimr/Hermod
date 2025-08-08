@@ -27,13 +27,13 @@ using org.GraphDefined.Vanaheimr.Hermod.Mail;
 namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 {
 
-    public delegate Task OnSendEMailRequestDelegate (DateTime           LogTimestamp,
+    public delegate Task OnSendEMailRequestDelegate (DateTimeOffset     LogTimestamp,
                                                      ISMTPClient        Sender,
                                                      EventTracking_Id   EventTrackingId,
                                                      EMailEnvelop       EMailEnvelop,
                                                      TimeSpan?          RequestTimeout);
 
-    public delegate Task OnSendEMailResponseDelegate(DateTime           LogTimestamp,
+    public delegate Task OnSendEMailResponseDelegate(DateTimeOffset     LogTimestamp,
                                                      ISMTPClient        Sender,
                                                      EventTracking_Id   EventTrackingId,
                                                      EMailEnvelop       EMailEnvelop,

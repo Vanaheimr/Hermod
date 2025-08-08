@@ -552,7 +552,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Runtime">The runtime of the HTTP request/response pair.</param>
         /// <param name="NumberOfRetries">The number of retransmissions of this request.</param>
         /// <param name="CancellationToken">A token to cancel the HTTP response processing.</param>
-        private HTTPResponse(DateTime           Timestamp,
+        private HTTPResponse(DateTimeOffset     Timestamp,
                              HTTPSource         HTTPSource,
                              IPSocket           LocalSocket,
                              IPSocket           RemoteSocket,
@@ -790,7 +790,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Request">The HTTP request for this HTTP response.</param>
         public static Boolean TryParse(IEnumerable<String>  Text,
                                        out HTTPResponse?    HTTPResponse,
-                                       DateTime?            Timestamp           = null,
+                                       DateTimeOffset?      Timestamp           = null,
                                        HTTPSource?          HTTPSource          = null,
                                        IPSocket?            LocalSocket         = null,
                                        IPSocket?            RemoteSocket        = null,

@@ -81,7 +81,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// The timestamp of the notification message.
         /// </summary>
         [Mandatory]
-        public DateTime                      Timestamp       { get; }
+        public DateTimeOffset                Timestamp       { get; }
 
         /// <summary>
         /// The message type of the notification message.
@@ -101,11 +101,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         [Mandatory]
         public IEnumerable<Organization_Id>  Owners          { get; }
 
-        /// <summary>
-        /// Optional cryptographic signatures of the notification message.
-        /// </summary>
-        [Mandatory]
-        public IEnumerable<Signature23>      Signatures      { get; }
+        ///// <summary>
+        ///// Optional cryptographic signatures of the notification message.
+        ///// </summary>
+        //[Mandatory]
+        //public IEnumerable<Signature23>      Signatures      { get; }
 
         #endregion
 
@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="Data">The data of the notification message.</param>
         /// <param name="Owners">The owners of the notification message.</param>
         /// <param name="Signatures">Optional cryptographic signatures of the notification message.</param>
-        public NotificationMessage(DateTime                      Timestamp,
+        public NotificationMessage(DateTimeOffset                Timestamp,
                                    NotificationMessageType       Type,
                                    JObject                       Data,
                                    IEnumerable<Organization_Id>  Owners,
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="Owners">The owners of the notification message.</param>
         /// <param name="Signatures">Optional cryptographic signatures of the notification message.</param>
         public NotificationMessage(NotificationMessage_Id        Id,
-                                   DateTime                      Timestamp,
+                                   DateTimeOffset                Timestamp,
                                    NotificationMessageType       Type,
                                    JObject                       Data,
                                    IEnumerable<Organization_Id>  Owners,
@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                                    JObject?                      CustomData   = default,
                                    String?                       DataSource   = default,
-                                   DateTime?                     LastChange   = default)
+                                   DateTimeOffset?               LastChange   = default)
 
             : base(Id,
                    DefaultJSONLDContext,
@@ -167,11 +167,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         {
 
-            this.Timestamp     = Timestamp;
-            this.Type          = Type;
-            this.Data          = Data;
-            this.Owners        = Owners is null ? [] : Owners;
-            this.Signatures    = Signatures    ?? [];
+            this.Timestamp  = Timestamp;
+            this.Type       = Type;
+            this.Data       = Data;
+            this.Owners     = Owners is null ? [] : Owners;
 
         }
 
@@ -658,16 +657,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         /// <param name="NewNotificationMessageId">An optional new notification message identification.</param>
         public Builder ToBuilder(NotificationMessage_Id? NewNotificationMessageId = null)
 
-            => new Builder(NewNotificationMessageId ?? Id,
-                           Timestamp,
-                           Type,
-                           Data,
-                           Owners,
-                           Signatures,
+            => new (
+                   NewNotificationMessageId ?? Id,
+                   Timestamp,
+                   Type,
+                   Data,
+                   Owners,
+                   Signatures,
 
-                           CustomData,
-                           DataSource,
-                           LastChangeDate);
+                   CustomData,
+                   DataSource,
+                   LastChangeDate
+               );
 
         #endregion
 
@@ -686,7 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             /// The timestamp of the notification message.
             /// </summary>
             [Mandatory]
-            public DateTime?                     Timestamp       { get; set; }
+            public DateTimeOffset?               Timestamp       { get; set; }
 
             /// <summary>
             /// The message type of the notification message.
@@ -706,11 +707,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             [Mandatory]
             public HashSet<Organization_Id>      Owners          { get; }
 
-            /// <summary>
-            /// Optional cryptographic signatures of the notification message.
-            /// </summary>
-            [Mandatory]
-            public IEnumerable<Signature23>      Signatures      { get; }
+            ///// <summary>
+            ///// Optional cryptographic signatures of the notification message.
+            ///// </summary>
+            //[Mandatory]
+            //public IEnumerable<Signature23>      Signatures      { get; }
 
             #endregion
 
@@ -720,7 +721,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             /// Create a new News builder.
             /// </summary>
             public Builder(NotificationMessage_Id?        Id                = null,
-                           DateTime?                      Timestamp         = null,
+                           DateTimeOffset?                Timestamp         = null,
                            NotificationMessageType?       Type              = null,
                            JObject?                       Data              = null,
                            IEnumerable<Organization_Id>?  Owners            = null,
@@ -728,25 +729,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                            JObject?                       CustomData        = null,
                            String?                        DataSource        = null,
-                           DateTime?                      Created           = null,
-                           DateTime?                      LastChange        = null)
+                           DateTimeOffset?                Created           = null,
+                           DateTimeOffset?                LastChange        = null)
 
                 : base(Id ?? NotificationMessage_Id.Random(),
                        DefaultJSONLDContext,
                        Created,
                        LastChange,
-                       null,
+                       Signatures,
                        CustomData,
                        null,
                        DataSource)
 
             {
 
-                this.Timestamp     = Timestamp;
-                this.Type          = Type;
-                this.Data          = Data ?? [];
-                this.Owners        = Owners     != null ? new HashSet<Organization_Id>(Owners)     : new HashSet<Organization_Id>();
-                this.Signatures    = Signatures != null ? new HashSet<Signature23>    (Signatures) : new HashSet<Signature23>();
+                this.Timestamp  = Timestamp;
+                this.Type       = Type;
+                this.Data       = Data ?? [];
+                this.Owners     = Owners is not null ? [.. Owners] : [];
 
             }
 
@@ -828,16 +828,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             /// </summary>
             public NotificationMessage ToImmutable
 
-                => new NotificationMessage(Id,
-                                           Timestamp ?? org.GraphDefined.Vanaheimr.Illias.Timestamp.Now,
-                                           Type      ?? NotificationMessageType.Parse("default"),
-                                           Data,
-                                           Owners,
-                                           Signatures,
+                => new (
+                       Id,
+                       Timestamp ?? Illias.Timestamp.Now,
+                       Type      ?? NotificationMessageType.Parse("default"),
+                       Data,
+                       Owners,
+                       Signatures,
 
-                                           CustomData,
-                                           DataSource,
-                                           LastChangeDate);
+                       CustomData,
+                       DataSource,
+                       LastChangeDate
+                   );
 
             #endregion
 

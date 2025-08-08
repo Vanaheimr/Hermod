@@ -32,9 +32,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="ResponseTimestamp">The response timestamp.</param>
     /// <param name="ResponseMessage">The response message.</param>
     /// <param name="EventTrackingId">An optional event tracking identification for correlating this request with other events.</param>
-    public class WebSocketTextMessageResponse(DateTime           RequestTimestamp,
+    public class WebSocketTextMessageResponse(DateTimeOffset     RequestTimestamp,
                                               String             RequestMessage,
-                                              DateTime           ResponseTimestamp,
+                                              DateTimeOffset     ResponseTimestamp,
                                               String             ResponseMessage,
                                               EventTracking_Id   EventTrackingId,
                                               CancellationToken  CancellationToken)
@@ -43,7 +43,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The request timestamp.
         /// </summary>
-        public DateTime           RequestTimestamp     { get; } = RequestTimestamp;
+        public DateTimeOffset     RequestTimestamp     { get; } = RequestTimestamp;
 
         /// <summary>
         /// The request message.
@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The response timestamp.
         /// </summary>
-        public DateTime           ResponseTimestamp    { get; } = ResponseTimestamp;
+        public DateTimeOffset     ResponseTimestamp    { get; } = ResponseTimestamp;
 
         /// <summary>
         /// The response message.

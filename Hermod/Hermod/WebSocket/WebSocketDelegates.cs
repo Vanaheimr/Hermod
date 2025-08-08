@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Server">The WebSocket server.</param>
     /// <param name="EventTrackingId">The unique event tracking identification.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
-    public delegate Task                                 OnServerStartedDelegate                 (DateTime                           Timestamp,
+    public delegate Task                                 OnServerStartedDelegate                 (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
@@ -46,19 +46,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Connection">The TCP connection.</param>
     /// <param name="EventTrackingId">The unique event tracking identification.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
-    public delegate Task<ConnectionFilterResponse>       OnValidateTCPConnectionDelegate         (DateTime                           Timestamp,
+    public delegate Task<ConnectionFilterResponse>       OnValidateTCPConnectionDelegate         (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   System.Net.Sockets.TcpClient       Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnNewTCPConnectionDelegate              (DateTime                           Timestamp,
+    public delegate Task                                 OnNewTCPConnectionDelegate              (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          NewTCPConnection,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnNewTLSConnectionDelegate              (DateTime                           Timestamp,
+    public delegate Task                                 OnNewTLSConnectionDelegate              (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          NewTLSConnection,
                                                                                                   EventTracking_Id                   EventTrackingId,
@@ -72,12 +72,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Server">The sending web socket server.</param>
     /// <param name="Request">The incoming HTTP request.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
-    public delegate Task                                 HTTPRequestLogDelegate                  (DateTime                           Timestamp,
+    public delegate Task                                 HTTPRequestLogDelegate                  (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   HTTPRequest                        Request,
                                                                                                   CancellationToken                  CancellationToken);
 
-    public delegate Task<HTTPResponse?>                  OnValidateWebSocketConnectionDelegate   (DateTime                           Timestamp,
+    public delegate Task<HTTPResponse?>                  OnValidateWebSocketConnectionDelegate   (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   WebSocketServerConnection          Connection,
                                                                                                   EventTracking_Id                   EventTrackingId,
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="Request">The incoming HTTP request.</param>
     /// <param name="Response">The outgoing HTTP response.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
-    public delegate Task                                 HTTPResponseLogDelegate                 (DateTime                           Timestamp,
+    public delegate Task                                 HTTPResponseLogDelegate                 (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   HTTPRequest?                       Request,
                                                                                                   HTTPResponse                       Response,
@@ -112,7 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="SharedSubprotocols">An enumeration of shared HTTP WebSocket subprotocols.</param>
     /// <param name="SelectedSubprotocol">The selected HTTP WebSocket subprotocol.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
-    public delegate Task                                 OnNewWebSocketConnectionDelegate               (DateTime                           Timestamp,
+    public delegate Task                                 OnNewWebSocketConnectionDelegate               (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          NewConnection,
                                                                                                          IEnumerable<String>                SharedSubprotocols,
@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnWebSocketFrameDelegate                       (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketFrameDelegate                       (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          EventTracking_Id                   EventTrackingId,
@@ -136,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     //                                                                                                     EventTracking_Id                   EventTrackingId);
 
 
-    public delegate Task                                 OnWebSocketServerTextMessageSentDelegate       (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerTextMessageSentDelegate       (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          SentStatus                         SentStatus,
                                                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnWebSocketServerTextMessageReceivedDelegate   (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerTextMessageReceivedDelegate   (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -154,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnWebSocketServerBinaryMessageSentDelegate     (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerBinaryMessageSentDelegate     (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -163,7 +163,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          SentStatus                         SentStatus,
                                                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnWebSocketServerBinaryMessageReceivedDelegate (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerBinaryMessageReceivedDelegate (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -172,7 +172,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnWebSocketServerPingMessageSentDelegate       (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerPingMessageSentDelegate       (DateTimeOffset                     Timestamp,
                                                                                                          AWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -181,7 +181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          SentStatus                         SentStatus,
                                                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnWebSocketServerPingMessageReceivedDelegate   (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerPingMessageReceivedDelegate   (DateTimeOffset                     Timestamp,
                                                                                                          AWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnWebSocketServerPongMessageSentDelegate       (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerPongMessageSentDelegate       (DateTimeOffset                     Timestamp,
                                                                                                          AWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          SentStatus                         SentStatus,
                                                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnWebSocketServerPongMessageReceivedDelegate   (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerPongMessageReceivedDelegate   (DateTimeOffset                     Timestamp,
                                                                                                          AWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -208,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnWebSocketServerCloseMessageSentDelegate      (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerCloseMessageSentDelegate      (DateTimeOffset                     Timestamp,
                                                                                                          AWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -218,7 +218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          SentStatus                         SentStatus,
                                                                                                          CancellationToken                  CancellationToken);
 
-    public delegate Task                                 OnWebSocketServerCloseMessageReceivedDelegate  (DateTime                           Timestamp,
+    public delegate Task                                 OnWebSocketServerCloseMessageReceivedDelegate  (DateTimeOffset                     Timestamp,
                                                                                                          AWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          WebSocketFrame                     Frame,
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                                                                          CancellationToken                  CancellationToken);
 
 
-    public delegate Task                                 OnTCPConnectionClosedDelegate                  (DateTime                           Timestamp,
+    public delegate Task                                 OnTCPConnectionClosedDelegate                  (DateTimeOffset                     Timestamp,
                                                                                                          IWebSocketServer                   Server,
                                                                                                          WebSocketServerConnection          Connection,
                                                                                                          EventTracking_Id                   EventTrackingId,
@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
     /// <param name="EventTrackingId">The unique event tracking identification.</param>
     /// <param name="Reason">An optional reason for the stop of the server.</param>
     /// <param name="CancellationToken">A token to cancel the processing.</param>
-    public delegate Task                                 OnServerStoppedDelegate                 (DateTime                           Timestamp,
+    public delegate Task                                 OnServerStoppedDelegate                 (DateTimeOffset                     Timestamp,
                                                                                                   IWebSocketServer                   Server,
                                                                                                   EventTracking_Id                   EventTrackingId,
                                                                                                   String?                            Reason,

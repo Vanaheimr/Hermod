@@ -87,20 +87,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public APIKeyRights             AccessRights                { get; }
 
-        /// <summary>
-        /// The creation timestamp.
-        /// </summary>
-        public DateTime                 Created                     { get; }
+        ///// <summary>
+        ///// The creation timestamp.
+        ///// </summary>
+        //public DateTime                 Created                     { get; }
 
         /// <summary>
         /// The API key is not valid before this optional timestamp.
         /// </summary>
-        public DateTime?                NotBefore                   { get; }
+        public DateTimeOffset?          NotBefore                   { get; }
 
         /// <summary>
         /// The API key is not valid after this optional timestamp.
         /// </summary>
-        public DateTime?                NotAfter                    { get; }
+        public DateTimeOffset?          NotAfter                    { get; }
 
         /// <summary>
         /// The API key is only valid when sent from one of the given remote IP addresses.
@@ -139,16 +139,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                       I18NString?               Description              = null,
                       APIKeyRights              AccessRights             = APIKeyRights.ReadOnly,
-                      DateTime?                 Created                  = null,
-                      DateTime?                 NotBefore                = null,
-                      DateTime?                 NotAfter                 = null,
+                      DateTimeOffset?           Created                  = null,
+                      DateTimeOffset?           NotBefore                = null,
+                      DateTimeOffset?           NotAfter                 = null,
                       IEnumerable<IIPAddress>?  ValidRemoteIPAddresses   = null,
                       Boolean?                  IsDisabled               = false,
 
                       JObject?                  CustomData               = default,
                       JSONLDContext?            JSONLDContext            = default,
                       String?                   DataSource               = default,
-                      DateTime?                 LastChange               = default)
+                      DateTimeOffset?           LastChange               = default)
 
             : base(Id,
                    JSONLDContext ?? DefaultJSONLDContext,
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.NotAfter                = NotAfter;
             this.ValidRemoteIPAddresses  = ValidRemoteIPAddresses is not null && ValidRemoteIPAddresses.Any()
                                                ? ValidRemoteIPAddresses.Distinct().ToArray()
-                                               : Array.Empty<IIPAddress>();
+                                               : [];
             this.IsDisabled              = IsDisabled  ?? false;
 
         }
@@ -694,20 +694,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NewAPIKeyId">An optional new API key identification.</param>
         public Builder ToBuilder(APIKey_Id? NewAPIKeyId = null)
 
-            => new Builder(NewAPIKeyId ?? Id.Clone,
-                           UserId,
-                           Description,
-                           AccessRights,
-                           Created,
-                           NotBefore,
-                           NotAfter,
-                           ValidRemoteIPAddresses,
-                           IsDisabled,
+            => new (
+                   NewAPIKeyId ?? Id.Clone,
+                   UserId,
+                   Description,
+                   AccessRights,
+                   Created,
+                   NotBefore,
+                   NotAfter,
+                   ValidRemoteIPAddresses,
+                   IsDisabled,
 
-                           CustomData,
-                           JSONLDContext,
-                           DataSource,
-                           LastChangeDate);
+                   CustomData,
+                   JSONLDContext,
+                   DataSource,
+                   LastChangeDate
+               );
 
         #endregion
 
@@ -726,30 +728,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// </summary>
             public User_Id              UserId                    { get; set; }
 
-            /// <summary>
-            /// An internationalized description of the API key.
-            /// </summary>
-            public I18NString           Description               { get; set; }
+            ///// <summary>
+            ///// An internationalized description of the API key.
+            ///// </summary>
+            //public I18NString           Description               { get; set; }
 
             /// <summary>
             /// The access rights of the API key.
             /// </summary>
             public APIKeyRights?        AccessRights              { get; set; }
 
-            /// <summary>
-            /// The creation timestamp.
-            /// </summary>
-            public DateTime?            Created                   { get; set; }
+            ///// <summary>
+            ///// The creation timestamp.
+            ///// </summary>
+            //public DateTimeOffset?      Created                   { get; set; }
 
             /// <summary>
             /// The API key is not valid before this optional timestamp.
             /// </summary>
-            public DateTime?            NotBefore                 { get; set; }
+            public DateTimeOffset?      NotBefore                 { get; set; }
 
             /// <summary>
             /// The API key is not valid after this optional timestamp.
             /// </summary>
-            public DateTime?            NotAfter                  { get; set; }
+            public DateTimeOffset?      NotAfter                  { get; set; }
 
             /// <summary>
             /// The API key is only valid when sent from one of the given remote IP addresses.
@@ -793,16 +795,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            User_Id                   UserId,
                            I18NString?               Description              = null,
                            APIKeyRights              AccessRights             = APIKeyRights.ReadOnly,
-                           DateTime?                 Created                  = null,
-                           DateTime?                 NotBefore                = null,
-                           DateTime?                 NotAfter                 = null,
+                           DateTimeOffset?           Created                  = null,
+                           DateTimeOffset?           NotBefore                = null,
+                           DateTimeOffset?           NotAfter                 = null,
                            IEnumerable<IIPAddress>?  ValidRemoteIPAddresses   = null,
                            Boolean?                  IsDisabled               = false,
 
                            JObject?                  CustomData               = null,
                            JSONLDContext?            JSONLDContext            = null,
                            String?                   DataSource               = null,
-                           DateTime?                 LastChange               = null)
+                           DateTimeOffset?           LastChange               = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,
@@ -864,20 +866,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     if (UserId.IsNullOrEmpty)
                         throw new ArgumentNullException(nameof(UserId),  "The given user must not be null!");
 
-                    return new APIKey(Id,
-                                      UserId,
-                                      Description,
-                                      AccessRights ?? APIKeyRights.ReadOnly,
-                                      Created      ?? Timestamp.Now,
-                                      NotBefore    ?? Timestamp.Now,
-                                      NotAfter,
-                                      ValidRemoteIPAddresses,
-                                      IsDisabled   ?? false,
+                    return new APIKey(
+                               Id,
+                               UserId,
+                               Description,
+                               AccessRights ?? APIKeyRights.ReadOnly,
+                               Created,
+                               NotBefore    ?? Timestamp.Now,
+                               NotAfter,
+                               ValidRemoteIPAddresses,
+                               IsDisabled   ?? false,
 
-                                      CustomData,
-                                      JSONLDContext,
-                                      DataSource,
-                                      LastChangeDate);
+                               CustomData,
+                               JSONLDContext,
+                               DataSource,
+                               LastChangeDate
+                           );
 
                 }
             }

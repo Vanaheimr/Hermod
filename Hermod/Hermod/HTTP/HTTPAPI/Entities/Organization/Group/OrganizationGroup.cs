@@ -145,7 +145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                  IEnumerable<AttachedFile>?        AttachedFiles   = default,
                                  JSONLDContext?                    JSONLDContext   = default,
                                  String?                           DataSource      = default,
-                                 DateTime?                         LastChange      = default)
+                                 DateTimeOffset?                   LastChange      = default)
 
             : base(Id,
 
@@ -753,7 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<AttachedFile>?        AttachedFiles   = default,
                            JSONLDContext?                    JSONLDContext   = default,
                            String?                           DataSource      = default,
-                           DateTime?                         LastChange      = default)
+                           DateTimeOffset?                   LastChange      = default)
 
                 : base(Id ?? OrganizationGroup_Id.Random(),
                        JSONLDContext ?? DefaultJSONLDContext,

@@ -59,7 +59,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
         /// The end of life of this resource record.
         /// </summary>
         [NoDNSPaketInformation]
-        public DateTime                EndOfLife     { get; }
+        public DateTimeOffset          EndOfLife     { get; }
 
         /// <summary>
         /// The source IP address of this resource record, if available.

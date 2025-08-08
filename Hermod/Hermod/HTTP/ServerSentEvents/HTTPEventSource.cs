@@ -126,12 +126,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The attached HTTP API.
         /// </summary>
-        public HTTPAPI                          HTTPAPI                    { get; }
+        public HTTPAPI                               HTTPAPI                { get; }
 
         /// <summary>
         /// The internal identification of the HTTP event.
         /// </summary>
-        public HTTPEventSource_Id               EventIdentification        { get; }
+        public HTTPEventSource_Id                    EventIdentification    { get; }
 
         /// <summary>
         /// Maximum number of cached events.
@@ -142,17 +142,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The retry interval of this HTTP event.
         /// </summary>
-        public TimeSpan                         RetryInterval              { get; set; }
+        public TimeSpan                              RetryInterval          { get; set; }
 
         /// <summary>
         /// The path to the log file.
         /// </summary>
-        public String                           LogfilePath                { get; }
+        public String                                LogfilePath            { get; }
 
         /// <summary>
         /// The delegate to create a filename for storing and reloading events.
         /// </summary>
-        public Func<String, DateTime, String>?  LogfileName                { get; }
+        public Func<String, DateTimeOffset, String>  LogfileName            { get; }
 
         #endregion
 
@@ -169,16 +169,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="EnableLogging">Whether to enable event logging.</param>
         /// <param name="LogfileName">A delegate to create a filename for storing events.</param>
         /// <param name="LogfileReloadSearchPattern">The logfile search pattern for reloading events.</param>
-        public HTTPEventSource(HTTPEventSource_Id               EventIdentification,
-                               HTTPAPI                          HTTPAPI,
-                               UInt64                           MaxNumberOfCachedEvents      = 500,
-                               TimeSpan?                        RetryInterval                = null,
-                               Func<T, String>?                 DataSerializer               = null,
-                               Func<String, T?>?                DataDeserializer             = null,
-                               Boolean                          EnableLogging                = true,
-                               String?                          LogfilePath                  = null,
-                               Func<String, DateTime, String>?  LogfileName                  = null,
-                               String?                          LogfileReloadSearchPattern   = null)
+        public HTTPEventSource(HTTPEventSource_Id                     EventIdentification,
+                               HTTPAPI                                HTTPAPI,
+                               UInt64                                 MaxNumberOfCachedEvents      = 500,
+                               TimeSpan?                              RetryInterval                = null,
+                               Func<T, String>?                       DataSerializer               = null,
+                               Func<String, T?>?                      DataDeserializer             = null,
+                               Boolean                                EnableLogging                = true,
+                               String?                                LogfilePath                  = null,
+                               Func<String, DateTimeOffset, String>?  LogfileName                  = null,
+                               String?                                LogfileReloadSearchPattern   = null)
         {
 
             this.HTTPAPI              = HTTPAPI;
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.DataSerializer       = DataSerializer   ?? (data => data?.ToString() ?? "");
             this.DataDeserializer     = DataDeserializer ?? (data => default);
             this.LogfilePath          = LogfilePath      ?? AppContext.BaseDirectory;
-            this.LogfileName          = LogfileName;
+            this.LogfileName          = LogfileName      ?? ((text, timestamp) => $"{text}_{timestamp:yyyyMMdd}.log");
             this.IdCounter            = 1;
 
             if (EnableLogging)
@@ -296,9 +296,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         try
                         {
 
-                            using (var logfile = File.AppendText(Path.Combine(this.LogfilePath,
-                                                                              this.LogfileName(this.EventIdentification.ToString(),
-                                                                                               Timestamp.Now))))
+                            using (var logfile = File.AppendText(
+                                                     Path.Combine(
+                                                         this.LogfilePath,
+                                                         this.LogfileName(
+                                                             this.EventIdentification.ToString(),
+                                                             Timestamp.Now
+                                                         )
+                                                     )
+                                                 ))
                             {
 
                                 await logfile.WriteLineAsync(String.Concat(httpEvent.Timestamp.ToISO8601(),
@@ -354,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
-        public Task SubmitEvent(DateTime           Timestamp,
+        public Task SubmitEvent(DateTimeOffset     Timestamp,
                                 T                  Data,
                                 CancellationToken  CancellationToken = default)
 
@@ -396,7 +402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the event.</param>
         /// <param name="Data">The attached event data.</param>
         public async Task SubmitEvent(String             SubEvent,
-                                      DateTime           Timestamp,
+                                      DateTimeOffset     Timestamp,
                                       T                  Data,
                                       CancellationToken  CancellationToken = default)
         {
@@ -455,8 +461,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
-        /// <param name="Timestamp">The earlierst timestamp of the events.</param>
-        public IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTime Timestamp)
+        /// <param name="Timestamp">The earliest timestamp of the events.</param>
+        public IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset Timestamp)
         {
 
             lock (QueueOfEvents)

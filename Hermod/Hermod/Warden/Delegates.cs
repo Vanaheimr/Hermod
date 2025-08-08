@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -29,21 +25,21 @@ namespace org.GraphDefined.Vanaheimr.Warden
 {
 
     /// <summary>
-    /// A delegate for checking whether it is time to run a serive check.
+    /// A delegate for checking whether it is time to run a service check.
     /// </summary>
     /// <param name="Timestamp">The current timestamp.</param>
     /// <param name="ServiceProperties">Some properties which might enable or disable service checks.</param>
-    public delegate Boolean RunCheckDelegate(DateTime               Timestamp,
+    public delegate Boolean RunCheckDelegate(DateTimeOffset         Timestamp,
                                              WardenProperties       ServiceProperties);
 
     /// <summary>
-    /// A delegate for checking whether it is time to run a serive check.
+    /// A delegate for checking whether it is time to run a service check.
     /// </summary>
     /// <param name="Timestamp">The current timestamp.</param>
-    public delegate Boolean TimeCheckDelegate(DateTime              Timestamp);
+    public delegate Boolean TimeCheckDelegate(DateTimeOffset        Timestamp);
 
     /// <summary>
-    /// A delegate for checking whether to run a serive check.
+    /// A delegate for checking whether to run a service check.
     /// </summary>
     /// <param name="ServiceProperties">Some properties which might enable or disable service checks.</param>
     public delegate Boolean PropertyCheckDelegate(WardenProperties  ServiceProperties);
@@ -57,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// <param name="DNSClient">An optional DNS client for warden checks requiring network access.</param>
     /// <param name="Entity">An entity to check.</param>
     /// <param name="CancellationToken">A cancellation token.</param>
-    public delegate Task ServiceCheckDelegate(DateTime           Timestamp,
+    public delegate Task ServiceCheckDelegate(DateTimeOffset     Timestamp,
                                               DNSClient          DNSClient,
                                               Object             Entity,
                                               CancellationToken  CancellationToken);
@@ -69,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// <param name="DNSClient">An optional DNS client for warden checks requiring network access.</param>
     /// <param name="Entity">An entity to check.</param>
     /// <param name="CancellationToken">A cancellation token.</param>
-    public delegate Task<TResult> ServiceCheckDelegate<TResult>(DateTime           Timestamp,
+    public delegate Task<TResult> ServiceCheckDelegate<TResult>(DateTimeOffset     Timestamp,
                                                                 DNSClient          DNSClient,
                                                                 Object             Entity,
                                                                 CancellationToken  CancellationToken);

@@ -50,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="AdminStatusFilter">An optional admin status value filter.</param>
         /// <param name="Skip">The number of admin status entries to skip.</param>
         /// <param name="Take">The number of admin status entries to return.</param>
-        IEnumerable<Timestamped<TAdminStatusType>>  AdminStatusSchedule(Func<DateTime, Boolean>?          TimestampFilter     = null,
+        IEnumerable<Timestamped<TAdminStatusType>>  AdminStatusSchedule(Func<DateTimeOffset,   Boolean>?  TimestampFilter     = null,
                                                                         Func<TAdminStatusType, Boolean>?  AdminStatusFilter   = null,
                                                                         UInt64?                           Skip                = null,
                                                                         UInt64?                           Take                = null);
@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                             ChangeMethods                               ChangeMethod   = ChangeMethods.Replace,
                             Context?                                    DataSource     = null);
         void SetAdminStatus(TAdminStatusType                            NewAdminStatus,
-                            DateTime                                    Timestamp,
+                            DateTimeOffset                              Timestamp,
                             Context?                                    DataSource     = null);
 
     }

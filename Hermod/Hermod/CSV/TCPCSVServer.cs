@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Linq;
 using System.Net.Security;
-using System.Threading;
-using System.Collections.Generic;
 using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
@@ -40,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
     /// 0x0d 0x0a (\r\n) end-of-line characters.
     /// </summary>
     public class TCPCSVServer : TCPServer,
-                                IBoomerangSender<String, DateTime, String[], TCPResult<String>>
+                                IBoomerangSender<String, DateTimeOffset, String[], TCPResult<String>>
     {
 
         #region Data
@@ -79,7 +75,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         /// <param name="ConnectionId">The unique identification of the TCP connection.</param>
         /// <param name="Timestamp">The current server timestamp.</param>
         /// <param name="CSVData">The CSV data.</param>
-        public delegate void OnNewDataHandler(String ConnectionId, DateTime Timestamp, String[] CSVData);
+        public delegate void OnNewDataHandler(String ConnectionId, DateTimeOffset Timestamp, String[] CSVData);
 
         /// <summary>
         /// An event called whenever new data hab been received.
@@ -87,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         public event OnNewDataHandler OnNewData;
 
 
-        public event BoomerangSenderHandler<String, DateTime, String[], TCPResult<String>> OnNotification;
+        public event BoomerangSenderHandler<String, DateTimeOffset, String[], TCPResult<String>> OnNotification;
 
         #endregion
 
@@ -348,9 +344,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region ProcessBoomerang(ConnectionId, Timestamp, CSVArray)
 
-        private TCPResult<String> ProcessBoomerang(String    ConnectionId,
-                                                   DateTime  Timestamp,
-                                                   String[]  CSVArray)
+        private TCPResult<String> ProcessBoomerang(String          ConnectionId,
+                                                   DateTimeOffset  Timestamp,
+                                                   String[]        CSVArray)
         {
 
             OnNewData?.Invoke(ConnectionId,

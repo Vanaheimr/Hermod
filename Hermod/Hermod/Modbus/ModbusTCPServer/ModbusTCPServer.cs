@@ -28,19 +28,19 @@ using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 {
 
-    public delegate Task                               ReadHoldingRegistersRequestEventHandler (DateTime                       Timestamp,
+    public delegate Task                               ReadHoldingRegistersRequestEventHandler (DateTimeOffset                 Timestamp,
                                                                                                 ModbusTCPServer                ModbusTCPServer,
                                                                                                 IPSocket                       RemoteSocket,
                                                                                                 String                         ConnectionId,
                                                                                                 ReadHoldingRegistersRequest    ReadHoldingRegistersRequest);
 
-    public delegate Task<ReadHoldingRegistersResponse> ReadHoldingRegistersEventHandler        (DateTime                       Timestamp,
+    public delegate Task<ReadHoldingRegistersResponse> ReadHoldingRegistersEventHandler        (DateTimeOffset                 Timestamp,
                                                                                                 ModbusTCPServer                ModbusTCPServer,
                                                                                                 IPSocket                       RemoteSocket,
                                                                                                 String                         ConnectionId,
                                                                                                 ReadHoldingRegistersRequest    ReadHoldingRegistersRequest);
 
-    public delegate Task                               ReadHoldingRegistersResponseEventHandler(DateTime                       Timestamp,
+    public delegate Task                               ReadHoldingRegistersResponseEventHandler(DateTimeOffset                 Timestamp,
                                                                                                 ModbusTCPServer                ModbusTCPServer,
                                                                                                 IPSocket                       RemoteSocket,
                                                                                                 String                         ConnectionId,

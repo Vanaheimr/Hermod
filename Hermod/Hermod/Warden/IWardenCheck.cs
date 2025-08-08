@@ -17,10 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
@@ -37,7 +33,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
         #region Properties
 
         /// <summary>
-        /// A delegate for checking whether it is time to run a serive check.
+        /// A delegate for checking whether it is time to run a service check.
         /// </summary>
         RunCheckDelegate   RunCheck    { get; }
 
@@ -54,7 +50,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <summary>
         /// The timestamp of the last run.
         /// </summary>
-        DateTime           LastRun     { get; }
+        DateTimeOffset     LastRun     { get; }
 
         #endregion
 
@@ -64,7 +60,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <param name="CommonTimestamp">The common timestamp of all current/parallel Warden checks.</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="CancellationToken">The cancellation token to use.</param>
-        Task Run(DateTime           CommonTimestamp,
+        Task Run(DateTimeOffset     CommonTimestamp,
                  DNSClient          DNSClient,
                  CancellationToken  CancellationToken);
 

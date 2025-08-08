@@ -47,7 +47,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The creation timestamp of the password-reset-information.
         /// </summary>
-        public DateTime            Timestamp          { get; }
+        public DateTimeOffset      Timestamp          { get; }
 
         /// <summary>
         /// An enumeration of valid users.
@@ -85,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              SecurityToken_Id?  SecurityToken2    = null,
                              EventTracking_Id?  EventTrackingId   = null)
 
-            : this(org.GraphDefined.Vanaheimr.Illias.Timestamp.Now,
+            : this(Illias.Timestamp.Now,
                    new[] { User },
                    SecurityToken1,
                    SecurityToken2,
@@ -106,7 +106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              SecurityToken_Id?   SecurityToken2    = null,
                              EventTracking_Id?   EventTrackingId   = null)
 
-            : this(org.GraphDefined.Vanaheimr.Illias.Timestamp.Now,
+            : this(Illias.Timestamp.Now,
                    Users,
                    SecurityToken1,
                    SecurityToken2,
@@ -123,7 +123,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="SecurityToken1">A security token to authorize the password reset.</param>
         /// <param name="SecurityToken2">An optional second security token to authorize the password reset.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
-        public PasswordReset(DateTime            Timestamp,
+        public PasswordReset(DateTimeOffset      Timestamp,
                              IEnumerable<IUser>  Users,
                              SecurityToken_Id    SecurityToken1,
                              SecurityToken_Id?   SecurityToken2    = null,

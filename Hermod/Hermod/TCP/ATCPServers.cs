@@ -499,10 +499,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                         )
                                     );
 
-                    tcpServer.OnStarted          += (sender, timestamp, eventTrackingId, message) => SendTCPSocketAttached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
-                    tcpServer.OnNewConnection    += SendNewConnection;
-                    tcpServer.OnConnectionClosed += SendConnectionClosed;
-                    tcpServer.OnCompleted        += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
+                    tcpServer.OnStarted           += (sender, timestamp, eventTrackingId, message) => SendTCPSocketAttached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
+                    tcpServer.OnNewConnection     += SendNewConnection;
+                    tcpServer.OnConnectionClosed  += SendConnectionClosed;
+                    tcpServer.OnCompleted         += (sender, timestamp, eventTrackingId, message) => SendTCPSocketDetached(timestamp, eventTrackingId, tcpServer.IPSocket, message);
                     tcpServer.OnExceptionOccurred += SendExceptionOccurred;
 
                     Action(tcpServer);
@@ -604,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                             tcpServer.OnNewConnection     -= SendNewConnection;
                             tcpServer.OnConnectionClosed  -= SendConnectionClosed;
                             tcpServer.OnCompleted         -= SendCompleted;
-                            tcpServer.OnExceptionOccurred  -= SendExceptionOccurred;
+                            tcpServer.OnExceptionOccurred -= SendExceptionOccurred;
 
                             Action(tcpServer);
 
@@ -664,7 +664,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region (protected) SendStarted           (Sender, Timestamp, EventTrackingId = null, Message = null)
 
         protected void SendStarted(Object             Sender,
-                                   DateTime           Timestamp,
+                                   DateTimeOffset     Timestamp,
                                    EventTracking_Id?  EventTrackingId   = null,
                                    String?            Message           = null)
         {
@@ -682,7 +682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendTCPSocketAttached (Timestamp, EventTrackingId, TCPSocket, Message = null)
 
-        protected void SendTCPSocketAttached(DateTime          Timestamp,
+        protected void SendTCPSocketAttached(DateTimeOffset    Timestamp,
                                              EventTracking_Id  EventTrackingId,
                                              IPSocket          TCPSocket,
                                              String?           Message   = null)
@@ -752,7 +752,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #region (protected) SendTCPSocketDetached (Timestamp, EventTrackingId, TCPSocket, Message = null)
 
-        protected void SendTCPSocketDetached(DateTime          Timestamp,
+        protected void SendTCPSocketDetached(DateTimeOffset    Timestamp,
                                              EventTracking_Id  EventTrackingId,
                                              IPSocket          TCPSocket,
                                              String?           Message   = null)
@@ -773,7 +773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region (protected) SendCompleted         (Sender, EventTrackingId, Timestamp, Message = null)
 
         protected void SendCompleted(Object            Sender,
-                                     DateTime          Timestamp,
+                                     DateTimeOffset    Timestamp,
                                      EventTracking_Id  EventTrackingId,
                                      String?           Message   = null)
         {
@@ -792,9 +792,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         #region (protected) SendExceptionOccurred  (Sender, Timestamp, EventTrackingId, Exception)
 
         protected void SendExceptionOccurred(Object            Sender,
-                                            DateTime          Timestamp,
-                                            EventTracking_Id  EventTrackingId,
-                                            Exception         Exception)
+                                             DateTimeOffset    Timestamp,
+                                             EventTracking_Id  EventTrackingId,
+                                             Exception         Exception)
         {
 
             OnExceptionOccurred?.Invoke(

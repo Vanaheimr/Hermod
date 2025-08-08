@@ -1953,7 +1953,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// Send an OnWebSocketFrameSent event
         /// </summary>
-        protected async Task SendOnWebSocketFrameSent(DateTime                   Timestamp,
+        protected async Task SendOnWebSocketFrameSent(DateTimeOffset             Timestamp,
                                                       WebSocketServerConnection  Connection,
                                                       EventTracking_Id           EventTrackingId,
                                                       WebSocketFrame             Frame,

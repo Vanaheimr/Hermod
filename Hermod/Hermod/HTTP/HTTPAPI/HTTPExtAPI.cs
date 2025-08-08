@@ -1370,9 +1370,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task AddUsersHTTPRequest(DateTime     Timestamp,
-                                                    HTTPAPI      HTTPAPI,
-                                                    HTTPRequest  Request)
+        protected internal Task AddUsersHTTPRequest(DateTimeOffset  Timestamp,
+                                                    HTTPAPI         HTTPAPI,
+                                                    HTTPRequest     Request)
 
             => OnAddUsersRequest.WhenAll(Timestamp,
                                          HTTPAPI,
@@ -1394,10 +1394,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task AddUsersHTTPResponse(DateTime      Timestamp,
-                                                     HTTPAPI       HTTPAPI,
-                                                     HTTPRequest   Request,
-                                                     HTTPResponse  Response)
+        protected internal Task AddUsersHTTPResponse(DateTimeOffset  Timestamp,
+                                                     HTTPAPI         HTTPAPI,
+                                                     HTTPRequest     Request,
+                                                     HTTPResponse    Response)
 
             => OnAddUsersResponse.WhenAll(Timestamp,
                                           HTTPAPI,
@@ -1420,9 +1420,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task AddUserHTTPRequest(DateTime     Timestamp,
-                                                   HTTPAPI      HTTPAPI,
-                                                   HTTPRequest  Request)
+        protected internal Task AddUserHTTPRequest(DateTimeOffset  Timestamp,
+                                                   HTTPAPI         HTTPAPI,
+                                                   HTTPRequest     Request)
 
             => OnAddUserHTTPRequest.WhenAll(Timestamp,
                                             HTTPAPI,
@@ -1444,10 +1444,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task AddUserHTTPResponse(DateTime      Timestamp,
-                                                    HTTPAPI       HTTPAPI,
-                                                    HTTPRequest   Request,
-                                                    HTTPResponse  Response)
+        protected internal Task AddUserHTTPResponse(DateTimeOffset  Timestamp,
+                                                    HTTPAPI         HTTPAPI,
+                                                    HTTPRequest     Request,
+                                                    HTTPResponse    Response)
 
             => OnAddUserHTTPResponse.WhenAll(Timestamp,
                                              HTTPAPI,
@@ -1470,9 +1470,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetUserHTTPRequest(DateTime     Timestamp,
-                                                   HTTPAPI      HTTPAPI,
-                                                   HTTPRequest  Request)
+        protected internal Task SetUserHTTPRequest(DateTimeOffset  Timestamp,
+                                                   HTTPAPI         HTTPAPI,
+                                                   HTTPRequest     Request)
 
             => OnSetUserHTTPRequest.WhenAll(Timestamp,
                                             HTTPAPI,
@@ -1494,10 +1494,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetUserHTTPResponse(DateTime      Timestamp,
-                                                    HTTPAPI       HTTPAPI,
-                                                    HTTPRequest   Request,
-                                                    HTTPResponse  Response)
+        protected internal Task SetUserHTTPResponse(DateTimeOffset  Timestamp,
+                                                    HTTPAPI         HTTPAPI,
+                                                    HTTPRequest     Request,
+                                                    HTTPResponse    Response)
 
             => OnSetUserHTTPResponse.WhenAll(Timestamp,
                                              HTTPAPI,
@@ -1520,9 +1520,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task ChangePasswordRequest(DateTime     Timestamp,
-                                                      HTTPAPI      HTTPAPI,
-                                                      HTTPRequest  Request)
+        protected internal Task ChangePasswordRequest(DateTimeOffset  Timestamp,
+                                                      HTTPAPI         HTTPAPI,
+                                                      HTTPRequest     Request)
 
             => OnChangePasswordRequest.WhenAll(Timestamp,
                                                HTTPAPI,
@@ -1544,10 +1544,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task ChangePasswordResponse(DateTime      Timestamp,
-                                                       HTTPAPI       HTTPAPI,
-                                                       HTTPRequest   Request,
-                                                       HTTPResponse  Response)
+        protected internal Task ChangePasswordResponse(DateTimeOffset  Timestamp,
+                                                       HTTPAPI         HTTPAPI,
+                                                       HTTPRequest     Request,
+                                                       HTTPResponse    Response)
 
             => OnChangePasswordResponse.WhenAll(Timestamp,
                                                 HTTPAPI,
@@ -1570,9 +1570,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task ImpersonateUserRequest(DateTime     Timestamp,
-                                                       HTTPAPI      HTTPAPI,
-                                                       HTTPRequest  Request)
+        protected internal Task ImpersonateUserRequest(DateTimeOffset  Timestamp,
+                                                       HTTPAPI         HTTPAPI,
+                                                       HTTPRequest     Request)
 
             => OnImpersonateUserRequest.WhenAll(Timestamp,
                                                 HTTPAPI,
@@ -1594,10 +1594,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task ImpersonateUserResponse(DateTime      Timestamp,
-                                                        HTTPAPI       HTTPAPI,
-                                                        HTTPRequest   Request,
-                                                        HTTPResponse  Response)
+        protected internal Task ImpersonateUserResponse(DateTimeOffset  Timestamp,
+                                                        HTTPAPI         HTTPAPI,
+                                                        HTTPRequest     Request,
+                                                        HTTPResponse    Response)
 
             => OnImpersonateUserResponse.WhenAll(Timestamp,
                                                  HTTPAPI,
@@ -1620,9 +1620,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetUserNotificationsRequest(DateTime     Timestamp,
-                                                            HTTPAPI      HTTPAPI,
-                                                            HTTPRequest  Request)
+        protected internal Task SetUserNotificationsRequest(DateTimeOffset  Timestamp,
+                                                            HTTPAPI         HTTPAPI,
+                                                            HTTPRequest     Request)
 
             => OnSetUserNotificationsRequest.WhenAll(Timestamp,
                                                      HTTPAPI,
@@ -1644,10 +1644,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetUserNotificationsResponse(DateTime      Timestamp,
-                                                             HTTPAPI       HTTPAPI,
-                                                             HTTPRequest   Request,
-                                                             HTTPResponse  Response)
+        protected internal Task SetUserNotificationsResponse(DateTimeOffset  Timestamp,
+                                                             HTTPAPI         HTTPAPI,
+                                                             HTTPRequest     Request,
+                                                             HTTPResponse    Response)
 
             => OnSetUserNotificationsResponse.WhenAll(Timestamp,
                                                       HTTPAPI,
@@ -1670,9 +1670,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task DeleteUserNotificationsRequest(DateTime     Timestamp,
-                                                               HTTPAPI      HTTPAPI,
-                                                               HTTPRequest  Request)
+        protected internal Task DeleteUserNotificationsRequest(DateTimeOffset  Timestamp,
+                                                               HTTPAPI         HTTPAPI,
+                                                               HTTPRequest     Request)
 
             => OnDeleteUserNotificationsRequest.WhenAll(Timestamp,
                                                         HTTPAPI,
@@ -1694,10 +1694,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task DeleteUserNotificationsResponse(DateTime      Timestamp,
-                                                                HTTPAPI       HTTPAPI,
-                                                                HTTPRequest   Request,
-                                                                HTTPResponse  Response)
+        protected internal Task DeleteUserNotificationsResponse(DateTimeOffset  Timestamp,
+                                                                HTTPAPI         HTTPAPI,
+                                                                HTTPRequest     Request,
+                                                                HTTPResponse    Response)
 
             => OnDeleteUserNotificationsResponse.WhenAll(Timestamp,
                                                          HTTPAPI,
@@ -1723,9 +1723,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task AddOrganizationHTTPRequest(DateTime     Timestamp,
-                                                           HTTPAPI      HTTPAPI,
-                                                           HTTPRequest  Request)
+        protected internal Task AddOrganizationHTTPRequest(DateTimeOffset  Timestamp,
+                                                           HTTPAPI         HTTPAPI,
+                                                           HTTPRequest     Request)
 
             => OnAddOrganizationHTTPRequest.WhenAll(Timestamp,
                                                     HTTPAPI,
@@ -1747,10 +1747,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task AddOrganizationHTTPResponse(DateTime      Timestamp,
-                                                            HTTPAPI       HTTPAPI,
-                                                            HTTPRequest   Request,
-                                                            HTTPResponse  Response)
+        protected internal Task AddOrganizationHTTPResponse(DateTimeOffset  Timestamp,
+                                                            HTTPAPI         HTTPAPI,
+                                                            HTTPRequest     Request,
+                                                            HTTPResponse    Response)
 
             => OnAddOrganizationHTTPResponse.WhenAll(Timestamp,
                                                      HTTPAPI,
@@ -1773,9 +1773,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetOrganizationHTTPRequest(DateTime     Timestamp,
-                                                           HTTPAPI      HTTPAPI,
-                                                           HTTPRequest  Request)
+        protected internal Task SetOrganizationHTTPRequest(DateTimeOffset  Timestamp,
+                                                           HTTPAPI         HTTPAPI,
+                                                           HTTPRequest     Request)
 
             => OnSetOrganizationHTTPRequest.WhenAll(Timestamp,
                                                     HTTPAPI,
@@ -1797,10 +1797,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetOrganizationHTTPResponse(DateTime      Timestamp,
-                                                            HTTPAPI       HTTPAPI,
-                                                            HTTPRequest   Request,
-                                                            HTTPResponse  Response)
+        protected internal Task SetOrganizationHTTPResponse(DateTimeOffset  Timestamp,
+                                                            HTTPAPI         HTTPAPI,
+                                                            HTTPRequest     Request,
+                                                            HTTPResponse    Response)
 
             => OnSetOrganizationHTTPResponse.WhenAll(Timestamp,
                                                      HTTPAPI,
@@ -1823,9 +1823,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task DeleteOrganizationHTTPRequest(DateTime     Timestamp,
-                                                              HTTPAPI      HTTPAPI,
-                                                              HTTPRequest  Request)
+        protected internal Task DeleteOrganizationHTTPRequest(DateTimeOffset  Timestamp,
+                                                              HTTPAPI         HTTPAPI,
+                                                              HTTPRequest     Request)
 
             => OnDeleteOrganizationHTTPRequest.WhenAll(Timestamp,
                                                        HTTPAPI,
@@ -1847,10 +1847,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task DeleteOrganizationHTTPResponse(DateTime      Timestamp,
-                                                               HTTPAPI       HTTPAPI,
-                                                               HTTPRequest   Request,
-                                                               HTTPResponse  Response)
+        protected internal Task DeleteOrganizationHTTPResponse(DateTimeOffset  Timestamp,
+                                                               HTTPAPI         HTTPAPI,
+                                                               HTTPRequest     Request,
+                                                               HTTPResponse    Response)
 
             => OnDeleteOrganizationHTTPResponse.WhenAll(Timestamp,
                                                         HTTPAPI,
@@ -1874,9 +1874,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetOrganizationNotificationsRequest(DateTime     Timestamp,
-                                                                    HTTPAPI      HTTPAPI,
-                                                                    HTTPRequest  Request)
+        protected internal Task SetOrganizationNotificationsRequest(DateTimeOffset  Timestamp,
+                                                                    HTTPAPI         HTTPAPI,
+                                                                    HTTPRequest     Request)
 
             => OnSetOrganizationNotificationsRequest.WhenAll(Timestamp,
                                                               HTTPAPI,
@@ -1898,10 +1898,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetOrganizationNotificationsResponse(DateTime      Timestamp,
-                                                                     HTTPAPI       HTTPAPI,
-                                                                     HTTPRequest   Request,
-                                                                     HTTPResponse  Response)
+        protected internal Task SetOrganizationNotificationsResponse(DateTimeOffset  Timestamp,
+                                                                     HTTPAPI         HTTPAPI,
+                                                                     HTTPRequest     Request,
+                                                                     HTTPResponse    Response)
 
             => OnSetOrganizationNotificationsResponse.WhenAll(Timestamp,
                                                                HTTPAPI,
@@ -1924,9 +1924,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task DeleteOrganizationNotificationsRequest(DateTime     Timestamp,
-                                                                       HTTPAPI      HTTPAPI,
-                                                                       HTTPRequest  Request)
+        protected internal Task DeleteOrganizationNotificationsRequest(DateTimeOffset  Timestamp,
+                                                                       HTTPAPI         HTTPAPI,
+                                                                       HTTPRequest     Request)
 
             => OnDeleteOrganizationNotificationsRequest.WhenAll(Timestamp,
                                                                  HTTPAPI,
@@ -1948,10 +1948,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task DeleteOrganizationNotificationsResponse(DateTime      Timestamp,
-                                                                        HTTPAPI       HTTPAPI,
-                                                                        HTTPRequest   Request,
-                                                                        HTTPResponse  Response)
+        protected internal Task DeleteOrganizationNotificationsResponse(DateTimeOffset  Timestamp,
+                                                                        HTTPAPI         HTTPAPI,
+                                                                        HTTPRequest     Request,
+                                                                        HTTPResponse    Response)
 
             => OnDeleteOrganizationNotificationsResponse.WhenAll(Timestamp,
                                                                   HTTPAPI,
@@ -1977,9 +1977,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task RestartRequest(DateTime     Timestamp,
-                                               HTTPAPI      HTTPAPI,
-                                               HTTPRequest  Request)
+        protected internal Task RestartRequest(DateTimeOffset  Timestamp,
+                                               HTTPAPI         HTTPAPI,
+                                               HTTPRequest     Request)
 
             => OnRestartHTTPRequest.WhenAll(Timestamp,
                                             HTTPAPI,
@@ -2001,10 +2001,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task RestartResponse(DateTime      Timestamp,
-                                                HTTPAPI       HTTPAPI,
-                                                HTTPRequest   Request,
-                                                HTTPResponse  Response)
+        protected internal Task RestartResponse(DateTimeOffset  Timestamp,
+                                                HTTPAPI         HTTPAPI,
+                                                HTTPRequest     Request,
+                                                HTTPResponse    Response)
 
             => OnRestartHTTPResponse.WhenAll(Timestamp,
                                              HTTPAPI,
@@ -2027,9 +2027,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task StopRequest(DateTime     Timestamp,
-                                            HTTPAPI      HTTPAPI,
-                                            HTTPRequest  Request)
+        protected internal Task StopRequest(DateTimeOffset  Timestamp,
+                                            HTTPAPI         HTTPAPI,
+                                            HTTPRequest     Request)
 
             => OnStopHTTPRequest.WhenAll(Timestamp,
                                          HTTPAPI,
@@ -2051,10 +2051,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task StopResponse(DateTime      Timestamp,
-                                             HTTPAPI       HTTPAPI,
-                                             HTTPRequest   Request,
-                                             HTTPResponse  Response)
+        protected internal Task StopResponse(DateTimeOffset  Timestamp,
+                                             HTTPAPI         HTTPAPI,
+                                             HTTPRequest     Request,
+                                             HTTPResponse    Response)
 
             => OnStopHTTPResponse.WhenAll(Timestamp,
                                           HTTPAPI,
@@ -3240,10 +3240,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected) LogRequest(...)
 
-        protected Task LogRequest(DateTime     Timestamp,
-                                  IHTTPClient  Client,
-                                  String       RemoteHost,
-                                  HTTPRequest  Request)
+        protected Task LogRequest(DateTimeOffset  Timestamp,
+                                  IHTTPClient     Client,
+                                  String          RemoteHost,
+                                  HTTPRequest     Request)
         {
 
             return Task.Run(() => {
@@ -3269,11 +3269,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (protected) LogResponse(...)
 
-        protected Task LogResponse(DateTime      Timestamp,
-                                   IHTTPClient   Client,
-                                   String        RemoteHost,
-                                   HTTPRequest   Request,
-                                   HTTPResponse  Response)
+        protected Task LogResponse(DateTimeOffset  Timestamp,
+                                   IHTTPClient     Client,
+                                   String          RemoteHost,
+                                   HTTPRequest     Request,
+                                   HTTPResponse    Response)
         {
 
             return Task.Run(() => {
@@ -3447,7 +3447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region (private)   GenerateCookieSettings(Expires)
 
-        private String GenerateCookieSettings(DateTime Expires)
+        private String GenerateCookieSettings(DateTimeOffset Expires)
 
             => String.Concat("; Expires=",  Expires.ToRFC1123(),
                              HTTPCookieDomain.IsNotNullOrEmpty()
@@ -4511,8 +4511,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   {
 
                                       httpCookies.TryAdd(securityTokenId,
-                                                         new SecurityToken(validUser.Id,
-                                                                           expires));
+                                                         new SecurityToken(
+                                                             validUser.Id,
+                                                             expires
+                                                         ));
 
                                       File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
                                                          securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
@@ -14427,7 +14429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">The added user.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnUserAddedDelegate(DateTime           Timestamp,
+        public delegate Task OnUserAddedDelegate(DateTimeOffset     Timestamp,
                                                  IUser              User,
                                                  EventTracking_Id?  EventTrackingId   = null,
                                                  User_Id?           CurrentUserId     = null);
@@ -15787,7 +15789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldUser">The old user.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnUserUpdatedDelegate(DateTime           Timestamp,
+        public delegate Task OnUserUpdatedDelegate(DateTimeOffset     Timestamp,
                                                    IUser              User,
                                                    IUser              OldUser,
                                                    EventTracking_Id?  EventTrackingId   = null,
@@ -16137,7 +16139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="User">The user to be deleted.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnUserDeletedDelegate(DateTime           Timestamp,
+        public delegate Task OnUserDeletedDelegate(DateTimeOffset     Timestamp,
                                                    IUser              User,
                                                    EventTracking_Id?  EventTrackingId   = null,
                                                    User_Id?           CurrentUserId     = null);
@@ -17972,7 +17974,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey">The added API key.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnAPIKeyAddedDelegate(DateTime          Timestamp,
+        public delegate Task OnAPIKeyAddedDelegate(DateTimeOffset    Timestamp,
                                                    APIKey            APIKey,
                                                    EventTracking_Id? EventTrackingId   = null,
                                                    User_Id?          CurrentUserId     = null);
@@ -18467,7 +18469,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldAPIKey">The old API key.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking API key identification</param>
-        public delegate Task OnAPIKeyUpdatedDelegate(DateTime          Timestamp,
+        public delegate Task OnAPIKeyUpdatedDelegate(DateTimeOffset    Timestamp,
                                                      APIKey            APIKey,
                                                      APIKey            OldAPIKey,
                                                      EventTracking_Id? EventTrackingId   = null,
@@ -18783,7 +18785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="APIKey">The API key to be removed.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking API key identification</param>
-        public delegate Task OnAPIKeyRemovedDelegate(DateTime           Timestamp,
+        public delegate Task OnAPIKeyRemovedDelegate(DateTimeOffset     Timestamp,
                                                      APIKey             APIKey,
                                                      EventTracking_Id?  EventTrackingId   = null,
                                                      User_Id?           CurrentUserId     = null);
@@ -19900,7 +19902,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UserGroup">The added user group.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnUserGroupAddedDelegate(DateTime           Timestamp,
+        public delegate Task OnUserGroupAddedDelegate(DateTimeOffset     Timestamp,
                                                       IUserGroup         UserGroup,
                                                       EventTracking_Id?  EventTrackingId   = null,
                                                       User_Id?           CurrentUserId     = null);
@@ -20446,7 +20448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldUserGroup">The old user group.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking user group identification</param>
-        public delegate Task OnUserGroupUpdatedDelegate(DateTime          Timestamp,
+        public delegate Task OnUserGroupUpdatedDelegate(DateTimeOffset    Timestamp,
                                                         IUserGroup        UserGroup,
                                                         IUserGroup        OldUserGroup,
                                                         EventTracking_Id? EventTrackingId   = null,
@@ -20775,7 +20777,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="UserGroup">The deleted user group.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking user group identification</param>
-        public delegate Task OnUserGroupDeletedDelegate(DateTime           Timestamp,
+        public delegate Task OnUserGroupDeletedDelegate(DateTimeOffset     Timestamp,
                                                         IUserGroup         UserGroup,
                                                         EventTracking_Id?  EventTrackingId   = null,
                                                         User_Id?           CurrentUserId     = null);
@@ -22694,10 +22696,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NotificationMessage">The added notification message.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnNotificationMessageAddedDelegate(DateTime          Timestamp,
-                                                        NotificationMessage       NotificationMessage,
-                                                        EventTracking_Id? EventTrackingId   = null,
-                                                        User_Id?          CurrentUserId     = null);
+        public delegate Task OnNotificationMessageAddedDelegate(DateTimeOffset       Timestamp,
+                                                                NotificationMessage  NotificationMessage,
+                                                                EventTracking_Id?    EventTrackingId   = null,
+                                                                User_Id?             CurrentUserId     = null);
 
         /// <summary>
         /// An event fired whenever a notification message was added.
@@ -22752,9 +22754,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var OnNotificationMessageAddedLocal = OnNotificationMessageAdded;
             if (OnNotificationMessageAddedLocal is not null)
                 await OnNotificationMessageAddedLocal?.Invoke(Timestamp.Now,
-                                                      NotificationMessage,
-                                                      eventTrackingId,
-                                                      CurrentUserId);
+                                                              NotificationMessage,
+                                                              eventTrackingId,
+                                                              CurrentUserId);
 
             await SendNotifications(NotificationMessage,
                                     addUser_MessageType,
@@ -23088,11 +23090,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldNotificationMessage">The old notification message.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking notification message identification</param>
-        public delegate Task OnNotificationMessageUpdatedDelegate(DateTime          Timestamp,
-                                                          NotificationMessage       NotificationMessage,
-                                                          NotificationMessage       OldNotificationMessage,
-                                                          EventTracking_Id? EventTrackingId   = null,
-                                                          User_Id?          CurrentUserId     = null);
+        public delegate Task OnNotificationMessageUpdatedDelegate(DateTimeOffset       Timestamp,
+                                                                  NotificationMessage  NotificationMessage,
+                                                                  NotificationMessage  OldNotificationMessage,
+                                                                  EventTracking_Id?    EventTrackingId   = null,
+                                                                  User_Id?             CurrentUserId     = null);
 
         /// <summary>
         /// An event fired whenever a notification message was updated.
@@ -23337,7 +23339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="NotificationMessage">The removed notification message.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking notification message identification</param>
-        public delegate Task OnNotificationMessageRemovedDelegate(DateTime             Timestamp,
+        public delegate Task OnNotificationMessageRemovedDelegate(DateTimeOffset       Timestamp,
                                                                   NotificationMessage  NotificationMessage,
                                                                   EventTracking_Id?    EventTrackingId   = null,
                                                                   User_Id?             CurrentUserId     = null);
@@ -24229,7 +24231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Organization">The added organization.</param>
         /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        public delegate Task OnOrganizationAddedDelegate(DateTime           Timestamp,
+        public delegate Task OnOrganizationAddedDelegate(DateTimeOffset     Timestamp,
                                                          IOrganization      Organization,
                                                          EventTracking_Id?  EventTrackingId   = null,
                                                          User_Id?           CurrentUserId     = null);
@@ -25038,7 +25040,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldOrganization">The old organization.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional organization identification initiating this command/request.</param>
-        public delegate Task OnOrganizationUpdatedDelegate(DateTime           Timestamp,
+        public delegate Task OnOrganizationUpdatedDelegate(DateTimeOffset     Timestamp,
                                                            IOrganization      Organization,
                                                            IOrganization      OldOrganization,
                                                            EventTracking_Id?  EventTrackingId   = null,
@@ -25354,7 +25356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Organization">The organization to be deleted.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnOrganizationDeletedDelegate(DateTime           Timestamp,
+        public delegate Task OnOrganizationDeletedDelegate(DateTimeOffset     Timestamp,
                                                            IOrganization      Organization,
                                                            EventTracking_Id?  EventTrackingId   = null,
                                                            User_Id?           CurrentUserId     = null);
@@ -26383,7 +26385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OrganizationGroup">The added organization group.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public delegate Task OnOrganizationGroupAddedDelegate(DateTime           Timestamp,
+        public delegate Task OnOrganizationGroupAddedDelegate(DateTimeOffset     Timestamp,
                                                               OrganizationGroup  OrganizationGroup,
                                                               EventTracking_Id?  EventTrackingId   = null,
                                                               User_Id?           CurrentUserId     = null);
@@ -26777,7 +26779,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OldOrganizationGroup">The old organization group.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking organization group identification</param>
-        public delegate Task OnOrganizationGroupUpdatedDelegate(DateTime           Timestamp,
+        public delegate Task OnOrganizationGroupUpdatedDelegate(DateTimeOffset     Timestamp,
                                                                 OrganizationGroup  OrganizationGroup,
                                                                 OrganizationGroup  OldOrganizationGroup,
                                                                 EventTracking_Id?  EventTrackingId   = null,
@@ -27026,7 +27028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="OrganizationGroup">The removed organization group.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">The invoking organization group identification</param>
-        public delegate Task OnOrganizationGroupRemovedDelegate(DateTime           Timestamp,
+        public delegate Task OnOrganizationGroupRemovedDelegate(DateTimeOffset     Timestamp,
                                                                 OrganizationGroup  OrganizationGroup,
                                                                 EventTracking_Id?  EventTrackingId   = null,
                                                                 User_Id?           CurrentUserId     = null);

@@ -416,12 +416,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <param name="Response">The outgoing response.</param>
         /// <param name="Error">The occured error.</param>
         /// <param name="LastException">The last occured exception.</param>
-        public void LogError(DateTime              ServerTimestamp,
+        public void LogError(DateTimeOffset        ServerTimestamp,
                              String                SMTPCommand,
                              EMail                 EMail,
                              SMTPExtendedResponse  Response,
-                             String                Error          = null,
-                             Exception             LastException  = null)
+                             String?               Error           = null,
+                             Exception?            LastException   = null)
         {
             ErrorLog?.Invoke(this, ServerTimestamp, SMTPCommand, EMail, Response, Error, LastException);
         }

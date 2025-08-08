@@ -50,10 +50,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="StatusFilter">An optional status value filter.</param>
         /// <param name="Skip">The number of status entries to skip.</param>
         /// <param name="Take">The number of status entries to return.</param>
-        IEnumerable<Timestamped<TStatusType>>  StatusSchedule(Func<DateTime, Boolean>?     TimestampFilter   = null,
-                                                              Func<TStatusType, Boolean>?  StatusFilter      = null,
-                                                              UInt64?                      Skip              = null,
-                                                              UInt64?                      Take              = null);
+        IEnumerable<Timestamped<TStatusType>>  StatusSchedule(Func<DateTimeOffset, Boolean>?  TimestampFilter   = null,
+                                                              Func<TStatusType,    Boolean>?  StatusFilter      = null,
+                                                              UInt64?                         Skip              = null,
+                                                              UInt64?                         Take              = null);
 
         void SetStatus(TStatusType                            NewStatus,
                        Context?                               DataSource     = null);
@@ -63,7 +63,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        ChangeMethods                          ChangeMethod   = ChangeMethods.Replace,
                        Context?                               DataSource     = null);
         void SetStatus(TStatusType                            NewStatus,
-                       DateTime                               Timestamp,
+                       DateTimeOffset                         Timestamp,
                        Context?                               DataSource     = null);
 
     }

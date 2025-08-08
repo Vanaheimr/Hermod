@@ -57,9 +57,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public HTTPPath?              Icon             { get; }
 
-        public DateTime?              Created          { get; }
+        public DateTimeOffset?        Created          { get; }
 
-        public DateTime?              LastModified     { get; }
+        public DateTimeOffset?        LastModified     { get; }
 
         #endregion
 
@@ -71,12 +71,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private AttachedFile(AttachedFile_Id        Id,
                              I18NString             Description,
                              IEnumerable<HTTPPath>  Locations,
-                             HTTPContentType        ContentType   = null,
-                             UInt64?                Size          = null,
-                             HTTPPath?              Icon          = null,
-                             DateTime?              Created       = null,
-                             DateTime?              LastModifed   = null,
-                             String                 DataSource    = null)
+                             HTTPContentType?       ContentType    = null,
+                             UInt64?                Size           = null,
+                             HTTPPath?              Icon           = null,
+                             DateTimeOffset?        Created        = null,
+                             DateTimeOffset?        LastModified   = null,
+                             String?                DataSource     = null)
         {
 
             this.Id            = Id;
@@ -85,8 +85,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.ContentType   = ContentType;
             this.Size          = Size;
             this.Icon          = Icon;
-            this.Created       = Created     ?? Timestamp.Now;
-            this.LastModified  = LastModifed ?? Timestamp.Now;
+            this.Created       = Created      ?? Timestamp.Now;
+            this.LastModified  = LastModified ?? Timestamp.Now;
             //this.CryptoHashes  = 
             //this.Signatures    = 
 
@@ -306,15 +306,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 #endregion
 
 
-                AttachedFile = new AttachedFile(Id:               AttachedFileIdBody ?? AttachedFileIdURL.Value,
-                                                Description:      Description,
-                                                Locations:        Locations,
-                                                ContentType:      ContentType,
-                                                Size:             Size,
-                                                Icon:             Icon,
-                                                Created:          Created,
-                                                LastModifed:      LastModified,
-                                                DataSource:       DataSource);
+                AttachedFile = new AttachedFile(
+                                   Id:             AttachedFileIdBody ?? AttachedFileIdURL.Value,
+                                   Description:    Description,
+                                   Locations:      Locations,
+                                   ContentType:    ContentType,
+                                   Size:           Size,
+                                   Icon:           Icon,
+                                   Created:        Created,
+                                   LastModified:   LastModified,
+                                   DataSource:     DataSource
+                               );
 
                 ErrorResponse = null;
                 return true;

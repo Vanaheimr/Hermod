@@ -697,7 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (ContentType    is not null)
                 requestBuilder.ContentType    = ContentType;
 
-            if (Content is not null && ContentType is null)
+            if (Content is not null && requestBuilder.ContentType is null)
                 requestBuilder.ContentType    = HTTPContentType.Application.OCTETSTREAM;
 
             if (Connection     is not null)

@@ -19,10 +19,10 @@
 
 using System.Text;
 
+using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -36,7 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
     /// end-of-line characters.
     /// </summary>
     public class TCPCSVProcessor : IArrowReceiver<TCPConnection>,
-                                   IBoomerangSender<TCPConnection, DateTime, String[], String>
+                                   IBoomerangSender<TCPConnection, DateTimeOffset, String[], String>
     {
 
         #region Data
@@ -59,14 +59,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
 
         #region Events
 
-        public event StartedEventHandler?                                                OnStarted;
+        public event StartedEventHandler?                                                      OnStarted;
 
-        public event BoomerangSenderHandler<TCPConnection, DateTime, String[], String>?  OnNotification;
+        public event BoomerangSenderHandler<TCPConnection, DateTimeOffset, String[], String>?  OnNotification;
 
-        public event CompletedEventHandler?                                              OnCompleted;
+        public event CompletedEventHandler?                                                    OnCompleted;
 
 
-        public event ExceptionOccurredEventHandler?                                       OnExceptionOccurred;
+        public event ExceptionOccurredEventHandler?                                            OnExceptionOccurred;
 
         #endregion
 
@@ -310,9 +310,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #region ProcessExceptionOccurred(Sender, Timestamp, EventTracking, ExceptionMessage)
 
         public void ProcessExceptionOccurred(Object            Sender,
-                                            DateTime          Timestamp,
-                                            EventTracking_Id  EventTracking,
-                                            Exception         ExceptionMessage)
+                                             DateTimeOffset    Timestamp,
+                                             EventTracking_Id  EventTracking,
+                                             Exception         ExceptionMessage)
         {
 
             OnExceptionOccurred?.Invoke(
@@ -329,7 +329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
         #region ProcessCompleted(Sender, Timestamp, EventTracking, Message = null)
 
         public void ProcessCompleted(Object            Sender,
-                                     DateTime          Timestamp,
+                                     DateTimeOffset    Timestamp,
                                      EventTracking_Id  EventTracking,
                                      String?           Message = null)
         {

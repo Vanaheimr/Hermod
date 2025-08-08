@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String                           LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<ClientRequestLogHandler>  SubscribeToEventDelegate        { get; }
 
@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             public String                            LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<ClientResponseLogHandler>  SubscribeToEventDelegate        { get; }
 

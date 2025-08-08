@@ -22,10 +22,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public interface IHTTPEventSource
     {
 
-        HTTPEventSource_Id              EventIdentification        { get; }
-        Func<String, DateTime, String>  LogfileName                { get; }
-        UInt64                          MaxNumberOfCachedEvents    { get; }
-        TimeSpan                        RetryInterval              { get; set; }
+        HTTPEventSource_Id                    EventIdentification        { get; }
+        Func<String, DateTimeOffset, String>  LogfileName                { get; }
+        UInt64                                MaxNumberOfCachedEvents    { get; }
+        TimeSpan                              RetryInterval              { get; set; }
 
         String ToString();
 
@@ -35,10 +35,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                            IEnumerable<HTTPEvent<T>>
     {
 
-        Task SubmitEvent(                                     T Data, CancellationToken CancellationToken = default);
-        Task SubmitEvent(String SubEvent,                     T Data, CancellationToken CancellationToken = default);
-        Task SubmitEvent(                 DateTime Timestamp, T Data, CancellationToken CancellationToken = default);
-        Task SubmitEvent(String SubEvent, DateTime Timestamp, T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(                                           T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(String SubEvent,                           T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(                 DateTimeOffset Timestamp, T Data, CancellationToken CancellationToken = default);
+        Task SubmitEvent(String SubEvent, DateTimeOffset Timestamp, T Data, CancellationToken CancellationToken = default);
 
 
         /// <summary>
@@ -50,8 +50,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Get a list of events filtered by a minimal timestamp.
         /// </summary>
-        /// <param name="Timestamp">The earlierst timestamp of the events.</param>
-        IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTime Timestamp);
+        /// <param name="Timestamp">The earliest timestamp of the events.</param>
+        IEnumerable<HTTPEvent<T>> GetAllEventsSince(DateTimeOffset Timestamp);
 
 
     }

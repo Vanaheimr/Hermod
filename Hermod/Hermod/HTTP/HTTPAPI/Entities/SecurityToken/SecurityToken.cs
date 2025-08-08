@@ -17,8 +17,6 @@
 
 #region Usings
 
-using System;
-
 using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
@@ -29,13 +27,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public class SecurityToken
     {
 
-        public User_Id   UserId        { get; }
-        public DateTime  Expires       { get; }
-        public User_Id?  SuperUserId   { get; }
+        public User_Id         UserId        { get; }
+        public DateTimeOffset  Expires       { get; }
+        public User_Id?        SuperUserId   { get; }
 
-        public SecurityToken(User_Id   UserId,
-                             DateTime  Expires,
-                             User_Id?  SuperUserId = null)
+        public SecurityToken(User_Id         UserId,
+                             DateTimeOffset  Expires,
+                             User_Id?        SuperUserId = null)
         {
 
             this.UserId       = UserId;

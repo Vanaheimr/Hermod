@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Timestamp when the user accepted the End-User-License-Agreement.
         /// </summary>
         [Mandatory]
-        public DateTime?                  AcceptedEULA         { get; }
+        public DateTimeOffset?            AcceptedEULA         { get; }
 
         /// <summary>
         /// The user will not be shown in user listings, as its
@@ -775,7 +775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     String?                              Homepage                 = null,
                     GeoCoordinate?                       GeoLocation              = null,
                     Address?                             Address                  = null,
-                    DateTime?                            AcceptedEULA             = null,
+                    DateTimeOffset?                      AcceptedEULA             = null,
                     Boolean                              IsDisabled               = false,
                     Boolean                              IsAuthenticated          = false,
 
@@ -789,7 +789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     IEnumerable<AttachedFile>?           AttachedFiles            = default,
                     JSONLDContext?                       JSONLDContext            = default,
                     String?                              DataSource               = default,
-                    DateTime?                            LastChange               = default)
+                    DateTimeOffset?                      LastChange               = default)
 
             : base(Id,
                    JSONLDContext ?? DefaultJSONLDContext,
@@ -1877,7 +1877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// Timestamp when the user accepted the End-User-License-Agreement.
             /// </summary>
             [Mandatory]
-            public DateTime?              AcceptedEULA         { get; set; }
+            public DateTimeOffset?        AcceptedEULA         { get; set; }
 
             /// <summary>
             /// The user is disabled.
@@ -2319,7 +2319,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            String?                              Homepage                 = null,
                            GeoCoordinate?                       GeoLocation              = null,
                            Address?                             Address                  = null,
-                           DateTime?                            AcceptedEULA             = null,
+                           DateTimeOffset?                      AcceptedEULA             = null,
                            Boolean                              IsDisabled               = false,
                            Boolean                              IsAuthenticated          = false,
 
@@ -2333,8 +2333,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            IEnumerable<AttachedFile>?           AttachedFiles            = null,
                            JSONLDContext?                       JSONLDContext            = null,
                            String?                              DataSource               = null,
-                           DateTime?                            Created                  = null,
-                           DateTime?                            LastChange               = null)
+                           DateTimeOffset?                      Created                  = null,
+                           DateTimeOffset?                      LastChange               = null)
 
                 : base(Id,
                        JSONLDContext ?? DefaultJSONLDContext,

@@ -55,13 +55,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
         public DNSQueryClasses          Class             { get; }
 
-        public DNSServiceName   DomainName  => throw new NotImplementedException();
+        public DNSServiceName           DomainName  => throw new NotImplementedException();
 
-        public DateTime                 EndOfLife         { get; }
+        public DateTimeOffset           EndOfLife         { get; }
 
-        public String?          RText       => throw new NotImplementedException();
+        public String?                  RText       => throw new NotImplementedException();
 
-        public IIPAddress?      Source      => throw new NotImplementedException();
+        public IIPAddress?              Source      => throw new NotImplementedException();
 
         public TimeSpan                 TimeToLive        { get; }
 

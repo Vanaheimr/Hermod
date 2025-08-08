@@ -34,9 +34,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="ServerAPI">The server API.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate Task RequestLogHandler2(DateTime  Timestamp,
-                                            Object    ServerAPI,
-                                            String?   Request);
+    public delegate Task RequestLogHandler2(DateTimeOffset  Timestamp,
+                                            Object          ServerAPI,
+                                            String?         Request);
 
     /// <summary>
     /// The delegate for the HTTP access log.
@@ -45,11 +45,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
     /// <param name="ServerAPI">The server API.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate Task ResponseLogHandler2(DateTime  Timestamp,
-                                             Object    ServerAPI,
-                                             String?   Request,
-                                             String?   Response,
-                                             TimeSpan  Runtime);
+    public delegate Task ResponseLogHandler2(DateTimeOffset  Timestamp,
+                                             Object          ServerAPI,
+                                             String?         Request,
+                                             String?         Response,
+                                             TimeSpan        Runtime);
 
 
     public static class AServerLoggerExtensions
@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             public String                     LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<RequestLogHandler2>  SubscribeToEventDelegate        { get; }
 
@@ -339,7 +339,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
             public String                    LogEventName                    { get; }
 
             /// <summary>
-            /// A delegate called whenever the event is subscriped to.
+            /// A delegate called whenever the event is subscribed to.
             /// </summary>
             public Action<ResponseLogHandler2>  SubscribeToEventDelegate        { get; }
 
