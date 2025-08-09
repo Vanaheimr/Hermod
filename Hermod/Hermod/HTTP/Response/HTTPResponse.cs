@@ -850,8 +850,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) LoadHTTPResponseLogfile_old (FileName,               FromTimestamp = null, ToTimestamp = null, ...)
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfile_old(String               FileName,
-                                                                            DateTime?            FromTimestamp            = null,
-                                                                            DateTime?            ToTimestamp              = null,
+                                                                            DateTimeOffset?      FromTimestamp            = null,
+                                                                            DateTimeOffset?      ToTimestamp              = null,
                                                                             Int32                MaxDegreeOfParallelism   = 1,
                                                                             CancellationToken    CancellationToken        = default)
         {
@@ -956,8 +956,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(String               FilePath,
                                                                              String               FilePattern,
-                                                                             DateTime?            FromTimestamp            = null,
-                                                                             DateTime?            ToTimestamp              = null,
+                                                                             DateTimeOffset?      FromTimestamp            = null,
+                                                                             DateTimeOffset?      ToTimestamp              = null,
                                                                              SearchOption         SearchOption             = SearchOption.TopDirectoryOnly,
                                                                              LogFileNamePatterns  LogFileNamePattern       = LogFileNamePatterns.None,
                                                                              Int32                MaxDegreeOfParallelism   = 1,
@@ -982,8 +982,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles_old(IEnumerable<String>  FilePaths,
                                                                              String               FilePattern,
-                                                                             DateTime?            FromTimestamp            = null,
-                                                                             DateTime?            ToTimestamp              = null,
+                                                                             DateTimeOffset?      FromTimestamp            = null,
+                                                                             DateTimeOffset?      ToTimestamp              = null,
                                                                              SearchOption         SearchOption             = SearchOption.TopDirectoryOnly,
                                                                              LogFileNamePatterns  LogFileNamePattern       = LogFileNamePatterns.None,
                                                                              Int32                MaxDegreeOfParallelism   = 1,
@@ -1118,8 +1118,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region (static) LoadHTTPResponseLogfile (Filename,               FromTimestamp = null, ToTimestamp = null, ...)
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfile(String             Filename,
-                                                                        DateTime?          FromTimestamp       = null,
-                                                                        DateTime?          ToTimestamp         = null,
+                                                                        DateTimeOffset?    FromTimestamp       = null,
+                                                                        DateTimeOffset?    ToTimestamp         = null,
                                                                         CancellationToken  CancellationToken   = default)
         {
 
@@ -1245,8 +1245,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(String             FilePath,
                                                                          String             FilePattern,
-                                                                         DateTime?          FromTimestamp       = null,
-                                                                         DateTime?          ToTimestamp         = null,
+                                                                         DateTimeOffset?    FromTimestamp       = null,
+                                                                         DateTimeOffset?    ToTimestamp         = null,
                                                                          SearchOption       SearchOption        = SearchOption.TopDirectoryOnly,
                                                                          CancellationToken  CancellationToken   = default)
         {
@@ -1288,8 +1288,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public static IEnumerable<HTTPResponse> LoadHTTPResponseLogfiles(IEnumerable<String>  FilePaths,
                                                                          String               FilePattern,
-                                                                         DateTime?            FromTimestamp            = null,
-                                                                         DateTime?            ToTimestamp              = null,
+                                                                         DateTimeOffset?      FromTimestamp            = null,
+                                                                         DateTimeOffset?      ToTimestamp              = null,
                                                                          SearchOption         SearchOption             = SearchOption.TopDirectoryOnly,
                                                                          LogFileNamePatterns  LogFileNamePattern       = LogFileNamePatterns.None,
                                                                          Int32                MaxDegreeOfParallelism   = 1,

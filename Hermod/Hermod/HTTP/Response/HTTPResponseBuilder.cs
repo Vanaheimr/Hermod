@@ -239,7 +239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <summary>
             /// Last-Modified
             /// </summary>
-            public DateTime? LastModified
+            public DateTimeOffset? LastModified
             {
 
                 get
