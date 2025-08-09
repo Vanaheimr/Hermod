@@ -190,7 +190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+                    DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
                 }
             }
 
@@ -266,7 +266,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
+                    DebugX.LogException(e, $"{nameof(WebSocketChatServer)}.{nameof(OnTextMessage)}");
                 }
             }
 

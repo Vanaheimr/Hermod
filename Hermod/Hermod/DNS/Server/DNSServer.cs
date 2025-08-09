@@ -284,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                 { }
                 catch (Exception ex)
                 {
-                    DebugX.Log($"Fehler im Multicast-Listener: {ex.Message}");
+                    DebugX.LogException(ex, "Fehler im Multicast-Listener");
                 }
             }
 
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (Exception e)
             {
-                DebugX.Log(e, "Error dropping multicast group: " + e.Message);
+                DebugX.LogException(e, "Error dropping multicast group");
             }
 
         }
@@ -347,13 +347,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                         }
                         catch (Exception ex)
                         {
-                            DebugX.Log($"Fehler beim Akzeptieren des TCP-Clients: {ex.Message}");
+                            DebugX.LogException(ex, $"Fehler beim Akzeptieren des TCP-Clients");
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, "Error within TCP listener: " + e.Message);
+                    DebugX.LogException(e, "Error within TCP listener");
                 }
                 finally
                 {
@@ -363,7 +363,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (Exception e)
             {
-                DebugX.Log(e, "Error starting TCP listener: " + e.Message);
+                DebugX.LogException(e, "Error starting TCP listener");
             }
 
         }
@@ -465,7 +465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
 
                                 if (clientClose)
                                 {
-                                    DebugX.Log($"TCP client {TCPClient.Client.RemoteEndPoint} closed the connection.");
+                                    DebugX.Log($"TCP client {TCPClient.Client.RemoteEndPoint} closed the connection");
                                     break;
                                 }
 
@@ -477,7 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                     { }
                     catch (Exception ex)
                     {
-                        DebugX.Log($"Fehler beim Verarbeiten der TCP-Verbindung: {ex.Message}");
+                        DebugX.LogException(ex, $"Fehler beim Verarbeiten der TCP-Verbindung");
                     }
                     finally
                     {
@@ -489,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
             }
             catch (Exception e)
             {
-                DebugX.Log(e, "Error handling TCP client: " + e.Message);
+                DebugX.LogException(e, "Error handling TCP client");
             }
 
         }

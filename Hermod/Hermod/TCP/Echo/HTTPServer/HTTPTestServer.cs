@@ -155,7 +155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, nameof(HTTPTestServer) + "." + nameof(ProcessHTTPRequest));
+                    DebugX.LogException(e, nameof(HTTPTestServer) + "." + nameof(ProcessHTTPRequest));
                 }
             }
 

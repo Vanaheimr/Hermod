@@ -744,7 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnTextMessageSent));
+                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnTextMessageSent));
                     }
                 }
             }
@@ -777,7 +777,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnBinaryMessageSent));
+                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnBinaryMessageSent));
                     }
                 }
             }
@@ -810,7 +810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageSent));
+                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnPingMessageSent));
                     }
                 }
             }
@@ -843,7 +843,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnPongMessageSent));
+                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnPongMessageSent));
                     }
                 }
             }
@@ -877,7 +877,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e)
                     {
-                        DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnCloseMessageSent));
+                        DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnCloseMessageSent));
                     }
                 }
             }
@@ -1054,7 +1054,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                 }
                                 catch (Exception e)
                                 {
-                                    DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                    DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
                                 }
                             }
 
@@ -1194,7 +1194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                     }
                                                     catch (Exception e)
                                                     {
-                                                        DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                                        DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
                                                     }
                                                 }
 
@@ -1227,7 +1227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                         }
                                                         catch (Exception e)
                                                         {
-                                                            DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
+                                                            DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(OnNewTCPConnection)}");
                                                         }
                                                     }
 
@@ -1849,7 +1849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                 }
                 catch (Exception e)
                 {
-                    DebugX.Log(e, $"{nameof(AWebSocketServer)}.{nameof(Start)}()");
+                    DebugX.LogException(e, $"{nameof(AWebSocketServer)}.{nameof(Start)}()");
                 }
 
             });
@@ -1984,7 +1984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             }
             catch (Exception e)
             {
-                DebugX.Log(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameSent));
+                DebugX.LogException(e, nameof(AWebSocketServer) + "." + nameof(OnWebSocketFrameSent));
             }
 
         }

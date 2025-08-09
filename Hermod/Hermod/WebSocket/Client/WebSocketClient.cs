@@ -1340,7 +1340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                     }
                     catch (Exception e2)
                     {
-                        DebugX.Log(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                        DebugX.LogException(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
                     }
 
                     #endregion

@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
             catch (Exception e)
             {
-                DebugX.Log(e, nameof(NullMailer) + "." + nameof(OnSendEMailRequest));
+                DebugX.LogException(e, nameof(NullMailer) + "." + nameof(OnSendEMailRequest));
             }
 
             #endregion
@@ -228,7 +228,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
             catch (Exception e)
             {
-                DebugX.Log(e, nameof(NullMailer) + "." + nameof(OnSendEMailResponse));
+                DebugX.LogException(e, nameof(NullMailer) + "." + nameof(OnSendEMailResponse));
             }
 
             #endregion

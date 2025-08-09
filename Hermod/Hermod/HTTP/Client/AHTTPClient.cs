@@ -1880,7 +1880,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             }
             catch (Exception e2)
             {
-                DebugX.Log(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
+                DebugX.LogException(e2, nameof(HTTPClient) + "." + nameof(ResponseLogDelegate));
             }
 
             timings.ResponseLogging2 = timings.Elapsed;
