@@ -747,6 +747,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public HTTPServer?        HTTPServer                { get; }
         public HTTPTestServerX?   HTTPTestServerX           { get; set; }
 
+        public AHTTPTestClient?   HTTPClient                { get; internal set; }
+
 
         public X509Certificate2?  ServerCertificate         { get; }
 

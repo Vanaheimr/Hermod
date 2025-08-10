@@ -511,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The runtime of the HTTP request/response pair.
         /// </summary>
-        public TimeSpan            Runtime                { get; }
+        public TimeSpan            Runtime                { get; internal set; }
 
         /// <summary>
         /// The number of retransmissions of this request.

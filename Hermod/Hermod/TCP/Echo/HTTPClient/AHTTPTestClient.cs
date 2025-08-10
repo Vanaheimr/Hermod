@@ -236,8 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public DefaultRequestBuilderDelegate  DefaultRequestBuilder    { get;}
 
 
-
-
+        public UInt64                         KeepAliveMessageCount    { get; private set; } = 0;
 
 
         URL IHTTPClient.RemoteURL => throw new NotImplementedException();
@@ -259,8 +258,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public TimeSpan RequestTimeout { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public TransmissionRetryDelayDelegate TransmissionRetryDelay => throw new NotImplementedException();
-
-        public UInt16 MaxNumberOfRetries => throw new NotImplementedException();
 
         public Boolean UseHTTPPipelining => throw new NotImplementedException();
 
@@ -555,11 +552,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (EnforceTLS ||
                 RemoteURL?.Protocol.EnforcesTLS() == true)
             {
-                //await StartTLS(CancellationToken);
+
+                if (tlsStream is null || tlsStream.IsAuthenticated == false)
+                    throw new Exception("TLS Authentication failed!");
+
                 httpStream = tlsStream;
+
             }
 
-            IsHTTPConnected = true;
+            IsHTTPConnected        = true;
+            KeepAliveMessageCount  = 0;
 
         }
 
@@ -727,7 +729,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="Connection">An optional HTTP connection type.</param>
         /// <param name="RequestBuilder">A delegate to configure the new HTTP request builder.</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
-        public async Task<HTTPResponse>
+        public Task<HTTPResponse>
 
             RunRequest(HTTPMethod                    HTTPMethod,
                        HTTPPath                      HTTPPath,
@@ -744,30 +746,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                        ClientResponseLogHandler?     ResponseLogDelegate   = null,
                        CancellationToken             CancellationToken     = default)
 
-        {
-
-            var response = await SendRequest(
-                                     CreateRequest(
-                                         HTTPMethod,
-                                         HTTPPath,
-                                         QueryString,
-                                         Accept,
-                                         Authentication,
-                                         Content,
-                                         ContentType,
-                                         UserAgent,
-                                         Connection,
-                                         RequestBuilder,
-                                         CancellationToken
-                                     ).AsImmutable,
-                                     RequestLogDelegate,
-                                     ResponseLogDelegate,
-                                     CancellationToken
-                                 );
-
-            return response.Item2;
-
-        }
+                => SendRequest(
+                       CreateRequest(
+                           HTTPMethod,
+                           HTTPPath,
+                           QueryString,
+                           Accept,
+                           Authentication,
+                           Content,
+                           ContentType,
+                           UserAgent,
+                           Connection,
+                           RequestBuilder,
+                           CancellationToken
+                       ).AsImmutable,
+                       RequestLogDelegate,
+                       ResponseLogDelegate,
+                       CancellationToken
+                   );
 
         #endregion
 
@@ -778,7 +774,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         /// <param name="Request">The HTTP Request to send.</param>
         /// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        public async Task<(Boolean, HTTPResponse?, String?, TimeSpan)>
+        public async Task<HTTPResponse>
 
             SendRequest(HTTPRequest                Request,
                         ClientRequestLogHandler?   RequestLogDelegate    = null,
@@ -787,214 +783,265 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         {
 
-            if (!IsConnected)
-                //return (false, null, "Client is not connected.", TimeSpan.Zero);
-                await ReconnectAsync().ConfigureAwait(false);
+            var retry = 1;
 
-            if (!IsHTTPConnected)
-                await ReconnectAsync().ConfigureAwait(false);
-
-            if (httpStream is null)
-                return (false, null, "HTTP stream is not available.", TimeSpan.Zero);
-
-            var stopwatch = Stopwatch.StartNew();
-
-            try
+            while (retry <= MaxNumberOfRetries)
             {
 
-                using var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
-                                                        clientCancellationTokenSource.Token,
-                                                        CancellationToken
-                                                    );
+                if (retry > 1)
+                    DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL?.ToString() ?? RemoteSocket?.ToString() ?? "?"}, retry #{retry} of {MaxNumberOfRetries}...");
 
-                #region Log  HTTP Request
+                if (!IsConnected || !IsHTTPConnected)
+                {
+                    try
+                    {
+                        await ReconnectAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await Log($"Error in SendRequest: {ex.Message}");
+                        DebugX.LogException(ex, nameof(AHTTPTestClient) + "." + nameof(SendRequest));
+                        IsHTTPConnected = false;
+                        retry++;
+                        continue;
+                    }
+                }
 
-                await LogEvent(
-                          ClientRequestLogDelegate,
-                          async loggingDelegate => await loggingDelegate.Invoke(
-                              Timestamp.Now,
-                              this,
-                              Request
-                          ),
-                          nameof(SendRequest)
-                      );
+                if (httpStream is null)
+                {
+                    await Log("HTTP stream is not available!");
+                    DebugX.Log($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)} HTTP stream is not available!");
+                    IsHTTPConnected = false;
+                    retry++;
+                    continue;
+                }
 
-                await LogEvent(
-                          RequestLogDelegate,
-                          async loggingDelegate => await loggingDelegate.Invoke(
-                              Timestamp.Now,
-                              this,
-                              Request
-                          ),
-                          nameof(SendRequest)
-                      );
+                var stopwatch = Stopwatch.StartNew();
 
-                #endregion
+                try
+                {
 
-                #region Send HTTP Request
+                    using var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
+                                                            clientCancellationTokenSource.Token,
+                                                            CancellationToken
+                                                        );
 
-                await httpStream.WriteAsync(
-                          Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"),
-                          linkedCancellationToken.Token
-                      ).ConfigureAwait(false);
+                    #region Log  HTTP Request
 
-                if (Request.HTTPBody is not null && Request.ContentLength > 0)
+                    if (LocalSocket. HasValue)
+                        Request.LocalSocket   = LocalSocket.Value;
+
+                    if (RemoteSocket.HasValue)
+                        Request.RemoteSocket  = RemoteSocket.Value;
+
+                    Request.HTTPClient      ??= this;
+
+                    await LogEvent(
+                              ClientRequestLogDelegate,
+                              async loggingDelegate => await loggingDelegate.Invoke(
+                                  Timestamp.Now,
+                                  this,
+                                  Request
+                              ),
+                              nameof(SendRequest)
+                          );
+
+                    await LogEvent(
+                              RequestLogDelegate,
+                              async loggingDelegate => await loggingDelegate.Invoke(
+                                  Timestamp.Now,
+                                  this,
+                                  Request
+                              ),
+                              nameof(SendRequest)
+                          );
+
+                    #endregion
+
+                    #region Send HTTP Request
+
                     await httpStream.WriteAsync(
-                              Request.HTTPBody,
+                              Encoding.UTF8.GetBytes(Request.EntireRequestHeader + "\r\n\r\n"),
                               linkedCancellationToken.Token
                           ).ConfigureAwait(false);
 
-                await httpStream.FlushAsync(
-                          linkedCancellationToken.Token
-                      ).ConfigureAwait(false);
+                    if (Request.HTTPBody is not null && Request.ContentLength > 0)
+                        await httpStream.WriteAsync(
+                                  Request.HTTPBody,
+                                  linkedCancellationToken.Token
+                              ).ConfigureAwait(false);
 
-                #endregion
+                    await httpStream.FlushAsync(
+                              linkedCancellationToken.Token
+                          ).ConfigureAwait(false);
 
-                IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
-                var buffer = bufferOwner.Memory;
-                var dataLength = 0;
+                    #endregion
 
-                while (true)
-                {
+                    IMemoryOwner<Byte>? bufferOwner = MemoryPool<Byte>.Shared.Rent((Int32) BufferSize * 2);
+                    var buffer = bufferOwner.Memory;
+                    var dataLength = 0;
 
-                    #region Read data if no delimiter found yet
-
-                    if (dataLength < endOfHTTPHeaderDelimiterLength ||
-                        buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
+                    while (IsHTTPConnected)
                     {
 
-                        if (dataLength > buffer.Length - BufferSize)
-                            throw new Exception("Header too large.");
+                        #region Read data if no delimiter found yet
 
-                        var bytesRead = await httpStream.ReadAsync(
-                                                  buffer.Slice(dataLength, (Int32) BufferSize),
-                                                  linkedCancellationToken.Token
-                                              );
-
-                        if (bytesRead == 0)
+                        if (dataLength < endOfHTTPHeaderDelimiterLength ||
+                            buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan()) < 0)
                         {
-                            bufferOwner?.Dispose();
-                            return (false, null, "Timeout!", stopwatch.Elapsed);
+
+                            if (dataLength > buffer.Length - BufferSize)
+                                throw new Exception("Header too large.");
+
+                            var bytesRead = await httpStream.ReadAsync(
+                                                      buffer.Slice(dataLength, (Int32) BufferSize),
+                                                      linkedCancellationToken.Token
+                                                  );
+
+                            if (bytesRead == 0)
+                            {
+
+                                bufferOwner?.Dispose();
+
+                                await Log("Could not read HTTP response from the HTTP stream!");
+                                DebugX.Log($"{nameof(AHTTPTestClient)}.{nameof(SendRequest)} Could not read HTTP response from the HTTP stream!");
+                                IsHTTPConnected = false;
+                                retry++;
+                                continue;
+
+                            }
+
+                            dataLength += bytesRead;
+                            continue;
+
                         }
 
-                        dataLength += bytesRead;
-                        continue;
+                        #endregion
+
+                        #region Search for End-of-HTTPHeader
+
+                        var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
+                        if (endOfHTTPHeaderIndex < 0)
+                            continue;  // Should not reach here due to the if-condition above.
+
+                        #endregion
+
+                        #region Parse HTTP Response
+
+                        var response = HTTPResponse.Parse(
+                                           Timestamp.Now,
+                                           stopwatch.Elapsed,
+                                           Request,
+                                           LocalSocket!. Value,
+                                           RemoteSocket!.Value,
+                                           HTTPSource.Parse(RemoteSocket?.ToString() ?? ""),
+                                           Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
+                                           CancellationToken: Request.CancellationToken
+                                       );
+
+                        #endregion
+
+                        #region Shift remaining data
+
+                        var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
+                        var remainingLength = dataLength - remainingStart;
+                        buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
+                        dataLength = remainingLength;
+
+                        #endregion
+
+                        #region Setup HTTP body stream
+
+                        Stream? bodyDataStream = null;
+                        Stream? bodyStream = null;
+
+                        var prefix = buffer[..dataLength];
+                        if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
+                        {
+
+                            bodyDataStream = new PrefixStream(
+                                                 prefix,
+                                                 httpStream,
+                                                 LeaveInnerStreamOpen: true
+                                             );
+
+                            if (response.IsChunkedTransferEncoding)
+                                bodyStream = new ChunkedTransferEncodingStream(
+                                                 bodyDataStream,
+                                                 LeaveInnerStreamOpen: true
+                                             );
+                            else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
+                                bodyStream = new LengthLimitedStream(
+                                                 bodyDataStream,
+                                                 response.ContentLength.Value,
+                                                 LeaveInnerStreamOpen: true
+                                             );
+
+                        }
+
+                        response.HTTPBodyStream = bodyStream;
+                     //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
+
+                        #endregion
+
+                        if (response.IsConnectionClose)
+                        {
+                            IsHTTPConnected = false;  // Mark connection for closure after response handling
+                        }
+
+                        #region Log HTTP Response
+
+                        await LogEvent(
+                                  ClientResponseLogDelegate,
+                                  async loggingDelegate => await loggingDelegate.Invoke(
+                                      Timestamp.Now,
+                                      this,
+                                      Request,
+                                      response
+                                  ),
+                                  nameof(SendRequest)
+                              );
+
+                        await LogEvent(
+                                  ResponseLogDelegate,
+                                  async loggingDelegate => await loggingDelegate.Invoke(
+                                      Timestamp.Now,
+                                      this,
+                                      Request,
+                                      response
+                                  ),
+                                  nameof(SendRequest)
+                              );
+
+                        #endregion
+
+                        response.Runtime = stopwatch.Elapsed;
+
+                        return response;
 
                     }
 
-                    #endregion
-
-                    #region Search for End-of-HTTPHeader
-
-                    var endOfHTTPHeaderIndex = buffer.Span[0..dataLength].IndexOf(endOfHTTPHeaderDelimiter.AsSpan());
-                    if (endOfHTTPHeaderIndex < 0)
-                        continue;  // Should not reach here due to the if-condition above.
-
-                    #endregion
-
-                    #region Parse HTTP Response
-
-                    var response = HTTPResponse.Parse(
-                                       Timestamp.Now,
-                                       stopwatch.Elapsed,
-                                       Request,
-                                       LocalSocket!. Value,
-                                       RemoteSocket!.Value,
-                                       HTTPSource.Parse(RemoteSocket?.ToString() ?? ""),
-                                       Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
-                                       CancellationToken: Request.CancellationToken
-                                   );
-
-                    #endregion
-
-                    #region Shift remaining data
-
-                    var remainingStart  = endOfHTTPHeaderIndex + endOfHTTPHeaderDelimiterLength;
-                    var remainingLength = dataLength - remainingStart;
-                    buffer.Slice(remainingStart, remainingLength).CopyTo(buffer[..]);
-                    dataLength = remainingLength;
-
-                    #endregion
-
-                    #region Setup HTTP body stream
-
-                    Stream? bodyDataStream = null;
-                    Stream? bodyStream = null;
-
-                    var prefix = buffer[..dataLength];
-                    if (response.IsChunkedTransferEncoding || response.ContentLength.HasValue)
-                    {
-
-                        bodyDataStream = new PrefixStream(
-                                             prefix,
-                                             httpStream,
-                                             LeaveInnerStreamOpen: true
-                                         );
-
-                        if (response.IsChunkedTransferEncoding)
-                            bodyStream = new ChunkedTransferEncodingStream(
-                                             bodyDataStream,
-                                             LeaveInnerStreamOpen: true
-                                         );
-                        else if (response.ContentLength.HasValue && response.ContentLength.Value > 0)
-                            bodyStream = new LengthLimitedStream(
-                                             bodyDataStream,
-                                             response.ContentLength.Value,
-                                             LeaveInnerStreamOpen: true
-                                         );
-
-                    }
-
-                    response.HTTPBodyStream = bodyStream;
-                 //   response.BufferOwner    = bufferOwner;  // Transfer ownership to response for disposal after body is consumed.
-
-                    #endregion
-
-                    if (response.IsConnectionClose)
-                    {
-                        IsHTTPConnected = false;  // Mark connection for closure after response handling
-                    }
-
-                    #region Log HTTP Response
-
-                    await LogEvent(
-                              ClientResponseLogDelegate,
-                              async loggingDelegate => await loggingDelegate.Invoke(
-                                  Timestamp.Now,
-                                  this,
-                                  Request,
-                                  response
-                              ),
-                              nameof(SendRequest)
-                          );
-
-                    await LogEvent(
-                              ResponseLogDelegate,
-                              async loggingDelegate => await loggingDelegate.Invoke(
-                                  Timestamp.Now,
-                                  this,
-                                  Request,
-                                  response
-                              ),
-                              nameof(SendRequest)
-                          );
-
-                    #endregion
-
-                    return (true, response, null, stopwatch.Elapsed);
-
+                }
+                catch (Exception ex)
+                {
+                    await Log($"Error in SendRequest: {ex.Message}");
+                    DebugX.LogException(ex, nameof(AHTTPTestClient) + "." + nameof(SendRequest));
+                    IsHTTPConnected = false;
+                    retry++;
+                }
+                finally
+                {
+                    stopwatch.Stop();
                 }
 
             }
-            catch (Exception ex)
-            {
-                await Log($"Error in SendRequest: {ex.Message}");
-                return (false, null, ex.Message, stopwatch.Elapsed);
-            }
-            finally
-            {
-                stopwatch.Stop();
-            }
+
+            return new HTTPResponse.Builder(Request) {
+                       HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                       Content         = "Maximum HTTP retries reached!".ToUTF8Bytes(),
+                       ContentType     = HTTPContentType.Text.PLAIN,
+                       Runtime         = TimeSpan.Zero
+                   };
 
         }
 

@@ -640,7 +640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                        QueryTimeout
                                    ),
                                    dnsQuery.TransactionId,
-                                   new MemoryStream(httpResponse.Item2.HTTPBody)
+                                   new MemoryStream(httpResponse.HTTPBody ?? [])
                                );
 
                 return dnsInfo;

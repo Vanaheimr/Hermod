@@ -481,7 +481,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public override String ToString()
 
-            => $"{IPAddress}:{Port}";
+            => IPAddress.IsIPv4
+                   ? $"{IPAddress}:{Port}"
+                   : $"[{IPAddress}]:{Port}";
 
         #endregion
 

@@ -68,6 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             public String        LoggingPath     { get; }
             public String        Context         { get; }
+            public IHTTPClient?  HTTPClient      { get; set; }
             public String        LogEventName    { get; }
             public HTTPRequest   Request         { get; }
             public HTTPResponse  Response        { get; }
@@ -374,9 +375,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var logFileName  = this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName);
                     var retry        = 0;
                     var data         = String.Concat(
-                                           loggingData.Request.HTTPSource.Socket == loggingData.Request.LocalSocket
-                                               ? $"{loggingData.Request.LocalSocket} -> {loggingData.Request.RemoteSocket}"
-                                               : $"{loggingData.Request.HTTPSource } -> {loggingData.Request.LocalSocket}",                              Environment.NewLine,
+                                           loggingData.Response.HTTPSource.Socket == loggingData.Response.LocalSocket
+                                               ? $"{loggingData.Response.RemoteSocket} -> {loggingData.Response.LocalSocket}"
+                                               : $"{loggingData.Response.LocalSocket } -> {loggingData.Response.HTTPSource}",                            Environment.NewLine,
                                            ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                           Environment.NewLine,
                                            loggingData.Request. Timestamp.ToISO8601(),                                                                   Environment.NewLine,
                                            loggingData.Request. EntirePDU,                                                                               Environment.NewLine,

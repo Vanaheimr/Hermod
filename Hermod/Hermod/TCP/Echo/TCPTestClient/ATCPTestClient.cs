@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public  TimeSpan                         ReceiveTimeout            { get; }
         public  TimeSpan                         SendTimeout               { get; }
         public  TransmissionRetryDelayDelegate?  TransmissionRetryDelay    { get; }
-        public  UInt16?                          MaxNumberOfRetries        { get; }
+        public  UInt16                           MaxNumberOfRetries        { get; } = 3;
         public  UInt32                           BufferSize                { get; }
 
 
@@ -542,7 +542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (RemoteIPAddress is not null)
                 {
 
-                    var remotePort    = RemoteURL?.Port ?? dnsSRVRemotePort ?? RemotePort;
+                    var remotePort   = RemoteURL?.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
                     {
@@ -550,22 +550,63 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         throw new Exception("The remote TCP port must not be null!");
                     }
 
-                    clientCancellationTokenSource = new CancellationTokenSource();
-                    tcpClient         = new TcpClient();
-                    var connectTask   = tcpClient.ConnectAsync(RemoteIPAddress.ToDotNet(), remotePort.Value.ToUInt16());
+                    RemotePort     ??= remotePort;
 
-                    if (await Task.WhenAny(connectTask, Task.Delay(ConnectTimeout, clientCancellationTokenSource.Token)) == connectTask)
+                    if (clientCancellationTokenSource.IsCancellationRequested)
+                        clientCancellationTokenSource = new CancellationTokenSource();
+
+                    var connectTokenSource  = new CancellationTokenSource();
+                    var linkedTokenSource   = CancellationTokenSource.CreateLinkedTokenSource(
+                                                  clientCancellationTokenSource.Token,
+                                                  connectTokenSource.           Token
+                                              );
+
+                    tcpClient               = new TcpClient {
+                                                  ReceiveTimeout  = (Int32) ReceiveTimeout.TotalMilliseconds, // Only relevant for sync I/O!
+                                                  SendTimeout     = (Int32) SendTimeout.   TotalMilliseconds, // Only relevant for sync I/O!
+                                                  LingerState     = new LingerOption(true, 5),
+                                                  NoDelay         = false
+                                              };
+
+                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive,              true);
+                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval,     10);
+                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount,    3);
+                    tcpClient.Client.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime,        600);
+
+                    try
                     {
-                        await connectTask; // Await to throw if failed
-                        tcpClient.ReceiveTimeout = (Int32) ReceiveTimeout.TotalMilliseconds;
-                        tcpClient.SendTimeout    = (Int32) SendTimeout.TotalMilliseconds;
-                        tcpClient.LingerState    = new LingerOption(true, 1);
-                        await Log("Client connected!");
+
+                        var connectTask  = tcpClient.ConnectAsync(
+                                               RemoteIPAddress. ToDotNet(),
+                                               remotePort.Value.ToUInt16(),
+                                               linkedTokenSource.Token
+                                           ).AsTask();
+
+                        var waitTask     = Task.Delay(
+                                               ConnectTimeout,
+                                               CancellationToken.None
+                                           );
+
+                        if (await Task.WhenAny(connectTask, waitTask ) == waitTask)
+                            connectTokenSource.Cancel();
+
+                        // Await to throw if failed
+                        await connectTask;
+
                     }
-                    else
+                    catch (OperationCanceledException)
                     {
-                        throw new TimeoutException("Connection timeout");
+                        await Log("Connection timeout!");
+                        throw new TimeoutException("Connection timeout!");
                     }
+                    finally
+                    {
+                        // Clean up on failure
+                        if (!tcpClient.Connected)
+                            tcpClient.Dispose();
+                    }
+
+                    await Log("Client connected!");
 
                 }
 
