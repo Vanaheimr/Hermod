@@ -459,11 +459,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         DNSService.IsNotNullOrEmpty())
                     {
 
+                        DebugX.LogT($"DNS SRV queries for '{DNSService}.{hostname}'...");
+
                         // Look up the DNS Name or the hostname of the URL...
                         var serviceRecords         = await DNSClient.Query_DNSService(
                                                                DNSServiceName.Parse($"{DNSService}.{hostname}"),
                                                                CancellationToken: CancellationToken
                                                            ).ConfigureAwait(false);
+
+                        DebugX.LogT($"DNS SRV: {serviceRecords.Count()} service records found:" + serviceRecords.Select(serviceRecord => serviceRecord.ToString()).AggregateWith(", "));
 
                         var minPriority            = serviceRecords. Min  (serviceRecord => serviceRecord.Priority);
                         var priorityRecords        = serviceRecords. Where(serviceRecord => serviceRecord.Priority == minPriority).ToArray();
@@ -505,6 +509,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         DNSClient       is not null)
                     {
 
+                        var remote = dnsSRVRemoteHost ?? DomainName.Parse(hostname);
+
+                        DebugX.LogT($"DNS A/AAAA queries for '{remote}'...");
+
                         // Look up the DNS SRV remote host or the hostname of the URL...
                         var ipv4AddressLookupTask = DNSClient.Query_IPv4Addresses(dnsSRVRemoteHost ?? DomainName.Parse(hostname), CancellationToken: CancellationToken);
                         var ipv6AddressLookupTask = DNSClient.Query_IPv6Addresses(dnsSRVRemoteHost ?? DomainName.Parse(hostname), CancellationToken: CancellationToken);
@@ -513,6 +521,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   ipv4AddressLookupTask,
                                   ipv6AddressLookupTask
                               ).ConfigureAwait(false);
+
+                        DebugX.LogT(   $"A{(PreferIPv4 ? " (preferred)" : "")}: {ipv4AddressLookupTask.Result.Count()} IPv4 addresses found: {ipv4AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
+                        DebugX.LogT($"AAAA{(PreferIPv4 ? "" : " (preferred)")}: {ipv6AddressLookupTask.Result.Count()} IPv6 addresses found: {ipv6AddressLookupTask.Result.Select(ip => ip.ToString()).AggregateWith(", ")}");
 
                         if (PreferIPv4)
                         {
