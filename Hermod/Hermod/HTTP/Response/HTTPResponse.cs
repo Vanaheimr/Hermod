@@ -562,6 +562,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              Stream?            HTTPBodyStream              = null,
                              UInt32?            HTTPBodyReceiveBufferSize   = DefaultHTTPBodyReceiveBufferSize,
                              Object?            SubprotocolResponse         = null,
+                             AHTTPTestClient?   HTTPClient                  = null,
 
                              EventTracking_Id?  EventTrackingId             = null,
                              TimeSpan?          Runtime                     = null,
@@ -595,6 +596,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             this.Runtime              = Runtime ?? (HTTPRequest is not null
                                                         ? Timestamp - HTTPRequest.Timestamp
                                                         : TimeSpan.Zero);
+
+            this.HTTPClient           = HTTPClient;
 
         }
 
@@ -651,6 +654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     null,
                     SubprotocolResponse,
+                    null,
 
                     EventTrackingId,
                     Runtime,
@@ -659,7 +663,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Parse(Time, Runtime, Request, LocalSocket, RemoteSocket, HTTPSource, ResponseHeader, SubprotocolResponse = null)
+        #region (static) Parse(Time, Runtime, Request, HTTPClient, LocalSocket, RemoteSocket, HTTPSource, ResponseHeader, SubprotocolResponse = null)
 
         /// <summary>
         /// Parse the HTTP response from its text representation and
@@ -671,6 +675,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static HTTPResponse Parse(DateTimeOffset      Time,
                                          TimeSpan            Runtime,
                                          HTTPRequest         Request,
+                                         AHTTPTestClient     HTTPClient,
                                          IPSocket            LocalSocket,
                                          IPSocket            RemoteSocket,
                                          HTTPSource          HTTPSource,
@@ -691,6 +696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     null,
                     null,
                     SubprotocolResponse,
+                    HTTPClient,
 
                     EventTrackingId,
                     Runtime,
@@ -720,15 +726,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          CancellationToken   CancellationToken     = default)
 
             => new (Illias.Timestamp.Now,
-                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                    IPSocket.LocalhostV4(IPPort.HTTPS),
-                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request?.HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                    Request?.LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request?.LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                     ResponseHeader,
                     Request,
                     ResponseBody,
                     null,
                     null,
                     SubprotocolResponse,
+                    null,
 
                     EventTrackingId,
                     Runtime,
@@ -758,15 +765,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          CancellationToken  CancellationToken     = default)
 
             => new (Illias.Timestamp.Now,
-                    new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                    IPSocket.LocalhostV4(IPPort.HTTPS),
-                    IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request?.HTTPSource  ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                    Request?.LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+                    Request?.LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                     ResponseHeader,
                     Request,
                     null,
                     ResponseBodyStream,
                     null,
                     SubprotocolResponse,
+                    null,
 
                     EventTrackingId,
                     Runtime,
@@ -812,14 +820,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 var body      = Text.SkipWhile(line => line != "").Skip(1).AggregateWith("\r\n");
 
                 HTTPResponse  = new HTTPResponse(
-                                    Timestamp ?? Illias.Timestamp.Now,
-                                    HTTPSource ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
-                                    LocalSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
+
+                                    Timestamp    ?? Illias.Timestamp.Now,
+                                    HTTPSource   ?? new HTTPSource(IPSocket.LocalhostV4(IPPort.HTTPS)),
+                                    LocalSocket  ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                     RemoteSocket ?? IPSocket.LocalhostV4(IPPort.HTTPS),
                                     header,
                                     Request,
                                     body.ToUTF8Bytes(),
 
+                                    null,
                                     null,
                                     null,
                                     null,
@@ -830,6 +840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     : TimeSpan.Zero),
                                     NumberOfRetries,
                                     CancellationToken
+
                                 );
 
                 return true;
@@ -964,9 +975,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                              CancellationToken    CancellationToken        = default)
 
             => LoadHTTPResponseLogfiles_old(
-                   new[] {
-                       FilePath
-                   },
+                   [ FilePath ],
                    FilePattern,
                    FromTimestamp,
                    ToTimestamp,
@@ -1108,7 +1117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 DebugX.Log(e.Message);
             }
 
-            return Array.Empty<HTTPResponse>();
+            return [];
 
         }
 
@@ -1208,8 +1217,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             copy               = "none";
-                            httpRequestLines   = new List<String>();
-                            httpResponseLines  = new List<String>();
+                            httpRequestLines   = [];
+                            httpResponseLines  = [];
 
                         }
 

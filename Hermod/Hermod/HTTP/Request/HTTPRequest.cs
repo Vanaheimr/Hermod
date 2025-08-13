@@ -1102,7 +1102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <example>X-Forwarded-For: 95.91.73.30</example>
         public IEnumerable<IIPAddress> X_Forwarded_For
 
-            => GetHeaderFields(HTTPRequestHeaderField.X_Forwarded_For);
+            => GetHeaderFields(HTTPRequestHeaderField.X_Forwarded_For) ?? [];
 
         #endregion
 

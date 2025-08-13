@@ -305,9 +305,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var logFileName     = this.LogfileCreator(this.LoggingPath, this.Context, requestLogData.LogEventName);
                     var retry           = 0;
                     var data            = String.Concat(
-                                              requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket
-                                                  ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"
-                                                  : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",
+                                              requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket // A HTTP Client Request!
+                                                   ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"  // A HTTP Client Request!
+                                                   : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",  // A HTTP Server Request!
+                                              //requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket
+                                              //    ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"
+                                              //    : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",
                                               requestLogData.Request.IsKeepAlive
                                                   ? $" (KeepAlive: {requestLogData.Request.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
                                                   : "",                                                                            Environment.NewLine,
@@ -377,9 +380,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var logFileName      = this.LogfileCreator(this.LoggingPath, this.Context, responseLogData.LogEventName);
                     var retry            = 0;
                     var data             = String.Concat(
-                                               responseLogData.Response.HTTPSource.Socket == responseLogData.Response.LocalSocket
-                                                   ? $"{responseLogData.Response.RemoteSocket} -> {responseLogData.Response.LocalSocket}"
-                                                   : $"{responseLogData.Response.LocalSocket } -> {responseLogData.Response.HTTPSource}",
+                                               responseLogData.Response.HTTPSource.Socket == responseLogData.Response.LocalSocket // A HTTP Client Request!
+                                                   ? $"{responseLogData.Response.LocalSocket} -> {responseLogData.Response.RemoteSocket}"  // A HTTP Client Request!
+                                                   : $"{responseLogData.Response.HTTPSource } -> {responseLogData.Response.LocalSocket}",  // A HTTP Server Request!
                                                responseLogData.Response.IsKeepAlive
                                                   ? $" (KeepAlive: {responseLogData.Response.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
                                                   : "",                                                                                                              Environment.NewLine,

@@ -847,8 +847,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
                             #region Log  HTTP Request
 
-                            if (LocalSocket. HasValue)
-                                Request.LocalSocket   = LocalSocket. Value;
+                            if (LocalSocket. HasValue) {
+                                Request.LocalSocket   = LocalSocket.Value;
+                                Request.HTTPSource    = new HTTPSource(LocalSocket.Value);
+                            }
 
                             if (RemoteSocket.HasValue)
                                 Request.RemoteSocket  = RemoteSocket.Value;
@@ -952,9 +954,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    Timestamp.Now,
                                                    stopwatch.Elapsed,
                                                    Request,
+                                                   this,
                                                    LocalSocket!. Value,
                                                    RemoteSocket!.Value,
-                                                   HTTPSource.Parse(RemoteSocket?.ToString() ?? ""),
+                                                   new HTTPSource(LocalSocket!.Value),
                                                    Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
                                                    CancellationToken: Request.CancellationToken
                                                );
