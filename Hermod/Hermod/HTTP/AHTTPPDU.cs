@@ -17,13 +17,16 @@
 
 #region Usings
 
-using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 using System.Buffers;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
-using System.Text;
+using System.Diagnostics.CodeAnalysis;
+
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -85,6 +88,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// An unique event tracking identification for correlating this request with other events.
         /// </summary>
         public EventTracking_Id         EventTrackingId      { get; }
+
+
+        public HTTPTestServerX?         HTTPTestServerX      { get; internal set; }
+
+        public AHTTPTestClient?         HTTPClient           { get; internal set; }
 
         /// <summary>
         /// The remote TCP/IP socket.

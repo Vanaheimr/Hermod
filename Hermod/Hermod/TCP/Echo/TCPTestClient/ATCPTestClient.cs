@@ -210,18 +210,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS Name to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public DomainName?                       DomainName                { get; }
+        public  DomainName?                      DomainName                { get; }
 
         /// <summary>
         /// The DNS Service to lookup in order to resolve high available IP addresses and TCP ports.
         /// </summary>
-        public SRV_Spec?                         DNSService                { get; }
+        public  SRV_Spec?                        DNSService                { get; }
 
 
         /// <summary>
         /// Whether the client is currently connected to the.
         /// </summary>
-        public Boolean                           IsConnected
+        public  Boolean                          IsConnected
             => tcpClient?.Connected ?? false;
 
 
@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient?                        DNSClient                 { get; }
+        public  DNSClient?                       DNSClient                 { get; }
 
         #endregion
 
@@ -639,76 +639,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #endregion
 
 
-        #region (protected) SendText   (Text)
+        /// <summary>
+        /// SelectMode.SelectRead is "true" if:
+        /// - Data is available to read (Available > 0)
+        ///     _OR_
+        /// - The remote has closed the connection (FIN) or the connection is in an error state
+        /// </summary>
+        protected Boolean PollConnectionRead
+            => tcpClient?.GetStream().Socket.Poll(0, SelectMode.SelectRead) == true;
 
-        ///// <summary>
-        ///// Send the given message to the and receive the echoed response.
-        ///// </summary>
-        ///// <param name="Text">The text message to send and echo.</param>
-        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        //protected async Task<(Boolean, String, String?, TimeSpan)> SendXText(String Text)
-        //{
+        /// <summary>
+        /// It doesn't mean the other end is still reachable!
+        /// It only says: your kernel will accept data into the send buffer right now
+        /// </summary>
+        protected Boolean PollConnectionWrite
+            => tcpClient?.GetStream().Socket.Poll(0, SelectMode.SelectWrite) == true;
 
-        //    var response  = await SendXBinary(Encoding.UTF8.GetBytes(Text));
-        //    var text      = Encoding.UTF8.GetString(response.Item2, 0, response.Item2.Length);
+        /// <summary>
+        /// Poll non-blocking for readability
+        /// If poll indicates readable but no data available, it's likely closed (EOF detected)
+        /// </summary>
+        protected Boolean IsConnectionClosed
+        {
+            get {
 
-        //    return (response.Item1,
-        //            text,
-        //            response.Item3,
-        //            response.Item4);
+                var socket = tcpClient?.GetStream().Socket;
 
-        //}
+                if (socket is null)
+                    return true;
 
-        #endregion
+                return socket.Poll(0, SelectMode.SelectRead) && (socket.Available == 0);
 
-        #region (protected) SendBinary (Bytes)
-
-        ///// <summary>
-        ///// Send the given bytes to the and receive the echoed response.
-        ///// </summary>
-        ///// <param name="Bytes">The bytes to send and echo.</param>
-        ///// <returns>Whether the echo was successful, the echoed response, an optional error response, and the time taken to send and receive it.</returns>
-        //protected async Task<(Boolean, Byte[], String?, TimeSpan)> SendXBinary(Byte[] Bytes)
-        //{
-
-        //    if (!IsConnected || tcpClient is null)
-        //        return (false, Array.Empty<Byte>(), "Client is not connected.", TimeSpan.Zero);
-
-        //    try
-        //    {
-
-        //        var stopwatch   = Stopwatch.StartNew();
-        //        var stream      = tcpClient.GetStream();
-        //        cts           ??= new CancellationTokenSource();
-
-        //        // Send the data
-        //        await stream.WriteAsync(Bytes, cts.Token).ConfigureAwait(false);
-        //        await stream.FlushAsync(cts.Token).ConfigureAwait(false);
-
-        //        using var responseStream = new MemoryStream();
-        //        var buffer     = new Byte[8192];
-        //        var bytesRead  = 0;
-
-        //        while ((bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false)) > 0)
-        //        {
-        //            await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cts.Token).ConfigureAwait(false);
-        //        }
-
-        //        stopwatch.Stop();
-
-        //        return (true, responseStream.ToArray(), null, stopwatch.Elapsed);
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await Log($"Error in SendBinary: {ex.Message}");
-        //        return (false, Array.Empty<Byte>(), ex.Message, TimeSpan.Zero);
-        //    }
-
-        //}
-
-        #endregion
-
+            }
+        }
 
 
         #region (protected) LogEvent     (Module, Logger, LogHandler, ...)

@@ -68,7 +68,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
             public String        LoggingPath     { get; }
             public String        Context         { get; }
-            public IHTTPClient?  HTTPClient      { get; set; }
             public String        LogEventName    { get; }
             public HTTPRequest   Request         { get; }
             public HTTPResponse  Response        { get; }
@@ -232,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var PreviousColor = Console.ForegroundColor;
 
                     Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write("[" + loggingData.Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+                    Console.Write($"[{loggingData.Request.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
 
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.Write(this.Context + "/");
@@ -262,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     var PreviousColor = Console.ForegroundColor;
 
                     Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write("[" + loggingData.Request.Timestamp.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+                    Console.Write($"[{loggingData.Request.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
 
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.Write(this.Context + "/");
@@ -302,18 +301,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 do
                 {
 
-                    var requestData  = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
-                    var logFileName  = this.LogfileCreator(this.LoggingPath, this.Context, requestData.LogEventName);
-                    var retry        = 0;
-                    var data         = String.Concat(
-                                           requestData.Request.HTTPSource.Socket == requestData.Request.LocalSocket
-                                               ? $"{requestData.Request.LocalSocket} -> {requestData.Request.RemoteSocket}"
-                                               : $"{requestData.Request.HTTPSource } -> {requestData.Request.LocalSocket}",     Environment.NewLine,
-                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
-                                           requestData.Request.Timestamp.ToISO8601(),                                           Environment.NewLine,
-                                           requestData.Request.EntirePDU,                                                       Environment.NewLine,
-                                           "--------------------------------------------------------------------------------",  Environment.NewLine
-                                       );
+                    var requestLogData  = await discRequestChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                    var logFileName     = this.LogfileCreator(this.LoggingPath, this.Context, requestLogData.LogEventName);
+                    var retry           = 0;
+                    var data            = String.Concat(
+                                              requestLogData.Request.HTTPSource.Socket == requestLogData.Request.LocalSocket
+                                                  ? $"{requestLogData.Request.LocalSocket} -> {requestLogData.Request.RemoteSocket}"
+                                                  : $"{requestLogData.Request.HTTPSource } -> {requestLogData.Request.LocalSocket}",
+                                              requestLogData.Request.IsKeepAlive
+                                                  ? $" (KeepAlive: {requestLogData.Request.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
+                                                  : "",                                                                            Environment.NewLine,
+                                              ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",  Environment.NewLine,
+                                              requestLogData.Request.Timestamp.ToISO8601(),                                        Environment.NewLine,
+                                              requestLogData.Request.EntirePDU,                                                    Environment.NewLine,
+                                              "--------------------------------------------------------------------------------",  Environment.NewLine
+                                          );
 
                     do
                     {
@@ -371,21 +373,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 do
                 {
 
-                    var loggingData  = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
-                    var logFileName  = this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName);
-                    var retry        = 0;
-                    var data         = String.Concat(
-                                           loggingData.Response.HTTPSource.Socket == loggingData.Response.LocalSocket
-                                               ? $"{loggingData.Response.RemoteSocket} -> {loggingData.Response.LocalSocket}"
-                                               : $"{loggingData.Response.LocalSocket } -> {loggingData.Response.HTTPSource}",                            Environment.NewLine,
-                                           ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                           Environment.NewLine,
-                                           loggingData.Request. Timestamp.ToISO8601(),                                                                   Environment.NewLine,
-                                           loggingData.Request. EntirePDU,                                                                               Environment.NewLine,
-                                           "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                           Environment.NewLine,
-                                        $"{loggingData.Response.Timestamp.ToISO8601()} -> {loggingData.Response.Runtime.TotalMilliseconds} ms runtime",  Environment.NewLine,
-                                           loggingData.Response.EntirePDU,                                                                               Environment.NewLine,
-                                           "--------------------------------------------------------------------------------",                           Environment.NewLine
-                                       );
+                    var responseLogData  = await discResponseChannel.Reader.ReadAsync(cancellationTokenSource.Token);
+                    var logFileName      = this.LogfileCreator(this.LoggingPath, this.Context, responseLogData.LogEventName);
+                    var retry            = 0;
+                    var data             = String.Concat(
+                                               responseLogData.Response.HTTPSource.Socket == responseLogData.Response.LocalSocket
+                                                   ? $"{responseLogData.Response.RemoteSocket} -> {responseLogData.Response.LocalSocket}"
+                                                   : $"{responseLogData.Response.LocalSocket } -> {responseLogData.Response.HTTPSource}",
+                                               responseLogData.Response.IsKeepAlive
+                                                  ? $" (KeepAlive: {responseLogData.Response.HTTPClient?.KeepAliveMessageCount.ToString() ?? "-"})"
+                                                  : "",                                                                                                              Environment.NewLine,
+                                               ">>>>>>--Request----->>>>>>------>>>>>>------>>>>>>------>>>>>>------>>>>>>------",                                   Environment.NewLine,
+                                               responseLogData.Request. Timestamp.ToISO8601(),                                                                       Environment.NewLine,
+                                               responseLogData.Request. EntirePDU,                                                                                   Environment.NewLine,
+                                               "<<<<<<--Response----<<<<<<------<<<<<<------<<<<<<------<<<<<<------<<<<<<------",                                   Environment.NewLine,
+                                            $"{responseLogData.Response.Timestamp.ToISO8601()} -> {responseLogData.Response.Runtime.TotalMilliseconds} ms runtime",  Environment.NewLine,
+                                               responseLogData.Response.EntirePDU,                                                                                   Environment.NewLine,
+                                               "--------------------------------------------------------------------------------",                                   Environment.NewLine
+                                           );
 
                     do
                     {

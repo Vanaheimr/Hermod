@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     var PreviousColor = Console.ForegroundColor;
 
                     Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+                    Console.Write($"[{Timestamp.Now.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
 
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.Write(this.Context + "/");
@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                     var PreviousColor = Console.ForegroundColor;
 
                     Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write("[" + Timestamp.Now.ToLocalTime() + " T:" + Environment.CurrentManagedThreadId.ToString() + "] ");
+                    Console.Write($"[{Timestamp.Now.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ");
 
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.Write(this.Context + "/");
@@ -312,7 +312,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                         {
 
                             File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
-                                               String.Concat("[", Timestamp.Now.ToLocalTime(), " T:", Environment.CurrentManagedThreadId.ToString(), "] ",
+                                               String.Concat($"[{Timestamp.Now.ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ",
                                                              this.Context, "/",
                                                              loggingData.LogEventName,
                                                              loggingData.Request,
@@ -374,7 +374,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Logging
                         {
 
                             File.AppendAllText(this.LogfileCreator(this.LoggingPath, this.Context, loggingData.LogEventName),
-                                               String.Concat("[", Timestamp.Now.ToLocalTime(), " T:", Environment.CurrentManagedThreadId.ToString(), "] ",
+                                               String.Concat($"[{Timestamp.Now.ToLocalTime().ToLocalTime():dd.MM.yyyy HH:mm:ss zzz} T:{Environment.CurrentManagedThreadId}] ",
                                                              Context, "/",
                                                              loggingData.LogEventName,
                                                              loggingData.Request,

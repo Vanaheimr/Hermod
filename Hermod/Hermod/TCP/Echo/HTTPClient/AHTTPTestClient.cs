@@ -810,7 +810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                         if (retry > 1)
                             DebugX.LogT($"{nameof(AHTTPClient)}.{nameof(SendRequest)} {RemoteURL?.ToString() ?? RemoteSocket?.ToString() ?? "?"}, retry #{retry} of {MaxNumberOfRetries}...");
 
-                        if (!IsConnected || !IsHTTPConnected)
+                        if (!IsConnected || !IsHTTPConnected || IsConnectionClosed)
                         {
                             try
                             {
@@ -848,12 +848,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                             #region Log  HTTP Request
 
                             if (LocalSocket. HasValue)
-                                Request.LocalSocket   = LocalSocket.Value;
+                                Request.LocalSocket   = LocalSocket. Value;
 
                             if (RemoteSocket.HasValue)
                                 Request.RemoteSocket  = RemoteSocket.Value;
 
                             Request.HTTPClient      ??= this;
+                            KeepAliveMessageCount++;
 
                             await LogEvent(
                                       ClientRequestLogDelegate,
@@ -957,6 +958,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                                    Encoding.UTF8.GetString(buffer[..endOfHTTPHeaderIndex].Span),
                                                    CancellationToken: Request.CancellationToken
                                                );
+
+                                response.HTTPClient ??= this;
 
                                 #endregion
 

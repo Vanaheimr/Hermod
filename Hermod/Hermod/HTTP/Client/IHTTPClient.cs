@@ -131,6 +131,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
 
+        UInt64                                                     KeepAliveMessageCount         { get; }
+
+
 
         //int Available { get; }
         //X509Certificate ClientCert { get; }

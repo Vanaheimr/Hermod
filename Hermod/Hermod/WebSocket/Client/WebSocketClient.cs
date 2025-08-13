@@ -204,6 +204,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public DNSClient?                                                      DNSClient                                 { get; }
 
 
+        public UInt64                                                          KeepAliveMessageCount                     { get; private set; } = 0;
+
+
 
         /// <summary>
         /// Our local IP port.

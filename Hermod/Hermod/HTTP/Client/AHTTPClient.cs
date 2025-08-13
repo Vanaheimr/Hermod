@@ -311,6 +311,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public DNSClient                                                  DNSClient                     { get; }
 
+        public UInt64                                                     KeepAliveMessageCount         { get; private set; } = 0;
+
 
         #region TCP Socket
 
