@@ -133,24 +133,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region NullableListOfStrings       (String, out Strings)
+        #region NullableListOfStrings       (String,         out List)
 
         /// <summary>
         /// A delegate to parse a UInt64? value from a string.
         /// </summary>
         /// <param name="String">The string to be parsed.</param>
-        /// <param name="Strings">The parsed list of strings.</param>
-        public static Boolean NullableListOfStrings(String String, out IEnumerable<String> Strings)
+        /// <param name="List">The parsed list of strings.</param>
+        public static Boolean NullableListOfStrings(String String, out IEnumerable<String> List)
         {
 
             var elements = String.Split(",");
 
-            Strings = elements.Length == 0
-                          ? Array.Empty<String>()
-                          : elements.Where  (element => element is not null).
-                                     Select (element => element.Trim()).
-                                     Where  (element => element.IsNotNullOrEmpty()).
-                                     ToArray();
+            List = elements.Length == 0
+                       ? []
+                       : elements.Where  (element => element is not null).
+                                  Select (element => element.Trim()).
+                                  Where  (element => element.IsNotNullOrEmpty()).
+                                  ToArray();
 
             return true;
 
@@ -158,56 +158,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region NullableHashSetOfStrings    (String, out Strings)
+        #region NullableListOf              (String, Parser, out List)
 
         /// <summary>
-        /// A delegate to parse a hash set of strings from a string.
+        /// A delegate to parse a UInt64? value from a string.
         /// </summary>
         /// <param name="String">The string to be parsed.</param>
-        /// <param name="Strings">The parsed hash set of strings.</param>
-        public static Boolean NullableHashSetOfStrings(String String, out IEnumerable<String> Strings)
-        {
-
-            var elements  = String.Split(",");
-            var list      = new List<String>();
-
-            if (elements.Length == 0)
-            {
-                Strings = Array.Empty<String>();
-                return true;
-            }
-
-            foreach (var element in elements)
-            {
-
-                var element2 = element?.Trim();
-
-                if (element2 is not null &&
-                    element2.IsNotNullOrEmpty() &&
-                    !list.Contains(element2))
-                {
-                    list.Add(element2);
-                }
-
-            }
-
-            Strings = list.ToArray();
-            return true;
-
-        }
-
-        #endregion
-
-        #region NullableHashSet             (String, out Strings)
-
-        /// <summary>
-        /// A delegate to parse a hash set of strings from a string.
-        /// </summary>
-        /// <param name="String">The string to be parsed.</param>
-        /// <param name="Strings">The parsed hash set of strings.</param>
-        public static Boolean NullableHashSet<T>(String              String,
-                                                 TryParser<T>        Parser,
-                                                 out IEnumerable<T>  Strings)
+        /// <param name="Parser">The delegate to parse the string into a value of type T.</param>
+        /// <param name="List">The parsed list of type T.</param>
+        public static Boolean NullableListOf<T>(String              String,
+                                                TryParser<T>        Parser,
+                                                out IEnumerable<T>  List)
         {
 
             var list      = new List<T>();
@@ -227,7 +188,84 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            Strings = list.ToArray();
+            List = list;
+            return true;
+
+        }
+
+        #endregion
+
+        #region NullableHashSetOfStrings    (String,         out HashSet)
+
+        /// <summary>
+        /// A delegate to parse a hash set of strings from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="HashSet">The parsed hash set of strings.</param>
+        public static Boolean NullableHashSetOfStrings(String String, out IEnumerable<String> HashSet)
+        {
+
+            var elements  = String.Split(",");
+            var hashSet   = new HashSet<String>();
+
+            if (elements.Length == 0)
+            {
+                HashSet = [];
+                return true;
+            }
+
+            foreach (var element in elements)
+            {
+
+                var element2 = element?.Trim();
+
+                if (element2 is not null &&
+                    element2.IsNotNullOrEmpty() &&
+                    !hashSet.Contains(element2))
+                {
+                    hashSet.Add(element2);
+                }
+
+            }
+
+            HashSet = hashSet;
+            return true;
+
+        }
+
+        #endregion
+
+        #region NullableHashSetOf           (String, Parser, out HashSet)
+
+        /// <summary>
+        /// A delegate to parse a hash set from a string.
+        /// </summary>
+        /// <param name="String">The string to be parsed.</param>
+        /// <param name="Parser">The delegate to parse the string into a value of type T.</param>
+        /// <param name="HashSet">The parsed hash set of type T.</param>
+        public static Boolean NullableHashSetOf<T>(String              String,
+                                                   TryParser<T>        Parser,
+                                                   out IEnumerable<T>  HashSet)
+        {
+
+            var hashSet   = new HashSet<T>();
+            var elements  = String.Split (",", StringSplitOptions.RemoveEmptyEntries).
+                                   Select(element => element.Trim());
+
+            foreach (var element in elements)
+            {
+
+                if (element is not null &&
+                    element.IsNotNullOrEmpty() &&
+                    Parser(element, out var TTT) &&
+                    TTT is not null)
+                {
+                    hashSet.Add(TTT);
+                }
+
+            }
+
+            HashSet = hashSet;
             return true;
 
         }

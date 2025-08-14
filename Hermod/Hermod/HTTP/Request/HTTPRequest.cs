@@ -1099,12 +1099,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Intermediary HTTP proxies might include this field to
         /// indicate the real IP address of the HTTP client.
         /// </summary>
-        /// <example>X-Forwarded-For: 95.91.73.30</example>
+        /// <example>X-Forwarded-For: client, proxy1, proxy2</example>
         public IEnumerable<IIPAddress> X_Forwarded_For
 
             => GetHeaderFields(HTTPRequestHeaderField.X_Forwarded_For) ?? [];
 
         #endregion
+
+        //ToDo: Forwarded / RFC 7239
 
         #region API-Key
 
@@ -1671,32 +1673,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #endregion
 
 
-            return new HTTPRequest(
+            var request = new HTTPRequest(
 
-                       Timestamp,
-                       HTTPSource,
-                       LocalSocket,
-                       RemoteSocket,
+                              Timestamp,
+                              HTTPSource,
+                              LocalSocket,
+                              RemoteSocket,
 
-                       HTTPHeader,
-                       httpMethod,
-                       path,
-                       protocolName,
-                       httpProtocolVersion,
-                       headerFields,
+                              HTTPHeader,
+                              httpMethod,
+                              path,
+                              protocolName,
+                              httpProtocolVersion,
+                              headerFields,
 
-                       queryString,
-                       HTTPBody,
-                       HTTPBodyStream,
-                       HTTPServer,
-                       ServerCertificate,
-                       ClientCertificate,
+                              queryString,
+                              HTTPBody,
+                              HTTPBodyStream,
+                              HTTPServer,
+                              ServerCertificate,
+                              ClientCertificate,
 
-                       //HTTPBodyReceiveBufferSize,
-                       EventTrackingId:    EventTrackingId,
-                       CancellationToken:  CancellationToken
+                              //HTTPBodyReceiveBufferSize,
+                              EventTrackingId:    EventTrackingId,
+                              CancellationToken:  CancellationToken
 
-                   );
+                          );
+
+            var httpSources = request.X_Forwarded_For;
+            if (httpSources.Any())
+            {
+                request.HTTPSource = new HTTPSource(
+                    request.RemoteSocket,
+                    httpSources.Skip(1)
+                );
+            }
+
+            return request;
 
         }
 
@@ -1748,7 +1761,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     else
                     {
 
-                        Header  = Text.Substring(0, EndOfHeader + 2);
+                        Header  = Text[..(EndOfHeader + 2)];
 
                         if (EndOfHeader + 4 < Text.Length)
                             Body  = Text[(EndOfHeader + 4)..].ToUTF8Bytes();
@@ -1769,6 +1782,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
+
+                    var httpSources = Request.X_Forwarded_For;
+                    if (httpSources.Any())
+                    {
+                        Request.HTTPSource = new HTTPSource(
+                            Request.RemoteSocket,
+                            httpSources.Skip(1)
+                        );
+                    }
 
                     return true;
 
@@ -1840,6 +1862,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   CancellationToken:  CancellationToken
                               );
 
+                    var httpSources = Request.X_Forwarded_For;
+                    if (httpSources.Any())
+                    {
+                        Request.HTTPSource = new HTTPSource(
+                            Request.RemoteSocket,
+                            httpSources.Skip(1)
+                        );
+                    }
+
                     return true;
 
                 }
@@ -1907,6 +1938,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   CancellationToken:  CancellationToken
                               );
 
+                    var httpSources = Request.X_Forwarded_For;
+                    if (httpSources.Any())
+                    {
+                        Request.HTTPSource = new HTTPSource(
+                            Request.RemoteSocket,
+                            httpSources.Skip(1)
+                        );
+                    }
+
                     return true;
 
                 }
@@ -1971,6 +2011,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
+
+                    var httpSources = Request.X_Forwarded_For;
+                    if (httpSources.Any())
+                    {
+                        Request.HTTPSource = new HTTPSource(
+                            Request.RemoteSocket,
+                            httpSources.Skip(1)
+                        );
+                    }
 
                     return true;
 
@@ -2037,6 +2086,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   EventTrackingId:    EventTrackingId,
                                   CancellationToken:  CancellationToken
                               );
+
+                    var httpSources = Request.X_Forwarded_For;
+                    if (httpSources.Any())
+                    {
+                        Request.HTTPSource = new HTTPSource(
+                            Request.RemoteSocket,
+                            httpSources.Skip(1)
+                        );
+                    }
 
                     return true;
 
@@ -2152,7 +2210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     var header  = Bytes.ToUTF8String().
-                                        Split(new String[] { "\r\n" },
+                                        Split([ "\r\n" ],
                                               StringSplitOptions.None).
                                         Where(line => line?.Trim().IsNotNullOrEmpty() == true).
                                         ToArray();
@@ -2169,6 +2227,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       EventTrackingId:    EventTrackingId,
                                       CancellationToken:  CancellationToken
                                   );
+
+                    var httpSources = Request.X_Forwarded_For;
+                    if (httpSources.Any())
+                    {
+                        Request.HTTPSource = new HTTPSource(
+                            Request.RemoteSocket,
+                            httpSources.Skip(1)
+                        );
+                    }
 
                     return true;
 

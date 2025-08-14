@@ -95,7 +95,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPMethod>> Allow = new ("Allow",
                                                                                              RequestPathSemantic.EndToEnd,
                                                                                              MultipleValuesAsList:  true,
-                                                                                             StringParser:         (String s, out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSet(s, HTTPMethod.TryParse, out o));
+                                                                                             StringParser:         (String s, out IEnumerable<HTTPMethod>? o) => StringParsers.NullableHashSetOf(s, HTTPMethod.TryParse, out o));
 
         #endregion
 
@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static readonly HTTPResponseHeaderField<IEnumerable<HTTPContentType>> AcceptPatch = new ("Accept-Patch",
                                                                                                         RequestPathSemantic.EndToEnd,
                                                                                                         MultipleValuesAsList:  true,
-                                                                                                        StringParser:         (String s, out IEnumerable<HTTPContentType>? o) => StringParsers.NullableHashSet(s, HTTPContentType.TryParse, out o));
+                                                                                                        StringParser:         (String s, out IEnumerable<HTTPContentType>? o) => StringParsers.NullableHashSetOf(s, HTTPContentType.TryParse, out o));
 
         #endregion
 

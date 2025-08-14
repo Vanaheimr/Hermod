@@ -91,6 +91,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public Boolean  IsAny
             => ipAddressArray.All(b => b == 0);
 
+        /// <summary>
+        /// If this is an IPv4-mapped IPv6 (::ffff:w.x.y.z) address, returns "w.x.y.z".
+        /// </summary>
+        public IPv4Address? MappedIPv4
+        {
+            get {
+
+                // 0000:0000:0000:0000:0000:...
+                for (var i = 0; i < 10; i++)
+                    if (ipAddressArray[i] != 0)
+                        return null;
+
+                // ...:ffff:...
+                if (ipAddressArray[10] != 0xFF || ipAddressArray[11] != 0xFF)
+                    return null;
+
+                return new IPv4Address(
+                           ipAddressArray[12],
+                           ipAddressArray[13],
+                           ipAddressArray[14],
+                           ipAddressArray[15]
+                       );
+
+            }
+        }
+
+        /// <summary>
+        /// True, when this is an IPv4-mapped IPv6 (::ffff:w.x.y.z) address.
+        /// </summary>
+        public Boolean IsMappedIPv4
+        {
+            get {
+
+                // 0000:0000:0000:0000:0000:...
+                for (var i = 0; i < 10; i++)
+                    if (ipAddressArray[i] != 0)
+                        return false;
+
+                // ...:ffff:...
+                if (ipAddressArray[10] != 0xFF || ipAddressArray[11] != 0xFF)
+                    return false;
+
+                return true;
+
+            }
+        }
+
         #endregion
 
         #region Constructor(s)
@@ -120,9 +167,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.InterfaceId     = InterfaceId ?? "";
             this.ipAddressArray  = new Byte[length];
 
-            Array.Copy(ByteArray,
-                       ipAddressArray,
-                       Math.Max(ByteArray.Length, length));
+            if (ByteArray.Length == length)
+                Array.Copy(
+                    ByteArray,
+                    ipAddressArray,
+                    Math.Min(ByteArray.Length, length)
+                );
+
+            if (ByteArray.Length == 4)
+            {
+
+                ipAddressArray[10] = 0xFF;
+                ipAddressArray[11] = 0xFF;
+
+                Array.Copy(
+                    ByteArray,       0,
+                    ipAddressArray, 12,
+                    4
+                );
+
+            }
 
         }
 
@@ -409,6 +473,31 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public static implicit operator System.Net.IPAddress(IPv6Address IPv6Address)
 
             => new (IPv6Address.GetBytes());
+
+        #endregion
+
+
+        #region FromIPv4(IPv4Address)
+
+        /// <summary>
+        /// Create a new IPv6 address by mapping the given IPv4 address to an IPv6 address.
+        /// </summary>
+        public static IPv6Address FromIPv4(IPv4Address IPv4Address)
+        {
+
+            var ipAddressArray = new Byte[length];
+            ipAddressArray[10] = 0xFF;
+            ipAddressArray[11] = 0xFF;
+
+            Array.Copy(
+                IPv4Address.GetBytes(),  0,
+                ipAddressArray,         12,
+                4
+            );
+
+            return new IPv6Address(ipAddressArray);
+
+        }
 
         #endregion
 

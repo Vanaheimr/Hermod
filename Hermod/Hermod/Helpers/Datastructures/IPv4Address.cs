@@ -141,15 +141,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// Create a new IPv4 address based on the given bytes.
         /// </summary>
-        public IPv4Address(Byte Byte1, Byte Byte2, Byte Byte3, Byte Byte4)
+        public IPv4Address(Byte Byte1,
+                           Byte Byte2,
+                           Byte Byte3,
+                           Byte Byte4)
         {
 
-            ipAddressArray = new Byte[] {
+            ipAddressArray = [
                                  Byte1,
                                  Byte2,
                                  Byte3,
                                  Byte4
-                             };
+                             ];
 
         }
 
@@ -200,16 +203,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IPv4Address(String IPv4AddressString)
         {
 
-            var splitted = IPv4AddressString.Split(splitter, StringSplitOptions.None);
+            var elements = IPv4AddressString.Split(splitter, StringSplitOptions.None);
 
-            if (splitted.Length != length)
+            if (elements.Length != length)
                 throw new ArgumentException("Invalid IPv4 address!");
 
             ipAddressArray = new Byte[length];
 
             for (var i=0; i<length; i++)
             {
-                if (Byte.TryParse(splitted[i], out Byte byteValue))
+                if (Byte.TryParse(elements[i], out var byteValue))
                     ipAddressArray[i] = byteValue;
             }
 
@@ -263,9 +266,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             var result = new Byte[length];
 
-            Array.Copy(ipAddressArray,
-                       result,
-                       length);
+            Array.Copy(
+                ipAddressArray,
+                result,
+                length
+            );
 
             return result;
 

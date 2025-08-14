@@ -1513,11 +1513,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// Intermediary HTTP proxies might include this field to
         /// indicate the real IP address of the HTTP client.
         /// </summary>
-        /// <example>X-Forwarded-For: 95.91.73.30</example>
+        /// <example>X-Forwarded-For: client, proxy1, proxy2</example>
         public static readonly HTTPRequestHeaderField<IEnumerable<IIPAddress>> X_Forwarded_For = new ("X-Forwarded-For",
                                                                                                       RequestPathSemantic.HopToHop,
                                                                                                       MultipleValuesAsList:  true,
-                                                                                                      StringParser:         (String s, out IEnumerable<IIPAddress>? o) => StringParsers.NullableHashSet(s, IPAddress.TryParse, out o));
+                                                                                                      StringParser:         (String s, out IEnumerable<IIPAddress>? o) => StringParsers.NullableListOf(s, IPAddress.TryParse, out o));
 
         #endregion
 
