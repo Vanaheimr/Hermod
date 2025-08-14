@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Date
 
-        public DateTime? Date
+        public DateTimeOffset? Date
 
             => GetHeaderField(HTTPHeaderField.Date);
 

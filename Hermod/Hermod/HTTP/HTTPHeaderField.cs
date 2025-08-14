@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Collections.Generic;
 using System.Text;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -600,13 +599,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         /// <example>Date: Tue, 15 Nov 1994 08:12:31 GMT</example>
         /// <seealso cref="http://tools.ietf.org/html/rfc2616"/>
-        public static readonly HTTPHeaderField<DateTime?> Date = new ("Date",
-                                                                      HeaderFieldType.General,
-                                                                      RequestPathSemantic.EndToEnd,
-                                                                      StringParser:     (String text, out DateTime? dt) => { if (DateTime.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
-                                                                      ValueSerializer:  dateTime => dateTime.HasValue
-                                                                                            ? dateTime.Value.ToUniversalTime().ToString("r")
-                                                                                            : null);
+        public static readonly HTTPHeaderField<DateTimeOffset?> Date = new ("Date",
+                                                                            HeaderFieldType.General,
+                                                                            RequestPathSemantic.EndToEnd,
+                                                                            StringParser:     (String text, out DateTimeOffset? dt) => { if (DateTimeOffset.TryParse(text, out var dt2)) { dt = dt2; return true; } dt = null; return false; },
+                                                                            ValueSerializer:  dateTime => dateTime.HasValue
+                                                                                                  ? dateTime.Value.ToUniversalTime().ToString("r")
+                                                                                                  : null);
 
         #endregion
 

@@ -289,6 +289,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public HTTPRequest?    HTTPRequest       { get; }
 
+        #endregion
+
+        #region HTTPStatusCode
+
         /// <summary>
         /// The HTTP status code.
         /// </summary>
@@ -663,7 +667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region (static) Parse(Time, Runtime, Request, HTTPClient, LocalSocket, RemoteSocket, HTTPSource, ResponseHeader, SubprotocolResponse = null)
+        #region (static) Parse(Timestamp, Runtime, Request, HTTPClient, LocalSocket, RemoteSocket, HTTPSource, ResponseHeader, SubprotocolResponse = null)
 
         /// <summary>
         /// Parse the HTTP response from its text representation and
@@ -672,7 +676,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="ResponseHeader">The HTTP header of the response.</param>
         /// <param name="Request">An optional HTTP request leading to this response.</param>
         /// <param name="SubprotocolResponse">An optional HTTP sub protocol response, e.g. HTTP WebSocket.</param>
-        public static HTTPResponse Parse(DateTimeOffset      Time,
+        public static HTTPResponse Parse(DateTimeOffset      Timestamp,
                                          TimeSpan            Runtime,
                                          HTTPRequest         Request,
                                          AHTTPTestClient     HTTPClient,
@@ -686,7 +690,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                          Byte                NumberOfRetries       = 0,
                                          CancellationToken   CancellationToken     = default)
 
-            => new (Time.Date,
+            => new (Timestamp.Date,
                     HTTPSource,
                     LocalSocket,
                     RemoteSocket,

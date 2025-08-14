@@ -149,8 +149,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 sb.Append($"{headerField.Key}: {number}\r\n");
                                 break;
 
-                            case DateTime dateTime:
-                                sb.Append($"{headerField.Key}: {dateTime.ToString("r")}\r\n");
+                            case DateTimeOffset dateTimeOffset:
+                                sb.Append($"{headerField.Key}: {HTTPHeaderField.Date.ValueSerializer(dateTimeOffset)}\r\n");
                                 break;
 
                             //case String[] texts:
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             get
             {
-                return GetHeaderField<DateTime?>(HTTPHeaderField.Date);
+                return GetHeaderField(HTTPHeaderField.Date);
             }
 
             set
