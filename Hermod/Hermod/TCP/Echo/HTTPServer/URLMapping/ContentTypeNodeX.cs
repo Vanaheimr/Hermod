@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate?                   DefaultErrorHandler              { get; } = DefaultErrorHandler;
+        public HTTPDelegate?                             DefaultErrorHandler              { get; } = DefaultErrorHandler;
 
         public URLReplacement                            AllowReplacement                 { get; } = AllowReplacement;
 

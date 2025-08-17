@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
+
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
@@ -40,6 +42,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
     /// <summary>
+    /// The delegate for the HTTP request log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="HTTPAPI">The sending HTTP API.</param>
+    /// <param name="Request">The incoming request.</param>
+    public delegate Task HTTPRequestLogHandlerX(DateTimeOffset  Timestamp,
+                                                HTTPAPIX        HTTPAPI,
+                                                HTTPRequest     Request);
+
+
+    /// <summary>
     /// The delegate for the HTTP access log.
     /// </summary>
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
@@ -60,6 +73,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Response">The outgoing response.</param>
     public delegate Task HTTPResponseLogHandler(DateTimeOffset  Timestamp,
                                                 HTTPAPI         HTTPAPI,
+                                                HTTPRequest     Request,
+                                                HTTPResponse    Response);
+
+    /// <summary>
+    /// The delegate for the HTTP access log.
+    /// </summary>
+    /// <param name="Timestamp">The timestamp of the incoming request.</param>
+    /// <param name="HTTPAPI">The sending HTTP API.</param>
+    /// <param name="Request">The incoming request.</param>
+    /// <param name="Response">The outgoing response.</param>
+    public delegate Task HTTPResponseLogHandlerX(DateTimeOffset  Timestamp,
+                                                HTTPAPIX        HTTPAPI,
                                                 HTTPRequest     Request,
                                                 HTTPResponse    Response);
 

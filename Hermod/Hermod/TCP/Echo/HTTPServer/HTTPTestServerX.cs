@@ -17,13 +17,14 @@
 
 #region Usings
 
-using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Concurrent;
-using System.IO;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
@@ -37,6 +38,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     public delegate Task OnHTTPResponseLogDelegate(HTTPTestServerX    HTTPServer,
                                                    HTTPResponse       Response,
                                                    CancellationToken  CancellationToken);
+
+//(DateTimeOffset  Timestamp,
+// HTTPAPIX        API,
+// HTTPRequest     Request,
+// HTTPResponse    Response)
+
 
 
     /// <summary>

@@ -93,12 +93,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An HTTP delegate.
         /// </summary>
-        public HTTPDelegate?                   RequestHandler         { get; private set; }
+        public HTTPDelegate?                             RequestHandler         { get; private set; }
 
         /// <summary>
         /// A general error handling method.
         /// </summary>
-        public HTTPDelegate?                   DefaultErrorHandler    { get; private set; }
+        public HTTPDelegate?                             DefaultErrorHandler    { get; private set; }
 
         /// <summary>
         /// Error handling methods for specific http status codes.

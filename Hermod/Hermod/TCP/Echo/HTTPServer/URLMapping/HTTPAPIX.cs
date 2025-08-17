@@ -21,11 +21,585 @@ using System.Collections.Concurrent;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
+
+    #region (class) HTTPRequestLogEvent
+
+    /// <summary>
+    /// An async event notifying about HTTP requests.
+    /// </summary>
+    public class HTTPRequestLogEventX
+    {
+
+        #region Data
+
+        private readonly List<HTTPRequestLogHandlerX> subscribers = [];
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new async event notifying about incoming HTTP requests.
+        /// </summary>
+        public HTTPRequestLogEventX()
+        { }
+
+        #endregion
+
+
+        #region + / Add
+
+        public static HTTPRequestLogEventX operator + (HTTPRequestLogEventX e, HTTPRequestLogHandlerX callback)
+        {
+
+            lock (e.subscribers)
+            {
+                e.subscribers.Add(callback);
+            }
+
+            return e;
+
+        }
+
+        public HTTPRequestLogEventX Add(HTTPRequestLogHandlerX callback)
+        {
+
+            lock (subscribers)
+            {
+                subscribers.Add(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region - / Remove
+
+        public static HTTPRequestLogEventX operator - (HTTPRequestLogEventX e, HTTPRequestLogHandlerX callback)
+        {
+
+            lock (e.subscribers)
+            {
+                e.subscribers.Remove(callback);
+            }
+
+            return e;
+
+        }
+
+        public HTTPRequestLogEventX Remove(HTTPRequestLogHandlerX callback)
+        {
+
+            lock (subscribers)
+            {
+                subscribers.Remove(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+
+        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request)
+
+        /// <summary>
+        /// Call all subscribers sequentially.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
+                                      HTTPAPIX        HTTPAPI,
+                                      HTTPRequest     Request)
+        {
+
+            HTTPRequestLogHandlerX[] invocationList;
+
+            lock (subscribers)
+            {
+                invocationList = [.. subscribers];
+            }
+
+            foreach (var callback in invocationList)
+                await callback(ServerTimestamp, HTTPAPI, Request).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region WhenAny    (ServerTimestamp, HTTPAPI, Request,               Timeout = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for any to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        public Task WhenAny(DateTimeOffset  ServerTimestamp,
+                            HTTPAPIX        HTTPAPI,
+                            HTTPRequest     Request,
+                            TimeSpan?       Timeout   = null)
+        {
+
+            List<Task> invocationList;
+
+            lock (subscribers)
+            {
+
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                     ToList();
+
+                if (Timeout.HasValue)
+                    invocationList.Add(Task.Delay(Timeout.Value));
+
+            }
+
+            return Task.WhenAny(invocationList);
+
+        }
+
+        #endregion
+
+        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, VerifyResult, Timeout = null, DefaultResult = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <typeparam name="T">The type of the results.</typeparam>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
+        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
+                                    HTTPAPIX            HTTPAPI,
+                                    HTTPRequest         Request,
+                                    Func<T, Boolean>    VerifyResult,
+                                    TimeSpan?           Timeout         = null,
+                                    Func<TimeSpan, T>?  DefaultResult   = null)
+        {
+
+            #region Data
+
+            List<Task>      invocationList;
+            Task?           WorkDone;
+            Task<T>?        Result;
+            DateTimeOffset  StartTime     = Timestamp.Now;
+            Task?           TimeoutTask   = null;
+
+            #endregion
+
+            lock (subscribers)
+            {
+
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                     ToList();
+
+                if (Timeout.HasValue)
+                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
+
+            }
+
+            do
+            {
+
+                try
+                {
+
+                    WorkDone = Task.WhenAny(invocationList);
+
+                    invocationList.Remove(WorkDone);
+
+                    if (WorkDone != TimeoutTask)
+                    {
+
+                        Result = WorkDone as Task<T>;
+
+                        if (Result is not null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
+                            VerifyResult(Result.Result))
+                        {
+                            return Result;
+                        }
+
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT(e.Message);
+                    WorkDone = null;
+                }
+
+            }
+            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
+
+            return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
+
+        }
+
+        #endregion
+
+        #region WhenAll    (ServerTimestamp, HTTPAPI, Request)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        public Task WhenAll(DateTimeOffset  ServerTimestamp,
+                            HTTPAPIX        HTTPAPI,
+                            HTTPRequest     Request)
+        {
+
+            Task[] invocationList;
+
+            lock (subscribers)
+            {
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
+                                     ToArray();
+            }
+
+            return Task.WhenAll(invocationList);
+
+        }
+
+        #endregion
+
+    }
+
+    #endregion
+
+    #region (class) HTTPResponseLogEvent
+
+    /// <summary>
+    /// An async event notifying about HTTP responses.
+    /// </summary>
+    public class HTTPResponseLogEventX
+    {
+
+        #region Data
+
+        private readonly List<HTTPResponseLogHandlerX> subscribers = [];
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new async event notifying about HTTP responses.
+        /// </summary>
+        public HTTPResponseLogEventX()
+        { }
+
+        #endregion
+
+
+        #region + / Add
+
+        public static HTTPResponseLogEventX operator + (HTTPResponseLogEventX e, HTTPResponseLogHandlerX callback)
+        {
+
+            lock (e.subscribers)
+            {
+                e.subscribers.Add((timestamp, api, request, response) => callback(timestamp, api, request, response));
+            }
+
+            return e;
+
+        }
+
+        public HTTPResponseLogEventX Add(HTTPResponseLogHandlerX callback)
+        {
+
+            lock (subscribers)
+            {
+                subscribers.Add(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+        #region - / Remove
+
+        public static HTTPResponseLogEventX operator - (HTTPResponseLogEventX e, HTTPResponseLogHandlerX callback)
+        {
+
+            lock (e.subscribers)
+            {
+                e.subscribers.Remove(callback);
+            }
+
+            return e;
+
+        }
+
+        public HTTPResponseLogEventX Remove(HTTPResponseLogHandlerX callback)
+        {
+
+            lock (subscribers)
+            {
+                subscribers.Remove(callback);
+            }
+
+            return this;
+
+        }
+
+        #endregion
+
+
+        #region InvokeAsync(ServerTimestamp, HTTPAPI, Request, Response)
+
+        /// <summary>
+        /// Call all subscribers sequentially.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
+                                      HTTPAPIX        HTTPAPI,
+                                      HTTPRequest     Request,
+                                      HTTPResponse    Response)
+        {
+
+            HTTPResponseLogHandlerX[] invocationList;
+
+            lock (subscribers)
+            {
+                invocationList = [.. subscribers];
+            }
+
+            foreach (var callback in invocationList)
+                await callback(ServerTimestamp, HTTPAPI, Request, Response).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region WhenAny    (ServerTimestamp, HTTPAPI, Request, Response,               Timeout = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for any to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        public Task WhenAny(DateTimeOffset  ServerTimestamp,
+                            HTTPAPIX        HTTPAPI,
+                            HTTPRequest     Request,
+                            HTTPResponse    Response,
+                            TimeSpan?       Timeout = null)
+        {
+
+            List<Task> invocationList;
+
+            lock (subscribers)
+            {
+
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                     ToList();
+
+                if (Timeout.HasValue)
+                    invocationList.Add(Task.Delay(Timeout.Value));
+
+            }
+
+            return Task.WhenAny(invocationList);
+
+        }
+
+        #endregion
+
+        #region WhenFirst  (ServerTimestamp, HTTPAPI, Request, Response, VerifyResult, Timeout = null, DefaultResult = null)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <typeparam name="T">The type of the results.</typeparam>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        /// <param name="VerifyResult">A delegate to verify and filter results.</param>
+        /// <param name="Timeout">A timeout for this operation.</param>
+        /// <param name="DefaultResult">A default result in case of errors or a timeout.</param>
+        public Task<T> WhenFirst<T>(DateTimeOffset      ServerTimestamp,
+                                    HTTPAPIX            HTTPAPI,
+                                    HTTPRequest         Request,
+                                    HTTPResponse        Response,
+                                    Func<T, Boolean>    VerifyResult,
+                                    TimeSpan?           Timeout         = null,
+                                    Func<TimeSpan, T>?  DefaultResult   = null)
+        {
+
+            #region Data
+
+            List<Task>      invocationList;
+            Task?           WorkDone;
+            Task<T>?        Result;
+            DateTimeOffset  StartTime     = Timestamp.Now;
+            Task?           TimeoutTask   = null;
+
+            #endregion
+
+            lock (subscribers)
+            {
+
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                     ToList();
+
+                if (Timeout.HasValue)
+                    invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
+
+            }
+
+            do
+            {
+
+                try
+                {
+
+                    WorkDone = Task.WhenAny(invocationList);
+
+                    invocationList.Remove(WorkDone);
+
+                    if (WorkDone != TimeoutTask)
+                    {
+
+                        Result = WorkDone as Task<T>;
+
+                        if (Result is not null &&
+                            !EqualityComparer<T>.Default.Equals(Result.Result, default) &&
+                            VerifyResult(Result.Result))
+                        {
+                            return Result;
+                        }
+
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    DebugX.LogT(e.Message);
+                    WorkDone = null;
+                }
+
+            }
+            while (!(WorkDone == TimeoutTask || invocationList.Count == 0));
+
+            return Task.FromResult(DefaultResult(Timestamp.Now - StartTime));
+
+        }
+
+        #endregion
+
+        #region WhenAll    (ServerTimestamp, HTTPAPI, Request, Response)
+
+        /// <summary>
+        /// Call all subscribers in parallel and wait for all to complete.
+        /// </summary>
+        /// <param name="ServerTimestamp">The timestamp of the event.</param>
+        /// <param name="HTTPAPI">The sending HTTP API.</param>
+        /// <param name="Request">The HTTP request.</param>
+        /// <param name="Response">The HTTP response.</param>
+        public Task WhenAll(DateTimeOffset  ServerTimestamp,
+                            HTTPAPIX        HTTPAPI,
+                            HTTPRequest     Request,
+                            HTTPResponse    Response)
+        {
+
+            Task[] invocationList;
+
+            lock (subscribers)
+            {
+                invocationList = subscribers.
+                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
+                                     ToArray();
+            }
+
+            return Task.WhenAll(invocationList);
+
+        }
+
+        #endregion
+
+    }
+
+    #endregion
+
+
+    public static class HTTPAPIXExtensions
+    {
+
+        /// <summary>
+        /// Add a method callback for the given URL template.
+        /// </summary>
+        /// <param name="HTTPAPIX">An HTTP API.</param>
+        /// <param name="URLTemplate">The URL template.</param>
+        /// <param name="HTTPDelegate">A delegate called for each incoming HTTP request.</param>
+        public static HTTPTestServerX
+
+            StartServer(this HTTPAPIX            HTTPAPIX,
+                        HTTPPath                 Path,
+                        HTTPHostname?            Hostname         = null,
+
+                        IIPAddress?              IPAddress        = null,
+                        IPPort?                  TCPPort          = null,
+                        String?                  HTTPServerName   = null,
+                        UInt32?                  BufferSize       = null,
+                        TimeSpan?                ReceiveTimeout   = null,
+                        TimeSpan?                SendTimeout      = null,
+                        TCPEchoLoggingDelegate?  LoggingHandler   = null)
+
+        {
+
+            var server = new HTTPTestServerX(
+                             IPAddress,
+                             TCPPort,
+                             HTTPServerName,
+                             BufferSize,
+                             ReceiveTimeout,
+                             SendTimeout,
+                             LoggingHandler
+                         );
+
+            server.AddHTTPAPI(
+                       Path,
+                       Hostname,
+                       (server, path) => HTTPAPIX
+                   );
+
+            return server;
+
+        }
+
+    }
+
 
     /// <summary>
     /// A URL node which stores some child nodes and a callback
@@ -33,29 +607,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     public class HTTPAPIX
     {
 
+        #region Data
+
+        private const String DefaultHTTPServerName        = "HTTP Server";
+        private const String DefaultHTTPServiceName       = "HTTP Service";
+        private const String DefaultHTTPAPI_LoggingPath   = "logs/httpAPI";
+        private const String DefaultLoggingContext        = "HTTP API";
+        private const String DefaultHTTPAPI_LogfileName   = "HTTP_API.log";
+
+        #endregion
+
         #region Properties
 
-        public HTTPTestServerX?              HTTPTestServer      { get; internal set; }
+        public HTTPTestServerX?              HTTPTestServer           { get; internal set; }
 
         /// <summary>
         /// The HTTP hostname of this HTTP API.
         /// </summary>
-        public IEnumerable<HTTPHostname>     Hostnames           { get; }
+        public IEnumerable<HTTPHostname>     Hostnames                { get; }
 
         /// <summary>
         /// The HTTP root path of this HTTP API.
         /// </summary>
-        public HTTPPath                      RootPath            { get; }
+        public HTTPPath                      RootPath                 { get; }
 
         /// <summary>
         /// The HTTP content types served by this HTTP API.
         /// </summary>
-        public IEnumerable<HTTPContentType>  HTTPContentTypes    { get; }
+        public IEnumerable<HTTPContentType>  HTTPContentTypes         { get; }
 
         /// <summary>
         /// An optional description of this HTTP API.
         /// </summary>
-        public I18NString?                   Description         { get; }
+        public I18NString?                   Description              { get; }
+
+
+        public String                        DefaultServerName        { get; } = DefaultHTTPServerName;
+
+        public TimeSpan                      DefaultRequestTimeout    { get; } = TimeSpan.FromSeconds(30);
+
+        public Boolean                       DisableLogging           { get; }
+        public String                        LoggingPath              { get; }
+        public String                        LoggingContext           { get; }
+        public String                        LogfileName              { get; }
+        public LogfileCreatorDelegate?       LogfileCreator           { get; }
 
         #endregion
 
@@ -65,7 +660,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         IEnumerable<HTTPHostname>?     Hostnames          = null,
                         HTTPPath?                      RootPath           = null,
                         IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
-                        I18NString?                    Description        = null)
+                        I18NString?                    Description        = null,
+
+                        Boolean                        DisableLogging     = false,
+                        String                         LoggingPath        = DefaultHTTPAPI_LoggingPath,
+                        String                         LoggingContext     = DefaultLoggingContext,
+                        String                         LogfileName        = DefaultHTTPAPI_LogfileName,
+                        LogfileCreatorDelegate?        LogfileCreator     = null)
+
         {
 
             this.Hostnames         = Hostnames?.       Distinct() ?? [];
@@ -73,6 +675,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             this.HTTPContentTypes  = HTTPContentTypes?.Distinct() ?? [];
             this.Description       = Description                  ?? I18NString.Empty;
             this.HTTPTestServer    = HTTPTestServer;
+
+            this.DisableLogging    = DisableLogging;
+            this.LoggingPath       = LoggingPath;
+            this.LoggingContext    = LoggingContext;
+            this.LogfileName       = LogfileName;
+            this.LogfileCreator    = LogfileCreator;
+                                      //   ?? (DisableLogging
+                                      //           ? null
+                                      //           : LogfileCreator.Create(
+                                      //                 LoggingPath,
+                                      //                 LoggingContext,
+                                      //                 LogfileName
+                                      //             ));
 
         }
 
