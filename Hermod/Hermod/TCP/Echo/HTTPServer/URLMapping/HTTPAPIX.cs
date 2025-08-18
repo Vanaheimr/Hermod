@@ -856,17 +856,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         internal ParsedRequest2
 
             GetRequestHandle(//HTTPHostname                               Host,
-                             HTTPPath                                   Path)
-                         //    out String?                                ErrorResponse,
-                         //    HTTPMethod?                                HTTPMethod                    = null,
-                         //    Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
-                         //    Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
+                             HTTPPath Path)
+        //    out String?                                ErrorResponse,
+        //    HTTPMethod?                                HTTPMethod                    = null,
+        //    Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
+        //    Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
 
         {
 
-            var segments    = Path.ToString().Trim('/').Split('/');
-            var parameters  = new Dictionary<String, String>();
-         //   ErrorResponse   = null;
+            var segments = Path.ToString().Trim('/').Split('/');
+            var parameters = new Dictionary<String, String>();
+            //   ErrorResponse   = null;
 
             if (!routeNodes.TryGetValue(segments[0], out var routeNode))
             {
@@ -907,6 +907,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             if (segments.Length > 1)
+            {
                 for (var i = 1; i < segments.Length; i++)
                 {
 
@@ -942,6 +943,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         routeNode = routeNode2;
 
                 }
+
+                if (routeNode.FullPath.EndsWith(routeNode.Path))
+                    return ParsedRequest2.Parsed(
+                               routeNode,
+                               parameters
+                           );
+
+            }
 
             return ParsedRequest2.Error(
                        $"Unknown path {Path}!",
