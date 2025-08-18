@@ -771,12 +771,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The HTTP method.
         /// </summary>
-        public HTTPMethod          HTTPMethod              { get; } = HTTPMethod.GET;
+        public HTTPMethod                  HTTPMethod              { get; } = HTTPMethod.GET;
 
         /// <summary>
         /// The minimal URL (this means e.g. without the query string).
         /// </summary>
-        public HTTPPath            Path                    { get; private set; }
+        public HTTPPath                    Path                    { get; private set; }
 
         /// <summary>
         /// The parsed URL parameters of the best matching URL template.
@@ -785,30 +785,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public String[]                    ParsedURLParameters     { get; internal set; } = [];
         public Dictionary<String, String>  ParsedURLParametersX    { get; internal set; } = [];
 
-        public NetworkStream?              NetworkStream           { get; internal set; }
-        public Func<HTTPRequest, ChunkedTransferEncodingStream, Task> ChunkWorker { get; set; } = (request, stream) => Task.CompletedTask;
-
         /// <summary>
         /// The HTTP query string.
         /// </summary>
-        public QueryString         QueryString             { get; }
+        public QueryString                 QueryString             { get; }
 
         /// <summary>
         /// The HTTP protocol name field.
         /// </summary>
-        public String              ProtocolName            { get; }
+        public String                      ProtocolName            { get; }
 
         /// <summary>
         /// The HTTP protocol version.
         /// </summary>
-        public HTTPVersion         ProtocolVersion         { get; }
-
-        /// <summary>
-        /// Construct the entire HTTP request header.
-        /// </summary>
-        public String              EntireRequestHeader
-
-            => $"{HTTPMethod} {FakeURLPrefix}{Path}{QueryString} {ProtocolName}/{ProtocolVersion}\r\n{ConstructedHTTPHeader}";
+        public HTTPVersion                 ProtocolVersion         { get; }
 
         #endregion
 
@@ -1139,6 +1129,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Internal     request header fields
 
+        /// <summary>
+        /// Construct the entire HTTP request header.
+        /// </summary>
+        public String                                                  EntireRequestHeader
+
+            => $"{HTTPMethod} {FakeURLPrefix}{Path}{QueryString} {ProtocolName}/{ProtocolVersion}\r\n{ConstructedHTTPHeader}";
+
+        public NetworkStream?                                          NetworkStream           { get; internal set; }
+        public Func<HTTPRequest, ChunkedTransferEncodingStream, Task>  ChunkWorker             { get; set; } = (request, stream) => Task.CompletedTask;
+
+
         #region User
 
         /// <summary>
@@ -1411,6 +1412,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
         #endregion
+
+
+        #region TryParseURLParameter(ParameterName, TryParser)
+
+        public T? TryParseURLParameter<T>(String        ParameterName,
+                                          TryParser<T>  TryParser)
+        {
+
+            if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
+                TryParser(HTTPTools.URLDecode(value), out var valueT))
+            {
+                return valueT;
+            }
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryParseURLParameter(ParameterName, TryParser, out Value)
+
+        public Boolean TryParseURLParameter<T>(String                       ParameterName,
+                                               TryParser<T>                 TryParser,
+                                               [NotNullWhen(true)]  out T?  Value)
+        {
+
+            if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
+                TryParser(HTTPTools.URLDecode(value), out var valueT))
+            {
+                Value = valueT;
+                return true;
+            }
+
+            Value = default;
+            return false;
+
+        }
+
+        #endregion
+
+        #region TryParseURLParameter(ParameterName, TryParser, out Value, out ErrorResponse)
+
+        public Boolean TryParseURLParameter<T>(String                            ParameterName,
+                                               TryParser2<T>                     TryParser,
+                                               [NotNullWhen(true)]  out T?       Value,
+                                               [NotNullWhen(false)] out String?  ErrorResponse)
+        {
+
+            ErrorResponse  = null;
+            Value          = default;
+
+            if (ParsedURLParametersX.TryGetValue(ParameterName, out var value))
+            {
+
+                if (TryParser(HTTPTools.URLDecode(value), out var valueT, out var errorResponse))
+                {
+                    Value = valueT;
+                    return true;
+                }
+
+                ErrorResponse = errorResponse;
+                return false;
+
+            }
+
+            ErrorResponse  = $"The given URL parameter '{ParameterName}' does not exist!";
+            return false;
+
+        }
+
+        #endregion
+
 
 
         public Task<IEnumerable<(String, String)>>
