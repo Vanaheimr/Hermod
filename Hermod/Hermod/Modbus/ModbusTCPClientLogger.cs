@@ -429,7 +429,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Data
 
-        private static readonly Object         LockObject                   = new ();
+        private static readonly Object         LockObject                   = new();
         private static          SemaphoreSlim  LogModbusRequest_toDisc_Lock   = new (1,1);
         private static          SemaphoreSlim  LogModbusResponse_toDisc_Lock  = new (1,1);
 

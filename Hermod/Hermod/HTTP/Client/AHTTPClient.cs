@@ -309,7 +309,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient                                                  DNSClient                     { get; }
+        public IDNSClient                                                 DNSClient                     { get; }
 
         public UInt64                                                     KeepAliveMessageCount         { get; private set; } = 0;
 
@@ -604,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                               Boolean?                                                   UseHTTPPipelining            = null,
                               Boolean?                                                   DisableLogging               = false,
                               HTTPClientLogger?                                          HTTPLogger                   = null,
-                              DNSClient?                                                 DNSClient                    = null)
+                              IDNSClient?                                                DNSClient                    = null)
         {
 
             this.RemoteURL                   = RemoteURL;

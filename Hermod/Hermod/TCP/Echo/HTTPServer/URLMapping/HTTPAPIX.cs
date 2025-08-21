@@ -22,6 +22,9 @@ using System.Collections.Concurrent;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
+using System.Reflection;
+using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Crypto.Parameters;
 
 #endregion
 
@@ -157,9 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -205,9 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -271,9 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             lock (subscribers)
             {
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request)).
-                                     ToArray();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
             }
 
             return Task.WhenAll(invocationList);
@@ -419,9 +416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -469,9 +464,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                     ToList();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -537,9 +530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             lock (subscribers)
             {
-                invocationList = subscribers.
-                                     Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response)).
-                                     ToArray();
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
             }
 
             return Task.WhenAll(invocationList);
@@ -619,7 +610,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Properties
 
-        public HTTPTestServerX?              HTTPTestServer           { get; internal set; }
+        public HTTPTestServerX               HTTPTestServer           { get; internal set; }
 
         /// <summary>
         /// The HTTP hostname of this HTTP API.
@@ -642,9 +633,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public I18NString?                   Description              { get; }
 
 
-        public String                        DefaultServerName        { get; } = DefaultHTTPServerName;
+        public String?                       ExternalDNSName          { get; }
+        public HTTPPath?                     BasePath                 { get; }
 
-        public TimeSpan                      DefaultRequestTimeout    { get; } = TimeSpan.FromSeconds(30);
+        /// <summary>
+        /// The API version hash (git commit hash value).
+        /// </summary>
+        public String                        APIVersionHash           { get; }
+        public JObject                       APIVersionHashes         { get; }
+
+
+        /// <summary>
+        /// The HTTP service name.
+        /// </summary>
+        public String?                       HTTPServiceName          { get; protected set; } = DefaultHTTPServiceName;
+
+        public String                        DefaultServerName        { get; protected set; } = DefaultHTTPServerName;
+
+        public TimeSpan                      DefaultRequestTimeout    { get; protected set; } = TimeSpan.FromSeconds(30);
 
         public Boolean                       DisableLogging           { get; }
         public String                        LoggingPath              { get; }
@@ -652,21 +658,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public String                        LogfileName              { get; }
         public LogfileCreatorDelegate?       LogfileCreator           { get; }
 
+
+
+        public Warden.Warden            Warden                      { get; }
+        public ECPrivateKeyParameters?  ServiceCheckPrivateKey      { get; set; }
+
+        public ECPublicKeyParameters?   ServiceCheckPublicKey       { get; set; }
+        public System_Id?               SystemId                    { get; set; }
+
         #endregion
 
         #region Constructor(s)
 
-        public HTTPAPIX(HTTPTestServerX?               HTTPTestServer     = null,
+        public HTTPAPIX(HTTPTestServerX                HTTPTestServer,
                         IEnumerable<HTTPHostname>?     Hostnames          = null,
                         HTTPPath?                      RootPath           = null,
                         IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
                         I18NString?                    Description        = null,
+
+                        String?                        ExternalDNSName    = null,
+                        HTTPPath?                      BasePath           = null,
+                        JObject?                       APIVersionHashes   = null,
 
                         Boolean                        DisableLogging     = false,
                         String                         LoggingPath        = DefaultHTTPAPI_LoggingPath,
                         String                         LoggingContext     = DefaultLoggingContext,
                         String                         LogfileName        = DefaultHTTPAPI_LogfileName,
                         LogfileCreatorDelegate?        LogfileCreator     = null)
+
+            : this(Hostnames,
+                   RootPath,
+                   HTTPContentTypes,
+                   Description,
+                   HTTPTestServer,
+
+                   ExternalDNSName,
+                   BasePath,
+                   APIVersionHashes,
+
+                   DisableLogging,
+                   LoggingPath,
+                   LoggingContext,
+                   LogfileName,
+                   LogfileCreator)
+
+        {
+
+        }
+
+
+        internal HTTPAPIX(IEnumerable<HTTPHostname>?     Hostnames          = null,
+                          HTTPPath?                      RootPath           = null,
+                          IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
+                          I18NString?                    Description        = null,
+                          HTTPTestServerX?               HTTPTestServer     = null,
+
+                          String?                        ExternalDNSName    = null,
+                          HTTPPath?                      BasePath           = null,
+                          JObject?                       APIVersionHashes   = null,
+
+                          Boolean                        DisableLogging     = false,
+                          String                         LoggingPath        = DefaultHTTPAPI_LoggingPath,
+                          String                         LoggingContext     = DefaultLoggingContext,
+                          String                         LogfileName        = DefaultHTTPAPI_LogfileName,
+                          LogfileCreatorDelegate?        LogfileCreator     = null)
 
         {
 
@@ -675,6 +730,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             this.HTTPContentTypes  = HTTPContentTypes?.Distinct() ?? [];
             this.Description       = Description                  ?? I18NString.Empty;
             this.HTTPTestServer    = HTTPTestServer;
+
+            this.ExternalDNSName   = ExternalDNSName;
+            this.BasePath          = BasePath;
+            this.APIVersionHashes  = APIVersionHashes             ?? [];
 
             this.DisableLogging    = DisableLogging;
             this.LoggingPath       = LoggingPath;
@@ -695,6 +754,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
 
         private readonly ConcurrentDictionary<String, RouteNode2> routeNodes = [];
+
+        public void AddHandler(HTTPMethod                                 HTTPMethod,
+                               HTTPPath                                   URLTemplate,
+                               HTTPDelegate                               HTTPDelegate,
+
+                               HTTPContentType?                           HTTPContentType             = null,
+
+                               HTTPAuthentication?                        URLAuthentication           = null,
+                               HTTPAuthentication?                        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?                        ContentTypeAuthentication   = null,
+
+                               OnHTTPRequestLogDelegate2?                 HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                HTTPResponseLogger          = null,
+
+                               HTTPDelegate?                              DefaultErrorHandler         = null,
+                               Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
+                               URLReplacement?                            AllowReplacement            = null)
+
+            => AddHandler(
+                   URLTemplate,
+                   HTTPDelegate,
+
+                   HTTPMethod,
+                   HTTPContentType,
+
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+
+                   DefaultErrorHandler,
+                   ErrorHandlers,
+                   AllowReplacement
+               );
+
+
+        public void AddHandler(HTTPMethod                                 HTTPMethod,
+                               HTTPPath                                   URLTemplate,
+                               HTTPContentType                            HTTPContentType,
+                               HTTPDelegate                               HTTPDelegate,
+
+                               HTTPAuthentication?                        URLAuthentication           = null,
+                               HTTPAuthentication?                        HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?                        ContentTypeAuthentication   = null,
+
+                               OnHTTPRequestLogDelegate2?                  HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                 HTTPResponseLogger          = null,
+
+                               HTTPDelegate?                              DefaultErrorHandler         = null,
+                               Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
+                               URLReplacement?                            AllowReplacement            = null)
+
+            => AddHandler(
+                   URLTemplate,
+                   HTTPDelegate,
+
+                   HTTPMethod,
+                   HTTPContentType,
+
+                   URLAuthentication,
+                   HTTPMethodAuthentication,
+                   ContentTypeAuthentication,
+
+                   HTTPRequestLogger,
+                   HTTPResponseLogger,
+
+                   DefaultErrorHandler,
+                   ErrorHandlers,
+                   AllowReplacement
+               );
+
 
         #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
@@ -717,14 +849,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                HTTPMethod?                                HTTPMethod                  = null,
                                HTTPContentType?                           HTTPContentType             = null,
-                            //   Boolean                                    OpenEnd                     = false,
 
                                HTTPAuthentication?                        URLAuthentication           = null,
                                HTTPAuthentication?                        HTTPMethodAuthentication    = null,
                                HTTPAuthentication?                        ContentTypeAuthentication   = null,
 
-                               OnHTTPRequestLogDelegate?                  HTTPRequestLogger           = null,
-                               OnHTTPResponseLogDelegate?                 HTTPResponseLogger          = null,
+                               OnHTTPRequestLogDelegate2?                  HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?                 HTTPResponseLogger          = null,
 
                                HTTPDelegate?                              DefaultErrorHandler         = null,
                                Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers               = null,
@@ -958,6 +1089,191 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    );
 
         }
+
+
+
+
+
+
+        #region (protected virtual) GetResourceStream             (ResourceName, ResourceAssemblies)
+
+        protected virtual Stream? GetResourceStream(String ResourceName)
+
+            => GetResourceStream(ResourceName,
+                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual Stream? GetResourceStream(String                            ResourceName,
+                                                    params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
+            foreach (var resourceAssembly in ResourceAssemblies)
+            {
+                try
+                {
+
+                    var resourceStream = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+
+                    if (resourceStream is not null)
+                        return resourceStream;
+
+                }
+                catch
+                { }
+            }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) GetResourceMemoryStream       (ResourceName, ResourceAssemblies)
+
+        protected virtual MemoryStream? GetResourceMemoryStream(String ResourceName)
+
+            => GetResourceMemoryStream(ResourceName,
+                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual MemoryStream? GetResourceMemoryStream(String                            ResourceName,
+                                                                params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
+            try
+            {
+
+                var resourceStream = GetResourceStream(
+                                         ResourceName,
+                                         ResourceAssemblies
+                                     );
+
+                if (resourceStream is not null)
+                {
+
+                    var outputStream = new MemoryStream();
+                    resourceStream.CopyTo(outputStream);
+                    outputStream.Seek(0, SeekOrigin.Begin);
+
+                    return outputStream;
+
+                }
+
+            }
+            catch
+            { }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) GetResourceString             (ResourceName, ResourceAssemblies)
+
+        protected virtual String GetResourceString(String ResourceName)
+
+            => GetResourceString(ResourceName,
+                                 new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String GetResourceString(String                            ResourceName,
+                                                   params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected virtual) GetResourceBytes              (ResourceName, ResourceAssemblies)
+
+        protected virtual Byte[] GetResourceBytes(String ResourceName)
+
+            => GetResourceBytes(ResourceName,
+                                new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual Byte[] GetResourceBytes(String                            ResourceName,
+                                                  params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+
+        #endregion
+
+
+        #region (protected virtual) GetMergedResourceMemoryStream (ResourceName, ResourceAssemblies)
+
+        protected virtual MemoryStream? GetMergedResourceMemoryStream(String ResourceName)
+
+            => GetMergedResourceMemoryStream(ResourceName,
+                                             new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual MemoryStream? GetMergedResourceMemoryStream(String                            ResourceName,
+                                                                      params Tuple<String, Assembly>[]  ResourceAssemblies)
+        {
+
+            try
+            {
+
+                var outputStream = new MemoryStream();
+                var newLine      = "\r\n"u8.ToArray();
+
+                foreach (var resourceAssembly in ResourceAssemblies)
+                {
+                    try
+                    {
+
+                        var data = resourceAssembly.Item2.GetManifestResourceStream(resourceAssembly.Item1 + ResourceName);
+                        if (data is not null)
+                        {
+
+                            data.CopyTo(outputStream);
+
+                            outputStream.Write(newLine, 0, newLine.Length);
+
+                        }
+
+                    }
+                    catch
+                    { }
+                }
+
+                outputStream.Seek(0, SeekOrigin.Begin);
+
+                return outputStream;
+
+            }
+            catch
+            { }
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region (protected virtual) GetMergedResourceString       (ResourceName, ResourceAssemblies)
+
+        protected virtual String GetMergedResourceString(String ResourceName)
+
+            => GetMergedResourceString(ResourceName,
+                                       new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual String GetMergedResourceString(String                            ResourceName,
+                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToUTF8String() ?? String.Empty;
+
+        #endregion
+
+        #region (protected virtual) GetMergedResourceBytes        (ResourceName, ResourceAssemblies)
+
+        protected virtual Byte[] GetMergedResourceBytes(String ResourceName)
+
+            => GetMergedResourceBytes(ResourceName,
+                                      new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
+
+        protected virtual Byte[] GetMergedResourceBytes(String                            ResourceName,
+                                                        params Tuple<String, Assembly>[]  ResourceAssemblies)
+
+            => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+
+        #endregion
 
 
         #region (override) ToString()

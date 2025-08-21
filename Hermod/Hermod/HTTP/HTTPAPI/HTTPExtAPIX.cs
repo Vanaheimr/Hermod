@@ -25,6 +25,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 
 using Newtonsoft.Json.Linq;
 
@@ -51,28 +52,28 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
 
-    /// <summary>
-    /// A password quality check delegate.
-    /// </summary>
-    /// <param name="Password">The password to check.</param>
-    /// <returns>A quality metric for the given password.</returns>
-    public delegate Single PasswordQualityCheckDelegate(String Password);
+    ///// <summary>
+    ///// A password quality check delegate.
+    ///// </summary>
+    ///// <param name="Password">The password to check.</param>
+    ///// <returns>A quality metric for the given password.</returns>
+    //public delegate Single PasswordQualityCheckDelegate(String Password);
 
 
     /// <summary>
     /// Extension method for the HTTPExt API.
     /// </summary>
-    public static class HTTPExtAPIExtensions
+    public static class HTTPExtAPIXExtensions
     {
 
-        #region ParseUserId(this HTTPRequest, HTTPExtAPI, out UserId,           out HTTPResponse)
+        #region ParseUserId(this HTTPRequest, HTTPExtAPIX, out UserId,           out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -80,12 +81,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserId(this HTTPRequest           HTTPRequest,
-                                          HTTPExtAPI                 HTTPExtAPI,
+                                          HTTPExtAPIX                 HTTPExtAPIX,
                                           out User_Id?               UserId,
                                           out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -95,8 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPIX    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -108,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -124,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
@@ -146,12 +147,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="HTTPResponseBuilder">An HTTP error response builder.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserId2(this HTTPRequest          HTTPRequest,
-                                           HTTPExtAPI                HTTPExtAPI,
+                                           HTTPExtAPIX                HTTPExtAPIX,
                                            out User_Id?              UserId,
                                            ref HTTPResponse.Builder  HTTPResponseBuilder)
         {
@@ -176,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseUser  (this HTTPRequest, HTTPExtAPI, out UserId, out User, out HTTPResponse)
+        #region ParseUser  (this HTTPRequest, HTTPExtAPIX, out UserId, out User, out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -184,13 +185,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="UserId">The parsed unique user identification.</param>
         /// <param name="User">The resolved user.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUser(this HTTPRequest           HTTPRequest,
-                                        HTTPExtAPI                   HTTPExtAPI,
+                                        HTTPExtAPIX                   HTTPExtAPIX,
                                         out User_Id?               UserId,
                                         out IUser?                 User,
                                         out HTTPResponse.Builder?  HTTPResponse)
@@ -201,8 +202,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPIX    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -214,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -229,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
@@ -240,11 +241,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!HTTPExtAPI.TryGetUser(UserId.Value, out User)) {
+            if (!HTTPExtAPIX.TryGetUser(UserId.Value, out User)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserId!"" }".ToUTF8Bytes(),
@@ -262,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseUserGroupId(this HTTPRequest, HTTPExtAPI, out HTTPExtAPI,                 out HTTPResponse)
+        #region ParseUserGroupId(this HTTPRequest, HTTPExtAPIX, out HTTPExtAPIX,                 out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -270,12 +271,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserGroupId(this HTTPRequest           HTTPRequest,
-                                               HTTPExtAPI                   HTTPExtAPI,
+                                               HTTPExtAPIX                   HTTPExtAPIX,
                                                out UserGroup_Id?          UserGroupId,
                                                out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -285,8 +286,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPIX    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -298,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -314,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
@@ -331,7 +332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseUserGroup  (this HTTPRequest, HTTPExtAPI, out UserGroupId, out UserGroup, out HTTPResponse)
+        #region ParseUserGroup  (this HTTPRequest, HTTPExtAPIX, out UserGroupId, out UserGroup, out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -339,13 +340,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="UserGroupId">The parsed unique user identification.</param>
         /// <param name="UserGroup">The resolved user.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseUserGroup(this HTTPRequest           HTTPRequest,
-                                             HTTPExtAPI                   HTTPExtAPI,
+                                             HTTPExtAPIX                   HTTPExtAPIX,
                                              out UserGroup_Id?          UserGroupId,
                                              out IUserGroup?            UserGroup,
                                              out HTTPResponse.Builder?  HTTPResponse)
@@ -356,8 +357,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given HTTPExt API must not be null!");
+            if (HTTPExtAPIX    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given HTTPExt API must not be null!");
 
             #endregion
 
@@ -369,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -384,7 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
@@ -395,11 +396,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!HTTPExtAPI.TryGetUserGroup(UserGroupId.Value, out UserGroup)) {
+            if (!HTTPExtAPIX.TryGetUserGroup(UserGroupId.Value, out UserGroup)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserGroupId!"" }".ToUTF8Bytes(),
@@ -417,7 +418,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region ParseOrganizationId(this HTTPRequest, HTTPExtAPI, out OrganizationId,                   out HTTPResponse)
+        #region ParseOrganizationId(this HTTPRequest, HTTPExtAPIX, out OrganizationId,                   out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -425,12 +426,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Organizations API.</param>
+        /// <param name="HTTPExtAPIX">The Organizations API.</param>
         /// <param name="OrganizationId">The parsed unique user identification.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseOrganizationId(this HTTPRequest           HTTPRequest,
-                                                  HTTPExtAPI                   HTTPExtAPI,
+                                                  HTTPExtAPIX                   HTTPExtAPIX,
                                                   out Organization_Id?       OrganizationId,
                                                   out HTTPResponse.Builder?  HTTPResponse)
         {
@@ -440,8 +441,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given Organizations API must not be null!");
+            if (HTTPExtAPIX    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given Organizations API must not be null!");
 
             #endregion
 
@@ -453,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -469,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
@@ -486,7 +487,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region ParseOrganization  (this HTTPRequest, HTTPExtAPI, out OrganizationId, out Organization, out HTTPResponse)
+        #region ParseOrganization  (this HTTPRequest, HTTPExtAPIX, out OrganizationId, out Organization, out HTTPResponse)
 
         /// <summary>
         /// Parse the given HTTP request and return the user identification
@@ -494,13 +495,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// or an HTTP error response.
         /// </summary>
         /// <param name="HTTPRequest">An HTTP request.</param>
-        /// <param name="HTTPExtAPI">The Organizations API.</param>
+        /// <param name="HTTPExtAPIX">The Organizations API.</param>
         /// <param name="OrganizationId">The parsed unique user identification.</param>
         /// <param name="Organization">The resolved user.</param>
         /// <param name="HTTPResponse">An HTTP error response.</param>
         /// <returns>True, when user identification was found; false else.</returns>
         public static Boolean ParseOrganization(this HTTPRequest           HTTPRequest,
-                                                HTTPExtAPI                   HTTPExtAPI,
+                                                HTTPExtAPIX                   HTTPExtAPIX,
                                                 out Organization_Id?       OrganizationId,
                                                 out IOrganization?         Organization,
                                                 out HTTPResponse.Builder?  HTTPResponse)
@@ -511,8 +512,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (HTTPRequest is null)
                 throw new ArgumentNullException(nameof(HTTPRequest),  "The given HTTP request must not be null!");
 
-            if (HTTPExtAPI    is null)
-                throw new ArgumentNullException(nameof(HTTPExtAPI),     "The given Organizations API must not be null!");
+            if (HTTPExtAPIX    is null)
+                throw new ArgumentNullException(nameof(HTTPExtAPIX),     "The given Organizations API must not be null!");
 
             #endregion
 
@@ -524,7 +525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -539,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
@@ -550,11 +551,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             }
 
-            if (!HTTPExtAPI.TryGetOrganization(OrganizationId.Value, out Organization)) {
+            if (!HTTPExtAPIX.TryGetOrganization(OrganizationId.Value, out Organization)) {
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPI.HTTPServer.DefaultServerName,
+                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown OrganizationId!"" }".ToUTF8Bytes(),
@@ -579,7 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user.
         /// </summary>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
@@ -603,7 +604,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUser(this HTTPExtAPI     HTTPExtAPI,
+        public async static Task<IUser?> CreateUser(this HTTPExtAPIX     HTTPExtAPIX,
                                                     User_Id             Id,
                                                     I18NString          Name,
                                                     SimpleEMailAddress  EMail,
@@ -631,7 +632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     User_Id?            CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPI.AddUser(new User(
+            var addUserResult = await HTTPExtAPIX.AddUser(new User(
                                                              Id,
                                                              Name,
                                                              EMail,
@@ -683,7 +684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user.
         /// </summary>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="AccessRight">The organization membership of the new user.</param>
@@ -709,7 +710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUser(this HTTPExtAPI             HTTPExtAPI,
+        public async static Task<IUser?> CreateUser(this HTTPExtAPIX             HTTPExtAPIX,
                                                     User_Id                     Id,
                                                     I18NString                  Name,
                                                     SimpleEMailAddress          EMail,
@@ -739,7 +740,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                     User_Id?                    CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPI.AddUser(new User(
+            var addUserResult = await HTTPExtAPIX.AddUser(new User(
                                                              Id,
                                                              Name,
                                                              EMail,
@@ -794,7 +795,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user, if he/she does not already exist.
         /// </summary>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="Password">An optional password of the user.</param>
@@ -818,7 +819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI     HTTPExtAPI,
+        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPIX     HTTPExtAPIX,
                                                                User_Id             Id,
                                                                I18NString          Name,
                                                                SimpleEMailAddress  EMail,
@@ -846,7 +847,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                User_Id?            CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPI.AddUserIfNotExists(new User(
+            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(new User(
                                                                         Id,
                                                                         Name,
                                                                         EMail,
@@ -898,7 +899,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// Create a new user, if he/she does not already exist.
         /// </summary>
-        /// <param name="HTTPExtAPI">The HTTPExt API.</param>
+        /// <param name="HTTPExtAPIX">The HTTPExt API.</param>
         /// <param name="Id">The unique identification of the user.</param>
         /// <param name="EMail">The primary e-mail of the user.</param>
         /// <param name="AccessRight">The organization membership of the new user.</param>
@@ -924,7 +925,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="DataSource">The source of all this data, e.g. an automatic importer.</param>
         /// <param name="EventTrackingId">An optional unique event tracking identification for correlating this request with other events.</param>
         /// <param name="CurrentUserId">An optional user identification initiating this command/request.</param>
-        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPI             HTTPExtAPI,
+        public async static Task<IUser?> CreateUserIfNotExists(this HTTPExtAPIX             HTTPExtAPIX,
                                                                User_Id                     Id,
                                                                I18NString                  Name,
                                                                SimpleEMailAddress          EMail,
@@ -954,7 +955,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                User_Id?                    CurrentUserId              = null)
         {
 
-            var addUserResult = await HTTPExtAPI.AddUserIfNotExists(new User(
+            var addUserResult = await HTTPExtAPIX.AddUserIfNotExists(new User(
                                                                         Id,
                                                                         Name,
                                                                         EMail,
@@ -1007,7 +1008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CreateOrganization           (Id, Name = null, Description = null, ParentOrganization = null)
 
-        public async static Task<IOrganization?> CreateOrganization(this HTTPExtAPI            HTTPExtAPI,
+        public async static Task<IOrganization?> CreateOrganization(this HTTPExtAPIX            HTTPExtAPIX,
 
                                                                     Organization_Id            Id,
                                                                     I18NString?                Name                 = null,
@@ -1027,7 +1028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     User_Id?                   CurrentUserId        = null)
         {
 
-            var addOrganizationResult = await HTTPExtAPI.AddOrganization(new Organization(
+            var addOrganizationResult = await HTTPExtAPIX.AddOrganization(new Organization(
                                                                            Id,
                                                                            Name,
                                                                            Description,
@@ -1040,7 +1041,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                            IsDisabled,
                                                                            DataSource: DataSource
                                                                        ),
-                                                                       ParentOrganization ?? HTTPExtAPI.NoOwner,
+                                                                       ParentOrganization ?? HTTPExtAPIX.NoOwner,
                                                                        null,
                                                                        EventTrackingId,
                                                                        CurrentUserId);
@@ -1055,7 +1056,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region CreateOrganizationIfNotExists(Id, Name = null, Description = null, ParentOrganization = null)
 
-        public async static Task<IOrganization?> CreateOrganizationIfNotExists(this HTTPExtAPI            HTTPExtAPI,
+        public async static Task<IOrganization?> CreateOrganizationIfNotExists(this HTTPExtAPIX            HTTPExtAPIX,
 
                                                                                Organization_Id            Id,
                                                                                I18NString?                Name                 = null,
@@ -1075,7 +1076,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                User_Id?                   CurrentUserId        = null)
         {
 
-            var addOrganizationResult = await HTTPExtAPI.AddOrganizationIfNotExists(new Organization(
+            var addOrganizationResult = await HTTPExtAPIX.AddOrganizationIfNotExists(new Organization(
                                                                                       Id,
                                                                                       Name,
                                                                                       Description,
@@ -1088,7 +1089,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                                       IsDisabled,
                                                                                       DataSource: DataSource
                                                                                   ),
-                                                                                  ParentOrganization ?? HTTPExtAPI.NoOwner,
+                                                                                  ParentOrganization ?? HTTPExtAPIX.NoOwner,
                                                                                   null,
                                                                                   EventTrackingId,
                                                                                   CurrentUserId);
@@ -1127,7 +1128,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <summary>
     /// Managing users and organizations et al. within a HTTP API.
     /// </summary>
-    public class HTTPExtAPI : HTTPAPI
+    public class HTTPExtAPIX : HTTPAPIX
     {
 
         #region Data
@@ -1143,12 +1144,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public new const           String         DefaultHTTPServiceName               = "GraphDefined HTTPExt API";
 
         /// <summary>
+        /// The HTTP root for embedded resources.
+        /// </summary>
+        public  const              String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
+
+        /// <summary>
         /// The default HTTP server port.
         /// </summary>
         public new static readonly IPPort         DefaultHTTPServerPort                = IPPort.Parse(2305);
 
-        public const               String         DefaultHTTPExtAPI_DatabaseFileName   = "HTTPExtAPI.db";
-        public const               String         DefaultHTTPExtAPI_LogfileName        = "HTTPExtAPI.log";
+        public const               String         DefaultHTTPExtAPIX_DatabaseFileName   = "HTTPExtAPIX.db";
+        public const               String         DefaultHTTPExtAPIX_LogfileName        = "HTTPExtAPIX.log";
         public const               String         DefaultPasswordFile                  = "passwords.db";
         public const               String         DefaultHTTPCookiesFile               = "HTTPCookies.db";
         public const               String         DefaultPasswordResetsFile            = "passwordResets.db";
@@ -1160,6 +1166,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected static readonly  SemaphoreSlim  OrganizationsSemaphore               = new (1, 1);
         protected static readonly  SemaphoreSlim  OrganizationGroupsSemaphore          = new (1, 1);
         protected static readonly  SemaphoreSlim  NotificationMessagesSemaphore        = new (1, 1);
+
+        protected static readonly  TimeSpan       SemaphoreSlimTimeout                 = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// The default language of the API.
@@ -1208,16 +1216,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #region Properties
 
         /// <summary>
+        /// The API version hash (git commit hash value).
+        /// </summary>
+        public new String                     APIVersionHash                     { get; }
+
+        /// <summary>
         /// The API database file.
         /// </summary>
         public String                         DatabaseFileName                   { get; }
-
-
-        /// <summary>
-        /// The API version hash (git commit hash value).
-        /// </summary>
-        public new String?                    APIVersionHash                     { get; }
-
 
         public Organization_Id                AdminOrganizationId                { get; }
 
@@ -1342,12 +1348,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public IEnumerable<APIKey_Id>         RemoteAuthAPIKeys
             => remoteAuthAPIKeys;
 
+        public String                  HTMLTemplate          { get; set; }
+
         #endregion
 
         #region Events
 
         public delegate Task OnSendSMSDelegate (DateTime           LogTimestamp,
-                                                HTTPExtAPI         HTTPAPI,
+                                                HTTPExtAPIX        HTTPAPI,
                                                 EventTracking_Id   EventTrackingId,
                                                 String             Command,
                                                 JObject            Data,
@@ -1362,7 +1370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever add users request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnAddUsersRequest = new();
+        public HTTPRequestLogEventX OnAddUsersRequest = new();
 
         /// <summary>
         /// An event sent whenever add users request was received.
@@ -1370,12 +1378,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task AddUsersHTTPRequest(DateTimeOffset  Timestamp,
-                                                    HTTPAPI         HTTPAPI,
-                                                    HTTPRequest     Request)
+        protected internal Task AddUsersHTTPRequest(DateTimeOffset     Timestamp,
+                                                    HTTPAPIX           API,
+                                                    HTTPRequest        Request,
+                                                    CancellationToken  CancellationToken)
 
             => OnAddUsersRequest.WhenAll(Timestamp,
-                                         HTTPAPI,
+                                         API,
                                          Request);
 
         #endregion
@@ -1385,7 +1394,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on an add users request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnAddUsersResponse = new();
+        public HTTPResponseLogEventX OnAddUsersResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on an add users request was sent.
@@ -1394,13 +1403,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task AddUsersHTTPResponse(DateTimeOffset  Timestamp,
-                                                     HTTPAPI         HTTPAPI,
-                                                     HTTPRequest     Request,
-                                                     HTTPResponse    Response)
+        protected internal Task AddUsersHTTPResponse(DateTimeOffset     Timestamp,
+                                                     HTTPAPIX           API,
+                                                     HTTPRequest        Request,
+                                                     HTTPResponse       Response,
+                                                     CancellationToken  CancellationToken)
 
             => OnAddUsersResponse.WhenAll(Timestamp,
-                                          HTTPAPI,
+                                          API,
                                           Request,
                                           Response);
 
@@ -1412,7 +1422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever add user request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnAddUserHTTPRequest = new();
+        public HTTPRequestLogEventX OnAddUserHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever add user request was received.
@@ -1420,12 +1430,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task AddUserHTTPRequest(DateTimeOffset  Timestamp,
-                                                   HTTPAPI         HTTPAPI,
-                                                   HTTPRequest     Request)
+        protected internal Task AddUserHTTPRequest(DateTimeOffset     Timestamp,
+                                                   HTTPAPIX           API,
+                                                   HTTPRequest        Request,
+                                                   CancellationToken  CancellationToken)
 
             => OnAddUserHTTPRequest.WhenAll(Timestamp,
-                                            HTTPAPI,
+                                            API,
                                             Request);
 
         #endregion
@@ -1435,7 +1446,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on an add user request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnAddUserHTTPResponse = new();
+        public HTTPResponseLogEventX OnAddUserHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on an add user request was sent.
@@ -1444,13 +1455,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task AddUserHTTPResponse(DateTimeOffset  Timestamp,
-                                                    HTTPAPI         HTTPAPI,
-                                                    HTTPRequest     Request,
-                                                    HTTPResponse    Response)
+        protected internal Task AddUserHTTPResponse(DateTimeOffset     Timestamp,
+                                                    HTTPAPIX           API,
+                                                    HTTPRequest        Request,
+                                                    HTTPResponse       Response,
+                                                    CancellationToken  CancellationToken)
 
             => OnAddUserHTTPResponse.WhenAll(Timestamp,
-                                             HTTPAPI,
+                                             API,
                                              Request,
                                              Response);
 
@@ -1462,7 +1474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever set user request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnSetUserHTTPRequest = new();
+        public HTTPRequestLogEventX OnSetUserHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever set user request was received.
@@ -1470,12 +1482,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetUserHTTPRequest(DateTimeOffset  Timestamp,
-                                                   HTTPAPI         HTTPAPI,
-                                                   HTTPRequest     Request)
+        protected internal Task SetUserHTTPRequest(DateTimeOffset     Timestamp,
+                                                   HTTPAPIX           API,
+                                                   HTTPRequest        Request,
+                                                   CancellationToken  CancellationToken)
 
             => OnSetUserHTTPRequest.WhenAll(Timestamp,
-                                            HTTPAPI,
+                                            API,
                                             Request);
 
         #endregion
@@ -1485,7 +1498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a set user request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnSetUserHTTPResponse = new();
+        public HTTPResponseLogEventX OnSetUserHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a set user request was sent.
@@ -1494,13 +1507,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetUserHTTPResponse(DateTimeOffset  Timestamp,
-                                                    HTTPAPI         HTTPAPI,
-                                                    HTTPRequest     Request,
-                                                    HTTPResponse    Response)
+        protected internal Task SetUserHTTPResponse(DateTimeOffset     Timestamp,
+                                                    HTTPAPIX           API,
+                                                    HTTPRequest        Request,
+                                                    HTTPResponse       Response,
+                                                    CancellationToken  CancellationToken)
 
             => OnSetUserHTTPResponse.WhenAll(Timestamp,
-                                             HTTPAPI,
+                                             API,
                                              Request,
                                              Response);
 
@@ -1512,7 +1526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever set user request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnChangePasswordRequest = new();
+        public HTTPRequestLogEventX OnChangePasswordRequest = new();
 
         /// <summary>
         /// An event sent whenever set user request was received.
@@ -1520,12 +1534,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task ChangePasswordRequest(DateTimeOffset  Timestamp,
-                                                      HTTPAPI         HTTPAPI,
-                                                      HTTPRequest     Request)
+        protected internal Task ChangePasswordRequest(DateTimeOffset     Timestamp,
+                                                      HTTPAPIX           API,
+                                                      HTTPRequest        Request,
+                                                      CancellationToken  CancellationToken)
 
             => OnChangePasswordRequest.WhenAll(Timestamp,
-                                               HTTPAPI,
+                                               API,
                                                Request);
 
         #endregion
@@ -1535,7 +1550,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a set user request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnChangePasswordResponse = new();
+        public HTTPResponseLogEventX OnChangePasswordResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a set user request was sent.
@@ -1544,13 +1559,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task ChangePasswordResponse(DateTimeOffset  Timestamp,
-                                                       HTTPAPI         HTTPAPI,
-                                                       HTTPRequest     Request,
-                                                       HTTPResponse    Response)
+        protected internal Task ChangePasswordResponse(DateTimeOffset     Timestamp,
+                                                       HTTPAPIX           API,
+                                                       HTTPRequest        Request,
+                                                       HTTPResponse       Response,
+                                                       CancellationToken  CancellationToken)
 
             => OnChangePasswordResponse.WhenAll(Timestamp,
-                                                HTTPAPI,
+                                                API,
                                                 Request,
                                                 Response);
 
@@ -1562,7 +1578,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever an impersonate user request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnImpersonateUserRequest = new();
+        public HTTPRequestLogEventX OnImpersonateUserRequest = new();
 
         /// <summary>
         /// An event sent whenever an impersonate user request was received.
@@ -1570,12 +1586,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task ImpersonateUserRequest(DateTimeOffset  Timestamp,
-                                                       HTTPAPI         HTTPAPI,
-                                                       HTTPRequest     Request)
+        protected internal Task ImpersonateUserRequest(DateTimeOffset     Timestamp,
+                                                       HTTPAPIX           API,
+                                                       HTTPRequest        Request,
+                                                       CancellationToken  CancellationToken)
 
             => OnImpersonateUserRequest.WhenAll(Timestamp,
-                                                HTTPAPI,
+                                                API,
                                                 Request);
 
         #endregion
@@ -1585,7 +1602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on an impersonate user request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnImpersonateUserResponse = new();
+        public HTTPResponseLogEventX OnImpersonateUserResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on an impersonate user request was sent.
@@ -1594,13 +1611,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task ImpersonateUserResponse(DateTimeOffset  Timestamp,
-                                                        HTTPAPI         HTTPAPI,
-                                                        HTTPRequest     Request,
-                                                        HTTPResponse    Response)
+        protected internal Task ImpersonateUserResponse(DateTimeOffset     Timestamp,
+                                                        HTTPAPIX           API,
+                                                        HTTPRequest        Request,
+                                                        HTTPResponse       Response,
+                                                        CancellationToken  CancellationToken)
 
             => OnImpersonateUserResponse.WhenAll(Timestamp,
-                                                 HTTPAPI,
+                                                 API,
                                                  Request,
                                                  Response);
 
@@ -1612,7 +1630,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever set user notifications request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnSetUserNotificationsRequest = new();
+        public HTTPRequestLogEventX OnSetUserNotificationsRequest = new();
 
         /// <summary>
         /// An event sent whenever set user notifications request was received.
@@ -1620,12 +1638,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetUserNotificationsRequest(DateTimeOffset  Timestamp,
-                                                            HTTPAPI         HTTPAPI,
-                                                            HTTPRequest     Request)
+        protected internal Task SetUserNotificationsRequest(DateTimeOffset     Timestamp,
+                                                            HTTPAPIX           API,
+                                                            HTTPRequest        Request,
+                                                            CancellationToken  CancellationToken)
 
             => OnSetUserNotificationsRequest.WhenAll(Timestamp,
-                                                     HTTPAPI,
+                                                     API,
                                                      Request);
 
         #endregion
@@ -1635,7 +1654,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a set user notifications request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnSetUserNotificationsResponse = new();
+        public HTTPResponseLogEventX OnSetUserNotificationsResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a set user notifications request was sent.
@@ -1644,13 +1663,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetUserNotificationsResponse(DateTimeOffset  Timestamp,
-                                                             HTTPAPI         HTTPAPI,
-                                                             HTTPRequest     Request,
-                                                             HTTPResponse    Response)
+        protected internal Task SetUserNotificationsResponse(DateTimeOffset     Timestamp,
+                                                             HTTPAPIX           API,
+                                                             HTTPRequest        Request,
+                                                             HTTPResponse       Response,
+                                                             CancellationToken  CancellationToken)
 
             => OnSetUserNotificationsResponse.WhenAll(Timestamp,
-                                                      HTTPAPI,
+                                                      API,
                                                       Request,
                                                       Response);
 
@@ -1662,7 +1682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever set user notifications request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnDeleteUserNotificationsRequest = new();
+        public HTTPRequestLogEventX OnDeleteUserNotificationsRequest = new();
 
         /// <summary>
         /// An event sent whenever set user notifications request was received.
@@ -1670,12 +1690,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task DeleteUserNotificationsRequest(DateTimeOffset  Timestamp,
-                                                               HTTPAPI         HTTPAPI,
-                                                               HTTPRequest     Request)
+        protected internal Task DeleteUserNotificationsRequest(DateTimeOffset     Timestamp,
+                                                               HTTPAPIX           API,
+                                                               HTTPRequest        Request,
+                                                               CancellationToken  CancellationToken)
 
             => OnDeleteUserNotificationsRequest.WhenAll(Timestamp,
-                                                        HTTPAPI,
+                                                        API,
                                                         Request);
 
         #endregion
@@ -1685,7 +1706,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a set user notifications request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnDeleteUserNotificationsResponse = new();
+        public HTTPResponseLogEventX OnDeleteUserNotificationsResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a set user notifications request was sent.
@@ -1694,13 +1715,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task DeleteUserNotificationsResponse(DateTimeOffset  Timestamp,
-                                                                HTTPAPI         HTTPAPI,
-                                                                HTTPRequest     Request,
-                                                                HTTPResponse    Response)
+        protected internal Task DeleteUserNotificationsResponse(DateTimeOffset     Timestamp,
+                                                                HTTPAPIX           API,
+                                                                HTTPRequest        Request,
+                                                                HTTPResponse       Response,
+                                                                CancellationToken  CancellationToken)
 
             => OnDeleteUserNotificationsResponse.WhenAll(Timestamp,
-                                                         HTTPAPI,
+                                                         API,
                                                          Request,
                                                          Response);
 
@@ -1715,7 +1737,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever add organization request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnAddOrganizationHTTPRequest = new();
+        public HTTPRequestLogEventX OnAddOrganizationHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever add organization request was received.
@@ -1723,12 +1745,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task AddOrganizationHTTPRequest(DateTimeOffset  Timestamp,
-                                                           HTTPAPI         HTTPAPI,
-                                                           HTTPRequest     Request)
+        protected internal Task AddOrganizationHTTPRequest(DateTimeOffset     Timestamp,
+                                                           HTTPAPIX           API,
+                                                           HTTPRequest        Request,
+                                                           CancellationToken  CancellationToken)
 
             => OnAddOrganizationHTTPRequest.WhenAll(Timestamp,
-                                                    HTTPAPI,
+                                                    API,
                                                     Request);
 
         #endregion
@@ -1738,7 +1761,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on an add organization request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnAddOrganizationHTTPResponse = new();
+        public HTTPResponseLogEventX OnAddOrganizationHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on an add organization request was sent.
@@ -1747,13 +1770,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task AddOrganizationHTTPResponse(DateTimeOffset  Timestamp,
-                                                            HTTPAPI         HTTPAPI,
-                                                            HTTPRequest     Request,
-                                                            HTTPResponse    Response)
+        protected internal Task AddOrganizationHTTPResponse(DateTimeOffset     Timestamp,
+                                                            HTTPAPIX           API,
+                                                            HTTPRequest        Request,
+                                                            HTTPResponse       Response,
+                                                            CancellationToken  CancellationToken)
 
             => OnAddOrganizationHTTPResponse.WhenAll(Timestamp,
-                                                     HTTPAPI,
+                                                     API,
                                                      Request,
                                                      Response);
 
@@ -1765,7 +1789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever Set organization request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnSetOrganizationHTTPRequest = new();
+        public HTTPRequestLogEventX OnSetOrganizationHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever Set organization request was received.
@@ -1773,12 +1797,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetOrganizationHTTPRequest(DateTimeOffset  Timestamp,
-                                                           HTTPAPI         HTTPAPI,
-                                                           HTTPRequest     Request)
+        protected internal Task SetOrganizationHTTPRequest(DateTimeOffset     Timestamp,
+                                                           HTTPAPIX           API,
+                                                           HTTPRequest        Request,
+                                                           CancellationToken  CancellationToken)
 
             => OnSetOrganizationHTTPRequest.WhenAll(Timestamp,
-                                                    HTTPAPI,
+                                                    API,
                                                     Request);
 
         #endregion
@@ -1788,7 +1813,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on an Set organization request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnSetOrganizationHTTPResponse = new();
+        public HTTPResponseLogEventX OnSetOrganizationHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on an Set organization request was sent.
@@ -1797,13 +1822,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetOrganizationHTTPResponse(DateTimeOffset  Timestamp,
-                                                            HTTPAPI         HTTPAPI,
-                                                            HTTPRequest     Request,
-                                                            HTTPResponse    Response)
+        protected internal Task SetOrganizationHTTPResponse(DateTimeOffset     Timestamp,
+                                                            HTTPAPIX           API,
+                                                            HTTPRequest        Request,
+                                                            HTTPResponse       Response,
+                                                            CancellationToken  CancellationToken)
 
             => OnSetOrganizationHTTPResponse.WhenAll(Timestamp,
-                                                     HTTPAPI,
+                                                     API,
                                                      Request,
                                                      Response);
 
@@ -1815,7 +1841,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever delete organization request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnDeleteOrganizationHTTPRequest = new();
+        public HTTPRequestLogEventX OnDeleteOrganizationHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever delete organization request was received.
@@ -1823,12 +1849,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task DeleteOrganizationHTTPRequest(DateTimeOffset  Timestamp,
-                                                              HTTPAPI         HTTPAPI,
-                                                              HTTPRequest     Request)
+        protected internal Task DeleteOrganizationHTTPRequest(DateTimeOffset     Timestamp,
+                                                              HTTPAPIX           API,
+                                                              HTTPRequest        Request,
+                                                              CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationHTTPRequest.WhenAll(Timestamp,
-                                                       HTTPAPI,
+                                                       API,
                                                        Request);
 
         #endregion
@@ -1838,7 +1865,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a delete organization request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnDeleteOrganizationHTTPResponse = new();
+        public HTTPResponseLogEventX OnDeleteOrganizationHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a delete organization request was sent.
@@ -1847,13 +1874,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task DeleteOrganizationHTTPResponse(DateTimeOffset  Timestamp,
-                                                               HTTPAPI         HTTPAPI,
-                                                               HTTPRequest     Request,
-                                                               HTTPResponse    Response)
+        protected internal Task DeleteOrganizationHTTPResponse(DateTimeOffset     Timestamp,
+                                                               HTTPAPIX           API,
+                                                               HTTPRequest        Request,
+                                                               HTTPResponse       Response,
+                                                               CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationHTTPResponse.WhenAll(Timestamp,
-                                                        HTTPAPI,
+                                                        API,
                                                         Request,
                                                         Response);
 
@@ -1866,7 +1894,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever set organization notifications request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnSetOrganizationNotificationsRequest = new();
+        public HTTPRequestLogEventX OnSetOrganizationNotificationsRequest = new();
 
         /// <summary>
         /// An event sent whenever set organization notifications request was received.
@@ -1874,12 +1902,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task SetOrganizationNotificationsRequest(DateTimeOffset  Timestamp,
-                                                                    HTTPAPI         HTTPAPI,
-                                                                    HTTPRequest     Request)
+        protected internal Task SetOrganizationNotificationsRequest(DateTimeOffset     Timestamp,
+                                                                    HTTPAPIX           API,
+                                                                    HTTPRequest        Request,
+                                                                    CancellationToken  CancellationToken)
 
             => OnSetOrganizationNotificationsRequest.WhenAll(Timestamp,
-                                                              HTTPAPI,
+                                                              API,
                                                               Request);
 
         #endregion
@@ -1889,7 +1918,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a set organization notifications request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnSetOrganizationNotificationsResponse = new();
+        public HTTPResponseLogEventX OnSetOrganizationNotificationsResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a set organization notifications request was sent.
@@ -1898,13 +1927,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task SetOrganizationNotificationsResponse(DateTimeOffset  Timestamp,
-                                                                     HTTPAPI         HTTPAPI,
-                                                                     HTTPRequest     Request,
-                                                                     HTTPResponse    Response)
+        protected internal Task SetOrganizationNotificationsResponse(DateTimeOffset     Timestamp,
+                                                                     HTTPAPIX           API,
+                                                                     HTTPRequest        Request,
+                                                                     HTTPResponse       Response,
+                                                                     CancellationToken  CancellationToken)
 
             => OnSetOrganizationNotificationsResponse.WhenAll(Timestamp,
-                                                               HTTPAPI,
+                                                               API,
                                                                Request,
                                                                Response);
 
@@ -1916,7 +1946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever set organization notifications request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnDeleteOrganizationNotificationsRequest = new();
+        public HTTPRequestLogEventX OnDeleteOrganizationNotificationsRequest = new();
 
         /// <summary>
         /// An event sent whenever set organization notifications request was received.
@@ -1924,12 +1954,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task DeleteOrganizationNotificationsRequest(DateTimeOffset  Timestamp,
-                                                                       HTTPAPI         HTTPAPI,
-                                                                       HTTPRequest     Request)
+        protected internal Task DeleteOrganizationNotificationsRequest(DateTimeOffset     Timestamp,
+                                                                       HTTPAPIX           API,
+                                                                       HTTPRequest        Request,
+                                                                       CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationNotificationsRequest.WhenAll(Timestamp,
-                                                                 HTTPAPI,
+                                                                 API,
                                                                  Request);
 
         #endregion
@@ -1939,7 +1970,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a response on a set organization notifications request was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnDeleteOrganizationNotificationsResponse = new();
+        public HTTPResponseLogEventX OnDeleteOrganizationNotificationsResponse = new();
 
         /// <summary>
         /// An event sent whenever a response on a set organization notifications request was sent.
@@ -1948,13 +1979,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task DeleteOrganizationNotificationsResponse(DateTimeOffset  Timestamp,
-                                                                        HTTPAPI         HTTPAPI,
-                                                                        HTTPRequest     Request,
-                                                                        HTTPResponse    Response)
+        protected internal Task DeleteOrganizationNotificationsResponse(DateTimeOffset     Timestamp,
+                                                                        HTTPAPIX           API,
+                                                                        HTTPRequest        Request,
+                                                                        HTTPResponse       Response,
+                                                                        CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationNotificationsResponse.WhenAll(Timestamp,
-                                                                  HTTPAPI,
+                                                                  API,
                                                                   Request,
                                                                   Response);
 
@@ -1969,7 +2001,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a restart request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnRestartHTTPRequest = new();
+        public HTTPRequestLogEventX OnRestartHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever a restart request was received.
@@ -1977,12 +2009,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task RestartRequest(DateTimeOffset  Timestamp,
-                                               HTTPAPI         HTTPAPI,
-                                               HTTPRequest     Request)
+        protected internal Task RestartRequest(DateTimeOffset     Timestamp,
+                                               HTTPAPIX           API,
+                                               HTTPRequest        Request,
+                                               CancellationToken  CancellationToken)
 
             => OnRestartHTTPRequest.WhenAll(Timestamp,
-                                            HTTPAPI,
+                                            API,
                                             Request);
 
         #endregion
@@ -1992,7 +2025,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a restart response was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnRestartHTTPResponse = new();
+        public HTTPResponseLogEventX OnRestartHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a restart response was sent.
@@ -2001,13 +2034,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task RestartResponse(DateTimeOffset  Timestamp,
-                                                HTTPAPI         HTTPAPI,
-                                                HTTPRequest     Request,
-                                                HTTPResponse    Response)
+        protected internal Task RestartResponse(DateTimeOffset     Timestamp,
+                                                HTTPAPIX           API,
+                                                HTTPRequest        Request,
+                                                HTTPResponse       Response,
+                                                CancellationToken  CancellationToken)
 
             => OnRestartHTTPResponse.WhenAll(Timestamp,
-                                             HTTPAPI,
+                                             API,
                                              Request,
                                              Response);
 
@@ -2019,7 +2053,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a stop request was received.
         /// </summary>
-        public HTTPRequestLogEvent OnStopHTTPRequest = new();
+        public HTTPRequestLogEventX OnStopHTTPRequest = new();
 
         /// <summary>
         /// An event sent whenever a stop request was received.
@@ -2027,12 +2061,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Timestamp">The timestamp of the request.</param>
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
-        protected internal Task StopRequest(DateTimeOffset  Timestamp,
-                                            HTTPAPI         HTTPAPI,
-                                            HTTPRequest     Request)
+        protected internal Task StopRequest(DateTimeOffset     Timestamp,
+                                            HTTPAPIX           API,
+                                            HTTPRequest        Request,
+                                            CancellationToken  CancellationToken)
 
             => OnStopHTTPRequest.WhenAll(Timestamp,
-                                         HTTPAPI,
+                                         API,
                                          Request);
 
         #endregion
@@ -2042,7 +2077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// An event sent whenever a stop response was sent.
         /// </summary>
-        public HTTPResponseLogEvent OnStopHTTPResponse = new();
+        public HTTPResponseLogEventX OnStopHTTPResponse = new();
 
         /// <summary>
         /// An event sent whenever a stop response was sent.
@@ -2051,13 +2086,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
-        protected internal Task StopResponse(DateTimeOffset  Timestamp,
-                                             HTTPAPI         HTTPAPI,
-                                             HTTPRequest     Request,
-                                             HTTPResponse    Response)
+        protected internal Task StopResponse(DateTimeOffset     Timestamp,
+                                             HTTPAPIX           API,
+                                             HTTPRequest        Request,
+                                             HTTPResponse       Response,
+                                             CancellationToken  CancellationToken)
 
             => OnStopHTTPResponse.WhenAll(Timestamp,
-                                          HTTPAPI,
+                                          API,
                                           Request,
                                           Response);
 
@@ -2077,7 +2113,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region Constructor(s)
 
-        #region HTTPExtAPI(HTTPServerName, ...)
+        #region HTTPExtAPIX(HTTPServerName, ...)
 
         /// <summary>
         /// Create a new HTTP server and attach this Open Data HTTP API to it.
@@ -2141,30 +2177,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
         /// <param name="DNSClient">The DNS client of the API.</param>
         /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPExtAPI(HTTPHostname?                                              HTTPHostname                     = null,
-                          String?                                                    ExternalDNSName                  = null,
-                          IPPort?                                                    HTTPServerPort                   = null,
-                          HTTPPath?                                                  BasePath                         = null,
-                          String?                                                    HTTPServerName                   = DefaultHTTPServerName,
+        public HTTPExtAPIX(HTTPTestServerX?               HTTPTestServer     = null,
+                           IEnumerable<HTTPHostname>?     Hostnames          = null,
+                           HTTPPath?                      RootPath           = null,
+                           IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
+                           I18NString?                    Description        = null,
 
-                          HTTPPath?                                                  URLPathPrefix                    = null,
-                          String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
+                           String?                                                    ExternalDNSName                  = null,
+                           HTTPPath?                                                  BasePath                         = null,
+                           JObject?                                                   APIVersionHashes                 = null,
+
+                          //HTTPHostname?                                              HTTPHostname                     = null,
+                          //String?                                                    ExternalDNSName                  = null,
+                          //IPPort?                                                    HTTPServerPort                   = null,
+                          //HTTPPath?                                                  BasePath                         = null,
+                          //String?                                                    HTTPServerName                   = DefaultHTTPServerName,
+                          //
+                          //HTTPPath?                                                  URLPathPrefix                    = null,
+                          //String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
                           String?                                                    HTMLTemplate                     = null,
-                          JObject?                                                   APIVersionHashes                 = null,
 
-                          ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
-                          RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator       = null,
-                          LocalCertificateSelectionHandler?                          LocalCertificateSelector         = null,
-                          SslProtocols?                                              AllowedTLSProtocols              = null,
-                          Boolean?                                                   ClientCertificateRequired        = null,
-                          Boolean?                                                   CheckCertificateRevocation       = null,
+                          //ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
+                          //RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator       = null,
+                          //LocalCertificateSelectionHandler?                          LocalCertificateSelector         = null,
+                          //SslProtocols?                                              AllowedTLSProtocols              = null,
+                          //Boolean?                                                   ClientCertificateRequired        = null,
+                          //Boolean?                                                   CheckCertificateRevocation       = null,
 
-                          ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator          = null,
-                          ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter       = null,
-                          Boolean?                                                   ServerThreadIsBackground         = null,
-                          ConnectionIdBuilder?                                       ConnectionIdBuilder              = null,
-                          TimeSpan?                                                  ConnectionTimeout                = null,
-                          UInt32?                                                    MaxClientConnections             = null,
+                          //ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator          = null,
+                          //ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter       = null,
+                          //Boolean?                                                   ServerThreadIsBackground         = null,
+                          //ConnectionIdBuilder?                                       ConnectionIdBuilder              = null,
+                          //TimeSpan?                                                  ConnectionTimeout                = null,
+                          //UInt32?                                                    MaxClientConnections             = null,
 
                           Organization_Id?                                           AdminOrganizationId              = null,
                           EMailAddress?                                              APIRobotEMailAddress             = null,
@@ -2203,56 +2248,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                           Boolean?                                                   IsDevelopment                    = null,
                           IEnumerable<String>?                                       DevelopmentServers               = null,
                           Boolean                                                    SkipURLTemplates                 = false,
-                          String?                                                    DatabaseFileName                 = DefaultHTTPExtAPI_DatabaseFileName,
+                          String?                                                    DatabaseFileName                 = DefaultHTTPExtAPIX_DatabaseFileName,
                           Boolean                                                    DisableNotifications             = false,
-                          Boolean                                                    DisableLogging                   = false,
-                          String?                                                    LoggingPath                      = null,
-                          String?                                                    LogfileName                      = DefaultHTTPExtAPI_LogfileName,
-                          LogfileCreatorDelegate?                                    LogfileCreator                   = null,
-                          DNSClient?                                                 DNSClient                        = null,
-                          Boolean                                                    AutoStart                        = false)
+                          //Boolean                                                    DisableLogging                   = false,
+                          //String?                                                    LoggingPath                      = null,
+                          //String?                                                    LogfileName                      = DefaultHTTPExtAPIX_LogfileName,
+                          //LogfileCreatorDelegate?                                    LogfileCreator                   = null,
+                          //DNSClient?                                                 DNSClient                        = null,
+                          //Boolean                                                    AutoStart                        = false)
 
-            : base(HTTPHostname,
-                   ExternalDNSName,
-                   HTTPServerPort,
-                   BasePath,
-                   HTTPServerName  ?? DefaultHTTPServerName,
+                          Boolean                        DisableLogging     = false,
+                          String                         LoggingPath        = null, //DefaultHTTPExtAPIX_LoggingPath,
+                          String                         LoggingContext     = null, //DefaultHTTPExtAPIX_LoggingContext,
+                          String                         LogfileName        = DefaultHTTPExtAPIX_LogfileName,
+                          LogfileCreatorDelegate?        LogfileCreator     = null)
 
-                   URLPathPrefix,
-                   HTTPServiceName ?? DefaultHTTPServiceName,
-                   HTMLTemplate,
-                   APIVersionHashes,
 
-                   ServerCertificateSelector,
-                   ClientCertificateValidator,
-                   LocalCertificateSelector,
-                   AllowedTLSProtocols,
-                   ClientCertificateRequired,
-                   CheckCertificateRevocation,
+            : base(//HTTPHostname,
+                   //ExternalDNSName,
+                   //HTTPServerPort,
+                   //BasePath,
+                   //HTTPServerName  ?? DefaultHTTPServerName,
+                   //
+                   //URLPathPrefix,
+                   //HTTPServiceName ?? DefaultHTTPServiceName,
+                   //HTMLTemplate,
+                   //APIVersionHashes,
+                   //
+                   //ServerCertificateSelector,
+                   //ClientCertificateValidator,
+                   //LocalCertificateSelector,
+                   //AllowedTLSProtocols,
+                   //ClientCertificateRequired,
+                   //CheckCertificateRevocation,
+                   //
+                   //ServerThreadNameCreator,
+                   //ServerThreadPrioritySetter,
+                   //ServerThreadIsBackground,
+                   //ConnectionIdBuilder,
+                   //ConnectionTimeout,
+                   //MaxClientConnections,
+                   //
+                   //DisableMaintenanceTasks,
+                   //MaintenanceInitialDelay,
+                   //MaintenanceEvery,
+                   //
+                   //DisableWardenTasks,
+                   //WardenInitialDelay,
+                   //WardenCheckEvery,
+                   //
+                   //IsDevelopment,
+                   //DevelopmentServers,
+                   //DisableLogging,
+                   //LoggingPath ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath),
+                   //LogfileName ?? DefaultHTTPExtAPIX_LogfileName,
+                   //LogfileCreator,
+                   //DNSClient,
+                   //false) // AutoStart
 
-                   ServerThreadNameCreator,
-                   ServerThreadPrioritySetter,
-                   ServerThreadIsBackground,
-                   ConnectionIdBuilder,
-                   ConnectionTimeout,
-                   MaxClientConnections,
+                  HTTPTestServer,
+                  Hostnames,
+                  RootPath,
+                  HTTPContentTypes,
+                  Description,
 
-                   DisableMaintenanceTasks,
-                   MaintenanceInitialDelay,
-                   MaintenanceEvery,
+                  ExternalDNSName,
+                  BasePath,
+                  APIVersionHashes,
 
-                   DisableWardenTasks,
-                   WardenInitialDelay,
-                   WardenCheckEvery,
-
-                   IsDevelopment,
-                   DevelopmentServers,
-                   DisableLogging,
-                   LoggingPath ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath),
-                   LogfileName ?? DefaultHTTPExtAPI_LogfileName,
-                   LogfileCreator,
-                   DNSClient,
-                   false) // AutoStart
+                  DisableLogging,
+                  LoggingPath,
+                  LoggingContext,
+                  LogfileName,
+                  LogfileCreator)
 
         {
 
@@ -2268,12 +2336,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Init data
 
-            this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPI)]?.Value<String>()?.Trim();
+            this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim();
 
             if (this.APIVersionHash.IsNullOrEmpty())
                 this.APIVersionHash              = "unknown";
 
-            this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPI_DatabaseFileName);
+            this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPIX_DatabaseFileName);
 
             this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
             this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
@@ -2360,264 +2428,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Warden: Observe CPU/RAM => Send admin e-mails...
 
-            Warden.EveryMinutes(15,
-                                Environment.OSVersion.Platform == PlatformID.Unix
-                                    ? new DriveInfo("/")
-                                    : new DriveInfo(Directory.GetCurrentDirectory()),
-                                async (timestamp, driveInfo, ct) => {
-
-                                    var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
-                                    var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
-
-                                    if (HDPercentageFree < 3 &&
-                                        TryGetOrganization(this.AdminOrganizationId, out var adminOrganization) &&
-                                        adminOrganization is not null)
-                                    {
-
-                                        // lowStorage_MessageType
-                                        await SMTPClient.Send(new HTMLEMailBuilder {
-                                                                     From           = Robot.EMail,
-                                                                     To             = EMailAddressList.Create(adminOrganization.Admins.Select(admin => admin.EMail)),
-                                                                     Passphrase     = APIRobotGPGPassphrase,
-                                                                     Subject        = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
-                                                                     HTMLText       = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
-                                                                     PlainText      = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
-                                                                     SecurityLevel  = EMailSecurity.autosign
-                                                                 }).ConfigureAwait(false);
-
-                                    }
-
-                                });
-
-            #endregion
-
-            //RegisterNotifications().Wait();
-
-            if (!SkipURLTemplates)
-                RegisterURLTemplates();
-
-            //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
-
-            if (AutoStart)
-                Start();
-
-        }
-
-        #endregion
-
-        #region HTTPExtAPI(HTTPServer, HTTPHostname = null, ...)
-
-        /// <summary>
-        /// Create a new HTTP API.
-        /// </summary>
-        /// <param name="HTTPServer">An HTTP server.</param>
-        /// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
-        /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        /// 
-        /// <param name="URLPathPrefix">An optional URL path prefix, used when defining URL templates.</param>
-        /// <param name="HTMLTemplate">An optional HTML template.</param>
-        /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
-        /// 
-        /// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
-        /// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        /// <param name="MaintenanceEvery">The maintenance interval.</param>
-        /// 
-        /// <param name="DisableWardenTasks">Disable all warden tasks.</param>
-        /// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        /// <param name="WardenCheckEvery">The warden interval.</param>
-        /// 
-        /// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
-        /// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
-        /// <param name="DisableLogging">Disable the log file.</param>
-        /// <param name="LoggingPath">The path for all logfiles.</param>
-        /// <param name="LogfileName">The name of the logfile.</param>
-        /// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        /// <param name="AutoStart">Whether to start the API automatically.</param>
-        public HTTPExtAPI(HTTPServer                     HTTPServer,
-                          HTTPHostname?                  HTTPHostname                     = null,
-                          String?                        ExternalDNSName                  = "",
-                          String?                        HTTPServiceName                  = DefaultHTTPServiceName,
-                          HTTPPath?                      BasePath                         = null,
-
-                          HTTPPath?                      URLPathPrefix                    = null,
-                          String?                        HTMLTemplate                     = null,
-                          JObject?                       APIVersionHashes                 = null,
-
-                          Organization_Id?               AdminOrganizationId              = null,
-                          EMailAddress?                  APIRobotEMailAddress             = null,
-                          String?                        APIRobotGPGPassphrase            = null,
-                          ISMTPClient?                   SMTPClient                       = null,
-
-                          PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
-                          HTTPCookieName?                CookieName                       = null,
-                          Boolean                        UseSecureCookies                 = true,
-                          TimeSpan?                      MaxSignInSessionLifetime         = null,
-                          Languages?                     DefaultLanguage                  = null,
-                          Byte?                          MinUserIdLength                  = null,
-                          Byte?                          MinRealmLength                   = null,
-                          Byte?                          MinUserNameLength                = null,
-                          Byte?                          MinUserGroupIdLength             = null,
-                          UInt16?                        MinAPIKeyLength                  = null,
-                          Byte?                          MinMessageIdLength               = null,
-                          Byte?                          MinOrganizationIdLength          = null,
-                          Byte?                          MinOrganizationGroupIdLength     = null,
-                          Byte?                          MinNotificationMessageIdLength   = null,
-                          Byte?                          MinNewsPostingIdLength           = null,
-                          Byte?                          MinNewsBannerIdLength            = null,
-                          Byte?                          MinFAQIdLength                   = null,
-
-                          Boolean?                       DisableMaintenanceTasks          = false,
-                          TimeSpan?                      MaintenanceInitialDelay          = null,
-                          TimeSpan?                      MaintenanceEvery                 = null,
-
-                          Boolean?                       DisableWardenTasks               = false,
-                          TimeSpan?                      WardenInitialDelay               = null,
-                          TimeSpan?                      WardenCheckEvery                 = null,
-
-                          Boolean?                       IsDevelopment                    = false,
-                          IEnumerable<String>?           DevelopmentServers               = null,
-                          Boolean                        SkipURLTemplates                 = false,
-                          Boolean?                       DisableLogging                   = false,
-                          String?                        LoggingPath                      = null,
-                          String?                        LogfileName                      = DefaultHTTPAPI_LogfileName,
-                          LogfileCreatorDelegate?        LogfileCreator                   = null,
-                          Boolean                        AutoStart                        = false)
-
-        {
-
-            #region Inital checks
-
-            if (APIRobotEMailAddress is null)
-                throw new ArgumentNullException(nameof(APIRobotEMailAddress),   "The given API robot e-mail address must not be null!");
-
-            if (APIRobotGPGPassphrase is null)
-                throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
-
-            #endregion
-
-            #region Init data
-
-            this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPI)]?.Value<String>()?.Trim();
-
-            if (this.APIVersionHash.IsNullOrEmpty())
-                this.APIVersionHash              = "unknown";
-
-            this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPI_DatabaseFileName);
-
-            this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
-            this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
-            this.SMTPLoggingPath                 = this.LoggingPath + "SMTPClient"     + Path.DirectorySeparatorChar;
-
-            this.DisableNotifications            = DisableNotifications;
-
-            if (DisableLogging == true) {
-                Directory.CreateDirectory(this.HTTPAPIPath);
-                Directory.CreateDirectory(this.NotificationsPath);
-                Directory.CreateDirectory(this.SMTPLoggingPath);
-            }
-
-            this.Robot                           = new User(
-                                                       Id:               User_Id.Parse("robot"),
-                                                       EMail:            APIRobotEMailAddress.Address,
-                                                       Name:            (APIRobotEMailAddress.OwnerName ?? "Robot").ToI18NString(),
-                                                       PublicKeyRing:    APIRobotEMailAddress.PublicKeyRing,
-                                                       SecretKeyRing:    APIRobotEMailAddress.SecretKeyRing,
-                                                       Description:      "The HTTP API robot".ToI18NString(),
-                                                       IsAuthenticated:  true
-                                                   );
-
-            CurrentAsyncLocalUserId.Value        = Robot.Id;
-
-            this.AdminOrganizationId             = AdminOrganizationId            ?? DefaultAdminOrganizationId;
-            this.APIRobotGPGPassphrase           = APIRobotGPGPassphrase;
-            this.SMTPClient                      = SMTPClient                     ?? throw new ArgumentNullException(nameof(SMTPClient), "The given API SMTP client must not be null!");
-
-            this.CookieName                      = CookieName                     ?? DefaultCookieName;
-            this.SessionCookieName               = this.CookieName + "Session";
-            this.UseSecureCookies                = UseSecureCookies;
-            this.DefaultLanguage                 = DefaultLanguage                ?? DefaultDefaultLanguage;
-
-            this.MinUserIdLength                 = MinUserIdLength                ?? DefaultMinUserIdLength;
-            this.MinRealmLength                  = MinRealmLength                 ?? DefaultMinRealmLength;
-            this.MinUserNameLength               = MinUserNameLength              ?? DefaultMinUserNameLength;
-            this.MinUserGroupIdLength            = MinUserGroupIdLength           ?? DefaultMinUserGroupIdLength;
-            this.MinAPIKeyLength                 = MinAPIKeyLength                ?? DefaultMinAPIKeyLength;
-            this.MinOrganizationIdLength         = MinOrganizationIdLength        ?? DefaultMinOrganizationIdLength;
-            this.MinOrganizationGroupIdLength    = MinOrganizationGroupIdLength   ?? DefaultMinOrganizationGroupIdLength;
-            this.MinNotificationMessageIdLength  = MinNotificationMessageIdLength ?? DefaultMinNotificationMessageIdLength;
-
-            this.PasswordQualityCheck            = PasswordQualityCheck           ?? DefaultPasswordQualityCheck;
-            this.MaxSignInSessionLifetime        = MaxSignInSessionLifetime       ?? DefaultMaxSignInSessionLifetime;
-
-            this.CurrentDatabaseHashValue        = "";
-
-            this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-            this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
-
-            #endregion
-
-            #region Reflect data licenses
-
-            foreach (var dataLicense in typeof(DataLicense).GetFields(System.Reflection.BindingFlags.Public |
-                                                                      System.Reflection.BindingFlags.Static).
-                                                            Where (fieldinfo => fieldinfo.ReflectedType == typeof(DataLicense) &&
-                                                                                fieldinfo.FieldType     == typeof(DataLicense)).
-                                                            Select(fieldinfo => fieldinfo.GetValue(DataLicense.None)).
-                                                            Cast<DataLicense>())
-            {
-
-                dataLicenses.TryAdd(dataLicense.Id,
-                                    dataLicense);
-
-            }
-
-            #endregion
-
-
-            #region Create default organizations/user groups
-
-            this.NoOwner = new Organization(
-                               Organization_Id.Parse("NoOwner"),
-                               "No owner".ToI18NString()
-                           );
-
-            organizations.TryAdd(this.NoOwner.Id,
-                                 this.NoOwner);
-
-            #endregion
-
-
-            #region Warden: Observe CPU/RAM => Send admin e-mails...
-
             //Warden.EveryMinutes(15,
             //                    Environment.OSVersion.Platform == PlatformID.Unix
             //                        ? new DriveInfo("/")
             //                        : new DriveInfo(Directory.GetCurrentDirectory()),
             //                    async (timestamp, driveInfo, ct) => {
-
+            //
             //                        var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
             //                        var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
-
+            //
             //                        if (HDPercentageFree < 3 &&
             //                            TryGetOrganization(this.AdminOrganizationId, out var adminOrganization) &&
             //                            adminOrganization is not null)
             //                        {
-
+            //
             //                            // lowStorage_MessageType
             //                            await SMTPClient.Send(new HTMLEMailBuilder {
             //                                                         From           = Robot.EMail,
             //                                                         To             = EMailAddressList.Create(adminOrganization.Admins.Select(admin => admin.EMail)),
             //                                                         Passphrase     = APIRobotGPGPassphrase,
-            //                                                         Subject        = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
-            //                                                         HTMLText       = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
-            //                                                         PlainText      = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
+            //                                                         Subject        = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
+            //                                                         HTMLText       = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
+            //                                                         PlainText      = HTTPServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
             //                                                         SecurityLevel  = EMailSecurity.autosign
             //                                                     }).ConfigureAwait(false);
-
+            //
             //                        }
-
+            //
             //                    });
 
             #endregion
@@ -2627,71 +2464,302 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (!SkipURLTemplates)
                 RegisterURLTemplates();
 
-            //DebugX.Log(nameof(HTTPExtAPI) + " version '" + APIVersionHash + "' initialized...");
+            //DebugX.Log(nameof(HTTPExtAPIX) + " version '" + APIVersionHash + "' initialized...");
 
-            if (AutoStart)
-                Start();
-
+            //if (AutoStart)
+            //    Start();
 
         }
 
         #endregion
 
-        public HTTPExtAPI(HTTPServer               HTTPServer,
-                          HTTPHostname?            HTTPHostname              = null,
-                          String?                  ExternalDNSName           = "",
-                          String?                  HTTPServiceName           = DefaultHTTPServiceName,
-                          HTTPPath?                BasePath                  = null,
+        #region HTTPExtAPIX(HTTPServer, HTTPHostname = null, ...)
 
-                          HTTPPath?                URLPathPrefix             = null,
-                          String?                  HTMLTemplate              = null,
-                          JObject?                 APIVersionHashes          = null,
+        ///// <summary>
+        ///// Create a new HTTP API.
+        ///// </summary>
+        ///// <param name="HTTPServer">An HTTP server.</param>
+        ///// <param name="HTTPHostname">An optional HTTP hostname.</param>
+        ///// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
+        ///// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
+        ///// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
+        ///// 
+        ///// <param name="URLPathPrefix">An optional URL path prefix, used when defining URL templates.</param>
+        ///// <param name="HTMLTemplate">An optional HTML template.</param>
+        ///// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
+        ///// 
+        ///// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
+        ///// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
+        ///// <param name="MaintenanceEvery">The maintenance interval.</param>
+        ///// 
+        ///// <param name="DisableWardenTasks">Disable all warden tasks.</param>
+        ///// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
+        ///// <param name="WardenCheckEvery">The warden interval.</param>
+        ///// 
+        ///// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
+        ///// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
+        ///// <param name="DisableLogging">Disable the log file.</param>
+        ///// <param name="LoggingPath">The path for all logfiles.</param>
+        ///// <param name="LogfileName">The name of the logfile.</param>
+        ///// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
+        ///// <param name="AutoStart">Whether to start the API automatically.</param>
+        //public HTTPExtAPIX(HTTPServer                     HTTPServer,
+        //                  HTTPHostname?                  HTTPHostname                     = null,
+        //                  String?                        ExternalDNSName                  = "",
+        //                  String?                        HTTPServiceName                  = DefaultHTTPServiceName,
+        //                  HTTPPath?                      BasePath                         = null,
 
-                          Boolean?                 DisableMaintenanceTasks   = false,
-                          TimeSpan?                MaintenanceInitialDelay   = null,
-                          TimeSpan?                MaintenanceEvery          = null,
+        //                  HTTPPath?                      URLPathPrefix                    = null,
+        //                  String?                        HTMLTemplate                     = null,
+        //                  JObject?                       APIVersionHashes                 = null,
 
-                          Boolean?                 DisableWardenTasks        = false,
-                          TimeSpan?                WardenInitialDelay        = null,
-                          TimeSpan?                WardenCheckEvery          = null,
+        //                  Organization_Id?               AdminOrganizationId              = null,
+        //                  EMailAddress?                  APIRobotEMailAddress             = null,
+        //                  String?                        APIRobotGPGPassphrase            = null,
+        //                  ISMTPClient?                   SMTPClient                       = null,
 
-                          Boolean?                 IsDevelopment             = false,
-                          IEnumerable<String>?     DevelopmentServers        = null,
-                          Boolean?                 DisableLogging            = false,
-                          String?                  LoggingPath               = null,
-                          String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
-                          LogfileCreatorDelegate?  LogfileCreator            = null,
+        //                  PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
+        //                  HTTPCookieName?                CookieName                       = null,
+        //                  Boolean                        UseSecureCookies                 = true,
+        //                  TimeSpan?                      MaxSignInSessionLifetime         = null,
+        //                  Languages?                     DefaultLanguage                  = null,
+        //                  Byte?                          MinUserIdLength                  = null,
+        //                  Byte?                          MinRealmLength                   = null,
+        //                  Byte?                          MinUserNameLength                = null,
+        //                  Byte?                          MinUserGroupIdLength             = null,
+        //                  UInt16?                        MinAPIKeyLength                  = null,
+        //                  Byte?                          MinMessageIdLength               = null,
+        //                  Byte?                          MinOrganizationIdLength          = null,
+        //                  Byte?                          MinOrganizationGroupIdLength     = null,
+        //                  Byte?                          MinNotificationMessageIdLength   = null,
+        //                  Byte?                          MinNewsPostingIdLength           = null,
+        //                  Byte?                          MinNewsBannerIdLength            = null,
+        //                  Byte?                          MinFAQIdLength                   = null,
 
-                          Boolean                  AutoStart                 = false)
+        //                  Boolean?                       DisableMaintenanceTasks          = false,
+        //                  TimeSpan?                      MaintenanceInitialDelay          = null,
+        //                  TimeSpan?                      MaintenanceEvery                 = null,
 
-            : base(HTTPServer,
-                   HTTPHostname,
-                   ExternalDNSName,
-                   HTTPServiceName,
-                   BasePath,
+        //                  Boolean?                       DisableWardenTasks               = false,
+        //                  TimeSpan?                      WardenInitialDelay               = null,
+        //                  TimeSpan?                      WardenCheckEvery                 = null,
 
-                   URLPathPrefix,
-                   HTMLTemplate,
-                   APIVersionHashes,
+        //                  Boolean?                       IsDevelopment                    = false,
+        //                  IEnumerable<String>?           DevelopmentServers               = null,
+        //                  Boolean                        SkipURLTemplates                 = false,
+        //                  Boolean?                       DisableLogging                   = false,
+        //                  String?                        LoggingPath                      = null,
+        //                  String?                        LogfileName                      = null, //DefaultHTTPAPI_LogfileName,
+        //                  LogfileCreatorDelegate?        LogfileCreator                   = null,
+        //                  Boolean                        AutoStart                        = false)
 
-                   DisableMaintenanceTasks,
-                   MaintenanceInitialDelay,
-                   MaintenanceEvery,
+        //{
 
-                   DisableWardenTasks,
-                   WardenInitialDelay,
-                   WardenCheckEvery,
+        //    #region Inital checks
 
-                   IsDevelopment,
-                   DevelopmentServers,
-                   DisableLogging,
-                   LoggingPath,
-                   LogfileName,
-                   LogfileCreator,
+        //    if (APIRobotEMailAddress is null)
+        //        throw new ArgumentNullException(nameof(APIRobotEMailAddress),   "The given API robot e-mail address must not be null!");
 
-                   AutoStart)
+        //    if (APIRobotGPGPassphrase is null)
+        //        throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
 
-        { }
+        //    #endregion
+
+        //    #region Init data
+
+        //    this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim();
+
+        //    if (this.APIVersionHash.IsNullOrEmpty())
+        //        this.APIVersionHash              = "unknown";
+
+        //    this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPIX_DatabaseFileName);
+
+        //    this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
+        //    this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
+        //    this.SMTPLoggingPath                 = this.LoggingPath + "SMTPClient"     + Path.DirectorySeparatorChar;
+
+        //    this.DisableNotifications            = DisableNotifications;
+
+        //    if (DisableLogging == true) {
+        //        Directory.CreateDirectory(this.HTTPAPIPath);
+        //        Directory.CreateDirectory(this.NotificationsPath);
+        //        Directory.CreateDirectory(this.SMTPLoggingPath);
+        //    }
+
+        //    this.Robot                           = new User(
+        //                                               Id:               User_Id.Parse("robot"),
+        //                                               EMail:            APIRobotEMailAddress.Address,
+        //                                               Name:            (APIRobotEMailAddress.OwnerName ?? "Robot").ToI18NString(),
+        //                                               PublicKeyRing:    APIRobotEMailAddress.PublicKeyRing,
+        //                                               SecretKeyRing:    APIRobotEMailAddress.SecretKeyRing,
+        //                                               Description:      "The HTTP API robot".ToI18NString(),
+        //                                               IsAuthenticated:  true
+        //                                           );
+
+        //    CurrentAsyncLocalUserId.Value        = Robot.Id;
+
+        //    this.AdminOrganizationId             = AdminOrganizationId            ?? DefaultAdminOrganizationId;
+        //    this.APIRobotGPGPassphrase           = APIRobotGPGPassphrase;
+        //    this.SMTPClient                      = SMTPClient                     ?? throw new ArgumentNullException(nameof(SMTPClient), "The given API SMTP client must not be null!");
+
+        //    this.CookieName                      = CookieName                     ?? DefaultCookieName;
+        //    this.SessionCookieName               = this.CookieName + "Session";
+        //    this.UseSecureCookies                = UseSecureCookies;
+        //    this.DefaultLanguage                 = DefaultLanguage                ?? DefaultDefaultLanguage;
+
+        //    this.MinUserIdLength                 = MinUserIdLength                ?? DefaultMinUserIdLength;
+        //    this.MinRealmLength                  = MinRealmLength                 ?? DefaultMinRealmLength;
+        //    this.MinUserNameLength               = MinUserNameLength              ?? DefaultMinUserNameLength;
+        //    this.MinUserGroupIdLength            = MinUserGroupIdLength           ?? DefaultMinUserGroupIdLength;
+        //    this.MinAPIKeyLength                 = MinAPIKeyLength                ?? DefaultMinAPIKeyLength;
+        //    this.MinOrganizationIdLength         = MinOrganizationIdLength        ?? DefaultMinOrganizationIdLength;
+        //    this.MinOrganizationGroupIdLength    = MinOrganizationGroupIdLength   ?? DefaultMinOrganizationGroupIdLength;
+        //    this.MinNotificationMessageIdLength  = MinNotificationMessageIdLength ?? DefaultMinNotificationMessageIdLength;
+
+        //    this.PasswordQualityCheck            = PasswordQualityCheck           ?? DefaultPasswordQualityCheck;
+        //    this.MaxSignInSessionLifetime        = MaxSignInSessionLifetime       ?? DefaultMaxSignInSessionLifetime;
+
+        //    this.CurrentDatabaseHashValue        = "";
+
+        //    this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
+        //    this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
+
+        //    #endregion
+
+        //    #region Reflect data licenses
+
+        //    foreach (var dataLicense in typeof(DataLicense).GetFields(System.Reflection.BindingFlags.Public |
+        //                                                              System.Reflection.BindingFlags.Static).
+        //                                                    Where (fieldinfo => fieldinfo.ReflectedType == typeof(DataLicense) &&
+        //                                                                        fieldinfo.FieldType     == typeof(DataLicense)).
+        //                                                    Select(fieldinfo => fieldinfo.GetValue(DataLicense.None)).
+        //                                                    Cast<DataLicense>())
+        //    {
+
+        //        dataLicenses.TryAdd(dataLicense.Id,
+        //                            dataLicense);
+
+        //    }
+
+        //    #endregion
+
+
+        //    #region Create default organizations/user groups
+
+        //    this.NoOwner = new Organization(
+        //                       Organization_Id.Parse("NoOwner"),
+        //                       "No owner".ToI18NString()
+        //                   );
+
+        //    organizations.TryAdd(this.NoOwner.Id,
+        //                         this.NoOwner);
+
+        //    #endregion
+
+
+        //    #region Warden: Observe CPU/RAM => Send admin e-mails...
+
+        //    //Warden.EveryMinutes(15,
+        //    //                    Environment.OSVersion.Platform == PlatformID.Unix
+        //    //                        ? new DriveInfo("/")
+        //    //                        : new DriveInfo(Directory.GetCurrentDirectory()),
+        //    //                    async (timestamp, driveInfo, ct) => {
+
+        //    //                        var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
+        //    //                        var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
+
+        //    //                        if (HDPercentageFree < 3 &&
+        //    //                            TryGetOrganization(this.AdminOrganizationId, out var adminOrganization) &&
+        //    //                            adminOrganization is not null)
+        //    //                        {
+
+        //    //                            // lowStorage_MessageType
+        //    //                            await SMTPClient.Send(new HTMLEMailBuilder {
+        //    //                                                         From           = Robot.EMail,
+        //    //                                                         To             = EMailAddressList.Create(adminOrganization.Admins.Select(admin => admin.EMail)),
+        //    //                                                         Passphrase     = APIRobotGPGPassphrase,
+        //    //                                                         Subject        = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
+        //    //                                                         HTMLText       = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
+        //    //                                                         PlainText      = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
+        //    //                                                         SecurityLevel  = EMailSecurity.autosign
+        //    //                                                     }).ConfigureAwait(false);
+
+        //    //                        }
+
+        //    //                    });
+
+        //    #endregion
+
+        //    //RegisterNotifications().Wait();
+
+        //    if (!SkipURLTemplates)
+        //        RegisterURLTemplates();
+
+        //    //DebugX.Log(nameof(HTTPExtAPIX) + " version '" + APIVersionHash + "' initialized...");
+
+        //    //if (AutoStart)
+        //    //    Start();
+
+
+        //}
+
+        #endregion
+
+        //public HTTPExtAPIX(HTTPServer               HTTPServer,
+        //                  HTTPHostname?            HTTPHostname              = null,
+        //                  String?                  ExternalDNSName           = "",
+        //                  String?                  HTTPServiceName           = DefaultHTTPServiceName,
+        //                  HTTPPath?                BasePath                  = null,
+
+        //                  HTTPPath?                URLPathPrefix             = null,
+        //                  String?                  HTMLTemplate              = null,
+        //                  JObject?                 APIVersionHashes          = null,
+
+        //                  Boolean?                 DisableMaintenanceTasks   = false,
+        //                  TimeSpan?                MaintenanceInitialDelay   = null,
+        //                  TimeSpan?                MaintenanceEvery          = null,
+
+        //                  Boolean?                 DisableWardenTasks        = false,
+        //                  TimeSpan?                WardenInitialDelay        = null,
+        //                  TimeSpan?                WardenCheckEvery          = null,
+
+        //                  Boolean?                 IsDevelopment             = false,
+        //                  IEnumerable<String>?     DevelopmentServers        = null,
+        //                  Boolean?                 DisableLogging            = false,
+        //                  String?                  LoggingPath               = null,
+        //                  String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
+        //                  LogfileCreatorDelegate?  LogfileCreator            = null,
+
+        //                  Boolean                  AutoStart                 = false)
+
+        //    : base(HTTPServer,
+        //           HTTPHostname,
+        //           ExternalDNSName,
+        //           HTTPServiceName,
+        //           BasePath,
+
+        //           URLPathPrefix,
+        //           HTMLTemplate,
+        //           APIVersionHashes,
+
+        //           DisableMaintenanceTasks,
+        //           MaintenanceInitialDelay,
+        //           MaintenanceEvery,
+
+        //           DisableWardenTasks,
+        //           WardenInitialDelay,
+        //           WardenCheckEvery,
+
+        //           IsDevelopment,
+        //           DevelopmentServers,
+        //           DisableLogging,
+        //           LoggingPath,
+        //           LogfileName,
+        //           LogfileCreator,
+
+        //           AutoStart)
+
+        //{ }
 
         #endregion
 
@@ -2736,7 +2804,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         ///// <param name="DisableNotifications">Disable external notifications.</param>
         ///// <param name="DisableLogfile">Disable the log file.</param>
         ///// <param name="LogfileName">The name of the logfile for this API.</param>
-        //public static HTTPExtAPI AttachToHTTPAPI(HTTPServer                           HTTPServer,
+        //public static HTTPExtAPIX AttachToHTTPAPI(HTTPServer                           HTTPServer,
         //                                       HTTPHostname?                        HTTPHostname                     = null,
         //                                       String                               ServiceName                      = "GraphDefined HTTPExt API",
         //                                       String                               ExternalDNSName                  = null,
@@ -2784,7 +2852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                       String                               LogfileName                      = DefaultLogfileName)
 
 
-        //    => new HTTPExtAPI(HTTPServer,
+        //    => new HTTPExtAPIX(HTTPServer,
         //                    HTTPHostname,
         //                    ServiceName,
         //                    ExternalDNSName,
@@ -3311,16 +3379,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             try
                             {
 
-                                using (var httpsClient = new HTTPSClient(
+                                using (var httpsClient = new HTTPTestClient(
                                                              notification.RemoteURL,
                                                              RemoteCertificateValidator:  notification.RemoteURL.Protocol == URLProtocols.https
                                                                                               ? (sender, certificate, chain, server, policyErrors) => (true, Array.Empty<String>())
                                                                                               : null,
-                                                             LocalCertificateSelector:   null,
-                                                             ClientCert:                  null,
+                                                             LocalCertificateSelector:    null,
+                                                             //ClientCert:                  null,
                                                              HTTPUserAgent:               null,
-                                                             RequestTimeout:              null,
-                                                             DNSClient:                   DNSClient
+                                                             //RequestTimeout:              null,
+                                                             DNSClient:                   HTTPTestServer.DNSClient
                                                          ))
                                 {
 
@@ -3332,7 +3400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    Path           = notification.RemoteURL.Path,
                                                    Content        = new JArray(JSONNotification).ToUTF8Bytes(),
                                                    ContentType    = HTTPContentType.Application.JSON_UTF8,
-                                                   UserAgent      = "HTTPExtAPI Notification API",
+                                                   UserAgent      = "HTTPExtAPIX Notification API",
                                                    API_Key        = notification.APIKey.HasValue
                                                                         ? notification.APIKey
                                                                         : null,
@@ -3344,13 +3412,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                         : null
                                     };
 
-                                    result  = await httpsClient.Execute(Request:              request,
-                                                                        RequestLogDelegate:   (timestamp, client, req)       => LogRequest (timestamp, client, notification.RemoteURL.Hostname.ToString(), req),
-                                                                        ResponseLogDelegate:  (timestamp, client, req, resp) => LogResponse(timestamp, client, notification.RemoteURL.Hostname.ToString(), req, resp),
-                                                                        CancellationToken:    default,
-                                                                        EventTrackingId:      EventTracking_Id.New,
-                                                                        RequestTimeout:       notification.RequestTimeout,
-                                                                        NumberOfRetry:        TransmissionRetry++);
+                                    //result  = await httpsClient.Execute(Request:              request,
+                                    //                                    RequestLogDelegate:   (timestamp, client, req)       => LogRequest (timestamp, client, notification.RemoteURL.Hostname.ToString(), req),
+                                    //                                    ResponseLogDelegate:  (timestamp, client, req, resp) => LogResponse(timestamp, client, notification.RemoteURL.Hostname.ToString(), req, resp),
+                                    //                                    CancellationToken:    default,
+                                    //                                    EventTrackingId:      EventTracking_Id.New,
+                                    //                                    RequestTimeout:       notification.RequestTimeout,
+                                    //                                    NumberOfRetry:        TransmissionRetry++);
 
                                 }
 
@@ -3453,7 +3521,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                              HTTPCookieDomain.IsNotNullOrEmpty()
                                  ? "; Domain=" + HTTPCookieDomain
                                  : String.Empty,
-                             "; Path=",     URLPathPrefix.ToString(),
+                             "; Path=",     RootPath.ToString(),
                              "; SameSite=strict",
                              UseSecureCookies
                                  ? "; secure"
@@ -3678,9 +3746,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                         ? null
                                         : new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode      = HTTPStatusCode.Unauthorized,
-                                              Location            = Location.From(URLPathPrefix + "login?redirect=" + Request.Path.ToString()),
+                                              Location            = Location.From(RootPath + "login?redirect=" + Request.Path.ToString()),
                                               Date                = Timestamp.Now,
-                                              Server              = HTTPServer.DefaultServerName,
+                                              Server              = HTTPTestServer?.HTTPServerName,
                                               CacheControl        = "private, max-age=0, no-cache",
                                               XLocationAfterAuth  = Request.Path,
                                               Connection          = ConnectionType.Close
@@ -3707,7 +3775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 ResponseBuilder.HTTPStatusCode      = HTTPStatusCode.Unauthorized;
-                ResponseBuilder.Location            = Location.From(URLPathPrefix + "login?redirect=" + Request.Path.ToString());
+                ResponseBuilder.Location            = Location.From(RootPath + "login?redirect=" + Request.Path.ToString());
                 ResponseBuilder.Date                = Timestamp.Now;
                 ResponseBuilder.CacheControl        = "private, max-age=0, no-cache";
                 ResponseBuilder.XLocationAfterAuth  = Request.Path;
@@ -3748,9 +3816,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Organizations  = new HashSet<IOrganization>();
                 ErrorResponseBuilder       = new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                     Location        = Location.From(URLPathPrefix + "login"),
+                                     Location        = Location.From(RootPath + "login"),
                                      Date            = Timestamp.Now,
-                                     Server          = HTTPServer.DefaultServerName,
+                                     Server          = HTTPTestServer?.HTTPServerName,
                                      CacheControl    = "private, max-age=0, no-cache",
                                      Connection      = ConnectionType.Close
                                  };
@@ -3774,301 +3842,442 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region (private) RegisterURLTemplates()
+        #region (protected virtual) MixWithHTMLTemplate           (ResourceName, ResourceAssemblies)
 
-        #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
+        protected virtual String MixWithHTMLTemplate(String ResourceName)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
-                                                  HTTPAPI                                          HTTPAPI,
-                                                  HTTPPath                                         URLTemplate,
+            => MixWithHTMLTemplate(
+                   ResourceName,
+                   new Tuple<String, Assembly>(HTTPExtAPIX.HTTPRoot, typeof(HTTPExtAPIX).Assembly),
+                   new Tuple<String, Assembly>(HTTPAPI.    HTTPRoot, typeof(HTTPAPI).    Assembly)
+               );
 
-                                                  Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                     CreatePerRequestState,
-
-                                                  HTTPHostname?                                    Hostname                   = null,
-                                                  HTTPMethod?                                      HttpMethod                 = null,
-                                                  HTTPContentType?                                 HTTPContentType            = null,
-
-                                                  HTTPAuthentication?                              URLAuthentication          = null,
-                                                  HTTPAuthentication?                              HTTPMethodAuthentication   = null,
-
-                                                  HTTPDelegate?                                    DefaultErrorHandler        = null)
+        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
-            IncludeFilterAtRuntime ??= (s, u, e) => true;
-
-            if (TryGet(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
+            if (HTMLTemplate is not null)
             {
 
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
+                var htmlStream = new MemoryStream();
 
-                                      #region Get HTTP user and its organizations
+                foreach (var assembly in ResourceAssemblies)
+                {
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          AccessLevel: Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
+                    var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                    if (resourceStream is not null)
+                    {
 
-                                      #endregion
+                        resourceStream.Seek(3, SeekOrigin.Begin);
+                        resourceStream.CopyTo(htmlStream);
 
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                                    Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                                httpUser,
-                                                                                                                httpEvent)).
-                                                                    Reverse().
-                                                                    Skip   (Request.QueryString.GetUInt64("skip")).
-                                                                    Take   (Request.QueryString.GetUInt64("take")).
-                                                                    Reverse().
-                                                                    Aggregate(new StringBuilder(),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                                                                                                          AppendLine(httpEvent.SerializedData).
-                                                                                                                          AppendLine()).
-                                                                    Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                                                    Append(Environment.NewLine).
-                                                                    Append(Environment.NewLine).
-                                                                    ToString();
+                        return HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
+                                            Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = httpEvents.ToUTF8Bytes()
-                                          }.AsImmutable);
+                    }
 
-                                  });
+                }
 
-
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                              httpUser,
-                                                                                                              httpEvent)).
-                                                                    Skip (Request.QueryString.GetUInt64("skip")).
-                                                                    Take (Request.QueryString.GetUInt64("take")).
-                                                                    Aggregate(new StringBuilder().AppendLine("["),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
-                                                                                                                          Append    (httpEvent.Subevent ?? "").
-                                                                                                                          Append    (@""",").
-                                                                                                                          Append    (httpEvent.SerializedData).
-                                                                                                                          AppendLine("],")).
-                                                                    ToString().
-                                                                    TrimEnd();
-
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = (httpEvents.Length > 1
-                                                                     ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                                                     : "]").ToUTF8Bytes()
-                                          }.AsImmutable);
-
-                                  });
+                return HTMLTemplate.Replace("<%= content %>",  "").
+                                    Replace("{{BasePath}}",    "");
 
             }
 
-            else
-                throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+            return String.Empty;
 
         }
 
         #endregion
 
-        #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
+        #region (protected virtual) MixWithHTMLTemplate           (ResourceName, HTMLConverter, ResourceAssemblies)
 
-        public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
-                                                  HTTPAPI                                                                      HTTPAPI,
-                                                  HTTPPath                                                                     URLTemplate,
+        protected virtual String MixWithHTMLTemplate(String                ResourceName,
+                                                     Func<String, String>  HTMLConverter)
 
-                                                  Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
-                                                  Func<TState>                                                                 CreatePerRequestState,
+            => MixWithHTMLTemplate(ResourceName,
+                                   HTMLConverter,
+                                   new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly));
 
-                                                  HTTPHostname?                                                                Hostname                   = null,
-                                                  HTTPMethod?                                                                  HttpMethod                 = null,
-                                                  HTTPContentType?                                                             HTTPContentType            = null,
-
-                                                  HTTPAuthentication?                                                          URLAuthentication          = null,
-                                                  HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
-
-                                                  HTTPDelegate?                                                                DefaultErrorHandler        = null)
+        protected virtual String MixWithHTMLTemplate(String                            ResourceName,
+                                                     Func<String, String>              HTMLConverter,
+                                                     params Tuple<String, Assembly>[]  ResourceAssemblies)
         {
 
-            IncludeFilterAtRuntime ??= (s, u, o, e) => true;
-
-            if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
+            if (HTMLTemplate is not null)
             {
 
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
+                var htmlStream = new MemoryStream();
 
-                                      #region Get HTTP user and its organizations
+                foreach (var assembly in ResourceAssemblies)
+                {
 
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
+                    var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                    if (resourceStream is not null)
+                    {
 
-                                      #endregion
+                        resourceStream.Seek(3, SeekOrigin.Begin);
+                        resourceStream.CopyTo(htmlStream);
 
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
-                                                                    Where  (httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                                httpUser,
-                                                                                                                httpOrganizations,
-                                                                                                                httpEvent)).
-                                                                    Reverse().
-                                                                    Skip   (Request.QueryString.GetUInt64("skip")).
-                                                                    Take   (Request.QueryString.GetUInt64("take")).
-                                                                    Reverse().
-                                                                    Aggregate(new StringBuilder(),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
-                                                                                                                          AppendLine(httpEvent.SerializedData).
-                                                                                                                          AppendLine()).
-                                                                    Append(Environment.NewLine).
-                                                                    Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
-                                                                    Append(Environment.NewLine).
-                                                                    Append(Environment.NewLine).
-                                                                    ToString();
+                        return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
+                                                          Replace("{{BasePath}}",    BasePath?.ToString() ?? ""));
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Text.EVENTSTREAM,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = httpEvents.ToUTF8Bytes()
-                                          }.AsImmutable);
+                    }
 
-                                  });
+                }
 
-
-                AddMethodCallback(Hostname        ?? HTTPHostname.Any,
-                                  HttpMethod      ?? HTTPMethod.GET,
-                                  URLTemplate,
-                                  HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
-                                  URLAuthentication:         URLAuthentication,
-                                  HTTPMethodAuthentication:  HTTPMethodAuthentication,
-                                  DefaultErrorHandler:       DefaultErrorHandler,
-                                  HTTPDelegate:              Request => {
-
-                                      #region Get HTTP user and its organizations
-
-                                      // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                      if (!TryGetHTTPUser(Request,
-                                                          out var httpUser,
-                                                          out var httpOrganizations,
-                                                          out var httpResponseBuilder,
-                                                          Access_Levels.ReadWrite,
-                                                          Recursive: true) ||
-                                          httpUser is null)
-                                      {
-                                          return Task.FromResult(httpResponseBuilder!.AsImmutable);
-                                      }
-
-                                      #endregion
-
-                                      var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
-                                      var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
-                                                                                                              httpUser,
-                                                                                                              httpOrganizations,
-                                                                                                              httpEvent)).
-                                                                    Skip (Request.QueryString.GetUInt64("skip")).
-                                                                    Take (Request.QueryString.GetUInt64("take")).
-                                                                    Aggregate(new StringBuilder().AppendLine("["),
-                                                                              (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
-                                                                                                                          Append(httpEvent.Subevent ?? "").
-                                                                                                                          Append(@""",").
-                                                                                                                          Append(httpEvent.SerializedData).
-                                                                                                                          AppendLine("],")).
-                                                                    ToString().
-                                                                    TrimEnd();
-
-
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.OK,
-                                              Server          = HTTPServer.DefaultHTTPServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              CacheControl    = "no-cache",
-                                              Connection      = ConnectionType.KeepAlive,
-                                              KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
-                                              Content         = (httpEvents.Length > 1
-                                                                     ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
-                                                                     : "]").ToUTF8Bytes()
-                                          }.AsImmutable);
-
-                                  });
+                return HTMLConverter(HTMLTemplate.Replace("<%= content %>",  "").
+                                                  Replace("{{BasePath}}",    ""));
 
             }
 
-            else
-                throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+            return String.Empty;
 
         }
+
+        #endregion
+
+        #region (protected virtual) MixWithHTMLTemplate           (Template, ResourceName, ResourceAssemblies)
+
+        protected virtual String MixWithHTMLTemplate(String   Template,
+                                                     String   ResourceName,
+                                                     String?  Content   = null)
+
+            => MixWithHTMLTemplate(Template,
+                                   ResourceName,
+                                   [ new Tuple<String, Assembly>(HTTPAPI.HTTPRoot, typeof(HTTPAPI).Assembly) ],
+                                   Content);
+
+        protected virtual String MixWithHTMLTemplate(String                     Template,
+                                                     String                     ResourceName,
+                                                     Tuple<String, Assembly>[]  ResourceAssemblies,
+                                                     String?                    Content   = null)
+        {
+
+            var htmlStream = new MemoryStream();
+
+            foreach (var assembly in ResourceAssemblies)
+            {
+
+                var resourceStream = assembly.Item2.GetManifestResourceStream(assembly.Item1 + ResourceName);
+                if (resourceStream is not null)
+                {
+
+                    resourceStream.Seek(3, SeekOrigin.Begin);
+                    resourceStream.CopyTo(htmlStream);
+
+                    return Template.Replace("<%= content %>",  htmlStream.ToArray().ToUTF8String()).
+                                    Replace("{{BasePath}}",    BasePath?.ToString() ?? "");
+
+                }
+
+            }
+
+            return Template.Replace("<%= content %>",  "").
+                            Replace("{{BasePath}}",    "");
+
+        }
+
+        #endregion
+
+
+
+
+
+        #region (private) RegisterURLTemplates()
+
+        #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
+
+        //public void AddEventSource<TData, TState>(HTTPEventSource_Id                               HTTPEventSourceId,
+        //                                          HTTPAPI                                          HTTPAPI,
+        //                                          HTTPPath                                         URLTemplate,
+
+        //                                          Func<TState?, IUser, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+        //                                          Func<TState>                                     CreatePerRequestState,
+
+        //                                          HTTPHostname?                                    Hostname                   = null,
+        //                                          HTTPMethod?                                      HttpMethod                 = null,
+        //                                          HTTPContentType?                                 HTTPContentType            = null,
+
+        //                                          HTTPAuthentication?                              URLAuthentication          = null,
+        //                                          HTTPAuthentication?                              HTTPMethodAuthentication   = null,
+
+        //                                          HTTPDelegate?                                    DefaultErrorHandler        = null)
+        //{
+
+        //    IncludeFilterAtRuntime ??= (s, u, e) => true;
+
+        //    if (TryGet(HTTPEventSourceId, out IHTTPEventSource<TData> eventSource))
+        //    {
+
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
+
+        //                              #region Get HTTP user and its organizations
+
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  AccessLevel: Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
+
+        //                              #endregion
+
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+        //                                                            Where  (httpEvent => IncludeFilterAtRuntime(state,
+        //                                                                                                        httpUser,
+        //                                                                                                        httpEvent)).
+        //                                                            Reverse().
+        //                                                            Skip   (Request.QueryString.GetUInt64("skip")).
+        //                                                            Take   (Request.QueryString.GetUInt64("take")).
+        //                                                            Reverse().
+        //                                                            Aggregate(new StringBuilder(),
+        //                                                                      (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+        //                                                                                                                  AppendLine(httpEvent.SerializedData).
+        //                                                                                                                  AppendLine()).
+        //                                                            Append(Environment.NewLine).
+        //                                                            Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+        //                                                            Append(Environment.NewLine).
+        //                                                            Append(Environment.NewLine).
+        //                                                            ToString();
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Text.EVENTSTREAM,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      Content         = httpEvents.ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
+
+        //                              #region Get HTTP user and its organizations
+
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
+
+        //                              #endregion
+
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+        //                                                                                                      httpUser,
+        //                                                                                                      httpEvent)).
+        //                                                            Skip (Request.QueryString.GetUInt64("skip")).
+        //                                                            Take (Request.QueryString.GetUInt64("take")).
+        //                                                            Aggregate(new StringBuilder().AppendLine("["),
+        //                                                                      (stringBuilder, httpEvent) => stringBuilder.Append    (@"[""").
+        //                                                                                                                  Append    (httpEvent.Subevent ?? "").
+        //                                                                                                                  Append    (@""",").
+        //                                                                                                                  Append    (httpEvent.SerializedData).
+        //                                                                                                                  AppendLine("],")).
+        //                                                            ToString().
+        //                                                            TrimEnd();
+
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      Content         = (httpEvents.Length > 1
+        //                                                             ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+        //                                                             : "]").ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+        //    }
+
+        //    else
+        //        throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+
+        //}
+
+        #endregion
+
+        #region AddEventSource(HTTPEventSourceId, URLTemplate, IncludeFilterAtRuntime, CreateState, ...)
+
+        //public void AddEventSource<TData, TState>(HTTPEventSource_Id                                                           HTTPEventSourceId,
+        //                                          HTTPAPI                                                                      HTTPAPI,
+        //                                          HTTPPath                                                                     URLTemplate,
+
+        //                                          Func<TState?, IUser, IEnumerable<IOrganization>, HTTPEvent<TData>, Boolean>  IncludeFilterAtRuntime,
+        //                                          Func<TState>                                                                 CreatePerRequestState,
+
+        //                                          HTTPHostname?                                                                Hostname                   = null,
+        //                                          HTTPMethod?                                                                  HttpMethod                 = null,
+        //                                          HTTPContentType?                                                             HTTPContentType            = null,
+
+        //                                          HTTPAuthentication?                                                          URLAuthentication          = null,
+        //                                          HTTPAuthentication?                                                          HTTPMethodAuthentication   = null,
+
+        //                                          HTTPDelegate?                                                                DefaultErrorHandler        = null)
+        //{
+
+        //    IncludeFilterAtRuntime ??= (s, u, o, e) => true;
+
+        //    if (TryGet<TData>(HTTPEventSourceId, out var eventSource))
+        //    {
+
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Text.EVENTSTREAM,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
+
+        //                              #region Get HTTP user and its organizations
+
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
+
+        //                              #endregion
+
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              var httpEvents  = eventSource.GetAllEventsGreater(Request.GetHeaderField(HTTPRequestHeaderField.LastEventId)).
+        //                                                            Where  (httpEvent => IncludeFilterAtRuntime(state,
+        //                                                                                                        httpUser,
+        //                                                                                                        httpOrganizations,
+        //                                                                                                        httpEvent)).
+        //                                                            Reverse().
+        //                                                            Skip   (Request.QueryString.GetUInt64("skip")).
+        //                                                            Take   (Request.QueryString.GetUInt64("take")).
+        //                                                            Reverse().
+        //                                                            Aggregate(new StringBuilder(),
+        //                                                                      (stringBuilder, httpEvent) => stringBuilder.Append(httpEvent.SerializedHeader).
+        //                                                                                                                  AppendLine(httpEvent.SerializedData).
+        //                                                                                                                  AppendLine()).
+        //                                                            Append(Environment.NewLine).
+        //                                                            Append("retry: ").Append((UInt32) eventSource.RetryInterval .TotalMilliseconds).
+        //                                                            Append(Environment.NewLine).
+        //                                                            Append(Environment.NewLine).
+        //                                                            ToString();
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Text.EVENTSTREAM,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      Content         = httpEvents.ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+
+        //        AddMethodCallback(Hostname        ?? HTTPHostname.Any,
+        //                          HttpMethod      ?? HTTPMethod.GET,
+        //                          URLTemplate,
+        //                          HTTPContentType ?? HTTPContentType.Application.JSON_UTF8,
+        //                          URLAuthentication:         URLAuthentication,
+        //                          HTTPMethodAuthentication:  HTTPMethodAuthentication,
+        //                          DefaultErrorHandler:       DefaultErrorHandler,
+        //                          HTTPDelegate:              Request => {
+
+        //                              #region Get HTTP user and its organizations
+
+        //                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+        //                              if (!TryGetHTTPUser(Request,
+        //                                                  out var httpUser,
+        //                                                  out var httpOrganizations,
+        //                                                  out var httpResponseBuilder,
+        //                                                  Access_Levels.ReadWrite,
+        //                                                  Recursive: true) ||
+        //                                  httpUser is null)
+        //                              {
+        //                                  return Task.FromResult(httpResponseBuilder!.AsImmutable);
+        //                              }
+
+        //                              #endregion
+
+        //                              var state       = CreatePerRequestState is not null ? CreatePerRequestState() : default;
+        //                              var httpEvents  = eventSource.Where(httpEvent => IncludeFilterAtRuntime(state,
+        //                                                                                                      httpUser,
+        //                                                                                                      httpOrganizations,
+        //                                                                                                      httpEvent)).
+        //                                                            Skip (Request.QueryString.GetUInt64("skip")).
+        //                                                            Take (Request.QueryString.GetUInt64("take")).
+        //                                                            Aggregate(new StringBuilder().AppendLine("["),
+        //                                                                      (stringBuilder, httpEvent) => stringBuilder.Append(@"[""").
+        //                                                                                                                  Append(httpEvent.Subevent ?? "").
+        //                                                                                                                  Append(@""",").
+        //                                                                                                                  Append(httpEvent.SerializedData).
+        //                                                                                                                  AppendLine("],")).
+        //                                                            ToString().
+        //                                                            TrimEnd();
+
+
+        //                              return Task.FromResult(
+        //                                  new HTTPResponse.Builder(Request) {
+        //                                      HTTPStatusCode  = HTTPStatusCode.OK,
+        //                                      Server          = HTTPServer.DefaultHTTPServerName,
+        //                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
+        //                                      CacheControl    = "no-cache",
+        //                                      Connection      = ConnectionType.KeepAlive,
+        //                                      KeepAlive       = new KeepAliveType(TimeSpan.FromSeconds(2 * eventSource.RetryInterval .TotalSeconds)),
+        //                                      Content         = (httpEvents.Length > 1
+        //                                                             ? httpEvents.Remove(httpEvents.Length - 1, 1) + Environment.NewLine + "]"
+        //                                                             : "]").ToUTF8Bytes()
+        //                                  }.AsImmutable);
+
+        //                          });
+
+        //    }
+
+        //    else
+        //        throw new ArgumentException("Event source '" + HTTPEventSourceId + "' could not be found!", nameof(HTTPEventSourceId));
+
+        //}
 
         #endregion
 
@@ -4080,8 +4289,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override Stream? GetResourceStream(String ResourceName)
 
             => GetResourceStream(ResourceName,
-                                 new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
-                                 new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
+                                 new Tuple<String, Assembly>(HTTPExtAPIX.HTTPRoot, typeof(HTTPExtAPIX).Assembly),
+                                 new Tuple<String, Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
 
@@ -4090,8 +4299,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override MemoryStream? GetResourceMemoryStream(String ResourceName)
 
             => GetResourceMemoryStream(ResourceName,
-                                       new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
-                                       new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
+                                       new Tuple<String, Assembly>(HTTPExtAPIX.HTTPRoot, typeof(HTTPExtAPIX).Assembly),
+                                       new Tuple<String, Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
 
@@ -4100,8 +4309,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override String GetResourceString(String ResourceName)
 
             => GetResourceString(ResourceName,
-                                 new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
-                                 new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
+                                 new Tuple<String, Assembly>(HTTPExtAPIX.HTTPRoot, typeof(HTTPExtAPIX).Assembly),
+                                 new Tuple<String, Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
 
@@ -4110,18 +4319,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         protected override Byte[] GetResourceBytes(String ResourceName)
 
             => GetResourceBytes(ResourceName,
-                                new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
-                                new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
-
-        #endregion
-
-        #region (protected override) MixWithHTMLTemplate    (ResourceName)
-
-        protected override String MixWithHTMLTemplate(String ResourceName)
-
-            => MixWithHTMLTemplate(ResourceName,
-                                   new Tuple<String, System.Reflection.Assembly>(HTTPExtAPI.HTTPRoot, typeof(HTTPExtAPI).Assembly),
-                                   new Tuple<String, System.Reflection.Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
+                                new Tuple<String, Assembly>(HTTPExtAPIX.HTTPRoot, typeof(HTTPExtAPIX).Assembly),
+                                new Tuple<String, Assembly>(HTTPAPI.   HTTPRoot, typeof(HTTPAPI).   Assembly));
 
         #endregion
 
@@ -4130,428 +4329,431 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         private void RegisterURLTemplates()
         {
 
-            HTTPServer.AddAuth  (request => {
+            var URLPathPrefix = HTTPPath.Root;
 
-                // Allow OPTIONS requests / call pre-flight requests in cross-origin resource sharing (CORS)
-                if (request.HTTPMethod == HTTPMethod.OPTIONS)
-                    return Anonymous;
+            //HTTPServer.AddAuth  (request => {
 
-                var user = CheckHTTPCookie   (request, RemoteAuthServersMaxHopCount: 1).Result ??
-                           CheckHTTPAPIKey   (request) ??
-                           CheckHTTPBasicAuth(request);
+            //    // Allow OPTIONS requests / call pre-flight requests in cross-origin resource sharing (CORS)
+            //    if (request.HTTPMethod == HTTPMethod.OPTIONS)
+            //        return Anonymous;
 
-                if (user is not null)
-                    return user;
+            //    var user = CheckHTTPCookie   (request, RemoteAuthServersMaxHopCount: 1).Result ??
+            //               CheckHTTPAPIKey   (request) ??
+            //               CheckHTTPBasicAuth(request);
 
-                #region Allow some URLs for anonymous access...
+            //    if (user is not null)
+            //        return user;
 
-                if (request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/defaults") ||
-                    request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/webfonts") ||
-                    request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/login")    ||
-                    request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPI/js")       ||
-                    request.Path.StartsWith(URLPathPrefix + "/defaults")                 ||
-                    request.Path.StartsWith(URLPathPrefix + "/favicon.ico")              ||
+            //    #region Allow some URLs for anonymous access...
 
-                    request.Path.StartsWith(URLPathPrefix + "/login")                                              ||
-                    request.Path.StartsWith(URLPathPrefix + "/css")                                                ||
-                    request.Path.StartsWith(URLPathPrefix + "/webfonts")                                           ||
-                    request.Path.StartsWith(URLPathPrefix + "/images")                                             ||
-                    request.Path.StartsWith(URLPathPrefix + "/lostPassword")                                       ||
-                    request.Path.StartsWith(URLPathPrefix + "/resetPassword")                                      ||
-                    request.Path.StartsWith(URLPathPrefix + "/setPassword")                                        ||
-                    request.Path.StartsWith(URLPathPrefix + "/newsletters")                                        ||
-                   (request.Path.StartsWith(URLPathPrefix + "/users/") && request.HTTPMethod.ToString() == "AUTH") ||
+            //    if (request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/defaults") ||
+            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/webfonts") ||
+            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/login")    ||
+            //        request.Path.StartsWith(URLPathPrefix + "/shared/HTTPExtAPIX/js")       ||
+            //        request.Path.StartsWith(URLPathPrefix + "/defaults")                 ||
+            //        request.Path.StartsWith(URLPathPrefix + "/favicon.ico")              ||
 
-                    // Special API keys!
-                    request.Path == (URLPathPrefix + "/changeSets")    ||
-                    request.Path == (URLPathPrefix + "/securityToken") ||
+            //        request.Path.StartsWith(URLPathPrefix + "/login")                                              ||
+            //        request.Path.StartsWith(URLPathPrefix + "/css")                                                ||
+            //        request.Path.StartsWith(URLPathPrefix + "/webfonts")                                           ||
+            //        request.Path.StartsWith(URLPathPrefix + "/images")                                             ||
+            //        request.Path.StartsWith(URLPathPrefix + "/lostPassword")                                       ||
+            //        request.Path.StartsWith(URLPathPrefix + "/resetPassword")                                      ||
+            //        request.Path.StartsWith(URLPathPrefix + "/setPassword")                                        ||
+            //        request.Path.StartsWith(URLPathPrefix + "/newsletters")                                        ||
+            //       (request.Path.StartsWith(URLPathPrefix + "/users/") && request.HTTPMethod.ToString() == "AUTH") ||
 
-                   (request.Path == (URLPathPrefix + "/serviceCheck")  && request.HTTPMethod.ToString() == "GET") ||
-                   (request.Path == (URLPathPrefix + "/serviceCheck")  && request.HTTPMethod.ToString() == "POST"))
-                {
+            //        // Special API keys!
+            //        request.Path == (URLPathPrefix + "/changeSets")    ||
+            //        request.Path == (URLPathPrefix + "/securityToken") ||
 
-                    return Anonymous;
+            //       (request.Path == (URLPathPrefix + "/serviceCheck")  && request.HTTPMethod.ToString() == "GET") ||
+            //       (request.Path == (URLPathPrefix + "/serviceCheck")  && request.HTTPMethod.ToString() == "POST"))
+            //    {
 
-                }
+            //        return Anonymous;
 
-                #endregion
+            //    }
 
-                return null;
+            //    #endregion
 
-            });
+            //    return null;
 
-            HTTPServer.AddFilter(request => {
+            //});
 
-                #region Check EULA
+            //HTTPServer.AddFilter(request => {
 
-                if (request.User is User user &&
-                    (!user.AcceptedEULA.HasValue ||
-                      user.AcceptedEULA.Value > Timestamp.Now))
-                {
-                    return new HTTPResponse.Builder(request) {
-                        HTTPStatusCode            = HTTPStatusCode.FailedDependency,
-                        Date                      = Timestamp.Now,
-                        Server                    = HTTPServer.DefaultServerName,
-                        AccessControlAllowOrigin  = "*",
-                        AccessControlMaxAge       = 3600,
-                        CacheControl              = "private, max-age=0, no-cache",
-                        ContentType               = HTTPContentType.Application.JSON_UTF8,
-                        Content                   = JSONObject.Create(new JProperty("message", "Please accept the EULA within the portal!")).ToUTF8Bytes(),
-                        Connection                = ConnectionType.Close
-                    };
-                }
+            //    #region Check EULA
 
-                #endregion
+            //    if (request.User is User user &&
+            //        (!user.AcceptedEULA.HasValue ||
+            //          user.AcceptedEULA.Value > Timestamp.Now))
+            //    {
+            //        return new HTTPResponse.Builder(request) {
+            //            HTTPStatusCode            = HTTPStatusCode.FailedDependency,
+            //            Date                      = Timestamp.Now,
+            //            Server                    = HTTPTestServer?.HTTPServerName,
+            //            AccessControlAllowOrigin  = "*",
+            //            AccessControlMaxAge       = 3600,
+            //            CacheControl              = "private, max-age=0, no-cache",
+            //            ContentType               = HTTPContentType.Application.JSON_UTF8,
+            //            Content                   = JSONObject.Create(new JProperty("message", "Please accept the EULA within the portal!")).ToUTF8Bytes(),
+            //            Connection                = ConnectionType.Close
+            //        };
+            //    }
 
-                #region Failed/TryNextMethod... redirect web browsers to /login
+            //    #endregion
 
-                if (request.User is null)
-                {
+            //    #region Failed/TryNextMethod... redirect web browsers to /login
 
-                    if (request.HTTPMethod == HTTPMethod.AUTH)
-                        return null;
+            //    if (request.User is null)
+            //    {
 
-                    if (request.HTTPMethod == HTTPMethod.GET &&
-                        request.Accept.BestMatchingContentType(HTTPContentType.Text.HTML_UTF8) == HTTPContentType.Text.HTML_UTF8)
-                    {
-                        return new HTTPResponse.Builder(request) {
-                            HTTPStatusCode      = HTTPStatusCode.TemporaryRedirect,
-                            Location            = Location.From(URLPathPrefix + ("/login?redirect=" + request.Path.ToString())),
-                            Date                = Timestamp.Now,
-                            Server              = HTTPServer.DefaultServerName,
-                            //SetCookie           = String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
-                            //                                    HTTPCookieDomain.IsNotNullOrEmpty()
-                            //                                        ? "; Domain=" + HTTPCookieDomain
-                            //                                        : String.Empty,
-                            //                                    "; Path=", URLPathPrefix),
-                            XLocationAfterAuth  = request.Path,
-                            CacheControl        = "private, max-age=0, no-cache",
-                            Connection          = ConnectionType.Close
-                        };
-                    }
+            //        if (request.HTTPMethod == HTTPMethod.AUTH)
+            //            return null;
 
-                    else
-                        return new HTTPResponse.Builder(request) {
-                            HTTPStatusCode            = HTTPStatusCode.Unauthorized,
-                            Date                      = Timestamp.Now,
-                            Server                    = HTTPServer.DefaultServerName,
-                            AccessControlAllowOrigin  = "*",
-                            AccessControlMaxAge       = 3600,
-                            CacheControl              = "private, max-age=0, no-cache",
-                            ContentType               = HTTPContentType.Application.JSON_UTF8,
-                            Content                   = JSONObject.Create(new JProperty("message", "Invalid login!")).ToUTF8Bytes(),
-                            Connection                = ConnectionType.Close
-                        };
+            //        if (request.HTTPMethod == HTTPMethod.GET &&
+            //            request.Accept.BestMatchingContentType(HTTPContentType.Text.HTML_UTF8) == HTTPContentType.Text.HTML_UTF8)
+            //        {
+            //            return new HTTPResponse.Builder(request) {
+            //                HTTPStatusCode      = HTTPStatusCode.TemporaryRedirect,
+            //                Location            = Location.From(URLPathPrefix + ("/login?redirect=" + request.Path.ToString())),
+            //                Date                = Timestamp.Now,
+            //                Server              = HTTPTestServer?.HTTPServerName,
+            //                //SetCookie           = String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRfc1123(),
+            //                //                                    HTTPCookieDomain.IsNotNullOrEmpty()
+            //                //                                        ? "; Domain=" + HTTPCookieDomain
+            //                //                                        : String.Empty,
+            //                //                                    "; Path=", URLPathPrefix),
+            //                XLocationAfterAuth  = request.Path,
+            //                CacheControl        = "private, max-age=0, no-cache",
+            //                Connection          = ConnectionType.Close
+            //            };
+            //        }
 
-                }
+            //        else
+            //            return new HTTPResponse.Builder(request) {
+            //                HTTPStatusCode            = HTTPStatusCode.Unauthorized,
+            //                Date                      = Timestamp.Now,
+            //                Server                    = HTTPTestServer?.HTTPServerName,
+            //                AccessControlAllowOrigin  = "*",
+            //                AccessControlMaxAge       = 3600,
+            //                CacheControl              = "private, max-age=0, no-cache",
+            //                ContentType               = HTTPContentType.Application.JSON_UTF8,
+            //                Content                   = JSONObject.Create(new JProperty("message", "Invalid login!")).ToUTF8Bytes(),
+            //                Connection                = ConnectionType.Close
+            //            };
 
-                #endregion
+            //    }
 
-                return null;
+            //    #endregion
 
-            });
+            //    return null;
+
+            //});
 
 
-            #region /shared/HTTPExtAPI
+            #region /shared/HTTPExtAPIX
 
-            this.MapResourceAssemblyFolder(HTTPHostname.Any,
-                                           URLPathPrefix + "shared/HTTPExtAPI",
-                                           HTTPRoot[..^1],
-                                           typeof(HTTPExtAPI).Assembly);
+          //  this.MapResourceAssemblyFolder(HTTPHostname.Any,
+          //                                 URLPathPrefix + "shared/HTTPExtAPIX",
+          //                                 HTTPRoot[..^1],
+          //                                 typeof(HTTPExtAPIX).Assembly);
 
             #endregion
 
 
             #region POST        ~/login
 
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.POST,
-                              URLPathPrefix + "/login",
-                              HTTPContentType.Application.XWWWFormUrlEncoded,
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "/login",
+                HTTPContentType.Application.XWWWFormUrlEncoded,
+                HTTPDelegate: Request => {
 
-                                  //Note: Add LoginRequest event!
+                    //Note: Add LoginRequest event!
 
-                                  #region Check UTF8 text body...
+                    #region Check UTF8 text body...
 
-                                  if (!Request.TryParseUTF8StringRequestBody(HTTPContentType.Application.XWWWFormUrlEncoded,
-                                                                             out var loginText,
-                                                                             out var httpResponse,
-                                                                             AllowEmptyHTTPBody: false) ||
-                                       loginText is null)
-                                  {
-                                      return Task.FromResult(httpResponse!);
-                                  }
+                    if (!Request.TryParseUTF8StringRequestBody(HTTPContentType.Application.XWWWFormUrlEncoded,
+                                                               out var loginText,
+                                                               out var httpResponse,
+                                                               AllowEmptyHTTPBody: false) ||
+                         loginText is null)
+                    {
+                        return Task.FromResult(httpResponse!);
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  var loginData = loginText.DoubleSplit('&', '=');
+                    var loginData = loginText.DoubleSplit('&', '=');
 
-                                  #region Verify the login
+                    #region Verify the login
 
-                                  if (!loginData.TryGetValue("login", out var login) ||
-                                       login.    IsNullOrEmpty())
-                                  {
+                    if (!loginData.TryGetValue("login", out var login) ||
+                         login.    IsNullOrEmpty())
+                    {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("statuscode",   400),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "The login must not be empty!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl     = "private",
-                                              Connection       = ConnectionType.Close
-                                          }.AsImmutable);
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "The login must not be empty!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl     = "private",
+                                Connection       = ConnectionType.Close
+                            }.AsImmutable);
 
-                                  }
+                    }
 
-                                  login = HTTPTools.URLDecode(login);
+                    login = HTTPTools.URLDecode(login);
 
-                                  if (login.Length < MinUserIdLength)
-                                  {
+                    if (login.Length < MinUserIdLength)
+                    {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("statuscode",   400),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "The login is too short!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "The login is too short!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Verify the password
+                    #region Verify the password
 
-                                  if (!loginData.TryGetValue("password", out var password) ||
-                                      password.  IsNullOrEmpty())
-                                  {
+                    if (!loginData.TryGetValue("password", out var password) ||
+                        password.  IsNullOrEmpty())
+                    {
 
-                                     return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("statuscode",   400),
-                                                                    new JProperty("property",     "password"),
-                                                                    new JProperty("description",  "The password must not be empty!")
-                                                               ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
+                       return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("property",     "password"),
+                                                      new JProperty("description",  "The password must not be empty!")
+                                                 ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
-                                  }
+                    }
 
-                                  password = HTTPTools.URLDecode(password);
+                    password = HTTPTools.URLDecode(password);
 
-                                  if (PasswordQualityCheck(password) < 1.0)
-                                  {
+                    if (PasswordQualityCheck(password) < 1.0)
+                    {
 
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("statuscode",   400),
-                                                                    new JProperty("property",     "password"),
-                                                                    new JProperty("description",  "The password does not match the password quality criteria!")
-                                                               ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("statuscode",   400),
+                                                      new JProperty("property",     "password"),
+                                                      new JProperty("description",  "The password does not match the password quality criteria!")
+                                                 ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Get RedirectURL
+                    #region Get RedirectURL
 
-                                  loginData.TryGetValue("redirect", out var redirectURL);
+                    loginData.TryGetValue("redirect", out var redirectURL);
 
-                                  if (redirectURL is not null && redirectURL.IsNotNullOrEmpty())
-                                     redirectURL = HTTPTools.URLDecode(redirectURL);
+                    if (redirectURL is not null && redirectURL.IsNotNullOrEmpty())
+                       redirectURL = HTTPTools.URLDecode(redirectURL);
 
-                                  else
-                                     redirectURL = "/";
+                    else
+                       redirectURL = "/";
 
-                                  #endregion
+                    #endregion
 
-                                  #region Check login or e-mail address and password(s)
+                    #region Check login or e-mail address and password(s)
 
-                                  var possibleUsers = new HashSet<IUser>();
+                    var possibleUsers = new HashSet<IUser>();
 
-                                  if (User_Id.       TryParse   (login,  out var userId) &&
-                                      users.         TryGetValue(userId, out var user)   &&
-                                      loginPasswords.TryGetValue(userId, out var loginPassword))
-                                  {
-                                      possibleUsers.Add(user);
-                                  }
+                    if (User_Id.       TryParse   (login,  out var userId) &&
+                        users.         TryGetValue(userId, out var user)   &&
+                        loginPasswords.TryGetValue(userId, out var loginPassword))
+                    {
+                        possibleUsers.Add(user);
+                    }
 
-                                  if (possibleUsers.Count == 0)
-                                  {
-                                      foreach (var user2 in users.Values)
-                                      {
-                                          if (String.Equals(login,
-                                                            user2.EMail.Address.ToString(),
-                                                            StringComparison.OrdinalIgnoreCase))
-                                          {
-                                              possibleUsers.Add(user2);
-                                          }
-                                      }
-                                  }
+                    if (possibleUsers.Count == 0)
+                    {
+                        foreach (var user2 in users.Values)
+                        {
+                            if (String.Equals(login,
+                                              user2.EMail.Address.ToString(),
+                                              StringComparison.OrdinalIgnoreCase))
+                            {
+                                possibleUsers.Add(user2);
+                            }
+                        }
+                    }
 
-                                  if (possibleUsers.Count == 0)
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "Unknown login!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
-
-
-                                  var validUsers = new HashSet<IUser>();
-
-                                  foreach (var possibleUser in possibleUsers)
-                                  {
-                                      if (loginPasswords.TryGetValue(possibleUser.Id, out var _loginPassword) &&
-                                          _loginPassword.VerifyPassword(password))
-                                      {
-                                          validUsers.Add(possibleUser);
-                                      }
-                                  }
-
-                                  if (validUsers.Count == 0)
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "Invalid password!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
+                    if (possibleUsers.Count == 0)
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.NotFound,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "Unknown login!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
 
-                                  if (validUsers.Count > 1)
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",     SignInOutContext),
-                                                                    new JProperty("property",     "login"),
-                                                                    new JProperty("description",  "Multiple matching user accounts found: Please use your login name!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
+                    var validUsers = new HashSet<IUser>();
 
-                                  #endregion
+                    foreach (var possibleUser in possibleUsers)
+                    {
+                        if (loginPasswords.TryGetValue(possibleUser.Id, out var _loginPassword) &&
+                            _loginPassword.VerifyPassword(password))
+                        {
+                            validUsers.Add(possibleUser);
+                        }
+                    }
 
-                                  #region Check whether the user has access to at least one organization
-
-                                  if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
-                                      return Task.FromResult(
-                                          new HTTPResponse.Builder(Request) {
-                                              HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                              Server          = HTTPServer.DefaultServerName,
-                                              ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                              Content         = new JObject(
-                                                                    new JProperty("@context",    SignInOutContext),
-                                                                    new JProperty("description", "You do not have access to any organization!")
-                                                                ).ToString().ToUTF8Bytes(),
-                                              CacheControl    = "private",
-                                              Connection      = ConnectionType.Close
-                                          }.AsImmutable);
-
-                                  #endregion
+                    if (validUsers.Count == 0)
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "Invalid password!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
 
-                                  #region Register security token
+                    if (validUsers.Count > 1)
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",     SignInOutContext),
+                                                      new JProperty("property",     "login"),
+                                                      new JProperty("description",  "Multiple matching user accounts found: Please use your login name!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
-                                  var validUser        = possibleUsers.First();
-                                  var securityTokenId  = SecurityToken_Id.Parse(SHA256.HashData(
-                                                                                    String.Concat(Guid.NewGuid().ToString(),
-                                                                                                  validUser.Id).
-                                                                                    ToUTF8Bytes()
-                                                                                ).ToHexString());
+                    #endregion
 
-                                  var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
+                    #region Check whether the user has access to at least one organization
 
-                                  lock (httpCookies)
-                                  {
+                    if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
+                        return Task.FromResult(
+                            new HTTPResponse.Builder(Request) {
+                                HTTPStatusCode  = HTTPStatusCode.Unauthorized,
+                                Server          = HTTPTestServer?.HTTPServerName,
+                                ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                Content         = new JObject(
+                                                      new JProperty("@context",    SignInOutContext),
+                                                      new JProperty("description", "You do not have access to any organization!")
+                                                  ).ToString().ToUTF8Bytes(),
+                                CacheControl    = "private",
+                                Connection      = ConnectionType.Close
+                            }.AsImmutable);
 
-                                      httpCookies.TryAdd(securityTokenId,
-                                                         new SecurityToken(
-                                                             validUser.Id,
-                                                             expires
-                                                         ));
-
-                                      File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
-                                                         securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
-
-                                  }
-
-                                  #endregion
+                    #endregion
 
 
-                                  //Note: Add LoginResponse event!
+                    #region Register security token
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode  = HTTPStatusCode.Created,
-                                          ContentType     = HTTPContentType.Text.HTML_UTF8,
-                                          Content         = String.Concat(
-                                                                "<!DOCTYPE html>", Environment.NewLine,
-                                                                @"<html><head><meta http-equiv=""refresh"" content=""0; url=" + redirectURL + @""" /></head></html>",
-                                                                Environment.NewLine
-                                                            ).ToUTF8Bytes(),
-                                          CacheControl    = "private",
-                                          SetCookie       = HTTPCookies.Parse(
+                    var validUser        = possibleUsers.First();
+                    var securityTokenId  = SecurityToken_Id.Parse(SHA256.HashData(
+                                                                      String.Concat(Guid.NewGuid().ToString(),
+                                                                                    validUser.Id).
+                                                                      ToUTF8Bytes()
+                                                                  ).ToHexString());
 
-                                                                String.Concat(CookieName,
-                                                                              GenerateCookieUserData(validUser),
-                                                                              GenerateCookieSettings(expires)),
+                    var expires          = Timestamp.Now.Add(MaxSignInSessionLifetime);
 
-                                                                String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
-                                                                              GenerateCookieSettings(expires),
-                                                                              "; HttpOnly")
+                    lock (httpCookies)
+                    {
 
-                                                            ),
-                                          Connection      = ConnectionType.Close,
-                                          X_FrameOptions  = "DENY"
-                                      }.AsImmutable);
+                        httpCookies.TryAdd(securityTokenId,
+                                           new SecurityToken(
+                                               validUser.Id,
+                                               expires
+                                           ));
 
-                              });
+                        File.AppendAllText(HTTPAPIPath + DefaultHTTPCookiesFile,
+                                           securityTokenId + ";" + validUser.Id + ";" + expires.ToISO8601() + Environment.NewLine);
+
+                    }
+
+                    #endregion
+
+
+                    //Note: Add LoginResponse event!
+
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(Request) {
+                            HTTPStatusCode  = HTTPStatusCode.Created,
+                            ContentType     = HTTPContentType.Text.HTML_UTF8,
+                            Content         = String.Concat(
+                                                  "<!DOCTYPE html>", Environment.NewLine,
+                                                  @"<html><head><meta http-equiv=""refresh"" content=""0; url=" + redirectURL + @""" /></head></html>",
+                                                  Environment.NewLine
+                                              ).ToUTF8Bytes(),
+                            CacheControl    = "private",
+                            SetCookie       = HTTPCookies.Parse(
+
+                                                  String.Concat(CookieName,
+                                                                GenerateCookieUserData(validUser),
+                                                                GenerateCookieSettings(expires)),
+
+                                                  String.Concat(SessionCookieName, "=", securityTokenId.ToString(),
+                                                                GenerateCookieSettings(expires),
+                                                                "; HttpOnly")
+
+                                              ),
+                            Connection      = ConnectionType.Close,
+                            X_FrameOptions  = "DENY"
+                        }.AsImmutable);
+
+                }
+            );
 
             #endregion
 
@@ -4560,138 +4762,139 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------
             // curl -v -H "Accept: text/html" http://127.0.0.1:2100/resetPassword
             // --------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.RESET,
-                              URLPathPrefix + "resetPassword",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: async Request => {
+            AddHandler(
+                HTTPMethod.RESET,
+                URLPathPrefix + "resetPassword",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async Request => {
 
-                                  #region Parse JSON
+                    #region Parse JSON
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json,
-                                                                             out var errorResponseBuilder) || json is null)
-                                  {
+                    if (!Request.TryParseJSONObjectRequestBody(out var json,
+                                                               out var errorResponseBuilder) || json is null)
+                    {
 
-                                      // Slow down attackers!
-                                      Thread.Sleep(5000);
+                        // Slow down attackers!
+                        Thread.Sleep(5000);
 
-                                      return errorResponseBuilder!;
+                        return errorResponseBuilder!;
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Check user "userId" field
+                    #region Check user "userId" field
 
-                                  var userIdOrEMail = json["userId"]?.Value<String>()?.Trim() ?? "";
-                                  if (userIdOrEMail.IsNullOrEmpty() || userIdOrEMail.Length < 4)
-                                  {
+                    var userIdOrEMail = json["userId"]?.Value<String>()?.Trim() ?? "";
+                    if (userIdOrEMail.IsNullOrEmpty() || userIdOrEMail.Length < 4)
+                    {
 
-                                      // Slow down attackers!
-                                      Thread.Sleep(5000);
+                        // Slow down attackers!
+                        Thread.Sleep(5000);
 
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                 = ConnectionType.Close
-                                             };
+                        return new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "SET" },
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   Connection                 = ConnectionType.Close
+                               };
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Find user(s)...
+                    #region Find user(s)...
 
-                                  var users = new HashSet<IUser>();
+                    var users = new HashSet<IUser>();
 
-                                  if (User_Id.TryParse(userIdOrEMail, out var userId) &&
-                                      TryGetUser(userId, out var user) &&
-                                      user is not null)
-                                  {
-                                      users.Add(user);
-                                  }
+                    if (User_Id.TryParse(userIdOrEMail, out var userId) &&
+                        TryGetUser(userId, out var user) &&
+                        user is not null)
+                    {
+                        users.Add(user);
+                    }
 
-                                  if (SimpleEMailAddress.TryParse(userIdOrEMail, out var eMailAddress))
-                                  {
-                                      foreach (var eMailUser in this.users.Values)
-                                      {
-                                          if (eMailUser.EMail.Address == eMailAddress)
-                                              users.Add(eMailUser);
-                                      }
-                                  }
+                    if (SimpleEMailAddress.TryParse(userIdOrEMail, out var eMailAddress))
+                    {
+                        foreach (var eMailUser in this.users.Values)
+                        {
+                            if (eMailUser.EMail.Address == eMailAddress)
+                                users.Add(eMailUser);
+                        }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region No users found!
+                    #region No users found!
 
-                                  if (users.Count == 0)
-                                  {
+                    if (users.Count == 0)
+                    {
 
-                                      // Slow down attackers!
-                                      Thread.Sleep(5000);
+                        // Slow down attackers!
+                        Thread.Sleep(5000);
 
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.NotFound,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                 = ConnectionType.Close
-                                             };
+                        return new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode             = HTTPStatusCode.NotFound,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "SET" },
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   Connection                 = ConnectionType.Close
+                               };
 
-                                  }
+                    }
 
-                                  #endregion
-
-
-                                  var result = await ResetPassword(users,
-                                                                   EventTrackingId: Request.EventTrackingId);
+                    #endregion
 
 
-                                  return result.Result == CommandResult.Success
+                    var result = await ResetPassword(users,
+                                                     EventTrackingId: Request.EventTrackingId);
 
-                                             ? new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode             = HTTPStatusCode.OK,
-                                                   Server                     = HTTPServer.DefaultServerName,
-                                                   Date                       = Timestamp.Now,
-                                                   AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
-                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                    = JSONObject.Create(
-                                                                                    new JProperty("numberOfAccountsFound", users.Count)
-                                                                                ).ToUTF8Bytes(),
-                                                   Connection                 = ConnectionType.Close
-                                               }
 
-                                             : new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                   Server                     = HTTPServer.DefaultServerName,
-                                                   Date                       = Timestamp.Now,
-                                                   AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
-                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                    = JSONObject.Create(
+                    return result.Result == CommandResult.Success
 
-                                                                                    result.Description.IsNotNullOrEmpty()
-                                                                                        ? new JProperty("description",  result.Description.ToJSON())
-                                                                                        : null,
+                               ? new HTTPResponse.Builder(Request) {
+                                     HTTPStatusCode             = HTTPStatusCode.OK,
+                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Date                       = Timestamp.Now,
+                                     AccessControlAllowOrigin   = "*",
+                                     AccessControlAllowMethods  = new[] { "SET" },
+                                     AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                     Content                    = JSONObject.Create(
+                                                                      new JProperty("numberOfAccountsFound", users.Count)
+                                                                  ).ToUTF8Bytes(),
+                                     Connection                 = ConnectionType.Close
+                                 }
 
-                                                                                    new JProperty("numberOfAccountsFound",  users.Count)
+                               : new HTTPResponse.Builder(Request) {
+                                     HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Date                       = Timestamp.Now,
+                                     AccessControlAllowOrigin   = "*",
+                                     AccessControlAllowMethods  = new[] { "SET" },
+                                     AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                     Content                    = JSONObject.Create(
 
-                                                                                ).ToUTF8Bytes(),
-                                                   Connection                 = ConnectionType.Close
-                                               };
+                                                                      result.Description.IsNotNullOrEmpty()
+                                                                          ? new JProperty("description",  result.Description.ToJSON())
+                                                                          : null,
 
-                              },
+                                                                      new JProperty("numberOfAccountsFound",  users.Count)
 
-                              AllowReplacement: URLReplacement.Allow);
+                                                                  ).ToUTF8Bytes(),
+                                     Connection                 = ConnectionType.Close
+                                 };
+
+                },
+
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
@@ -4707,170 +4910,171 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2001/setPassword
             // ------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.SET,
-                              URLPathPrefix + "setPassword",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: async Request => {
+            AddHandler(
+                HTTPMethod.SET,
+                URLPathPrefix + "setPassword",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async Request => {
 
-                                  #region Parse JSON
+                    #region Parse JSON
 
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json,
-                                                                          out var errorResponseBuilder) || json is null)
-                                  {
+                    if (!Request.TryParseJSONObjectRequestBody(out var json,
+                                                            out var errorResponseBuilder) || json is null)
+                    {
 
-                                      // Slow down attackers!
-                                      Thread.Sleep(5000);
+                        // Slow down attackers!
+                        Thread.Sleep(5000);
 
-                                      return errorResponseBuilder!;
+                        return errorResponseBuilder!;
 
-                                  }
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Parse SecurityTokenId1    [mandatory]
+                    #region Parse SecurityTokenId1    [mandatory]
 
-                                  if (!json.ParseMandatory("securityToken1",
-                                                           "security token #1",
-                                                           HTTPServer.DefaultServerName,
-                                                           SecurityToken_Id.TryParse,
-                                                           out SecurityToken_Id SecurityTokenId1,
-                                                           Request,
-                                                           out errorResponseBuilder))
-                                  {
-                                      return errorResponseBuilder;
-                                  }
+                    if (!json.ParseMandatory("securityToken1",
+                                             "security token #1",
+                                             HTTPTestServer?.HTTPServerName,
+                                             SecurityToken_Id.TryParse,
+                                             out SecurityToken_Id SecurityTokenId1,
+                                             Request,
+                                             out errorResponseBuilder))
+                    {
+                        return errorResponseBuilder;
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region Parse NewPassword         [mandatory]
+                    #region Parse NewPassword         [mandatory]
 
-                                  if (!json.ParseMandatory("newPassword",
-                                                           "new user password",
-                                                           HTTPServer.DefaultServerName,
-                                                           Password.TryParse,
-                                                           out Password NewPassword,
-                                                           Request,
-                                                           out errorResponseBuilder))
-                                  {
-                                      return errorResponseBuilder;
-                                  }
+                    if (!json.ParseMandatory("newPassword",
+                                             "new user password",
+                                             HTTPTestServer?.HTTPServerName,
+                                             Password.TryParse,
+                                             out Password NewPassword,
+                                             Request,
+                                             out errorResponseBuilder))
+                    {
+                        return errorResponseBuilder;
+                    }
 
-                                  if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
-                                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                                 Content         = JSONObject.Create(
-                                                                       new JProperty("@context",      SignInOutContext),
-                                                                       new JProperty("statuscode",    400),
-                                                                       new JProperty("property",     "password"),
-                                                                       new JProperty("description",  "The chosen password does not match the password quality criteria!")
-                                                                   ).ToString().ToUTF8Bytes(),
-                                                 CacheControl    = "private",
-                                                 Connection      = ConnectionType.Close
-                                             }.AsImmutable;
+                    if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
+                        return new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode  = HTTPStatusCode.BadRequest,
+                                   Server          = HTTPTestServer?.HTTPServerName,
+                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                   Content         = JSONObject.Create(
+                                                         new JProperty("@context",      SignInOutContext),
+                                                         new JProperty("statuscode",    400),
+                                                         new JProperty("property",     "password"),
+                                                         new JProperty("description",  "The chosen password does not match the password quality criteria!")
+                                                     ).ToString().ToUTF8Bytes(),
+                                   CacheControl    = "private",
+                                   Connection      = ConnectionType.Close
+                               }.AsImmutable;
 
-                                  #endregion
+                    #endregion
 
-                                  #region Parse SecurityTokenId2    [optional]
+                    #region Parse SecurityTokenId2    [optional]
 
-                                  if (json.ParseOptional("securityToken2",
-                                                         "security token #2",
-                                                         HTTPServer.DefaultServerName,
-                                                         SecurityToken_Id.TryParse,
-                                                         out SecurityToken_Id? SecurityTokenId2,
-                                                         Request,
-                                                         out errorResponseBuilder))
-                                  {
-                                      if (errorResponseBuilder is not null)
-                                         return errorResponseBuilder;
-                                  }
+                    if (json.ParseOptional("securityToken2",
+                                           "security token #2",
+                                           HTTPTestServer?.HTTPServerName,
+                                           SecurityToken_Id.TryParse,
+                                           out SecurityToken_Id? SecurityTokenId2,
+                                           Request,
+                                           out errorResponseBuilder))
+                    {
+                        if (errorResponseBuilder is not null)
+                           return errorResponseBuilder;
+                    }
 
-                                  #endregion
-
-
-                                  #region Verify token/password lengths...
-
-                                  if (SecurityTokenId1.Length != 40)
-                                  {
-
-                                      // Slow down attackers!
-                                      Thread.Sleep(5000);
-
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "SET" },
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                 = ConnectionType.Close
-                                             }.AsImmutable;
-
-                                  }
-
-                                  #endregion
+                    #endregion
 
 
-                                  var result = await ResetPassword(SecurityTokenId1,
-                                                                   NewPassword,
-                                                                   SecurityTokenId2,
-                                                                   Request.EventTrackingId,
-                                                                   Robot.Id);
+                    #region Verify token/password lengths...
+
+                    if (SecurityTokenId1.Length != 40)
+                    {
+
+                        // Slow down attackers!
+                        Thread.Sleep(5000);
+
+                        return new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "SET" },
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   Connection                 = ConnectionType.Close
+                               }.AsImmutable;
+
+                    }
+
+                    #endregion
 
 
-                                  return result.Result == CommandResult.Success
+                    var result = await ResetPassword(SecurityTokenId1,
+                                                     NewPassword,
+                                                     SecurityTokenId2,
+                                                     Request.EventTrackingId,
+                                                     Robot.Id);
 
-                                             ? new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode             = HTTPStatusCode.OK,
-                                                   Server                     = HTTPServer.DefaultServerName,
-                                                   Date                       = Timestamp.Now,
-                                                   AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
-                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                   Content                    = JSONObject.Create(
-                                                                                    new JProperty("numberOfAccountsFound", Users.Count())
-                                                                                ).ToUTF8Bytes(),
-                                                   SetCookie                  = new HTTPCookies(
-                                                                                    HTTPCookie.Parse(
-                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
-                                                                                                  HTTPCookieDomain.IsNotNullOrEmpty()
-                                                                                                      ? "; Domain=" + HTTPCookieDomain
-                                                                                                      : String.Empty,
-                                                                                                  "; Path=", URLPathPrefix)
-                                                                                    )
-                                                                                ),
-                                                   Connection                 = ConnectionType.Close
-                                               }.AsImmutable
 
-                                             : new HTTPResponse.Builder(Request) {
-                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                   Server                     = HTTPServer.DefaultServerName,
-                                                   Date                       = Timestamp.Now,
-                                                   AccessControlAllowOrigin   = "*",
-                                                   AccessControlAllowMethods  = new[] { "SET" },
-                                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                   ContentType                = HTTPContentType.Application.JSONLD_UTF8,
-                                                   Content                    = JSONObject.Create(
-                                                                                    new JProperty("description", result?.Description?.ToJSON())
-                                                                                ).ToUTF8Bytes(),
-                                                   SetCookie                  = new HTTPCookies(
-                                                                                    HTTPCookie.Parse(
-                                                                                        String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
-                                                                                                      HTTPCookieDomain.IsNotNullOrEmpty()
-                                                                                                          ? "; Domain=" + HTTPCookieDomain
-                                                                                                          : String.Empty,
-                                                                                                      "; Path=", URLPathPrefix)
-                                                                                    )
-                                                                                ),
-                                                   Connection                 = ConnectionType.Close
-                                               }.AsImmutable;
+                    return result.Result == CommandResult.Success
 
-                              },
+                               ? new HTTPResponse.Builder(Request) {
+                                     HTTPStatusCode             = HTTPStatusCode.OK,
+                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Date                       = Timestamp.Now,
+                                     AccessControlAllowOrigin   = "*",
+                                     AccessControlAllowMethods  = new[] { "SET" },
+                                     AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                     Content                    = JSONObject.Create(
+                                                                      new JProperty("numberOfAccountsFound", Users.Count())
+                                                                  ).ToUTF8Bytes(),
+                                     SetCookie                  = new HTTPCookies(
+                                                                      HTTPCookie.Parse(
+                                                                          String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
+                                                                                    HTTPCookieDomain.IsNotNullOrEmpty()
+                                                                                        ? "; Domain=" + HTTPCookieDomain
+                                                                                        : String.Empty,
+                                                                                    "; Path=", URLPathPrefix)
+                                                                      )
+                                                                  ),
+                                     Connection                 = ConnectionType.Close
+                                 }.AsImmutable
 
-                              AllowReplacement: URLReplacement.Allow);
+                               : new HTTPResponse.Builder(Request) {
+                                     HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Date                       = Timestamp.Now,
+                                     AccessControlAllowOrigin   = "*",
+                                     AccessControlAllowMethods  = new[] { "SET" },
+                                     AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                     ContentType                = HTTPContentType.Application.JSONLD_UTF8,
+                                     Content                    = JSONObject.Create(
+                                                                      new JProperty("description", result?.Description?.ToJSON())
+                                                                  ).ToUTF8Bytes(),
+                                     SetCookie                  = new HTTPCookies(
+                                                                      HTTPCookie.Parse(
+                                                                          String.Concat(CookieName, "=; Expires=", Timestamp.Now.ToRFC1123(),
+                                                                                        HTTPCookieDomain.IsNotNullOrEmpty()
+                                                                                            ? "; Domain=" + HTTPCookieDomain
+                                                                                            : String.Empty,
+                                                                                        "; Path=", URLPathPrefix)
+                                                                      )
+                                                                  ),
+                                     Connection                 = ConnectionType.Close
+                                 }.AsImmutable;
+
+                },
+
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
@@ -4884,23 +5088,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------
             // curl -X OPTIONS -v http://127.0.0.1:3004/securityToken
             // --------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.OPTIONS,
-                              URLPathPrefix + "securityToken",
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.OPTIONS,
+                URLPathPrefix + "securityToken",
+                HTTPDelegate: request => {
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
-                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization", "X-App-Version" },
-                                          Connection                 = ConnectionType.Close
-                                      }.AsImmutable);
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
+                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept", "Authorization", "X-App-Version" },
+                            Connection                 = ConnectionType.Close
+                        }.AsImmutable);
 
-                              });
+                }
+            );
 
             #endregion
 
@@ -4909,138 +5114,139 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------------------------------------
             // curl -v -X CHECK -H "Content-type: application/json" -H "Accept: application/json" http://127.0.0.1:3004/securityToken
             // ------------------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.CHECK,
-                              URLPathPrefix + "securityToken",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: async Request => {
+            AddHandler(
+                HTTPMethod.CHECK,
+                URLPathPrefix + "securityToken",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: async request => {
 
-                                  #region Check API Key...
+                    #region Check API Key...
 
-                                  if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
+                    if (request.API_Key is null || !remoteAuthAPIKeys.Contains(request.API_Key.Value))
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.Forbidden,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = JSONObject.Create(
 
-                                                                                  Request.API_Key.HasValue
-                                                                                      ? new JProperty("apiKey",  Request.API_Key?.ToString() ?? "")
-                                                                                      : null,
+                                                                    request.API_Key.HasValue
+                                                                        ? new JProperty("apiKey",  request.API_Key?.ToString() ?? "")
+                                                                        : null,
 
-                                                                                  new JProperty("description",  "Please use a valid API key!")
+                                                                    new JProperty("description",  "Please use a valid API key!")
 
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close
-                                             }.AsImmutable;
+                                                                ).ToUTF8Bytes(),
+                                   Connection                 = ConnectionType.Close
+                               }.AsImmutable;
 
-                                  #endregion
-
-
-                                  #region Parse JSON HTTP body...
-
-                                  if (!Request.TryParseJSONObjectRequestBody(out var json, out var errorResponseBuilder) || json is null)
-                                      return errorResponseBuilder!;
-
-                                  #endregion
-
-                                  #region Parse securityTokenId    [mandatory]
-
-                                  if (!json.ParseMandatory("securityTokenId",
-                                                           "security token identification",
-                                                           SecurityToken_Id.TryParse,
-                                                           out SecurityToken_Id  securityTokenId,
-                                                           out var               errorDescription))
-                                  {
-
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "CHECK" },
-                                                 AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = JSONObject.Create(
-                                                                                  new JProperty("description", errorDescription)
-                                                                              ).ToUTF8Bytes(),
-                                                 Connection                 = ConnectionType.Close
-                                             }.AsImmutable;
-
-                                  }
-
-                                  #endregion
-
-                                  #region Parse maxHopCount        [optional]
-
-                                  if (json.ParseOptional("maxHopCount",
-                                                         "remote auth server max hop count",
-                                                         out Byte? maxHopCount,
-                                                         out       errorDescription))
-                                  {
-
-                                      if (errorDescription != null)
-                                          return new HTTPResponse.Builder(Request) {
-                                                     HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                     Server                     = HTTPServer.DefaultServerName,
-                                                     Date                       = Timestamp.Now,
-                                                     AccessControlAllowOrigin   = "*",
-                                                     AccessControlAllowMethods  = new[] { "CHECK" },
-                                                     AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                                     ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                     Content                    = JSONObject.Create(
-                                                                                      new JProperty("description", errorDescription)
-                                                                                  ).ToUTF8Bytes(),
-                                                     Connection                 = ConnectionType.Close
-                                                 }.AsImmutable;
-
-                                  }
-
-                                  #endregion
+                    #endregion
 
 
-                                  var securityToken = await CheckHTTPCookie(securityTokenId,
-                                                                            maxHopCount ?? 0);
+                    #region Parse JSON HTTP body...
+
+                    if (!request.TryParseJSONObjectRequestBody(out var json, out var errorResponseBuilder) || json is null)
+                        return errorResponseBuilder!;
+
+                    #endregion
+
+                    #region Parse securityTokenId    [mandatory]
+
+                    if (!json.ParseMandatory("securityTokenId",
+                                             "security token identification",
+                                             SecurityToken_Id.TryParse,
+                                             out SecurityToken_Id  securityTokenId,
+                                             out var               errorDescription))
+                    {
+
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "CHECK" },
+                                   AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = JSONObject.Create(
+                                                                    new JProperty("description", errorDescription)
+                                                                ).ToUTF8Bytes(),
+                                   Connection                 = ConnectionType.Close
+                               }.AsImmutable;
+
+                    }
+
+                    #endregion
+
+                    #region Parse maxHopCount        [optional]
+
+                    if (json.ParseOptional("maxHopCount",
+                                           "remote auth server max hop count",
+                                           out Byte? maxHopCount,
+                                           out       errorDescription))
+                    {
+
+                        if (errorDescription != null)
+                            return new HTTPResponse.Builder(request) {
+                                       HTTPStatusCode             = HTTPStatusCode.BadRequest,
+                                       Server                     = HTTPTestServer?.HTTPServerName,
+                                       Date                       = Timestamp.Now,
+                                       AccessControlAllowOrigin   = "*",
+                                       AccessControlAllowMethods  = new[] { "CHECK" },
+                                       AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                                       ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                       Content                    = JSONObject.Create(
+                                                                        new JProperty("description", errorDescription)
+                                                                    ).ToUTF8Bytes(),
+                                       Connection                 = ConnectionType.Close
+                                   }.AsImmutable;
+
+                    }
+
+                    #endregion
 
 
-                                  if (securityToken is not null)
-                                      return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 ContentType                 = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                     = JSONObject.Create(
-
-                                                                                   new JProperty("userId",   securityToken.UserId. ToString()),
-                                                                                   new JProperty("expires",  securityToken.Expires.ToISO8601()),
-
-                                                                                   securityToken.SuperUserId.HasValue
-                                                                                       ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
-                                                                                       : null
-
-                                                                               ).ToUTF8Bytes(),
-                                                 Connection                  = ConnectionType.Close
-                                             }.AsImmutable;
+                    var securityToken = await CheckHTTPCookie(securityTokenId,
+                                                              maxHopCount ?? 0);
 
 
-                                  return new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                 Server                      = HTTPServer.DefaultServerName,
-                                                 Date                        = Timestamp.Now,
-                                                 AccessControlAllowOrigin    = "*",
-                                                 AccessControlAllowMethods   = new[] { "CHECK" },
-                                                 AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
-                                                 Connection                  = ConnectionType.Close
-                                             }.AsImmutable;
+                    if (securityToken is not null)
+                        return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode              = HTTPStatusCode.OK,
+                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                   Date                        = Timestamp.Now,
+                                   AccessControlAllowOrigin    = "*",
+                                   AccessControlAllowMethods   = new[] { "CHECK" },
+                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                   ContentType                 = HTTPContentType.Application.JSON_UTF8,
+                                   Content                     = JSONObject.Create(
 
-                              });
+                                                                     new JProperty("userId",   securityToken.UserId. ToString()),
+                                                                     new JProperty("expires",  securityToken.Expires.ToISO8601()),
+
+                                                                     securityToken.SuperUserId.HasValue
+                                                                         ? new JProperty("superUserId", securityToken.SuperUserId.Value.ToString())
+                                                                         : null
+
+                                                                 ).ToUTF8Bytes(),
+                                   Connection                  = ConnectionType.Close
+                               }.AsImmutable;
+
+
+                    return new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode              = HTTPStatusCode.NotFound,
+                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                   Date                        = Timestamp.Now,
+                                   AccessControlAllowOrigin    = "*",
+                                   AccessControlAllowMethods   = new[] { "CHECK" },
+                                   AccessControlAllowHeaders   = [ "Content-Type", "Accept", "Authorization" ],
+                                   Connection                  = ConnectionType.Close
+                               }.AsImmutable;
+
+                }
+            );
 
             #endregion
 
@@ -5054,25 +5260,26 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------
             // curl -X OPTIONS -v -H "Accept: application/json" http://127.0.0.1:2100/users
             // ------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
-                              HTTPMethod.OPTIONS,
-                              URLPathPrefix + "users",
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.OPTIONS,
+                URLPathPrefix + "users",
+                HTTPDelegate: request => {
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
-                                          AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
-                                          AccessControlMaxAge        = 3600,
-                                          CacheControl               = "public",
-                                          Connection                 = ConnectionType.Close
-                                      }.AsImmutable);
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
+                            AccessControlAllowHeaders  = [ "Content-Type", "Accept", "Authorization" ],
+                            AccessControlMaxAge        = 3600,
+                            CacheControl               = "public",
+                            Connection                 = ConnectionType.Close
+                        }.AsImmutable);
 
-                              });
+                }
+            );
 
             #endregion
 
@@ -5081,7 +5288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:2100/users
             // --------------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.ADD,
                               HTTPPath.Parse("/users"),
                               HTTPContentType.Application.JSON_UTF8,
@@ -5093,7 +5300,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   var responseBuilder = new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                            Server                      = HTTPServer.DefaultServerName,
+                                                            Server                      = HTTPTestServer?.HTTPServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
                                                             AccessControlAllowMethods   = new[] { "ADD", "SET", "GET" },
@@ -5183,7 +5390,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               if (errorResponse is not null)
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5212,7 +5419,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                               return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                         Server                     = HTTPServer.DefaultServerName,
+                                                         Server                     = HTTPTestServer?.HTTPServerName,
                                                          Date                       = Timestamp.Now,
                                                          AccessControlAllowOrigin   = "*",
                                                          AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5240,7 +5447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               if (errorResponse is not null)
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5269,7 +5476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                               if (accessRightJSON is not JObject accessRightObject)
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5294,7 +5501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5322,7 +5529,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5342,7 +5549,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5472,7 +5679,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/users
             // -------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "users",
                               HTTPContentType.Application.JSON_UTF8,
@@ -5482,7 +5689,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   var responseBuilder = new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPServer.DefaultServerName,
+                                                            Server                     = HTTPTestServer?.HTTPServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
@@ -5568,7 +5775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------
             // curl -X DEAUTH -v -H "Accept: application/json" http://127.0.0.1:2100/users
             // -----------------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.DEAUTH,
                               HTTPPath.Parse("/users"),
                               HTTPContentType.Application.JSON_UTF8,
@@ -5604,7 +5811,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------
             // curl -X OPTIONS -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // -----------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.OPTIONS,
                               URLPathPrefix + "users/{UserId}",
                               HTTPDelegate: Request => {
@@ -5612,7 +5819,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
+                                          Server                     = HTTPTestServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -5633,7 +5840,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------------------
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // -------------------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -5645,7 +5852,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   var responseBuilder = new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                            Server                      = HTTPServer.DefaultServerName,
+                                                            Server                      = HTTPTestServer?.HTTPServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
                                                             AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -5913,7 +6120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/users/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.SET,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -5961,7 +6168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -5983,7 +6190,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (httpUser.Id != user.Id && !CanImpersonate(httpUser, user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -6001,7 +6208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -6014,7 +6221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                   Server                     = HTTPServer.DefaultServerName,
+                                                   Server                     = HTTPTestServer?.HTTPServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
                                                    AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6035,7 +6242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ----------------------------------------------------------------------------------
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // ----------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6078,7 +6285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   {
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                              Server                     = HTTPServer.DefaultServerName,
+                                              Server                     = HTTPTestServer?.HTTPServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
                                               AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6104,7 +6311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6117,7 +6324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.FailedDependency,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6154,7 +6361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf
             // ------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6195,7 +6402,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Server                     = HTTPTestServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6214,7 +6421,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPServer.DefaultServerName,
+                                          Server                      = HTTPTestServer?.HTTPServerName,
                                           Date                        = Timestamp.Now,
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -6231,7 +6438,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region AUTH        ~/users/{UserId}
 
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.AUTH,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6245,7 +6452,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!json.HasValues)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6268,7 +6475,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6295,7 +6502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6316,7 +6523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6361,7 +6568,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (possibleUsers.Count == 0)
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPServer.DefaultServerName,
+                                              Server          = HTTPTestServer?.HTTPServerName,
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
@@ -6387,7 +6594,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (validUsers.Count == 0)
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPServer.DefaultServerName,
+                                              Server          = HTTPTestServer?.HTTPServerName,
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
@@ -6402,7 +6609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (validUsers.Count > 1)
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
-                                              Server          = HTTPServer.DefaultServerName,
+                                              Server          = HTTPTestServer?.HTTPServerName,
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
@@ -6420,7 +6627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",    SignInOutContext),
@@ -6445,7 +6652,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       {
                                           return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Server          = HTTPTestServer?.HTTPServerName,
                                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                      Content         = new JObject(
                                                                            new JProperty("@context",     SignInOutContext),
@@ -6521,7 +6728,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region DEAUTH      ~/users/{UserId}
 
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.DEAUTH,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6552,7 +6759,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region IMPERSONATE ~/users/{UserId}
 
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.IMPERSONATE,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6591,7 +6798,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "IMPERSONATE" },
@@ -6608,7 +6815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!CanImpersonate(superUser, userURL))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "IMPERSONATE" },
@@ -6672,7 +6879,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region DEPERSONATE ~/users/{UserId}
 
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.DEPERSONATE,
                               URLPathPrefix + "users/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6709,7 +6916,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "DEPERSONATE" },
@@ -6776,7 +6983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region SET         ~/users/{UserId}/password
 
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.SET,
                               URLPathPrefix + "users/{UserId}/password",
                               HTTPContentType.Application.JSON_UTF8,
@@ -6822,7 +7029,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -6850,7 +7057,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6877,7 +7084,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6894,7 +7101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = JSONObject.Create(
                                                                        new JProperty("@context",      SignInOutContext),
@@ -6920,7 +7127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "SET" },
@@ -6930,7 +7137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "SET" },
@@ -6944,11 +7151,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region GET         ~/users/{UserId}/profilephoto
 
-            HTTPServer.RegisterFileSystemFile(this,
-                                              HTTPHostname.Any,
-                                              URLPathPrefix + "users/{UserId}/profilephoto",
-                                              URLParams => "LocalHTTPRoot/data/Users/" + URLParams[0] + ".png",
-                                              DefaultFile: "HTTPRoot/images/defaults/DefaultUser.png");
+            //HTTPServer.RegisterFileSystemFile(this,
+            //                                  HTTPHostname.Any,
+            //                                  URLPathPrefix + "users/{UserId}/profilephoto",
+            //                                  URLParams => "LocalHTTPRoot/data/Users/" + URLParams[0] + ".png",
+            //                                  DefaultFile: "HTTPRoot/images/defaults/DefaultUser.png");
 
             #endregion
 
@@ -6957,7 +7164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/users/{UserId}/organizations?summary
             // ------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/organizations",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7011,7 +7218,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
+                                          Server                     = HTTPTestServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
@@ -7032,7 +7239,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/notifications
             // --------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7055,7 +7262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPServer.DefaultServerName,
+                                             Server                     = HTTPTestServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7081,7 +7288,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/users/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.SET,
                               URLPathPrefix + "users/{UserId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7125,7 +7332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -7228,7 +7435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              return new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPServer.DefaultServerName,
+                                                            Server                     = HTTPTestServer?.HTTPServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7249,7 +7456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPServer.DefaultServerName,
+                                             Server                      = HTTPTestServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -7273,7 +7480,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/users/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "users/{UserId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7317,7 +7524,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -7420,7 +7627,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              return new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPServer.DefaultServerName,
+                                                            Server                     = HTTPTestServer?.HTTPServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7441,7 +7648,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPServer.DefaultServerName,
+                                             Server                      = HTTPTestServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -7460,7 +7667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/notifications/{notificationId}
             // -------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/notifications/{notificationId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7489,7 +7696,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                     Server          = HTTPServer.DefaultServerName,
+                                                     Server          = HTTPTestServer?.HTTPServerName,
                                                      Date            = Timestamp.Now,
                                                      Connection      = ConnectionType.Close
                                                  }.AsImmutable);
@@ -7504,7 +7711,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return Task.FromResult(new HTTPResponse.Builder(Request) {
                                                                  HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                 Server                     = HTTPServer.DefaultServerName,
+                                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                                  Date                       = Timestamp.Now,
                                                                  AccessControlAllowOrigin   = "*",
                                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7524,7 +7731,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable);
@@ -7539,7 +7746,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/APIKeys
             // --------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "users/{UserId}/APIKeys",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7582,7 +7789,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7601,7 +7808,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                                             Server                     = HTTPServer.DefaultServerName,
+                                                             Server                     = HTTPTestServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7625,7 +7832,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/APIKeys
             // ---------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "users/{UserId}/APIKeys",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7676,7 +7883,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Server                     = HTTPTestServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7701,7 +7908,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7728,7 +7935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                       Server                     = HTTPServer.DefaultServerName,
+                                                       Server                     = HTTPTestServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7741,7 +7948,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                       Server                     = HTTPServer.DefaultServerName,
+                                                       Server                     = HTTPTestServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7761,7 +7968,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------------
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:2100/users/ahzf/APIKeys/abcdefgh
             // ---------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "users/{UserId}/APIKeys/{APIKeyId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7803,7 +8010,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -7825,7 +8032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -7845,7 +8052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -7870,7 +8077,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -7896,7 +8103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPServer.DefaultServerName,
+                                             Server                     = HTTPTestServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = new[] { "DELETE" },
@@ -7920,7 +8127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/userGroups
             // ------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "userGroups",
                               HTTPContentType.Application.JSON_UTF8,
@@ -7979,7 +8186,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode                = HTTPStatusCode.OK,
-                                          Server                        = HTTPServer.DefaultServerName,
+                                          Server                        = HTTPTestServer?.HTTPServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
                                           AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
@@ -8008,7 +8215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/userGroups/{UserGroupId}
             // --------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "userGroups/{UserGroupId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8049,7 +8256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Server                     = HTTPTestServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8064,7 +8271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -8089,7 +8296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/organizations
             // ---------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "organizations",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8153,7 +8360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode                 = HTTPStatusCode.OK,
-                                          Server                         = HTTPServer.DefaultServerName,
+                                          Server                         = HTTPTestServer?.HTTPServerName,
                                           Date                           = Timestamp.Now,
                                           AccessControlAllowOrigin       = "*",
                                           AccessControlAllowMethods      = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8182,7 +8389,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------
             // curl -v -X COUNT -H "Accept: application/json" http://127.0.0.1:2000/organizations
             // ------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.COUNT,
                               URLPathPrefix + "organizations",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8209,7 +8416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
+                                          Server                     = HTTPTestServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8249,7 +8456,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/organizations
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8289,7 +8496,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8316,7 +8523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8335,7 +8542,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                              Server                     = HTTPServer.DefaultServerName,
+                                              Server                     = HTTPTestServer?.HTTPServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
                                               AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8364,7 +8571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Created,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8376,7 +8583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8396,7 +8603,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/organizations/214080158
             // -------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "organizations/{OrganizationId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8450,7 +8657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  ? new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                       Server                     = HTTPServer.DefaultServerName,
+                                                       Server                     = HTTPTestServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
@@ -8460,7 +8667,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                                  : new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                       Server                     = HTTPServer.DefaultServerName,
+                                                       Server                     = HTTPTestServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
@@ -8493,7 +8700,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------
             // curl -v -X EXISTS http://127.0.0.1:2000/organizations/7
             // ---------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.EXISTS,
                               URLPathPrefix + "organizations/{OrganizationId}",
                               HTTPDelegate: Request => {
@@ -8533,7 +8740,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.OK,
-                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Server                     = HTTPTestServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
@@ -8570,7 +8777,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/organizations/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{organizationId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8623,7 +8830,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                             Server                     = HTTPServer.DefaultServerName,
+                                             Server                     = HTTPTestServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8649,7 +8856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8667,7 +8874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8692,7 +8899,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8724,7 +8931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           return new HTTPResponse.Builder(Request) {
                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                  Server                     = HTTPServer.DefaultServerName,
+                                                  Server                     = HTTPTestServer?.HTTPServerName,
                                                   Date                       = Timestamp.Now,
                                                   AccessControlAllowOrigin   = "*",
                                                   AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8744,7 +8951,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                           return new HTTPResponse.Builder(Request) {
                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                  Server                     = HTTPServer.DefaultServerName,
+                                                  Server                     = HTTPTestServer?.HTTPServerName,
                                                   Date                       = Timestamp.Now,
                                                   AccessControlAllowOrigin   = "*",
                                                   AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8781,7 +8988,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode              = HTTPStatusCode.Created,
-                                          Server                      = HTTPServer.DefaultServerName,
+                                          Server                      = HTTPTestServer?.HTTPServerName,
                                           Date                        = Timestamp.Now,
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -8816,7 +9023,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/organizations/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.SET,
                               URLPathPrefix + "organizations/{organizationId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8861,7 +9068,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (organization is not null && !httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -8887,7 +9094,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8914,7 +9121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Created,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -8926,7 +9133,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -8949,7 +9156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //      -H "Content-Type: application/json; charset=utf-8" \
             //      http://127.0.0.1:2000/organizations/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{organizationId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -8994,7 +9201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                     Server                     = HTTPServer.DefaultServerName,
+                                                     Server                     = HTTPTestServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "GET", "SET", "DELETE" },
@@ -9019,7 +9226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9029,7 +9236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.FailedDependency,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9051,7 +9258,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------------------------------
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/admins/ahzf
             // -----------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{OrganizationId}/admins/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9089,7 +9296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9099,7 +9306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9107,7 +9314,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9124,7 +9331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9135,7 +9342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9152,7 +9359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------------------------
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/members/ahzf
             // ------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{OrganizationId}/members/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9190,7 +9397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9200,7 +9407,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9208,7 +9415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9225,7 +9432,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9236,7 +9443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9253,7 +9460,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------------------------------
             // curl -v -X ADD -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/guests/ahzf
             // -----------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.ADD,
                               URLPathPrefix + "organizations/{OrganizationId}/guests/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9291,7 +9498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9301,7 +9508,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9309,7 +9516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9326,7 +9533,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9337,7 +9544,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9354,7 +9561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ------------------------------------------------------------------------------------------------------------
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/_all/ahzf
             // ------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/_all/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9392,7 +9599,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9402,7 +9609,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9410,7 +9617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9426,7 +9633,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9437,7 +9644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9454,7 +9661,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------------------------------
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/admins/ahzf
             // --------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/admins/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9492,7 +9699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9502,7 +9709,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9510,7 +9717,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9527,7 +9734,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9538,7 +9745,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9555,7 +9762,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------------------------
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/members/ahzf
             // ---------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/members/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9593,7 +9800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9603,7 +9810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9611,7 +9818,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9628,7 +9835,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9639,7 +9846,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9656,7 +9863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------------------------------
             // curl -v -X DELETE -H "Accept: application/json" http://127.0.0.1:3001/organizations/GraphDefined/guests/ahzf
             // --------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/guests/{UserId}",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9694,7 +9901,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9704,7 +9911,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9712,7 +9919,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPServer.DefaultServerName,
+                                                 Server          = HTTPTestServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9729,7 +9936,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9740,7 +9947,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPServer.DefaultServerName,
+                                                   Server                      = HTTPTestServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9758,7 +9965,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/organizations/ahzf/notifications
             // --------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "organizations/{OrganizationId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9798,7 +10005,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPServer.DefaultServerName,
+                                             Server                     = HTTPTestServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -9823,7 +10030,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/organizations/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.SET,
                               URLPathPrefix + "organizations/{OrganizationId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -9868,7 +10075,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -9969,7 +10176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -9990,7 +10197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPServer.DefaultServerName,
+                                             Server                      = HTTPTestServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -10014,7 +10221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //          }" \
             //      http://127.0.0.1:2000/organizations/214080158
             // ---------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.DELETE,
                               URLPathPrefix + "organizations/{OrganizationId}/notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -10057,7 +10264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPServer.DefaultServerName,
+                                                 Server                      = HTTPTestServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -10158,7 +10365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10179,7 +10386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPServer.DefaultServerName,
+                                             Server                      = HTTPTestServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -10202,7 +10409,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2000/organizationGroups
             // --------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "organizationGroups",
                               HTTPContentType.Application.JSON_UTF8,
@@ -10261,7 +10468,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode                = HTTPStatusCode.OK,
-                                          Server                        = HTTPServer.DefaultServerName,
+                                          Server                        = HTTPTestServer?.HTTPServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
                                           AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
@@ -10294,7 +10501,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/notifications
             // ---------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "notifications",
                               HTTPContentType.Application.JSON_UTF8,
@@ -10318,7 +10525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10341,7 +10548,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" http://127.0.0.1:2100/newNotification
             // -----------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "newNotification",
                               HTTPContentType.Application.JSON_UTF8,
@@ -10365,7 +10572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10425,55 +10632,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------
             // curl http://127.0.0.1:2000/serviceCheck
             // -----------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "serviceCheck",
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.GET,
+                URLPathPrefix + "serviceCheck",
+                HTTPDelegate: Request => {
 
-                                  var jsonResponse  = JSONObject.Create(
-                                                          new JProperty("timestamp",  Timestamp.Now),
-                                                          new JProperty("service",    HTTPServer.ServiceName),
-                                                          new JProperty("instance",   Environment.MachineName),
-                                                          new JProperty("content",    RandomExtensions.RandomString(20))
-                                                      );
+                    var jsonResponse  = JSONObject.Create(
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("content",    RandomExtensions.RandomString(20))
+                                        );
 
-                                  if (ServiceCheckPublicKey is not null)
-                                  {
+                    if (ServiceCheckPublicKey is not null)
+                    {
 
-                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      if (ServiceCheckPrivateKey is not null)
-                                      {
+                        if (ServiceCheckPrivateKey is not null)
+                        {
 
-                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                          signer.Init(true, ServiceCheckPrivateKey);
-                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                          var signature   = signer.GenerateSignature().ToHexString();
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
 
-                                          jsonResponse.Add("signature", signature);
+                            jsonResponse.Add("signature", signature);
 
-                                      }
+                        }
 
-                                  }
+                    }
 
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "POST" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = jsonResponse.ToUTF8Bytes(),
-                                                 CacheControl               = "no-cache",
-                                                 Connection                 = ConnectionType.Close
-                                             }.AsImmutable);
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "POST" },
+                                   AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = jsonResponse.ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.Close
+                               }.AsImmutable);
 
-                              }, AllowReplacement: URLReplacement.Allow);
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
@@ -10482,85 +10691,87 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------------------------------------
             // curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"123\"}" http://127.0.0.1:2000/serviceCheck
             // -----------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.POST,
-                              URLPathPrefix + "serviceCheck",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "serviceCheck",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: Request => {
 
-                                  var content = String.Empty;
+                    var content = String.Empty;
 
-                                  #region Try to parse a text HTTP body...
+                    #region Try to parse a text HTTP body...
 
-                                  HTTPResponse.Builder? httpResponse = null;
+                    HTTPResponse.Builder? httpResponse = null;
 
-                                  if (Request.ContentType == HTTPContentType.Text.PLAIN &&
-                                      Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
-                                  {
-                                      
-                                  }
+                    if (Request.ContentType == HTTPContentType.Text.PLAIN &&
+                        Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
+                    {
+                        
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region ...or parse a JSON HTTP body
+                    #region ...or parse a JSON HTTP body
 
-                                  else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
-                                      Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
-                                      jsonRequest is not null)
-                                  {
-                                      content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
-                                  }
+                    else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
+                        Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
+                        jsonRequest is not null)
+                    {
+                        content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
+                    }
 
-                                  if (httpResponse is not null)
-                                      return Task.FromResult(httpResponse.AsImmutable);
+                    if (httpResponse is not null)
+                        return Task.FromResult(httpResponse.AsImmutable);
 
-                                  #endregion
+                    #endregion
 
 
-                                  var jsonResponse  = JSONObject.Create(
-                                                          new JProperty("timestamp",  Timestamp.Now),
-                                                          new JProperty("service",    HTTPServer.ServiceName),
-                                                          new JProperty("instance",   Environment.MachineName),
-                                                          new JProperty("content",    content?.Reverse())
-                                                      );
+                    var jsonResponse  = JSONObject.Create(
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("content",    content?.Reverse())
+                                        );
 
-                                  if (ServiceCheckPublicKey is not null)
-                                  {
+                    if (ServiceCheckPublicKey is not null)
+                    {
 
-                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      if (ServiceCheckPrivateKey is not null)
-                                      {
+                        if (ServiceCheckPrivateKey is not null)
+                        {
 
-                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                          signer.Init(true, ServiceCheckPrivateKey);
-                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                          var signature   = signer.GenerateSignature().ToHexString();
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
 
-                                          jsonResponse.Add("signature", signature);
+                            jsonResponse.Add("signature", signature);
 
-                                      }
+                        }
 
-                                  }
+                    }
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "POST" },
-                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                          Content                    = jsonResponse.ToUTF8Bytes(),
-                                          CacheControl               = "no-cache",
-                                          Connection                 = ConnectionType.Close
-                                      }.AsImmutable);
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(Request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = new[] { "POST" },
+                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.Close
+                        }.AsImmutable);
 
-                              }, AllowReplacement: URLReplacement.Allow);
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
@@ -10569,68 +10780,70 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------
             // curl http://127.0.0.1:2000/monitoring
             // ---------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.GET,
-                              URLPathPrefix + "monitoring",
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.GET,
+                URLPathPrefix + "monitoring",
+                HTTPDelegate: Request => {
 
-                                  var process           = Process.GetCurrentProcess();
-                                  process.Refresh();
+                    var process           = Process.GetCurrentProcess();
+                    process.Refresh();
 
-                                  var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
-                                                          RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                                                              ? ResourcesMonitor.GetMemoryMetricsOnUnix()
-                                                              : ResourcesMonitor.GetMemoryMetricsOnWindows();
+                    var freeSystemMemory  = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ||
+                                            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                                                ? ResourcesMonitor.GetMemoryMetricsOnUnix()
+                                                : ResourcesMonitor.GetMemoryMetricsOnWindows();
 
-                                  var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
-                                  var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
+                    var driveInfo         = new DriveInfo(Path.GetPathRoot(AppDomain.CurrentDomain.BaseDirectory)!);
+                    var freeDiscSpace     = (Double) driveInfo.AvailableFreeSpace / driveInfo.TotalSize * 100;
 
-                                  var jsonResponse      = JSONObject.Create(
-                                                              new JProperty("timestamp",  Timestamp.Now),
-                                                              new JProperty("service",    HTTPServer.ServiceName),
-                                                              new JProperty("instance",   Environment.MachineName),
-                                                              new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                                              new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                              new JProperty("content",    RandomExtensions.RandomString(20))
-                                                          );
+                    var jsonResponse      = JSONObject.Create(
+                                                new JProperty("timestamp",  Timestamp.Now),
+                                                new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                                new JProperty("instance",   Environment.MachineName),
+                                                new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
+                                                new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
+                                                new JProperty("content",    RandomExtensions.RandomString(20))
+                                            );
 
-                                  if (ServiceCheckPublicKey is not null)
-                                  {
+                    if (ServiceCheckPublicKey is not null)
+                    {
 
-                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      if (ServiceCheckPrivateKey is not null)
-                                      {
+                        if (ServiceCheckPrivateKey is not null)
+                        {
 
-                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                          signer.Init(true, ServiceCheckPrivateKey);
-                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                          var signature   = signer.GenerateSignature().ToHexString();
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
 
-                                          jsonResponse.Add("signature", signature);
+                            jsonResponse.Add("signature", signature);
 
-                                      }
+                        }
 
-                                  }
+                    }
 
-                                  return Task.FromResult(
-                                      new HTTPResponse.Builder(Request) {
-                                          HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
-                                          Date                       = Timestamp.Now,
-                                          AccessControlAllowOrigin   = "*",
-                                          AccessControlAllowMethods  = new[] { "POST" },
-                                          AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                          ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                          Content                    = jsonResponse.ToUTF8Bytes(),
-                                          CacheControl               = "no-cache",
-                                          Connection                 = ConnectionType.Close
-                                      }.AsImmutable);
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(Request) {
+                            HTTPStatusCode             = HTTPStatusCode.OK,
+                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Date                       = Timestamp.Now,
+                            AccessControlAllowOrigin   = "*",
+                            AccessControlAllowMethods  = new[] { "POST" },
+                            AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                            ContentType                = HTTPContentType.Application.JSON_UTF8,
+                            Content                    = jsonResponse.ToUTF8Bytes(),
+                            CacheControl               = "no-cache",
+                            Connection                 = ConnectionType.Close
+                        }.AsImmutable);
 
-                              }, AllowReplacement: URLReplacement.Allow);
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
@@ -10639,149 +10852,151 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------------------------------------------------------------------
             // curl -X POST -H "Content-Type: application/json" -d "{\"content\": \"123\"}" http://127.0.0.1:2000/serviceCheck
             // -----------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
-                              HTTPMethod.POST,
-                              URLPathPrefix + "serviceCheck",
-                              HTTPContentType.Application.JSON_UTF8,
-                              HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.POST,
+                URLPathPrefix + "serviceCheck",
+                HTTPContentType.Application.JSON_UTF8,
+                HTTPDelegate: Request => {
 
-                                  var content = String.Empty;
+                    var content = String.Empty;
 
-                                  #region Try to parse a text HTTP body...
+                    #region Try to parse a text HTTP body...
 
-                                  HTTPResponse.Builder? httpResponse = null;
+                    HTTPResponse.Builder? httpResponse = null;
 
-                                  if (Request.ContentType == HTTPContentType.Text.PLAIN &&
-                                      Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
-                                  {
-                                      
-                                  }
+                    if (Request.ContentType == HTTPContentType.Text.PLAIN &&
+                        Request.TryParseUTF8StringRequestBody(out content, out httpResponse))
+                    {
+                        
+                    }
 
-                                  #endregion
+                    #endregion
 
-                                  #region ...or parse a JSON HTTP body
+                    #region ...or parse a JSON HTTP body
 
-                                  else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
-                                      Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
-                                      jsonRequest is not null)
-                                  {
-                                      content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
-                                  }
+                    else if (Request.ContentType == HTTPContentType.Application.JSON_UTF8 &&
+                        Request.TryParseJSONObjectRequestBody(out var jsonRequest, out httpResponse) &&
+                        jsonRequest is not null)
+                    {
+                        content = jsonRequest["content"]?.Value<String>() ?? RandomExtensions.RandomString(20);
+                    }
 
-                                  if (httpResponse is not null)
-                                      return Task.FromResult(httpResponse.AsImmutable);
+                    if (httpResponse is not null)
+                        return Task.FromResult(httpResponse.AsImmutable);
 
-                                  #endregion
+                    #endregion
 
 
-                                  var process       = Process.GetCurrentProcess();
-                                  process.Refresh();
+                    var process       = Process.GetCurrentProcess();
+                    process.Refresh();
 
-                                  var jsonResponse  = JSONObject.Create(
-                                                          new JProperty("timestamp",  Timestamp.Now),
-                                                          new JProperty("service",    HTTPServer.ServiceName),
-                                                          new JProperty("instance",   Environment.MachineName),
-                                                          new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
-                                                          new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
-                                                          new JProperty("content",    content?.Reverse())
-                                                      );
+                    var jsonResponse  = JSONObject.Create(
+                                            new JProperty("timestamp",  Timestamp.Now),
+                                            new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                            new JProperty("instance",   Environment.MachineName),
+                                            new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
+                                            new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
+                                            new JProperty("content",    content?.Reverse())
+                                        );
 
-                                  if (ServiceCheckPublicKey is not null)
-                                  {
+                    if (ServiceCheckPublicKey is not null)
+                    {
 
-                                      jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
+                        jsonResponse.Add("publicKey", ServiceCheckPublicKey.Q.GetEncoded().ToHexString());
 
-                                      if (ServiceCheckPrivateKey is not null)
-                                      {
+                        if (ServiceCheckPrivateKey is not null)
+                        {
 
-                                          var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
-                                          var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
+                            var plaintext   = jsonResponse.ToString(Newtonsoft.Json.Formatting.None);
+                            var sha256Hash  = SHA256.HashData(plaintext.ToUTF8Bytes());
 
-                                          var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
-                                          signer.Init(true, ServiceCheckPrivateKey);
-                                          signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
-                                          var signature   = signer.GenerateSignature().ToHexString();
+                            var signer      = SignerUtilities.GetSigner("NONEwithECDSA");
+                            signer.Init(true, ServiceCheckPrivateKey);
+                            signer.BlockUpdate(sha256Hash, 0, sha256Hash.Length);
+                            var signature   = signer.GenerateSignature().ToHexString();
 
-                                          jsonResponse.Add("signature", signature);
+                            jsonResponse.Add("signature", signature);
 
-                                      }
+                        }
 
-                                  }
+                    }
 
-                                  return Task.FromResult(
-                                             new HTTPResponse.Builder(Request) {
-                                                 HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPServer.DefaultServerName,
-                                                 Date                       = Timestamp.Now,
-                                                 AccessControlAllowOrigin   = "*",
-                                                 AccessControlAllowMethods  = new[] { "POST" },
-                                                 AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
-                                                 ContentType                = HTTPContentType.Application.JSON_UTF8,
-                                                 Content                    = jsonResponse.ToUTF8Bytes(),
-                                                 CacheControl               = "no-cache",
-                                                 Connection                 = ConnectionType.Close
-                                             }.AsImmutable);
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(Request) {
+                                   HTTPStatusCode             = HTTPStatusCode.OK,
+                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Date                       = Timestamp.Now,
+                                   AccessControlAllowOrigin   = "*",
+                                   AccessControlAllowMethods  = new[] { "POST" },
+                                   AccessControlAllowHeaders  = new[] { "Content-Type", "Accept" },
+                                   ContentType                = HTTPContentType.Application.JSON_UTF8,
+                                   Content                    = jsonResponse.ToUTF8Bytes(),
+                                   CacheControl               = "no-cache",
+                                   Connection                 = ConnectionType.Close
+                               }.AsImmutable);
 
-                              }, AllowReplacement: URLReplacement.Allow);
+                },
+                AllowReplacement: URLReplacement.Allow
+            );
 
             #endregion
 
 
             #region /hashimage
 
-            AddMethodCallback(
-                                         HTTPHostname.Any,
-                                         HTTPMethod.GET,
-                                         HTTPPath.Parse("/hashimage"),
-                                         HTTPContentType.Image.PNG,
-                                         HTTPDelegate: Request => {
+            AddHandler(
+                HTTPMethod.GET,
+                HTTPPath.Parse("/hashimage"),
+                HTTPContentType.Image.PNG,
+                HTTPDelegate: Request => {
 
-                Byte x =  13;
-                Byte y =  13;
-                Byte t = 255;
+                    Byte x =  13;
+                    Byte y =  13;
+                    Byte t = 255;
 
-                var ByteArray = SecurityVisualization.DrunkenBishop("fc:94:b0:c1:e5:b0:98:7c:58:43:99:76:97:ee:9f:b7");
-                ByteArray     = SecurityVisualization.DrunkenBishop("AE0D 5C5C 4EB5 C3F0 683E  2173 B1EA 6EEA A89A 2896", x, y);
-                var MaxValue  = ByteArray.Max();
+                    var ByteArray = SecurityVisualization.DrunkenBishop("fc:94:b0:c1:e5:b0:98:7c:58:43:99:76:97:ee:9f:b7");
+                    ByteArray     = SecurityVisualization.DrunkenBishop("AE0D 5C5C 4EB5 C3F0 683E  2173 B1EA 6EEA A89A 2896", x, y);
+                    var MaxValue  = ByteArray.Max();
 
-                var size = 10UL;
-                var _Bitmap = new Bitmap((Int32) (x * size), (Int32) (y * size));
+                    var size = 10UL;
+                    var _Bitmap = new Bitmap((Int32) (x * size), (Int32) (y * size));
 
-                var _Pens = new Brush[] {
-                    new SolidBrush(Color.FromArgb(t, 240, 240, 240)),
-                    new SolidBrush(Color.FromArgb(t, 120, 120, 240)),
-                    new SolidBrush(Color.FromArgb(t, 105, 105, 210)),
-                    new SolidBrush(Color.FromArgb(t,  90,  90, 180)),
-                    new SolidBrush(Color.FromArgb(t,  75,  75, 150)),
-                    new SolidBrush(Color.FromArgb(t,  60,  60, 120)),
-                    new SolidBrush(Color.FromArgb(t,  45,  45,  90)),
-                    new SolidBrush(Color.FromArgb(t,  30,  30,  60)),
-                    new SolidBrush(Color.FromArgb(t,  15,  15,  30)),
-                    new SolidBrush(Color.FromArgb(t,   0,   0,   0))
-                };
+                    var _Pens = new Brush[] {
+                        new SolidBrush(Color.FromArgb(t, 240, 240, 240)),
+                        new SolidBrush(Color.FromArgb(t, 120, 120, 240)),
+                        new SolidBrush(Color.FromArgb(t, 105, 105, 210)),
+                        new SolidBrush(Color.FromArgb(t,  90,  90, 180)),
+                        new SolidBrush(Color.FromArgb(t,  75,  75, 150)),
+                        new SolidBrush(Color.FromArgb(t,  60,  60, 120)),
+                        new SolidBrush(Color.FromArgb(t,  45,  45,  90)),
+                        new SolidBrush(Color.FromArgb(t,  30,  30,  60)),
+                        new SolidBrush(Color.FromArgb(t,  15,  15,  30)),
+                        new SolidBrush(Color.FromArgb(t,   0,   0,   0))
+                    };
 
-                var g = Graphics.FromImage(_Bitmap);
-                ByteArray.ForEachCounted((_byte, i) => {
-                    g.FillRectangle(_Pens[Math.Min(_byte, _Pens.Length-1)], size * ((i - 1) % x), size * ((i - 1) / x), size - 1, size-1);
-                });
+                    var g = Graphics.FromImage(_Bitmap);
+                    ByteArray.ForEachCounted((_byte, i) => {
+                        g.FillRectangle(_Pens[Math.Min(_byte, _Pens.Length-1)], size * ((i - 1) % x), size * ((i - 1) / x), size - 1, size-1);
+                    });
 
 
-                var s = new MemoryStream();
-                _Bitmap.Save(s, ImageFormat.Png);
-                var f = s.ToArray();
+                    var s = new MemoryStream();
+                    _Bitmap.Save(s, ImageFormat.Png);
+                    var f = s.ToArray();
 
-                return Task.FromResult(
-                    new HTTPResponse.Builder(Request) {
-                        HTTPStatusCode  = HTTPStatusCode.OK,
-                        Server          = HTTPServer.DefaultServerName,
-                        ContentType     = HTTPContentType.Image.PNG,
-                        Content         = f,
-                        CacheControl    = "public",
-                        //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                        Connection      = ConnectionType.Close
-                    }.AsImmutable);
+                    return Task.FromResult(
+                        new HTTPResponse.Builder(Request) {
+                            HTTPStatusCode  = HTTPStatusCode.OK,
+                            Server          = HTTPTestServer?.HTTPServerName,
+                            ContentType     = HTTPContentType.Image.PNG,
+                            Content         = f,
+                            CacheControl    = "public",
+                            //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
+                            Connection      = ConnectionType.Close
+                        }.AsImmutable);
 
-            });
+                }
+            );
 
             #endregion
 
@@ -10793,7 +11008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------
             // curl -v -X POST http://127.0.0.1:2000/restart
             // -----------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.POST,
                               URLPathPrefix + "/restart",
                               HTTPRequestLogger:   RestartRequest,
@@ -10826,7 +11041,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.OK,
-                                          Server          = HTTPServer.DefaultServerName,
+                                          Server          = HTTPTestServer?.HTTPServerName,
                                           Connection      = ConnectionType.Close
                                       }.AsImmutable);
 
@@ -10839,7 +11054,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // --------------------------------------------
             // curl -v -X POST http://127.0.0.1:2000/stop
             // --------------------------------------------
-            AddMethodCallback(HTTPHostname.Any,
+            AddHandler(
                               HTTPMethod.POST,
                               URLPathPrefix + "/stop",
                               HTTPRequestLogger:   StopRequest,
@@ -10872,7 +11087,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.OK,
-                                          Server          = HTTPServer.DefaultServerName,
+                                          Server          = HTTPTestServer?.HTTPServerName,
                                           Connection      = ConnectionType.Close
                                       }.AsImmutable);
 
@@ -10886,7 +11101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // -----------------------------------------------------
             // curl -X OPTIONS -v http://127.0.0.1:3004/changeSets
             // -----------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.OPTIONS,
                               URLPathPrefix + "changeSets",
                               HTTPDelegate: Request => {
@@ -10894,7 +11109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPServer.DefaultServerName,
+                                          Server                     = HTTPTestServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "GET", "OPTIONS" },
@@ -10911,7 +11126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // ---------------------------------------------------------------------------------------------------------------
             // curl -v -H "Accept: application/json" -H "API-Key: xxx" http://127.0.0.1:3004/changeSets?withMetadata\&take=2
             // ---------------------------------------------------------------------------------------------------------------
-            AddMethodCallback(Hostname,
+            AddHandler(
                               HTTPMethod.GET,
                               URLPathPrefix + "changeSets",
                               HTTPContentType.Application.JSON_UTF8,
@@ -10922,7 +11137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPServer.DefaultServerName,
+                                                 Server                     = HTTPTestServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET" ],
@@ -10963,7 +11178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode                = HTTPStatusCode.OK,
-                                             Server                        = HTTPServer.DefaultServerName,
+                                             Server                        = HTTPTestServer?.HTTPServerName,
                                              Date                          = Timestamp.Now,
                                              AccessControlAllowOrigin      = "*",
                                              AccessControlAllowMethods     = new[] { "GET", "OPTIONS" },
@@ -11074,7 +11289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            DebugX.Log("Reloading all HTTPExtAPI database helper files...");
+            DebugX.Log("Reloading all HTTPExtAPIX database helper files...");
 
             #region Read Password file...
 
@@ -11380,7 +11595,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #endregion
 
-            DebugX.Log("Reloading of all HTTPExtAPI database helper files finished...");
+            DebugX.Log("Reloading of all HTTPExtAPIX database helper files finished...");
 
         }
 
@@ -11444,7 +11659,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        //UseHTTPPipelining,
                                                        //HTTPLogger,
                                                        Accept:      AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
-                                                       DNSClient:   DNSClient
+                                                       DNSClient:   HTTPTestServer.DNSClient
                                                    ).
                                                    //GET(
                                                    //    remoteAuthServer.URL.Path + (LastKnownSHA256HashValue is not null ? "changeSets?skipUntil=" + LastKnownSHA256HashValue : "changeSets"),
@@ -11723,13 +11938,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         user = user2;
 
-                        user.API = this;
+                        user.APIX = this;
                         users.AddAndReturnValue(user.Id, user);
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11746,12 +11961,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         user = user2;
 
-                        user.API = this;
+                        user.APIX = this;
                         users.AddAndReturnValue(user.Id, user);
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11770,14 +11985,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!users.ContainsKey(user.Id))
                         {
-                            user.API = this;
+                            user.APIX = this;
                             users.AddAndReturnValue(user.Id, user);
                         }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11801,12 +12016,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
 
                         users.TryAdd(user.Id, user);
-                        user.API = this;
+                        user.APIX = this;
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11827,7 +12042,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             users.TryRemove(OldUser.Id, out _);
-                            user.API = this;
+                            user.APIX = this;
                             user.CopyAllLinkedDataFrom(OldUser);
 
                             users.TryAdd(user.Id, user);
@@ -11837,7 +12052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11868,7 +12083,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -11906,7 +12121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!apiKeys.ContainsKey(apiKey.Id))
                         {
-                            apiKey.API = this;
+                            apiKey.APIX = this;
                             apiKeys.AddAndReturnValue(apiKey.Id, apiKey);
                         }
 
@@ -11935,7 +12150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         }
 
                         apiKeys.Add(apiKey.Id, apiKey);
-                        apiKey.API = this;
+                        apiKey.APIX = this;
 
                     }
 
@@ -11959,7 +12174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (apiKeys.TryGetValue(apiKey.Id, out var OldAPIKey))
                         {
                             apiKeys.Remove(OldAPIKey.Id);
-                            apiKey.API = this;
+                            apiKey.APIX = this;
                             apiKeys.Add(apiKey.Id, apiKey);
                         }
 
@@ -12005,7 +12220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!organizations.ContainsKey(organization.Id))
                         {
-                            organization.API = this;
+                            organization.APIX = this;
                             organizations.TryAdd(organization.Id, organization);
                         }
 
@@ -12015,7 +12230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12034,14 +12249,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!organizations.ContainsKey(organization.Id))
                         {
-                            organization.API = this;
+                            organization.APIX = this;
                             organizations.AddAndReturnValue(organization.Id, organization);
                         }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12061,17 +12276,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         if (organizations.TryGetValue(organization.Id, out var OldOrganization))
                         {
                             organizations.TryRemove(OldOrganization.Id, out _);
-                            organization.API = this;
+                            organization.APIX = this;
                             organization.CopyAllLinkedDataFrom(OldOrganization);
                         }
 
                         organizations.TryAdd(organization.Id, organization);
-                        organization.API = this;
+                        organization.APIX = this;
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12092,7 +12307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         {
 
                             organizations.TryRemove(OldOrganization.Id, out _);
-                            organization.API = this;
+                            organization.APIX = this;
                             organization.CopyAllLinkedDataFrom(OldOrganization);
 
                             organizations.TryAdd(organization.Id, organization);
@@ -12102,7 +12317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12141,7 +12356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12154,33 +12369,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (!User_Id.TryParse(Data["user"]?.Value<String>(), out var U2O_UserId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid user identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid user identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetUser(U2O_UserId, out var U2O_User))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown user '" + U2O_UserId + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown user '" + U2O_UserId + "'!"));
                         break;
                     }
 
 
                     if (!Organization_Id.TryParse(Data["organization"]?.Value<String>(), out Organization_Id U2O_OrganizationId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid organization identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetOrganization(U2O_OrganizationId, out var U2O_Organization))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown organization '" + U2O_OrganizationId + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown organization '" + U2O_OrganizationId + "'!"));
                         break;
                     }
 
 
                     if (!Enum.TryParse(Data["edge"].Value<String>(), out User2OrganizationEdgeLabel U2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
                         break;
                     }
 
@@ -12198,33 +12413,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (!User_Id.TryParse(Data["user"]?.Value<String>(), out U2O_UserId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid user identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid user identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetUser(U2O_UserId, out U2O_User))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown user '" + U2O_UserId + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown user '" + U2O_UserId + "'!"));
                         break;
                     }
 
 
                     if (!Organization_Id.TryParse(Data["organization"]?.Value<String>(), out U2O_OrganizationId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid organization identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetOrganization(U2O_OrganizationId, out U2O_Organization))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown organization '" + U2O_OrganizationId + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown organization '" + U2O_OrganizationId + "'!"));
                         break;
                     }
 
 
                     if (!Enum.TryParse(Data["edge"].Value<String>(), out U2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
                         break;
                     }
 
@@ -12244,33 +12459,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (!Organization_Id.TryParse(Data["organizationOut"]?.Value<String>(), out var O2O_OrganizationIdOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid outgoing organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid outgoing organization identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdOut, out var O2O_OrganizationOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown outgoing organization '" + O2O_OrganizationIdOut + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown outgoing organization '" + O2O_OrganizationIdOut + "'!"));
                         break;
                     }
 
 
                     if (!Organization_Id.TryParse(Data["organizationIn"]?.Value<String>(), out var O2O_OrganizationIdIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid incoming organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid incoming organization identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdIn, out var O2O_OrganizationIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown incoming organization '" + O2O_OrganizationIdIn + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown incoming organization '" + O2O_OrganizationIdIn + "'!"));
                         break;
                     }
 
 
                     if (!Enum.TryParse(Data["edge"].Value<String>(), out Organization2OrganizationEdgeLabel O2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
                         break;
                     }
 
@@ -12288,33 +12503,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (!Organization_Id.TryParse(Data["organizationOut"]?.Value<String>(), out O2O_OrganizationIdOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid outgoing organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid outgoing organization identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdOut, out O2O_OrganizationOut))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown outgoing organization '" + O2O_OrganizationIdOut + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown outgoing organization '" + O2O_OrganizationIdOut + "'!"));
                         break;
                     }
 
 
                     if (!Organization_Id.TryParse(Data["organizationIn"]?.Value<String>(), out O2O_OrganizationIdIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid incoming organization identification '" + Data["user"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid incoming organization identification '" + Data["user"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetOrganization(O2O_OrganizationIdIn, out O2O_OrganizationIn))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown incoming organization '" + O2O_OrganizationIdIn + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown incoming organization '" + O2O_OrganizationIdIn + "'!"));
                         break;
                     }
 
 
                     if (!Enum.TryParse(Data["edge"].Value<String>(), out O2O_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown edge label '" + Data["edge"].Value<String>() + "'!"));
                         break;
                     }
 
@@ -12356,7 +12571,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!userGroups.ContainsKey(userGroup.Id))
                         {
-                            userGroup.API = this;
+                            userGroup.APIX = this;
                             userGroups.AddAndReturnValue(userGroup.Id, userGroup);
                         }
 
@@ -12366,7 +12581,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12387,14 +12602,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (!userGroups.ContainsKey(userGroup.Id))
                         {
-                            userGroup.API = this;
+                            userGroup.APIX = this;
                             userGroups.AddAndReturnValue(userGroup.Id, userGroup);
                         }
 
                     }
 
                     else
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty, LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty, ": ", errorResponse));
 
                     break;
 
@@ -12406,33 +12621,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (!User_Id.TryParse(Data["userId"]?.Value<String>(), out var U2G_UserId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid user identification '" + Data["userId"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid user identification '" + Data["userId"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetUser(U2G_UserId, out var U2G_User))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown user '" + U2G_UserId + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown user '" + U2G_UserId + "'!"));
                         break;
                     }
 
 
                     if (!UserGroup_Id.TryParse(Data["userGroupId"]?.Value<String>(), out var U2G_GroupId))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Invalid group identification '" + Data["userGroupId"]?.Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Invalid group identification '" + Data["userGroupId"]?.Value<String>() + "'!"));
                         break;
                     }
 
                     if (!TryGetUserGroup(U2G_GroupId, out var U2G_Group))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown group '" + U2G_GroupId + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown group '" + U2G_GroupId + "'!"));
                         break;
                     }
 
 
                     if (!Enum.TryParse(Data["edgeLabel"].Value<String>(), out User2UserGroupEdgeLabel U2G_EdgeLabel))
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " ", Command, ": ", "Unknown edge label '" + Data["edgeLabel"].Value<String>() + "'!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " ", Command, ": ", "Unknown edge label '" + Data["edgeLabel"].Value<String>() + "'!"));
                         break;
                     }
 
@@ -12454,7 +12669,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Data["@context"]?.Value<String>().IsNotNullOrEmpty() != true)
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the @context is invalid or missing!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the @context is invalid or missing!"));
                         break;
                     }
 
@@ -12463,19 +12678,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["userId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'userId' is invalid or missing!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the 'userId' is invalid or missing!"));
                             break;
                         }
 
                         if (!User_Id.TryParse(Data["userId"]?.Value<String>(), out userId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the userId '" + (Data["userId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the userId '" + (Data["userId"]?.Value<String>() ?? "") + "' could not be parsed!"));
                             break;
                         }
 
                         if (!TryGetUser(userId, out user))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the user '" + userId + "' is unknown!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the user '" + userId + "' is unknown!"));
                             break;
                         }
 
@@ -12486,19 +12701,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["organizationId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'organizationId' is invalid or missing!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the 'organizationId' is invalid or missing!"));
                             break;
                         }
 
                         if (!Organization_Id.TryParse(Data["organizationId"]?.Value<String>(), out organizationId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organizationId '" + (Data["organizationId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the organizationId '" + (Data["organizationId"]?.Value<String>() ?? "") + "' could not be parsed!"));
                             break;
                         }
 
                         if (!TryGetOrganization(organizationId, out organization))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organization '" + organizationId + "' is unknown!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the organization '" + organizationId + "' is unknown!"));
                             break;
                         }
 
@@ -12516,7 +12731,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given Telegram notification!"));
 
                             break;
 
@@ -12530,7 +12745,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram group notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given Telegram group notification!"));
 
                             break;
 
@@ -12544,7 +12759,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given SMS notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given SMS notification!"));
 
                             break;
 
@@ -12558,7 +12773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given HTTPS notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given HTTPS notification!"));
 
                             break;
 
@@ -12572,13 +12787,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given e-mail notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given e-mail notification!"));
 
                             break;
 
 
                         default:
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given 'add notification' command as the @context '" + (Data["@context"]?.Value<String>() ?? "") + "' is unknown!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given 'add notification' command as the @context '" + (Data["@context"]?.Value<String>() ?? "") + "' is unknown!"));
                             break;
 
                     }
@@ -12596,7 +12811,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     if (Data["@context"]?.Value<String>().IsNotNullOrEmpty() != true)
                     {
-                        DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the @context is invalid or missing!"));
+                        DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the @context is invalid or missing!"));
                         break;
                     }
 
@@ -12605,19 +12820,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["userId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'userId' is invalid or missing!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the 'userId' is invalid or missing!"));
                             break;
                         }
 
                         if (!User_Id.TryParse(Data["userId"]?.Value<String>(), out userId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the userId '" + (Data["userId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the userId '" + (Data["userId"]?.Value<String>() ?? "") + "' could not be parsed!"));
                             break;
                         }
 
                         if (!TryGetUser(userId, out user))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the user '" + userId + "' is unknown!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the user '" + userId + "' is unknown!"));
                             break;
                         }
 
@@ -12628,19 +12843,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                         if (Data["organizationId"]?.Value<String>().IsNotNullOrEmpty() == false)
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the 'organizationId' is invalid or missing!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the 'organizationId' is invalid or missing!"));
                             break;
                         }
 
                         if (!Organization_Id.TryParse(Data["organizationId"]?.Value<String>(), out organizationId))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organizationId '" + (Data["organizationId"]?.Value<String>() ?? "") + "' could not be parsed!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the organizationId '" + (Data["organizationId"]?.Value<String>() ?? "") + "' could not be parsed!"));
                             break;
                         }
 
                         if (!TryGetOrganization(organizationId, out organization))
                         {
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given '" + Command + "' command as the organization '" + organizationId + "' is unknown!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given '" + Command + "' command as the organization '" + organizationId + "' is unknown!"));
                             break;
                         }
 
@@ -12663,7 +12878,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given Telegram notification!"));
 
                             break;
 
@@ -12682,7 +12897,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given Telegram group notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given Telegram group notification!"));
 
                             break;
 
@@ -12701,7 +12916,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given SMS notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given SMS notification!"));
 
                             break;
 
@@ -12720,7 +12935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given HTTPS notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given HTTPS notification!"));
 
                             break;
 
@@ -12739,13 +12954,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             }
 
                             else
-                                DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given e-mail notification!"));
+                                DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given e-mail notification!"));
 
                             break;
 
 
                         default:
-                            DebugX.Log(String.Concat(nameof(HTTPExtAPI), " Could not parse the given 'add notification' command as the @context '" + (Data["@context"]?.Value<String>() ?? "") + "' is unknown!"));
+                            DebugX.Log(String.Concat(nameof(HTTPExtAPIX), " Could not parse the given 'add notification' command as the @context '" + (Data["@context"]?.Value<String>() ?? "") + "' is unknown!"));
                             break;
 
                     }
@@ -12756,7 +12971,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
                 default:
-                    DebugX.Log(String.Concat(nameof(HTTPExtAPI), ": does not know what to do with event '", Command,
+                    DebugX.Log(String.Concat(nameof(HTTPExtAPIX), ": does not know what to do with event '", Command,
                                              Sender.IsNotNullOrEmpty() ? " via " + Sender : String.Empty,
                                              LineNumber.HasValue ? ", line " + LineNumber.Value : String.Empty,
                                              "'!"));
@@ -13585,7 +13800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                         //MaxNumberOfRetries,
                                                                         //UseHTTPPipelining,
                                                                         //HTTPLogger,
-                                                                        DNSClient: DNSClient).
+                                                                        DNSClient: HTTPTestServer.DNSClient).
 
                                                    Execute(client => client.CHECKRequest(remoteAuthServer.URL.Path + "securityToken",
                                                                                          RequestBuilder: requestBuilder => {
@@ -14466,7 +14681,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return AddUserResult.ArgumentError(
                            User,
                            "The given user is already attached to another API!".ToI18NString(),
@@ -14511,7 +14726,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            User.API = this;
+            User.APIX = this;
 
 
             await WriteToDatabaseFile(addUser_MessageType,
@@ -14940,7 +15155,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return AddUserResult.ArgumentError(
                            User,
                            "The given user is already attached to another API!".ToI18NString(),
@@ -14984,7 +15199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            User.API = this;
+            User.APIX = this;
 
 
             await WriteToDatabaseFile(addUserIfNotExists_MessageType,
@@ -15421,7 +15636,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return AddOrUpdateUserResult.ArgumentError(
                            User,
                            "The given user is already attached to another API!".ToI18NString(),
@@ -15457,7 +15672,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            User.API = this;
+            User.APIX = this;
 
 
             await WriteToDatabaseFile(addOrUpdateUser_MessageType,
@@ -15832,7 +16047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (NewUser.API is not null && NewUser.API != this)
+            if (NewUser.APIX is not null && NewUser.APIX != this)
                 return UpdateUserResult.ArgumentError(
                            NewUser,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -15841,7 +16056,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            NewUser.API = this;
+            NewUser.APIX = this;
 
 
             await WriteToDatabaseFile(updateUser_MessageType,
@@ -15990,7 +16205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (User.API != this)
+            if (User.APIX != this)
                 return UpdateUserResult.ArgumentError(
                            User,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -16186,7 +16401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User.API != this)
+            if (User.APIX != this)
                 return DeleteUserResult.ArgumentError(
                            User,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -16350,7 +16565,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(UserExists)}({User.Id}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(UserExists)}({User.Id}, ...)");
                 }
                 finally
                 {
@@ -16408,7 +16623,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(UserExists)}({UserId}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(UserExists)}({UserId}, ...)");
                 }
                 finally
                 {
@@ -16442,7 +16657,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(UserExists)}({UserId}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(UserExists)}({UserId}, ...)");
                 }
                 finally
                 {
@@ -16516,7 +16731,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(GetUser)}({UserId}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(GetUser)}({UserId}, ...)");
                 }
                 finally
                 {
@@ -16550,7 +16765,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(GetUser)}({UserId}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(GetUser)}({UserId}, ...)");
                 }
                 finally
                 {
@@ -16634,7 +16849,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(TryGetUser)}({UserId}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(TryGetUser)}({UserId}, ...)");
                 }
                 finally
                 {
@@ -16671,7 +16886,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 }
                 catch (Exception e)
                 {
-                    DebugX.LogException(e, $"{nameof(HTTPExtAPI)}.{nameof(TryGetUser)}({UserId}, ...)");
+                    DebugX.LogException(e, $"{nameof(HTTPExtAPIX)}.{nameof(TryGetUser)}({UserId}, ...)");
                 }
                 finally
                 {
@@ -18002,7 +18217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (APIKey.API is not null && APIKey.API != this)
+            if (APIKey.APIX is not null && APIKey.APIX != this)
                 return AddAPIKeyResult.ArgumentError(
                            APIKey,
                            "The given API key is already attached to another API!".ToI18NString(),
@@ -18029,7 +18244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            APIKey.API = this;
+            APIKey.APIX = this;
 
 
             await WriteToDatabaseFile(addAPIKey_MessageType,
@@ -18150,7 +18365,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (APIKey.API is not null && APIKey.API != this)
+            if (APIKey.APIX is not null && APIKey.APIX != this)
                 return AddAPIKeyResult.ArgumentError(
                            APIKey,
                            "The given API key is already attached to another API!".ToI18NString(),
@@ -18176,7 +18391,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            APIKey.API = this;
+            APIKey.APIX = this;
 
 
             await WriteToDatabaseFile(addAPIKeyIfNotExists_MessageType,
@@ -18299,7 +18514,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (APIKey.API is not null && APIKey.API != this)
+            if (APIKey.APIX is not null && APIKey.APIX != this)
                 return AddOrUpdateAPIKeyResult.ArgumentError(
                            APIKey,
                            "The given API key is already attached to another API!".ToI18NString(),
@@ -18317,7 +18532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            APIKey.API = this;
+            APIKey.APIX = this;
 
 
             await WriteToDatabaseFile(addOrUpdateAPIKey_MessageType,
@@ -18507,7 +18722,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (APIKey.API != this)
+            if (APIKey.APIX != this)
                 return UpdateAPIKeyResult.ArgumentError(
                            APIKey,
                            "The given API key is not attached to this API!".ToI18NString(),
@@ -18516,7 +18731,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            APIKey.API = this;
+            APIKey.APIX = this;
 
 
             await WriteToDatabaseFile(updateAPIKey_MessageType,
@@ -18648,7 +18863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (APIKey.API != this)
+            if (APIKey.APIX != this)
                 return UpdateAPIKeyResult.ArgumentError(
                            APIKey,
                            "The given API key is not attached to this API!".ToI18NString(),
@@ -18813,7 +19028,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (APIKey.API != this)
+            if (APIKey.APIX != this)
                 return DeleteAPIKeyResult.ArgumentError(
                            APIKey,
                            "The given API key is not attached to this API!".ToI18NString(),
@@ -19930,7 +20145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -19969,7 +20184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                            nameof(UserGroup),
             //                                            "UserGroup name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.API = this;
+            UserGroup.APIX = this;
 
 
             await WriteToDatabaseFile(addUserGroup_MessageType,
@@ -20095,7 +20310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20134,7 +20349,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                       nameof(UserGroup),
             //                                                       "UserGroup name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.API = this;
+            UserGroup.APIX = this;
 
 
             await WriteToDatabaseFile(addUserGroupIfNotExists_MessageType,
@@ -20264,7 +20479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return AddOrUpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20294,7 +20509,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                    nameof(UserGroup),
             //                                                    "The given user group name '" + UserGroup.Name + "' is too short!");
 
-            UserGroup.API = this;
+            UserGroup.APIX = this;
 
 
             await WriteToDatabaseFile(addOrUpdateUserGroup_MessageType,
@@ -20489,7 +20704,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -20498,7 +20713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            UserGroup.API = this;
+            UserGroup.APIX = this;
 
 
             await WriteToDatabaseFile(updateUserGroup_MessageType,
@@ -20636,7 +20851,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.API != this)
+            if (UserGroup.APIX != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -20821,7 +21036,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != this)
+            if (UserGroup.APIX != this)
                 return DeleteUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is not attached to this API!".ToI18NString(),
@@ -24259,7 +24474,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return AddOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -24300,7 +24515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                       nameof(Organization),
             //                                       "Organization name '" + Organization.Name + "' is too short!");
 
-            Organization.API = this;
+            Organization.APIX = this;
 
 
             await WriteToDatabaseFile(addOrganization_MessageType,
@@ -24488,7 +24703,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return AddOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -24528,7 +24743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                                  nameof(Organization),
             //                                                  "Organization name '" + Organization.Name + "' is too short!");
 
-            Organization.API = this;
+            Organization.APIX = this;
 
 
             await WriteToDatabaseFile(addOrganizationIfNotExists_MessageType,
@@ -24721,7 +24936,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return AddOrUpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -24754,7 +24969,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //                                               nameof(Organization),
             //                                               "Organization name '" + Organization.Name + "' is too short!");
 
-            Organization.API = this;
+            Organization.APIX = this;
 
 
             await WriteToDatabaseFile(addOrUpdateOrganization_MessageType,
@@ -25078,7 +25293,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return UpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is already attached to another API!".ToI18NString(),
@@ -25087,7 +25302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            Organization.API = this;
+            Organization.APIX = this;
 
 
             await WriteToDatabaseFile(updateOrganization_MessageType,
@@ -25219,7 +25434,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (Organization.API != this)
+            if (Organization.APIX != this)
                 return UpdateOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is not attached to this API!".ToI18NString(),
@@ -25405,7 +25620,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (Organization.API != this)
+            if (Organization.APIX != this)
                 return DeleteOrganizationResult.ArgumentError(
                            Organization,
                            "The given organization is not attached to this API!".ToI18NString(),
@@ -27747,7 +27962,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               nameof(User),
                                                               "The given user must not be null!");
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return AddUserToUserGroupResult.ArgumentError(User,
                                                               EdgeLabel,
                                                               UserGroup,
@@ -27781,7 +27996,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               nameof(UserGroup),
                                                               "The given user group must not be null!");
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return AddUserToUserGroupResult.ArgumentError(User,
                                                               EdgeLabel,
                                                               UserGroup,
@@ -27932,7 +28147,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    nameof(User),
                                                                    "The given user must not be null!");
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    EdgeLabel,
                                                                    UserGroup,
@@ -27966,7 +28181,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    nameof(UserGroup),
                                                                    "The given user group must not be null!");
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    EdgeLabel,
                                                                    UserGroup,
@@ -28122,7 +28337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    nameof(User),
                                                                    "The given user must not be null!");
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    UserGroup,
                                                                    eventTrackingId,
@@ -28143,7 +28358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    nameof(UserGroup),
                                                                    "The given user group must not be null!");
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.APIX != null && UserGroup.APIX != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    UserGroup,
                                                                    eventTrackingId,
@@ -28686,7 +28901,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  nameof(User),
                                                                  "The given user must not be null!");
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return AddUserToOrganizationResult.ArgumentError(User,
                                                                  EdgeLabel,
                                                                  Organization,
@@ -28720,7 +28935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                  nameof(Organization),
                                                                  "The given organization must not be null!");
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return AddUserToOrganizationResult.ArgumentError(User,
                                                                  EdgeLabel,
                                                                  Organization,
@@ -28877,7 +29092,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(User),
                                                                       "The given user must not be null!");
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       EdgeLabel,
                                                                       Organization,
@@ -28911,7 +29126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(Organization),
                                                                       "The given organization must not be null!");
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       EdgeLabel,
                                                                       Organization,
@@ -29066,7 +29281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (User.API is not null && User.API != this)
+            if (User.APIX is not null && User.APIX != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       Organization,
                                                                       eventTrackingId,
@@ -29087,7 +29302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                       nameof(Organization),
                                                                       "The given organization must not be null!");
 
-            if (Organization.API is not null && Organization.API != this)
+            if (Organization.APIX is not null && Organization.APIX != this)
                 return RemoveUserFromOrganizationResult.ArgumentError(User,
                                                                       Organization,
                                                                       eventTrackingId,
@@ -29878,45 +30093,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #region AddTOTPFileMapper(Hostname, URLTemplate, FileSystemPath, TOTPSharedSecret, ...)
 
-        //public IFileMapper AddTOTPFileMapper(HTTPHostname    Hostname,
-        //                                     HTTPPath        URLTemplate,
-        //                                     String          FileSystemPath,
-        //                                     String          TOTPSharedSecret,
+        public IFileMapper AddTOTPFileMapper(HTTPHostname    Hostname,
+                                             HTTPPath        URLTemplate,
+                                             String          FileSystemPath,
+                                             String          TOTPSharedSecret,
 
-        //                                     FileMapper_Id?  FileMapperId            = null,
-        //                                     String?         FileMapperName          = null,
-        //                                     I18NString?     FileMapperDescription   = null,
-        //                                     TimeSpan?       TOTPValidityTime        = null,
-        //                                     UInt32?         TOTPLength              = 12,
-        //                                     String?         TOTPAlphabet            = null)
-        //{
+                                             FileMapper_Id?  FileMapperId            = null,
+                                             String?         FileMapperName          = null,
+                                             I18NString?     FileMapperDescription   = null,
+                                             TimeSpan?       TOTPValidityTime        = null,
+                                             UInt32?         TOTPLength              = 12,
+                                             String?         TOTPAlphabet            = null)
+        {
 
-        //    var fileMapperId = FileMapperId ?? FileMapper_Id.Random();
+            var fileMapperId = FileMapperId ?? FileMapper_Id.Random();
 
-        //    if (fileMappers.ContainsKey(fileMapperId))
-        //        throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
+            if (fileMappers.ContainsKey(fileMapperId))
+                throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
 
-        //    var fileMapper  = new TOTPFileMapper(
-        //                          this,
-        //                          Hostname,
-        //                          URLTemplate,
-        //                          FileSystemPath,
-        //                          TOTPSharedSecret,
+            var fileMapper  = new TOTPFileMapper(
+                                  this,
+                                  Hostname,
+                                  URLTemplate,
+                                  FileSystemPath,
+                                  TOTPSharedSecret,
 
-        //                          fileMapperId,
-        //                          FileMapperName,
-        //                          FileMapperDescription,
-        //                          TOTPValidityTime,
-        //                          TOTPLength,
-        //                          TOTPAlphabet
-        //                      );
+                                  fileMapperId,
+                                  FileMapperName,
+                                  FileMapperDescription,
+                                  TOTPValidityTime,
+                                  TOTPLength,
+                                  TOTPAlphabet
+                              );
 
-        //    if (!fileMappers.TryAdd(fileMapper.Id, fileMapper))
-        //        throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
+            if (!fileMappers.TryAdd(fileMapper.Id, fileMapper))
+                throw new ArgumentException("The given file mapper already exists!", nameof(FileMapperId));
 
-        //    return fileMapper;
+            return fileMapper;
 
-        //}
+        }
 
         #endregion
 

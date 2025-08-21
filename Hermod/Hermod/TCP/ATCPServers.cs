@@ -477,6 +477,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                     var tcpServer = tcpServers.AddAndReturnElement(
                                         new TCPServer(
+
                                             port,
                                             ServiceName,
                                             ServiceBanner,
@@ -494,6 +495,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                             connectionIdBuilder,
                                             connectionTimeout,
                                             maxClientConnections,
+
+                                            DNSClient,
 
                                             false
                                         )
@@ -534,6 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 {
 
                     var tcpServer = tcpServers.AddAndReturnElement(new TCPServer(
+
                                                                        socket,
                                                                        ServiceName,
                                                                        ServiceBanner,
@@ -551,6 +555,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                                        connectionIdBuilder,
                                                                        connectionTimeout,
                                                                        maxClientConnections,
+
+                                                                       DNSClient,
 
                                                                        false)
                                                                    );

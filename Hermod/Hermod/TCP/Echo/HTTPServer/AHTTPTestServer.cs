@@ -17,15 +17,18 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.SMTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Illias;
+using System.Text;
 using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Text;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using System.Security.Authentication;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 
 #endregion
 
@@ -83,19 +86,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
         /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
         /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-        public AHTTPTestServer(IIPAddress?              IPAddress        = null,
-                               IPPort?                  TCPPort          = null,
-                               String?                  HTTPServerName   = null,
-                               UInt32?                  BufferSize       = null,
-                               TimeSpan?                ReceiveTimeout   = null,
-                               TimeSpan?                SendTimeout      = null,
-                               TCPEchoLoggingDelegate?  LoggingHandler   = null)
+        public AHTTPTestServer(IIPAddress?                                               IPAddress                    = null,
+                               IPPort?                                                   TCPPort                      = null,
+                               String?                                                   HTTPServerName               = null,
+                               UInt32?                                                   BufferSize                   = null,
+                               TimeSpan?                                                 ReceiveTimeout               = null,
+                               TimeSpan?                                                 SendTimeout                  = null,
+                               TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+
+                               ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                               RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                               LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                               SslProtocols?                                             AllowedTLSProtocols          = null,
+                               Boolean?                                                  ClientCertificateRequired    = null,
+                               Boolean?                                                  CheckCertificateRevocation   = null,
+
+                               ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                               UInt32?                                                   MaxClientConnections         = null,
+                               IDNSClient?                                               DNSClient                    = null)
 
             : base(IPAddress,
                    TCPPort,
                    ReceiveTimeout,
                    SendTimeout,
-                   LoggingHandler)
+                   LoggingHandler,
+
+                   ServerCertificateSelector,
+                   ClientCertificateValidator,
+                   LocalCertificateSelector,
+                   AllowedTLSProtocols,
+                   ClientCertificateRequired,
+                   CheckCertificateRevocation,
+
+                   ConnectionIdBuilder,
+                   MaxClientConnections,
+                   DNSClient)
 
         {
 

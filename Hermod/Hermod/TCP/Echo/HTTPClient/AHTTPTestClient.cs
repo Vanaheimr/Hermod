@@ -395,7 +395,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
                                   TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
-                                  DNSClient?                                                     DNSClient                            = null)
+                                  IDNSClient?                                                    DNSClient                            = null)
 
             : base(URL,
                    DNSService,
@@ -479,7 +479,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                   UInt16?                                                        MaxNumberOfRetries                   = null,
                                   UInt32?                                                        BufferSize                           = null,
                                   TCPEchoLoggingDelegate?                                        LoggingHandler                       = null,
-                                  DNSClient?                                                     DNSClient                            = null)
+                                  IDNSClient?                                                    DNSClient                            = null)
 
             : base(DomainName,
                    DNSService,

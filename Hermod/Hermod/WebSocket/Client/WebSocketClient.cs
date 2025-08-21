@@ -201,7 +201,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public DNSClient?                                                      DNSClient                                 { get; }
+        public IDNSClient?                                                     DNSClient                                 { get; }
 
 
         public UInt64                                                          KeepAliveMessageCount                     { get; private set; } = 0;

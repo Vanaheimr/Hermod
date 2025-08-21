@@ -28,6 +28,7 @@ using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -131,6 +132,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         public IEnumerable<IPSocket>             ClientSockets
             => activeClients.Keys.Select(static client => IPSocket.FromIPEndPoint((client.Client.RemoteEndPoint as IPEndPoint)!));
 
+        /// <summary>
+        /// The DNS client used.
+        /// </summary>
+        public IDNSClient?                       DNSClient                              { get; }
+
         #endregion
 
         #region Events
@@ -182,9 +188,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// 
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information. If null, the default connection identification will be used.</param>
         /// <param name="MaxClientConnections">An optional maximum number of concurrent TCP client connections. If null, the default maximum number of concurrent TCP client connections will be used.</param>
-        /// 
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        /// <exception cref="Exception"></exception>
         public ATCPTestServer(IIPAddress?                                               IPAddress                    = null,
                               IPPort?                                                   TCPPort                      = null,
                               TimeSpan?                                                 ReceiveTimeout               = null,
@@ -199,7 +202,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                               Boolean?                                                  CheckCertificateRevocation   = null,
 
                               ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
-                              UInt32?                                                   MaxClientConnections         = null)
+                              UInt32?                                                   MaxClientConnections         = null,
+                              IDNSClient?                                               DNSClient                    = null)
 
         {
 
@@ -268,6 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             this.AllowedTLSProtocols         = AllowedTLSProtocols;
             this.ClientCertificateRequired   = ClientCertificateRequired  ?? false;
             this.CheckCertificateRevocation  = CheckCertificateRevocation ?? false;
+            this.DNSClient                   = DNSClient                  ?? new DNSClient();
 
         }
 

@@ -240,7 +240,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// The DNS client defines which DNS servers to use.
         /// </summary>
-        public  DNSClient?                       DNSClient                 { get; }
+        public  IDNSClient?                      DNSClient                 { get; }
 
         #endregion
 
@@ -257,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                UInt16?                          MaxNumberOfRetries       = null,
                                UInt32?                          BufferSize               = null,
                                TCPEchoLoggingDelegate?          LoggingHandler           = null,
-                               DNSClient?                       DNSClient                = null)
+                               IDNSClient?                      DNSClient                = null)
         {
 
             if (ConnectTimeout.HasValue && ConnectTimeout.Value.TotalMilliseconds > Int32.MaxValue)
@@ -335,7 +335,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  UInt16?                          MaxNumberOfRetries       = null,
                                  UInt32?                          BufferSize               = null,
                                  TCPEchoLoggingDelegate?          LoggingHandler           = null,
-                                 DNSClient?                       DNSClient                = null)
+                                 IDNSClient?                      DNSClient                = null)
 
             : this(Description,
                    PreferIPv4,
@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                  UInt16?                          MaxNumberOfRetries       = null,
                                  UInt32?                          BufferSize               = null,
                                  TCPEchoLoggingDelegate?          LoggingHandler           = null,
-                                 DNSClient?                       DNSClient                = null)
+                                 IDNSClient?                      DNSClient                = null)
 
             : this(Description,
                    PreferIPv4,

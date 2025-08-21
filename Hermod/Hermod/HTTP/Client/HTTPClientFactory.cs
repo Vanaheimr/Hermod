@@ -995,7 +995,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                  Boolean                                                    UseHTTPPipelining            = false,
                                                  Boolean?                                                   DisableLogging               = false,
                                                  HTTPClientLogger?                                          HTTPLogger                   = null,
-                                                 DNSClient?                                                 DNSClient                    = null)
+                                                 IDNSClient?                                                DNSClient                    = null)
 
             => RemoteURL.Protocol == URLProtocols.http ||
                RemoteURL.Protocol == URLProtocols.ws

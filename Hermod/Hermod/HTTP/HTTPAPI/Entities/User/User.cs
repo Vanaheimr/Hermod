@@ -30,6 +30,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.BouncyCastle;
 
 using org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -150,6 +151,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Illegal attempt to change the API of this user!");
 
                 api = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this user!");
+
+            }
+
+        }
+
+        #endregion
+
+        #region APIX
+
+        private HTTPExtAPIX? apiX;
+
+        /// <summary>
+        /// The HTTPExtAPI of this user.
+        /// </summary>
+        public HTTPExtAPIX? APIX
+        {
+
+            get
+            {
+                return apiX;
+            }
+
+            set
+            {
+
+                if (apiX == value)
+                    return;
+
+                if (apiX is not null)
+                    throw new ArgumentException("Illegal attempt to change the API of this user!");
+
+                apiX = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this user!");
 
             }
 

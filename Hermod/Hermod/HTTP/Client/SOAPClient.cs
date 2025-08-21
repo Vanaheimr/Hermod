@@ -124,7 +124,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                           Boolean                                                    UseHTTPPipelining            = false,
                           Boolean?                                                   DisableLogging               = false,
                           HTTPClientLogger?                                          HTTPLogger                   = null,
-                          DNSClient?                                                 DNSClient                    = null)
+                          IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -420,7 +420,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                           Boolean                                                    UseHTTPPipelining            = false,
                           Boolean?                                                   DisableLogging               = false,
                           HTTPClientLogger?                                          HTTPLogger                   = null,
-                          DNSClient?                                                 DNSClient                    = null)
+                          IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,

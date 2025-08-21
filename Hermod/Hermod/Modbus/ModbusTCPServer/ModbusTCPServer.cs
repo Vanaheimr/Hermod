@@ -22,6 +22,7 @@ using System.Security.Authentication;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -136,10 +137,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                TimeSpan?                                                      ConnectionTimeout            = null,
                                UInt32?                                                        MaxClientConnections         = null,
 
+                               IDNSClient?                                                    DNSClient                    = null,
+
                                Boolean                                                        AutoStart                    = false)
         {
 
             this.TCPServer = new TCPServer(
+
                                  TCPPort,
                                  null,
                                  null,
@@ -158,7 +162,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                                  ConnectionTimeout,
                                  MaxClientConnections,
 
+                                 DNSClient,
+
                                  AutoStart
+
                              );
 
 

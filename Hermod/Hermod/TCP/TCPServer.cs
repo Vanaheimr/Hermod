@@ -26,6 +26,7 @@ using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Styx.Arrows;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -183,6 +184,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         public RemoteTLSClientCertificateValidationHandler<ITCPServer>? ClientCertificateValidator { get; set; }
 
+        /// <summary>
+        /// The DNS client used.
+        /// </summary>
+        public IDNSClient                        DNSClient                              { get; }
+
         #endregion
 
         #region Events
@@ -262,6 +268,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TimeSpan?                                                 ConnectionTimeout            = null,
                          UInt32?                                                   MaxClientConnections         = null,
 
+                         IDNSClient?                                               DNSClient                    = null,
+
                          Boolean                                                   AutoStart                    = false)
 
             : this(IPv4Address.Any,
@@ -282,6 +290,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ConnectionIdBuilder,
                    ConnectionTimeout,
                    MaxClientConnections,
+
+                   DNSClient,
 
                    AutoStart)
 
@@ -330,6 +340,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TimeSpan?                                                 ConnectionTimeout            = null,
                          UInt32?                                                   MaxClientConnections         = null,
 
+                         IDNSClient?                                               DNSClient                    = null,
+
                          Boolean                                                   AutoStart                    = false)
 
         {
@@ -371,6 +383,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             this.MaxClientConnections        = MaxClientConnections       ?? __DefaultMaxClientConnections;
 
+            this.DNSClient                   = DNSClient                  ?? new DNSClient();
 
             #region TCP Listener Thread
 
@@ -579,7 +592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
 
             if (AutoStart)
-                Start();
+                Start().GetAwaiter().GetResult();
 
         }
 
@@ -620,6 +633,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TimeSpan?                                                 ConnectionTimeout            = null,
                          UInt32?                                                   MaxClientConnections         = null,
 
+                         IDNSClient?                                               DNSClient                    = null,
+
                          Boolean                                                   AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
@@ -640,6 +655,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                    ConnectionIdBuilder,
                    ConnectionTimeout,
                    MaxClientConnections,
+
+                   DNSClient,
 
                    AutoStart)
 

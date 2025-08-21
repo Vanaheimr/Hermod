@@ -109,6 +109,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
+        #region APIX
+
+        private Object _APIX;
+
+        /// <summary>
+        /// The API of this object.
+        /// </summary>
+        public Object APIX
+        {
+
+            get
+            {
+                return _APIX;
+            }
+
+            set
+            {
+
+                if (_APIX != null)
+                    throw new ArgumentException("Illegal attempt to change the API!");
+
+                _APIX = value ?? throw new ArgumentException("Illegal attempt to delete the API!");
+
+            }
+
+        }
+
+        #endregion
+
 
         /// <summary>
         /// The members of this group.

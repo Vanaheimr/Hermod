@@ -116,23 +116,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPAPIX                    HTTPAPI,
-                               HTTPDelegate                HTTPDelegate,
+        public void AddHandler(HTTPAPIX                     HTTPAPI,
+                               HTTPDelegate                 HTTPDelegate,
 
-                               HTTPPath?                   URLTemplate                 = null,
-                               Boolean                     OpenEnd                     = false,
-                               HTTPMethod?                 Method                      = null,
-                               HTTPContentType?            HTTPContentType             = null,
+                               HTTPPath?                    URLTemplate                 = null,
+                               Boolean                      OpenEnd                     = false,
+                               HTTPMethod?                  Method                      = null,
+                               HTTPContentType?             HTTPContentType             = null,
 
-                               HTTPAuthentication?         URLAuthentication           = null,
-                               HTTPAuthentication?         HTTPMethodAuthentication    = null,
-                               HTTPAuthentication?         ContentTypeAuthentication   = null,
+                               HTTPAuthentication?          URLAuthentication           = null,
+                               HTTPAuthentication?          HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?          ContentTypeAuthentication   = null,
 
-                               OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
-                               OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
+                               OnHTTPRequestLogDelegate2?   HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?  HTTPResponseLogger          = null,
 
-                               HTTPDelegate?               DefaultErrorHandler         = null,
-                               URLReplacement              AllowReplacement            = URLReplacement.Fail)
+                               HTTPDelegate?                DefaultErrorHandler         = null,
+                               URLReplacement               AllowReplacement            = URLReplacement.Fail)
 
         {
 

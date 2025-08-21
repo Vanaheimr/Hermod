@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// </summary>
         public static QueryString Empty
 
-            => new ();
+            => new();
 
         #endregion
 

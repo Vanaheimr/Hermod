@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -64,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <param name="Id">An optional file mapper identification. If omitted, a random identification will be assigned.</param>
         /// <param name="Name">An optional human-readable name of the file mapper. If omitted, the Id will be used.</param>
         /// <param name="Description">An optional multi-language description of the file mapper.</param>
-        public TOTPFileMapper(HTTPExtAPI      API,
+        public TOTPFileMapper(HTTPExtAPIX     API,
 
                               HTTPHostname    Hostname,
                               HTTPPath        URLTemplate,
@@ -148,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!expiryDate.HasValue || token.IsNullOrEmpty() || expiryDate.Value < Timestamp.Now)
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                               Server          = API.HTTPServer.DefaultServerName,
+                               Server          = API.HTTPTestServer.HTTPServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "public, max-age=300",
                                //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
@@ -174,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (curr != token && prev != token && next != token)
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                               Server          = API.HTTPServer.DefaultServerName,
+                               Server          = API.HTTPTestServer.HTTPServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "public, max-age=300",
                                //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
@@ -199,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            ? new HTTPResponse.Builder(Request) {
                                  HTTPStatusCode   = HTTPStatusCode.NotFound,
-                                 Server           = API.HTTPServer.DefaultServerName,
+                                 Server           = API.HTTPTestServer.HTTPServerName,
                                  Date             = Timestamp.Now,
                                  CacheControl     = "no-cache",
                                  Connection       = ConnectionType.Close,
@@ -207,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            : new HTTPResponse.Builder(Request) {
                                  HTTPStatusCode  = HTTPStatusCode.OK,
-                                 Server          = API.HTTPServer.DefaultServerName,
+                                 Server          = API.HTTPTestServer.HTTPServerName,
                                  Date            = Timestamp.Now,
                                  ContentType     = HTTPContentType.ForFileExtension(
                                                        filePath[(filePath.LastIndexOf('.') + 1)..],
@@ -232,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                            Server          = API.HTTPServer.DefaultServerName,
+                            Server          = API.HTTPTestServer.HTTPServerName,
                             Date            = Timestamp.Now,
                             ContentType     = HTTPContentType.Application.JSON_UTF8,
                             Content         = JSONObject.Create(

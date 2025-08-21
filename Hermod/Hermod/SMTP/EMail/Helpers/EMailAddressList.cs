@@ -121,7 +121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
         public static EMailAddressList Empty
-            => new ();
+            => new();
 
         public static EMailAddressList Create(params EMailAddress[] EMailAddressList)
             => new (EMailAddressList);
@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
 
         public static EMailAddressListBuilder Empty
-            => new ();
+            => new();
 
         public static EMailAddressListBuilder Create(params EMailAddress[] EMailAddressListBuilder)
             => new (EMailAddressListBuilder);

@@ -19,12 +19,16 @@
 
 using System.Net.Sockets;
 using System.Collections.Concurrent;
+using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
 using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
@@ -39,11 +43,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    HTTPResponse       Response,
                                                    CancellationToken  CancellationToken);
 
-//(DateTimeOffset  Timestamp,
-// HTTPAPIX        API,
-// HTTPRequest     Request,
-// HTTPResponse    Response)
+    public delegate Task OnHTTPRequestLogDelegate2 (DateTimeOffset     Timestamp,
+                                                    HTTPAPIX           API,
+                                                    HTTPRequest        Request,
+                                                    CancellationToken  CancellationToken);
 
+    public delegate Task OnHTTPResponseLogDelegate2(DateTimeOffset     Timestamp,
+                                                    HTTPAPIX           API,
+                                                    HTTPRequest        Request,
+                                                    HTTPResponse       Response,
+                                                    CancellationToken  CancellationToken);
 
 
     /// <summary>
@@ -56,22 +65,47 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     /// <param name="ReceiveTimeout">An optional receive timeout for the TCP stream. If null, the default receive timeout will be used.</param>
     /// <param name="SendTimeout">An optional send timeout for the TCP stream. If null, the default send timeout will be used.</param>
     /// <param name="LoggingHandler">An optional logging handler that will be called for each log message.</param>
-    public class HTTPTestServerX(IIPAddress?              IPAddress        = null,
-                                 IPPort?                  TCPPort          = null,
-                                 String?                  HTTPServerName   = null,
-                                 UInt32?                  BufferSize       = null,
-                                 TimeSpan?                ReceiveTimeout   = null,
-                                 TimeSpan?                SendTimeout      = null,
-                                 TCPEchoLoggingDelegate?  LoggingHandler   = null)
+    public class HTTPTestServerX(IIPAddress?                                               IPAddress                    = null,
+                                 IPPort?                                                   TCPPort                      = null,
+                                 String?                                                   HTTPServerName               = null,
+                                 UInt32?                                                   BufferSize                   = null,
+                                 TimeSpan?                                                 ReceiveTimeout               = null,
+                                 TimeSpan?                                                 SendTimeout                  = null,
+                                 TCPEchoLoggingDelegate?                                   LoggingHandler               = null,
+
+                                 ServerCertificateSelectorDelegate?                        ServerCertificateSelector    = null,
+                                 RemoteTLSClientCertificateValidationHandler<ITCPServer>?  ClientCertificateValidator   = null,
+                                 LocalCertificateSelectionHandler?                         LocalCertificateSelector     = null,
+                                 SslProtocols?                                             AllowedTLSProtocols          = null,
+                                 Boolean?                                                  ClientCertificateRequired    = null,
+                                 Boolean?                                                  CheckCertificateRevocation   = null,
+
+                                 ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
+                                 UInt32?                                                   MaxClientConnections         = null,
+                                 IDNSClient?                                               DNSClient                    = null)
+
 
         : AHTTPTestServer(
+
               IPAddress,
               TCPPort,
               HTTPServerName,
               BufferSize,
               ReceiveTimeout,
               SendTimeout,
-              LoggingHandler
+              LoggingHandler,
+
+              ServerCertificateSelector,
+              ClientCertificateValidator,
+              LocalCertificateSelector,
+              AllowedTLSProtocols,
+              ClientCertificateRequired,
+              CheckCertificateRevocation,
+
+              ConnectionIdBuilder,
+              MaxClientConnections,
+              DNSClient
+
           )
 
     {
@@ -157,8 +191,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             var path        = Path                               ?? HTTPPath.Root;
             var hostname    = Hostname                           ?? HTTPHostname.Any;
             var httpAPI     = HTTPAPICreator?.Invoke(this, path) ?? new HTTPAPIX(
-                                                                        HTTPTestServer:  this,
-                                                                        RootPath:        path
+                                                                        this,
+                                                                        RootPath: path
                                                                     );
 
             var routeNode1  = routeNodes.GetOrAdd(
@@ -363,24 +397,24 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPRequestLogger">An HTTP request logger.</param>
         /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
-        internal void AddHandler(HTTPAPIX                    HTTPAPI,
-                                 HTTPDelegate                HTTPDelegate,
+        internal void AddHandler(HTTPAPIX                     HTTPAPI,
+                                 HTTPDelegate                 HTTPDelegate,
 
-                                 HTTPHostname?               Hostname                    = null,
-                                 HTTPPath?                   URLTemplate                 = null,
-                                 HTTPMethod?                 HTTPMethod                  = null,
-                                 HTTPContentType?            HTTPContentType             = null,
-                                 Boolean                     OpenEnd                     = false,
+                                 HTTPHostname?                Hostname                    = null,
+                                 HTTPPath?                    URLTemplate                 = null,
+                                 HTTPMethod?                  HTTPMethod                  = null,
+                                 HTTPContentType?             HTTPContentType             = null,
+                                 Boolean                      OpenEnd                     = false,
 
-                                 HTTPAuthentication?         URLAuthentication           = null,
-                                 HTTPAuthentication?         HTTPMethodAuthentication    = null,
-                                 HTTPAuthentication?         ContentTypeAuthentication   = null,
+                                 HTTPAuthentication?          URLAuthentication           = null,
+                                 HTTPAuthentication?          HTTPMethodAuthentication    = null,
+                                 HTTPAuthentication?          ContentTypeAuthentication   = null,
 
-                                 OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
-                                 OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
+                                 OnHTTPRequestLogDelegate2?   HTTPRequestLogger           = null,
+                                 OnHTTPResponseLogDelegate2?  HTTPResponseLogger          = null,
 
-                                 HTTPDelegate?               DefaultErrorHandler         = null,
-                                 URLReplacement              AllowReplacement            = URLReplacement.Fail)
+                                 HTTPDelegate?                DefaultErrorHandler         = null,
+                                 URLReplacement               AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -445,19 +479,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPHostname                Hostname,
-                                      HTTPMethod                  HTTPMethod,
-                                      HTTPPath                    URLTemplate,
-                                      HTTPContentType?            HTTPContentType             = null,
-                                      Boolean                     OpenEnd                     = false,
-                                      HTTPAuthentication?         URLAuthentication           = null,
-                                      HTTPAuthentication?         HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication?         ContentTypeAuthentication   = null,
-                                      OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
-                                      OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
-                                      HTTPDelegate?               DefaultErrorHandler         = null,
-                                      HTTPDelegate?               HTTPDelegate                = null,
-                                      URLReplacement              AllowReplacement            = URLReplacement.Fail)
+        public void AddMethodCallback(HTTPHostname                 Hostname,
+                                      HTTPMethod                   HTTPMethod,
+                                      HTTPPath                     URLTemplate,
+                                      HTTPContentType?             HTTPContentType             = null,
+                                      Boolean                      OpenEnd                     = false,
+                                      HTTPAuthentication?          URLAuthentication           = null,
+                                      HTTPAuthentication?          HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?          ContentTypeAuthentication   = null,
+                                      OnHTTPRequestLogDelegate2?   HTTPRequestLogger           = null,
+                                      OnHTTPResponseLogDelegate2?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?                DefaultErrorHandler         = null,
+                                      HTTPDelegate?                HTTPDelegate                = null,
+                                      URLReplacement               AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -505,20 +539,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
         /// <param name="DefaultErrorHandler">The default error handler.</param>
         /// <param name="HTTPDelegate">The method to call.</param>
-        public void AddMethodCallback(HTTPAPIX                    HTTPAPI,
-                                      HTTPHostname                Hostname,
-                                      HTTPMethod                  HTTPMethod,
-                                      HTTPPath                    URLTemplate,
-                                      HTTPContentType?            HTTPContentType             = null,
-                                      Boolean                     OpenEnd                     = false,
-                                      HTTPAuthentication?         URLAuthentication           = null,
-                                      HTTPAuthentication?         HTTPMethodAuthentication    = null,
-                                      HTTPAuthentication?         ContentTypeAuthentication   = null,
-                                      OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
-                                      OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
-                                      HTTPDelegate?               DefaultErrorHandler         = null,
-                                      HTTPDelegate?               HTTPDelegate                = null,
-                                      URLReplacement              AllowReplacement            = URLReplacement.Fail)
+        public void AddMethodCallback(HTTPAPIX                     HTTPAPI,
+                                      HTTPHostname                 Hostname,
+                                      HTTPMethod                   HTTPMethod,
+                                      HTTPPath                     URLTemplate,
+                                      HTTPContentType?             HTTPContentType             = null,
+                                      Boolean                      OpenEnd                     = false,
+                                      HTTPAuthentication?          URLAuthentication           = null,
+                                      HTTPAuthentication?          HTTPMethodAuthentication    = null,
+                                      HTTPAuthentication?          ContentTypeAuthentication   = null,
+                                      OnHTTPRequestLogDelegate2?   HTTPRequestLogger           = null,
+                                      OnHTTPResponseLogDelegate2?  HTTPResponseLogger          = null,
+                                      HTTPDelegate?                DefaultErrorHandler         = null,
+                                      HTTPDelegate?                HTTPDelegate                = null,
+                                      URLReplacement               AllowReplacement            = URLReplacement.Fail)
 
         {
 
@@ -614,7 +648,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     await LogEvent(
                               parsedRequest.RequestHandlers.HTTPRequestLogger,
                               loggingDelegate => loggingDelegate.Invoke(
-                                  this,
+                                  Timestamp.Now,
+                                  parsedRequest.RequestHandlers.HTTPAPI,
                                   Request,
                                   CancellationToken
                               )
@@ -687,7 +722,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     await LogEvent(
                               parsedRequest.RequestHandlers.HTTPResponseLogger,
                               loggingDelegate => loggingDelegate.Invoke(
-                                  this,
+                                  Timestamp.Now,
+                                  parsedRequest.RequestHandlers.HTTPAPI,
+                                  Request,
                                   httpResponse,
                                   CancellationToken
                               )

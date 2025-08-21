@@ -26,8 +26,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
     public class HTTPRequestHandlersX(HTTPAPIX                                   HTTPAPI,
                                       HTTPDelegate?                              RequestHandler,
-                                      OnHTTPRequestLogDelegate?                  HTTPRequestLogger,
-                                      OnHTTPResponseLogDelegate?                 HTTPResponseLogger,
+                                      OnHTTPRequestLogDelegate2?                 HTTPRequestLogger,
+                                      OnHTTPResponseLogDelegate2?                HTTPResponseLogger,
                                       HTTPDelegate?                              DefaultErrorHandler,
                                       Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers)
     {
@@ -36,8 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         public HTTPAPIX                                   HTTPAPI                { get; } = HTTPAPI;
         public HTTPDelegate?                              RequestHandler         { get; } = RequestHandler;
-        public OnHTTPRequestLogDelegate?                  HTTPRequestLogger      { get; } = HTTPRequestLogger;
-        public OnHTTPResponseLogDelegate?                 HTTPResponseLogger     { get; } = HTTPResponseLogger;
+        public OnHTTPRequestLogDelegate2?                 HTTPRequestLogger      { get; } = HTTPRequestLogger;
+        public OnHTTPResponseLogDelegate2?                HTTPResponseLogger     { get; } = HTTPResponseLogger;
         public HTTPDelegate?                              DefaultErrorHandler    { get; } = DefaultErrorHandler;
         public Dictionary<HTTPStatusCode, HTTPDelegate>?  ErrorHandlers          { get; } = ErrorHandlers;
 

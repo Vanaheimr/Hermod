@@ -15,11 +15,19 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
 
+    /// <summary>
+    /// The common interface of all TCP servers.
+    /// </summary>
     public interface ITCPServer
     {
 
@@ -85,6 +93,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// True while the TCPServer is listening for new clients
         /// </summary>
         public Boolean                           IsRunning                              { get; }
+
+        /// <summary>
+        /// The DNS client used.
+        /// </summary>
+        public IDNSClient                        DNSClient                              { get; }
 
         #endregion
 

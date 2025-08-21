@@ -34,14 +34,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     /// <param name="HTTPResponseLogger">An HTTP response logger.</param>
     /// <param name="DefaultErrorHandler">The default error handling delegate.</param>
     /// <param name="AllowReplacement">How to handle duplicate URI handlers.</param>
-    public class ContentTypeNodeX(HTTPAPIX                    HTTPAPI,
-                                  HTTPContentType             HTTPContentType,
-                                  HTTPAuthentication?         HTTPContentTypeAuthentication   = null,
-                                  OnHTTPRequestLogDelegate?   HTTPRequestLogger               = null,
-                                  HTTPDelegate?               RequestHandler                  = null,
-                                  OnHTTPResponseLogDelegate?  HTTPResponseLogger              = null,
-                                  HTTPDelegate?               DefaultErrorHandler             = null,
-                                  URLReplacement              AllowReplacement                = URLReplacement.Fail)
+    public class ContentTypeNodeX(HTTPAPIX                     HTTPAPI,
+                                  HTTPContentType              HTTPContentType,
+                                  HTTPAuthentication?          HTTPContentTypeAuthentication   = null,
+                                  OnHTTPRequestLogDelegate2?   HTTPRequestLogger               = null,
+                                  HTTPDelegate?                RequestHandler                  = null,
+                                  OnHTTPResponseLogDelegate2?  HTTPResponseLogger              = null,
+                                  HTTPDelegate?                DefaultErrorHandler             = null,
+                                  URLReplacement               AllowReplacement                = URLReplacement.Fail)
     {
 
         #region Properties
@@ -67,12 +67,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An HTTP request logger.
         /// </summary>
-        public OnHTTPRequestLogDelegate?                 HTTPRequestLogger                { get; } = HTTPRequestLogger;
+        public OnHTTPRequestLogDelegate2?                HTTPRequestLogger                { get; } = HTTPRequestLogger;
 
         /// <summary>
         /// An HTTP response logger.
         /// </summary>
-        public OnHTTPResponseLogDelegate?                HTTPResponseLogger               { get; } = HTTPResponseLogger;
+        public OnHTTPResponseLogDelegate2?               HTTPResponseLogger               { get; } = HTTPResponseLogger;
 
         /// <summary>
         /// A general error handling method.

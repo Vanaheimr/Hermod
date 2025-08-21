@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An HTTP request logger.
         /// </summary>
-        public OnHTTPRequestLogDelegate?                 HTTPRequestLogger      { get; private set; }
+        public OnHTTPRequestLogDelegate2?                HTTPRequestLogger      { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit URI authentication.
@@ -108,7 +108,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An HTTP response logger.
         /// </summary>
-        public OnHTTPResponseLogDelegate?                HTTPResponseLogger     { get; private set; }
+        public OnHTTPResponseLogDelegate2?               HTTPResponseLogger     { get; private set; }
 
 
         /// <summary>
@@ -162,20 +162,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPAPIX                    HTTPAPI,
-                               HTTPDelegate                HTTPDelegate,
+        public void AddHandler(HTTPAPIX                     HTTPAPI,
+                               HTTPDelegate                 HTTPDelegate,
 
-                               HTTPMethod                  HTTPMethod,
-                               HTTPContentType?            HTTPContentType             = null,
+                               HTTPMethod                   HTTPMethod,
+                               HTTPContentType?             HTTPContentType             = null,
 
-                               HTTPAuthentication?         HTTPMethodAuthentication    = null,
-                               HTTPAuthentication?         ContentTypeAuthentication   = null,
+                               HTTPAuthentication?          HTTPMethodAuthentication    = null,
+                               HTTPAuthentication?          ContentTypeAuthentication   = null,
 
-                               OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
-                               OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
+                               OnHTTPRequestLogDelegate2?   HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?  HTTPResponseLogger          = null,
 
-                               HTTPDelegate?               DefaultErrorHandler         = null,
-                               URLReplacement              AllowReplacement            = URLReplacement.Fail)
+                               HTTPDelegate?                DefaultErrorHandler         = null,
+                               URLReplacement               AllowReplacement            = URLReplacement.Fail)
 
         {
 

@@ -17,12 +17,12 @@
 
 #region Usings
 
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
-using System.Net.Security;
 
 #endregion
 
@@ -92,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Boolean                                                    UseHTTPPipelining            = false,
                            Boolean?                                                   DisableLogging               = false,
                            HTTPClientLogger?                                          HTTPLogger                   = null,
-                           DNSClient?                                                 DNSClient                    = null)
+                           IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,
@@ -178,7 +178,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Boolean                                                    UseHTTPPipelining            = false,
                            Boolean?                                                   DisableLogging               = false,
                            HTTPClientLogger?                                          HTTPLogger                   = null,
-                           DNSClient?                                                 DNSClient                    = null)
+                           IDNSClient?                                                DNSClient                    = null)
 
             : this(URL.Parse($"https://{RemoteIPAddress}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : String.Empty)}"),
                    VirtualHostname,
@@ -252,7 +252,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Boolean                                                    UseHTTPPipelining            = false,
                            Boolean?                                                   DisableLogging               = false,
                            HTTPClientLogger?                                          HTTPLogger                   = null,
-                           DNSClient?                                                 DNSClient                    = null)
+                           IDNSClient?                                                DNSClient                    = null)
 
             : this(URL.Parse($"https://{RemoteSocket.IPAddress}:{RemoteSocket.Port}"),
                    VirtualHostname,
@@ -328,7 +328,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            Boolean                                                    UseHTTPPipelining            = false,
                            Boolean?                                                   DisableLogging               = false,
                            HTTPClientLogger?                                          HTTPLogger                   = null,
-                           DNSClient?                                                 DNSClient                    = null)
+                           IDNSClient?                                                DNSClient                    = null)
 
             : this(URL.Parse($"https://{RemoteHost}{(RemotePort.HasValue ? ":" + RemotePort.Value.ToString() : String.Empty)}"),
                    VirtualHostname,

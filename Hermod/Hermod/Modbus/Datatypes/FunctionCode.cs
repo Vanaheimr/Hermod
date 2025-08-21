@@ -29,7 +29,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
         #region Data
 
-        private static readonly Dictionary<Byte, FunctionCode> lookup = new ();
+        private static readonly Dictionary<Byte, FunctionCode> lookup = new();
 
         #endregion
 

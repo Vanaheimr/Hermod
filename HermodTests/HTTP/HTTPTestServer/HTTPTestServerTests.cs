@@ -103,8 +103,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "{filename}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
@@ -155,8 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/test2/{filename}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
@@ -207,8 +207,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -262,8 +262,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 AllowReplacement:    URLReplacement.Allow,
                 HTTPDelegate:        request => {
 
@@ -290,8 +290,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -343,8 +343,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -371,8 +371,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                                    HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                                    HTTPMethod:          HTTPMethod.GET,
-                                   HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                                   HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                                   HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                                   HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                                    HTTPDelegate:        request => {
 
                                        if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -416,8 +416,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 AllowReplacement:    URLReplacement.Allow,
                 HTTPDelegate:        request => {
 
@@ -445,8 +445,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -499,8 +499,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                 HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                 HTTPMethod:          HTTPMethod.GET,
-                HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -528,8 +528,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
                                    HTTPPath.Root + "/test1/{filename1}/test2/{filename2}/{filename3}",
                                    HTTPMethod:          HTTPMethod.GET,
-                                   HTTPRequestLogger:   (server, request,  ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
-                                   HTTPResponseLogger:  (server, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                                   HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                                   HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
                                    HTTPDelegate:        request => {
 
                                        if (request.ParsedURLParametersX.TryGetValue("filename1", out var filename1) &&
@@ -578,8 +578,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 HTTPPath.Root + "{filename}",
                 HTTPMethod:          HTTPMethod.GET,
                 //HTTPContentType:     HTTPContentType.Text.PLAIN,
-                HTTPRequestLogger:   (server, request,  ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { getResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { getResponseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
@@ -606,8 +606,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 HTTPPath.Root + "{filename}",
                 HTTPMethod:          HTTPMethod.POST,
                 //HTTPContentType:     HTTPContentType.Text.PLAIN,
-                HTTPRequestLogger:   (server, request,  ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { postResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { postResponseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
@@ -774,8 +774,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 HTTPPath.Root + "{filename}",
                 HTTPMethod:          HTTPMethod.GET,
                 HTTPContentType:     HTTPContentType.Text.HTML_UTF8,
-                HTTPRequestLogger:   (server, request,  ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { getResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { getRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { getResponseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))
@@ -802,8 +802,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                 HTTPPath.Root + "{filename}",
                 HTTPMethod:          HTTPMethod.GET,
                 HTTPContentType:     HTTPContentType.Application.JSON_UTF8,
-                HTTPRequestLogger:   (server, request,  ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
-                HTTPResponseLogger:  (server, response, ct) => { postResponseLogger.Add(response); return Task.CompletedTask; },
+                HTTPRequestLogger:   (ts, server, request,           ct) => { postRequestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { postResponseLogger.Add(response); return Task.CompletedTask; },
                 HTTPDelegate:        request => {
 
                     if (request.ParsedURLParametersX.TryGetValue("filename", out var filename))

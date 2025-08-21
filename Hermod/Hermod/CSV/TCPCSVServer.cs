@@ -24,6 +24,7 @@ using org.GraphDefined.Vanaheimr.Styx.Arrows;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 using System.Security.Cryptography.X509Certificates;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -128,6 +129,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             TimeSpan?                                                   ConnectionTimeout            = null,
                             UInt32?                                                     MaxClientConnections         = null,
 
+                            IDNSClient?                                                 DNSClient                    = null,
+
                             Boolean                                                     AutoStart                    = false)
 
             : this(IPv4Address.Any,
@@ -149,6 +152,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ConnectionIdBuilder,
                    ConnectionTimeout,
                    MaxClientConnections,
+
+                   DNSClient,
 
                    AutoStart)
 
@@ -196,6 +201,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             TimeSpan?                                                   ConnectionTimeout            = null,
                             UInt32?                                                     MaxClientConnections         = null,
 
+                            IDNSClient?                                                 DNSClient                    = null,
+
                             Boolean                                                     AutoStart                    = false)
 
             : base(IIPAddress,
@@ -224,6 +231,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ConnectionIdBuilder,
                    ConnectionTimeout,
                    MaxClientConnections,
+
+                   DNSClient,
 
                    false)
 
@@ -297,6 +306,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             TimeSpan?                                                   ConnectionTimeout            = null,
                             UInt32?                                                     MaxClientConnections         = null,
 
+                            IDNSClient?                                                 DNSClient                    = null,
+
                             Boolean                                                     AutoStart                    = false)
 
             : this(IPSocket.IPAddress,
@@ -319,6 +330,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                    ConnectionIdBuilder,
                    ConnectionTimeout,
                    MaxClientConnections,
+
+                   DNSClient,
+
                    AutoStart)
 
         { }

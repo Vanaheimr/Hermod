@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         /// <summary>
         /// The DNS client to use.
         /// </summary>
-        DNSClient?                                                 DNSClient                     { get; }
+        IDNSClient?                                                DNSClient                     { get; }
 
 
 

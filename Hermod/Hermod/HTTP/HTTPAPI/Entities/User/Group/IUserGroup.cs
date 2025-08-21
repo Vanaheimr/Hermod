@@ -15,9 +15,14 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Hermod;
+
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
@@ -29,6 +34,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     {
 
         HTTPExtAPI? API { get; set; }
+        HTTPExtAPIX? APIX { get; set; }
         IEnumerable<UserGroup> ParentUserGroups { get; }
         IEnumerable<UserGroup> SubUserGroups { get; }
         IEnumerable<User2UserGroupEdge> User2UserGroupEdges { get; }

@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               Boolean                                                    UseHTTPPipelining            = false,
                               Boolean?                                                   DisableLogging               = false,
                               HTTPClientLogger?                                          HTTPLogger                   = null,
-                              DNSClient?                                                 DNSClient                    = null)
+                              IDNSClient?                                                DNSClient                    = null)
 
             : base(RemoteURL,
                    VirtualHostname,

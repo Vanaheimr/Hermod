@@ -62,7 +62,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An HTTP request logger.
         /// </summary>
-        public OnHTTPRequestLogDelegate?                 HTTPRequestLogger           { get; private set; }
+        public OnHTTPRequestLogDelegate2?                HTTPRequestLogger           { get; private set; }
 
         /// <summary>
         /// This and all subordinated nodes demand an explicit HTTP method authentication.
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// An HTTP response logger.
         /// </summary>
-        public OnHTTPResponseLogDelegate?                HTTPResponseLogger          { get; private set; }
+        public OnHTTPResponseLogDelegate2?               HTTPResponseLogger          { get; private set; }
 
 
         /// <summary>
@@ -128,14 +128,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region AddHandler(...)
 
-        public void AddHandler(HTTPAPIX                    HTTPAPI,
-                               HTTPDelegate?               RequestHandler,
-                               HTTPContentType?            HTTPContentType             = null,
-                               HTTPAuthentication?         ContentTypeAuthentication   = null,
-                               OnHTTPRequestLogDelegate?   HTTPRequestLogger           = null,
-                               OnHTTPResponseLogDelegate?  HTTPResponseLogger          = null,
-                               HTTPDelegate?               DefaultErrorHandler         = null,
-                               URLReplacement              AllowReplacement            = URLReplacement.Fail)
+        public void AddHandler(HTTPAPIX                     HTTPAPI,
+                               HTTPDelegate?                RequestHandler,
+                               HTTPContentType?             HTTPContentType             = null,
+                               HTTPAuthentication?          ContentTypeAuthentication   = null,
+                               OnHTTPRequestLogDelegate2?   HTTPRequestLogger           = null,
+                               OnHTTPResponseLogDelegate2?  HTTPResponseLogger          = null,
+                               HTTPDelegate?                DefaultErrorHandler         = null,
+                               URLReplacement               AllowReplacement            = URLReplacement.Fail)
 
         {
 

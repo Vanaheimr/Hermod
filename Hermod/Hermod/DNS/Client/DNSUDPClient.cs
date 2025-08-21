@@ -17,9 +17,10 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using System.Net;
 using System.Net.Sockets;
+
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 

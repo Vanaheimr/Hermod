@@ -26,6 +26,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -475,7 +476,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        HTTPExtAPI? IUserGroup.API { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        HTTPExtAPI?  IUserGroup.API  { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        HTTPExtAPIX? IUserGroup.APIX { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #region Constructor(s)
 

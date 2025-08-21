@@ -22,6 +22,7 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -70,6 +71,38 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     throw new ArgumentException("Illegal attempt to change the API of this API key!");
 
                 _API = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this API key!");
+
+            }
+
+        }
+
+        #endregion
+
+        #region APIX
+
+        private HTTPExtAPIX? _APIX;
+
+        /// <summary>
+        /// The HTTPExtAPI of this API key.
+        /// </summary>
+        internal HTTPExtAPIX APIX
+        {
+
+            get
+            {
+                return _APIX;
+            }
+
+            set
+            {
+
+                if (_APIX == value)
+                    return;
+
+                if (_APIX != null)
+                    throw new ArgumentException("Illegal attempt to change the API of this API key!");
+
+                _APIX = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this API key!");
 
             }
 
