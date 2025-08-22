@@ -17,14 +17,16 @@
 
 #region Usings
 
+using System.Reflection;
 using System.Collections.Concurrent;
+
+using Newtonsoft.Json.Linq;
+
+using Org.BouncyCastle.Crypto.Parameters;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using System.Reflection;
-using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Crypto.Parameters;
 
 #endregion
 
@@ -121,9 +123,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="ServerTimestamp">The timestamp of the event.</param>
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
-        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
-                                      HTTPAPIX        HTTPAPI,
-                                      HTTPRequest     Request)
+        public async Task InvokeAsync(DateTimeOffset     ServerTimestamp,
+                                      HTTPAPIX           HTTPAPI,
+                                      HTTPRequest        Request,
+                                      CancellationToken  CancellationToken)
         {
 
             HTTPRequestLogHandlerX[] invocationList;
@@ -134,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             foreach (var callback in invocationList)
-                await callback(ServerTimestamp, HTTPAPI, Request).ConfigureAwait(false);
+                await callback(ServerTimestamp, HTTPAPI, Request, CancellationToken).ConfigureAwait(false);
 
         }
 
@@ -149,10 +152,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTimeOffset  ServerTimestamp,
-                            HTTPAPIX        HTTPAPI,
-                            HTTPRequest     Request,
-                            TimeSpan?       Timeout   = null)
+        public Task WhenAny(DateTimeOffset     ServerTimestamp,
+                            HTTPAPIX           HTTPAPI,
+                            HTTPRequest        Request,
+                            CancellationToken  CancellationToken,
+                            TimeSpan?          Timeout   = null)
         {
 
             List<Task> invocationList;
@@ -160,7 +164,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, CancellationToken))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -189,6 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                     HTTPAPIX            HTTPAPI,
                                     HTTPRequest         Request,
                                     Func<T, Boolean>    VerifyResult,
+                                    CancellationToken   CancellationToken,
                                     TimeSpan?           Timeout         = null,
                                     Func<TimeSpan, T>?  DefaultResult   = null)
         {
@@ -206,7 +211,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, CancellationToken))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -261,16 +266,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="ServerTimestamp">The timestamp of the event.</param>
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
-        public Task WhenAll(DateTimeOffset  ServerTimestamp,
-                            HTTPAPIX        HTTPAPI,
-                            HTTPRequest     Request)
+        public Task WhenAll(DateTimeOffset     ServerTimestamp,
+                            HTTPAPIX           HTTPAPI,
+                            HTTPRequest        Request,
+                            CancellationToken  CancellationToken)
         {
 
             Task[] invocationList;
 
             lock (subscribers)
             {
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request))];
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, CancellationToken))];
             }
 
             return Task.WhenAll(invocationList);
@@ -315,7 +321,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             lock (e.subscribers)
             {
-                e.subscribers.Add((timestamp, api, request, response) => callback(timestamp, api, request, response));
+                e.subscribers.Add(
+                    (timestamp, api, request, response, cancellationToken)
+                        => callback(timestamp, api, request, response, cancellationToken)
+                );
             }
 
             return e;
@@ -374,10 +383,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
-        public async Task InvokeAsync(DateTimeOffset  ServerTimestamp,
-                                      HTTPAPIX        HTTPAPI,
-                                      HTTPRequest     Request,
-                                      HTTPResponse    Response)
+        public async Task InvokeAsync(DateTimeOffset     ServerTimestamp,
+                                      HTTPAPIX           HTTPAPI,
+                                      HTTPRequest        Request,
+                                      HTTPResponse       Response,
+                                      CancellationToken  CancellationToken)
         {
 
             HTTPResponseLogHandlerX[] invocationList;
@@ -388,7 +398,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
 
             foreach (var callback in invocationList)
-                await callback(ServerTimestamp, HTTPAPI, Request, Response).ConfigureAwait(false);
+                await callback(ServerTimestamp, HTTPAPI, Request, Response, CancellationToken).ConfigureAwait(false);
 
         }
 
@@ -404,11 +414,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
         /// <param name="Timeout">A timeout for this operation.</param>
-        public Task WhenAny(DateTimeOffset  ServerTimestamp,
-                            HTTPAPIX        HTTPAPI,
-                            HTTPRequest     Request,
-                            HTTPResponse    Response,
-                            TimeSpan?       Timeout = null)
+        public Task WhenAny(DateTimeOffset     ServerTimestamp,
+                            HTTPAPIX           HTTPAPI,
+                            HTTPRequest        Request,
+                            HTTPResponse       Response,
+                            CancellationToken  CancellationToken,
+                            TimeSpan?          Timeout = null)
         {
 
             List<Task> invocationList;
@@ -416,7 +427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, CancellationToken))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(Task.Delay(Timeout.Value));
@@ -447,6 +458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                     HTTPRequest         Request,
                                     HTTPResponse        Response,
                                     Func<T, Boolean>    VerifyResult,
+                                    CancellationToken   CancellationToken,
                                     TimeSpan?           Timeout         = null,
                                     Func<TimeSpan, T>?  DefaultResult   = null)
         {
@@ -464,7 +476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             lock (subscribers)
             {
 
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, CancellationToken))];
 
                 if (Timeout.HasValue)
                     invocationList.Add(TimeoutTask = Task.Run(() => Thread.Sleep(Timeout.Value)));
@@ -520,17 +532,18 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The sending HTTP API.</param>
         /// <param name="Request">The HTTP request.</param>
         /// <param name="Response">The HTTP response.</param>
-        public Task WhenAll(DateTimeOffset  ServerTimestamp,
-                            HTTPAPIX        HTTPAPI,
-                            HTTPRequest     Request,
-                            HTTPResponse    Response)
+        public Task WhenAll(DateTimeOffset     ServerTimestamp,
+                            HTTPAPIX           HTTPAPI,
+                            HTTPRequest        Request,
+                            HTTPResponse       Response,
+                            CancellationToken  CancellationToken)
         {
 
             Task[] invocationList;
 
             lock (subscribers)
             {
-                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response))];
+                invocationList = [.. subscribers.Select(callback => callback(ServerTimestamp, HTTPAPI, Request, Response, CancellationToken))];
             }
 
             return Task.WhenAll(invocationList);
@@ -595,107 +608,138 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     /// <summary>
     /// A URL node which stores some child nodes and a callback
     /// </summary>
-    public class HTTPAPIX
+    public class HTTPAPIX : AHTTPAPIXBase
     {
 
         #region Data
 
-        private const String DefaultHTTPServerName        = "HTTP Server";
-        private const String DefaultHTTPServiceName       = "HTTP Service";
-        private const String DefaultHTTPAPI_LoggingPath   = "logs/httpAPI";
-        private const String DefaultLoggingContext        = "HTTP API";
-        private const String DefaultHTTPAPI_LogfileName   = "HTTP_API.log";
+        /// <summary>
+        /// The default maintenance interval.
+        /// </summary>
+        public           readonly  TimeSpan       DefaultMaintenanceEvery  = TimeSpan.FromMinutes(1);
+
+        private          readonly  Timer          MaintenanceTimer;
+
+        protected static readonly  TimeSpan       SemaphoreSlimTimeout     = TimeSpan.FromSeconds(5);
+
+        protected static readonly  SemaphoreSlim  MaintenanceSemaphore     = new (1, 1);
+
+        /// <summary>
+        /// The HTTP root for embedded resources.
+        /// </summary>
+        public  const              String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
         #endregion
 
         #region Properties
 
-        public HTTPTestServerX               HTTPTestServer           { get; internal set; }
+        public HTTPTestServerX               HTTPServer              { get; internal set; }
 
         /// <summary>
         /// The HTTP hostname of this HTTP API.
         /// </summary>
-        public IEnumerable<HTTPHostname>     Hostnames                { get; }
+        public IEnumerable<HTTPHostname>     Hostnames                   { get; }
 
         /// <summary>
         /// The HTTP root path of this HTTP API.
         /// </summary>
-        public HTTPPath                      RootPath                 { get; }
+        public HTTPPath                      RootPath                    { get; }
+
+
+        public HTTPPath?                     BasePath                    { get; }
 
         /// <summary>
         /// The HTTP content types served by this HTTP API.
         /// </summary>
-        public IEnumerable<HTTPContentType>  HTTPContentTypes         { get; }
+        public IEnumerable<HTTPContentType>  HTTPContentTypes            { get; }
 
         /// <summary>
         /// An optional description of this HTTP API.
         /// </summary>
-        public I18NString?                   Description              { get; }
+        public I18NString?                   Description                 { get; }
 
 
-        public String?                       ExternalDNSName          { get; }
-        public HTTPPath?                     BasePath                 { get; }
+        public String?                       ExternalDNSName             { get; }
+
+
+        public Warden.Warden                 Warden                      { get; }
+        public ECPrivateKeyParameters?       ServiceCheckPrivateKey      { get; set; }
+
+        public ECPublicKeyParameters?        ServiceCheckPublicKey       { get; set; }
+        public System_Id?                    SystemId                    { get; set; }
+
 
         /// <summary>
-        /// The API version hash (git commit hash value).
+        /// Whether the reload of the system is finished.
         /// </summary>
-        public String                        APIVersionHash           { get; }
-        public JObject                       APIVersionHashes         { get; }
-
+        public Boolean                       ReloadFinished              { get; protected set; }
 
         /// <summary>
-        /// The HTTP service name.
+        /// The maintenance interval.
         /// </summary>
-        public String?                       HTTPServiceName          { get; protected set; } = DefaultHTTPServiceName;
+        public TimeSpan                      MaintenanceEvery            { get; }
 
-        public String                        DefaultServerName        { get; protected set; } = DefaultHTTPServerName;
-
-        public TimeSpan                      DefaultRequestTimeout    { get; protected set; } = TimeSpan.FromSeconds(30);
-
-        public Boolean                       DisableLogging           { get; }
-        public String                        LoggingPath              { get; }
-        public String                        LoggingContext           { get; }
-        public String                        LogfileName              { get; }
-        public LogfileCreatorDelegate?       LogfileCreator           { get; }
-
-
-
-        public Warden.Warden            Warden                      { get; }
-        public ECPrivateKeyParameters?  ServiceCheckPrivateKey      { get; set; }
-
-        public ECPublicKeyParameters?   ServiceCheckPublicKey       { get; set; }
-        public System_Id?               SystemId                    { get; set; }
+        /// <summary>
+        /// Disable all maintenance tasks.
+        /// </summary>
+        public Boolean                       DisableMaintenanceTasks     { get; set; }
 
         #endregion
 
         #region Constructor(s)
 
-        public HTTPAPIX(HTTPTestServerX                HTTPTestServer,
-                        IEnumerable<HTTPHostname>?     Hostnames          = null,
-                        HTTPPath?                      RootPath           = null,
-                        IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
-                        I18NString?                    Description        = null,
+        public HTTPAPIX(HTTPTestServerX                HTTPServer,
+                        IEnumerable<HTTPHostname>?     Hostnames                 = null,
+                        HTTPPath?                      RootPath                  = null,
+                        IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
+                        I18NString?                    Description               = null,
 
-                        String?                        ExternalDNSName    = null,
-                        HTTPPath?                      BasePath           = null,
-                        JObject?                       APIVersionHashes   = null,
+                        String?                        ExternalDNSName           = null,
+                        HTTPPath?                      BasePath                  = null,
 
-                        Boolean                        DisableLogging     = false,
-                        String                         LoggingPath        = DefaultHTTPAPI_LoggingPath,
-                        String                         LoggingContext     = DefaultLoggingContext,
-                        String                         LogfileName        = DefaultHTTPAPI_LogfileName,
-                        LogfileCreatorDelegate?        LogfileCreator     = null)
+                        String?                        HTTPServiceName           = null,
+                        String?                        APIVersionHash            = null,
+                        JObject?                       APIVersionHashes          = null,
+
+                        Boolean?                       DisableMaintenanceTasks   = false,
+                        TimeSpan?                      MaintenanceInitialDelay   = null,
+                        TimeSpan?                      MaintenanceEvery          = null,
+
+                        Boolean?                       DisableWardenTasks        = false,
+                        TimeSpan?                      WardenInitialDelay        = null,
+                        TimeSpan?                      WardenCheckEvery          = null,
+
+                        Boolean?                       IsDevelopment             = null,
+                        IEnumerable<String>?           DevelopmentServers        = null,
+                        Boolean?                       DisableLogging            = false,
+                        String                         LoggingPath               = DefaultHTTPAPI_LoggingPath,
+                        String                         LoggingContext            = DefaultLoggingContext,
+                        String                         LogfileName               = DefaultHTTPAPI_LogfileName,
+                        LogfileCreatorDelegate?        LogfileCreator            = null)
 
             : this(Hostnames,
                    RootPath,
                    HTTPContentTypes,
                    Description,
-                   HTTPTestServer,
+                   HTTPServer,
 
                    ExternalDNSName,
                    BasePath,
+
+                   HTTPServiceName,
+                   APIVersionHash,
                    APIVersionHashes,
 
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
+
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
+
+                   IsDevelopment,
+                   DevelopmentServers,
                    DisableLogging,
                    LoggingPath,
                    LoggingContext,
@@ -707,46 +751,73 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         }
 
 
-        internal HTTPAPIX(IEnumerable<HTTPHostname>?     Hostnames          = null,
-                          HTTPPath?                      RootPath           = null,
-                          IEnumerable<HTTPContentType>?  HTTPContentTypes   = null,
-                          I18NString?                    Description        = null,
-                          HTTPTestServerX?               HTTPTestServer     = null,
+        internal HTTPAPIX(IEnumerable<HTTPHostname>?     Hostnames                 = null,
+                          HTTPPath?                      RootPath                  = null,
+                          IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
+                          I18NString?                    Description               = null,
+                          HTTPTestServerX?               HTTPTestServer            = null,
 
-                          String?                        ExternalDNSName    = null,
-                          HTTPPath?                      BasePath           = null,
-                          JObject?                       APIVersionHashes   = null,
+                          String?                        ExternalDNSName           = null,
+                          HTTPPath?                      BasePath                  = null,
 
-                          Boolean                        DisableLogging     = false,
-                          String                         LoggingPath        = DefaultHTTPAPI_LoggingPath,
-                          String                         LoggingContext     = DefaultLoggingContext,
-                          String                         LogfileName        = DefaultHTTPAPI_LogfileName,
-                          LogfileCreatorDelegate?        LogfileCreator     = null)
+                          String?                        HTTPServiceName           = null,
+                          String?                        APIVersionHash            = null,
+                          JObject?                       APIVersionHashes          = null,
+
+                          Boolean?                       DisableMaintenanceTasks   = false,
+                          TimeSpan?                      MaintenanceInitialDelay   = null,
+                          TimeSpan?                      MaintenanceEvery          = null,
+
+                          Boolean?                       DisableWardenTasks        = false,
+                          TimeSpan?                      WardenInitialDelay        = null,
+                          TimeSpan?                      WardenCheckEvery          = null,
+
+                          Boolean?                       IsDevelopment             = null,
+                          IEnumerable<String>?           DevelopmentServers        = null,
+                          Boolean?                       DisableLogging            = false,
+                          String                         LoggingPath               = DefaultHTTPAPI_LoggingPath,
+                          String                         LoggingContext            = DefaultLoggingContext,
+                          String                         LogfileName               = DefaultHTTPAPI_LogfileName,
+                          LogfileCreatorDelegate?        LogfileCreator            = null)
+
+            : base(HTTPServiceName,
+                   APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPIX)]?.Value<String>()?.Trim(),
+                   APIVersionHashes,
+
+                   IsDevelopment,
+                   DevelopmentServers,
+                   DisableLogging,
+                   LoggingPath,
+                   LogfileName,
+                   LogfileCreator)
 
         {
 
-            this.Hostnames         = Hostnames?.       Distinct() ?? [];
-            this.RootPath          = RootPath                     ?? HTTPPath.Root;
-            this.HTTPContentTypes  = HTTPContentTypes?.Distinct() ?? [];
-            this.Description       = Description                  ?? I18NString.Empty;
-            this.HTTPTestServer    = HTTPTestServer;
+            this.Hostnames           = Hostnames?.       Distinct() ?? [];
+            this.RootPath            = RootPath                     ?? HTTPPath.Root;
+            this.HTTPContentTypes    = HTTPContentTypes?.Distinct() ?? [];
+            this.Description         = Description                  ?? I18NString.Empty;
+            this.HTTPServer      = HTTPTestServer;
 
-            this.ExternalDNSName   = ExternalDNSName;
-            this.BasePath          = BasePath;
-            this.APIVersionHashes  = APIVersionHashes             ?? [];
+            this.ExternalDNSName     = ExternalDNSName;
+            this.BasePath            = BasePath;
 
-            this.DisableLogging    = DisableLogging;
-            this.LoggingPath       = LoggingPath;
-            this.LoggingContext    = LoggingContext;
-            this.LogfileName       = LogfileName;
-            this.LogfileCreator    = LogfileCreator;
-                                      //   ?? (DisableLogging
-                                      //           ? null
-                                      //           : LogfileCreator.Create(
-                                      //                 LoggingPath,
-                                      //                 LoggingContext,
-                                      //                 LogfileName
-                                      //             ));
+            // Setup Maintenance Task
+            this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
+            this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+            this.MaintenanceTimer         = new Timer(
+                                                DoMaintenanceSync,
+                                                this,
+                                                MaintenanceInitialDelay ?? this.MaintenanceEvery,
+                                                this.MaintenanceEvery
+                                            );
+
+            // Setup Warden
+            this.Warden = new Warden.Warden(
+                              WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+                              WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                              this.HTTPServer.DNSClient
+                          );
 
         }
 
@@ -754,6 +825,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
 
         private readonly ConcurrentDictionary<String, RouteNode2> routeNodes = [];
+
+        #region AddHandler(HTTPMethod, URLTemplate, HTTPDelegate, ...
 
         public void AddHandler(HTTPMethod                                 HTTPMethod,
                                HTTPPath                                   URLTemplate,
@@ -791,6 +864,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    AllowReplacement
                );
 
+        #endregion
+
+        #region AddHandler(HTTPMethod, URLTemplate, HTTPContentType, HTTPDelegate, ...
 
         public void AddHandler(HTTPMethod                                 HTTPMethod,
                                HTTPPath                                   URLTemplate,
@@ -827,8 +903,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    AllowReplacement
                );
 
+        #endregion
 
-        #region (internal) AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
+        #region AddHandler(HTTPDelegate, Hostname = "*", URLTemplate = "/", HTTPMethod = null, HTTPContentType = null, HostAuthentication = null, URLAuthentication = null, HTTPMethodAuthentication = null, ContentTypeAuthentication = null, DefaultErrorHandler = null)
 
         /// <summary>
         /// Add a method callback for the given URL template.
@@ -984,6 +1061,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
+        #region (internal) GetRequestHandle(Path)
+
         internal ParsedRequest2
 
             GetRequestHandle(//HTTPHostname                               Host,
@@ -1090,7 +1169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         }
 
-
+        #endregion
 
 
 
@@ -1272,6 +1351,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                         params Tuple<String, Assembly>[]  ResourceAssemblies)
 
             => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
+
+        #endregion
+
+
+
+        #region (Timer) DoMaintenance(State)
+
+        private void DoMaintenanceSync(Object? State)
+        {
+            if (ReloadFinished && !DisableMaintenanceTasks)
+                DoMaintenanceAsync(State).ConfigureAwait(false);
+        }
+
+        protected internal virtual Task DoMaintenance(Object? State)
+            => Task.CompletedTask;
+
+        private async Task DoMaintenanceAsync(Object? State)
+        {
+
+            if (await MaintenanceSemaphore.WaitAsync(SemaphoreSlimTimeout).
+                                           ConfigureAwait(false))
+            {
+                try
+                {
+
+                    await DoMaintenance(State);
+
+                }
+                catch (Exception e)
+                {
+
+                    while (e.InnerException is not null)
+                        e = e.InnerException;
+
+                    DebugX.LogException(e);
+
+                }
+                finally
+                {
+                    MaintenanceSemaphore.Release();
+                }
+            }
+            else
+                DebugX.LogT("Could not aquire the maintenance tasks lock!");
+
+        }
 
         #endregion
 

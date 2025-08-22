@@ -109,7 +109,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -125,7 +125,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
@@ -215,7 +215,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -230,7 +230,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserId!"" }".ToUTF8Bytes(),
@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserId!"" }".ToUTF8Bytes(),
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -315,7 +315,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
@@ -370,7 +370,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -385,7 +385,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid UserGroupId!"" }".ToUTF8Bytes(),
@@ -400,7 +400,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown UserGroupId!"" }".ToUTF8Bytes(),
@@ -454,7 +454,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -470,7 +470,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
@@ -525,7 +525,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     Connection      = ConnectionType.Close
                 };
@@ -540,7 +540,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyInvalid OrganizationId!"" }".ToUTF8Bytes(),
@@ -555,7 +555,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 HTTPResponse = new HTTPResponse.Builder(HTTPRequest) {
                     HTTPStatusCode  = HTTPStatusCode.NotFound,
-                    Server          = HTTPExtAPIX.HTTPTestServer?.HTTPServerName,
+                    Server          = HTTPExtAPIX.HTTPServer?.HTTPServerName,
                     Date            = Timestamp.Now,
                     ContentType     = HTTPContentType.Application.JSON_UTF8,
                     Content         = @"{ ""description"": String.EmptyUnknown OrganizationId!"" }".ToUTF8Bytes(),
@@ -1134,6 +1134,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #region Data
 
         /// <summary>
+        /// ASCII unit/cell separator
+        /// </summary>
+        protected const Char US = (Char) 0x1F;
+
+        /// <summary>
+        /// ASCII record/row separator
+        /// </summary>
+        protected const Char RS = (Char) 0x1E;
+
+        /// <summary>
+        /// ASCII group separator
+        /// </summary>
+        protected const Char GS = (Char) 0x1D;
+
+
+        /// <summary>
         /// The default HTTP server name.
         /// </summary>
         public new const           String         DefaultHTTPServerName                = "GraphDefined HTTPExt API";
@@ -1148,10 +1164,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         public  const              String         HTTPRoot                             = "org.GraphDefined.Vanaheimr.Hermod.HTTPRoot.";
 
-        /// <summary>
-        /// The default HTTP server port.
-        /// </summary>
-        public new static readonly IPPort         DefaultHTTPServerPort                = IPPort.Parse(2305);
+        ///// <summary>
+        ///// The default HTTP server port.
+        ///// </summary>
+        //public new static readonly IPPort         DefaultHTTPServerPort                = IPPort.Parse(2305);
 
         public const               String         DefaultHTTPExtAPIX_DatabaseFileName   = "HTTPExtAPIX.db";
         public const               String         DefaultHTTPExtAPIX_LogfileName        = "HTTPExtAPIX.log";
@@ -1200,11 +1216,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public  const             String                                        HTTPCookieDomain                        = "";
 
 
-        protected static readonly String[]  Split1  = { "\r\n" };
-        protected static readonly String[]  Split2  = { ": " };
-        protected static readonly String[]  Split3  = { " " };
-        protected static readonly Char[]    Split4  = { ',' };
-        protected static readonly Char[]    Split5  = { '|' };
+        protected static readonly String[]  Split1  = ["\r\n"];
+        protected static readonly String[]  Split2  = [ ": " ];
+        protected static readonly String[]  Split3  = [ " " ];
+        protected static readonly Char[]    Split4  = [ ',' ];
+        protected static readonly Char[]    Split5  = [ '|' ];
 
         public    static readonly User                                          Anonymous = new (User_Id.Parse("anonymous"),
                                                                                                  "Anonymous".ToI18NString(),
@@ -1383,9 +1399,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                     HTTPRequest        Request,
                                                     CancellationToken  CancellationToken)
 
-            => OnAddUsersRequest.WhenAll(Timestamp,
-                                         API,
-                                         Request);
+            => OnAddUsersRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1409,10 +1428,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                      HTTPResponse       Response,
                                                      CancellationToken  CancellationToken)
 
-            => OnAddUsersResponse.WhenAll(Timestamp,
-                                          API,
-                                          Request,
-                                          Response);
+            => OnAddUsersResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1435,9 +1457,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    HTTPRequest        Request,
                                                    CancellationToken  CancellationToken)
 
-            => OnAddUserHTTPRequest.WhenAll(Timestamp,
-                                            API,
-                                            Request);
+            => OnAddUserHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1461,10 +1486,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                     HTTPResponse       Response,
                                                     CancellationToken  CancellationToken)
 
-            => OnAddUserHTTPResponse.WhenAll(Timestamp,
-                                             API,
-                                             Request,
-                                             Response);
+            => OnAddUserHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1487,9 +1515,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    HTTPRequest        Request,
                                                    CancellationToken  CancellationToken)
 
-            => OnSetUserHTTPRequest.WhenAll(Timestamp,
-                                            API,
-                                            Request);
+            => OnSetUserHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1513,10 +1544,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                     HTTPResponse       Response,
                                                     CancellationToken  CancellationToken)
 
-            => OnSetUserHTTPResponse.WhenAll(Timestamp,
-                                             API,
-                                             Request,
-                                             Response);
+            => OnSetUserHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1539,9 +1573,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                       HTTPRequest        Request,
                                                       CancellationToken  CancellationToken)
 
-            => OnChangePasswordRequest.WhenAll(Timestamp,
-                                               API,
-                                               Request);
+            => OnChangePasswordRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1565,10 +1602,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        HTTPResponse       Response,
                                                        CancellationToken  CancellationToken)
 
-            => OnChangePasswordResponse.WhenAll(Timestamp,
-                                                API,
-                                                Request,
-                                                Response);
+            => OnChangePasswordResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1591,9 +1631,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        HTTPRequest        Request,
                                                        CancellationToken  CancellationToken)
 
-            => OnImpersonateUserRequest.WhenAll(Timestamp,
-                                                API,
-                                                Request);
+            => OnImpersonateUserRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1617,10 +1660,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                         HTTPResponse       Response,
                                                         CancellationToken  CancellationToken)
 
-            => OnImpersonateUserResponse.WhenAll(Timestamp,
-                                                 API,
-                                                 Request,
-                                                 Response);
+            => OnImpersonateUserResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1643,9 +1689,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             HTTPRequest        Request,
                                                             CancellationToken  CancellationToken)
 
-            => OnSetUserNotificationsRequest.WhenAll(Timestamp,
-                                                     API,
-                                                     Request);
+            => OnSetUserNotificationsRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1669,10 +1718,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                              HTTPResponse       Response,
                                                              CancellationToken  CancellationToken)
 
-            => OnSetUserNotificationsResponse.WhenAll(Timestamp,
-                                                      API,
-                                                      Request,
-                                                      Response);
+            => OnSetUserNotificationsResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1695,9 +1747,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                HTTPRequest        Request,
                                                                CancellationToken  CancellationToken)
 
-            => OnDeleteUserNotificationsRequest.WhenAll(Timestamp,
-                                                        API,
-                                                        Request);
+            => OnDeleteUserNotificationsRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1721,10 +1776,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                 HTTPResponse       Response,
                                                                 CancellationToken  CancellationToken)
 
-            => OnDeleteUserNotificationsResponse.WhenAll(Timestamp,
-                                                         API,
-                                                         Request,
-                                                         Response);
+            => OnDeleteUserNotificationsResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1750,9 +1808,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                            HTTPRequest        Request,
                                                            CancellationToken  CancellationToken)
 
-            => OnAddOrganizationHTTPRequest.WhenAll(Timestamp,
-                                                    API,
-                                                    Request);
+            => OnAddOrganizationHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1776,10 +1837,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             HTTPResponse       Response,
                                                             CancellationToken  CancellationToken)
 
-            => OnAddOrganizationHTTPResponse.WhenAll(Timestamp,
-                                                     API,
-                                                     Request,
-                                                     Response);
+            => OnAddOrganizationHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1802,9 +1866,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                            HTTPRequest        Request,
                                                            CancellationToken  CancellationToken)
 
-            => OnSetOrganizationHTTPRequest.WhenAll(Timestamp,
-                                                    API,
-                                                    Request);
+            => OnSetOrganizationHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1828,10 +1895,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                             HTTPResponse       Response,
                                                             CancellationToken  CancellationToken)
 
-            => OnSetOrganizationHTTPResponse.WhenAll(Timestamp,
-                                                     API,
-                                                     Request,
-                                                     Response);
+            => OnSetOrganizationHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1854,9 +1924,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                               HTTPRequest        Request,
                                                               CancellationToken  CancellationToken)
 
-            => OnDeleteOrganizationHTTPRequest.WhenAll(Timestamp,
-                                                       API,
-                                                       Request);
+            => OnDeleteOrganizationHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1880,10 +1953,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                HTTPResponse       Response,
                                                                CancellationToken  CancellationToken)
 
-            => OnDeleteOrganizationHTTPResponse.WhenAll(Timestamp,
-                                                        API,
-                                                        Request,
-                                                        Response);
+            => OnDeleteOrganizationHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1907,9 +1983,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                     HTTPRequest        Request,
                                                                     CancellationToken  CancellationToken)
 
-            => OnSetOrganizationNotificationsRequest.WhenAll(Timestamp,
-                                                              API,
-                                                              Request);
+            => OnSetOrganizationNotificationsRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1933,10 +2012,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                      HTTPResponse       Response,
                                                                      CancellationToken  CancellationToken)
 
-            => OnSetOrganizationNotificationsResponse.WhenAll(Timestamp,
-                                                               API,
-                                                               Request,
-                                                               Response);
+            => OnSetOrganizationNotificationsResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1959,9 +2041,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                        HTTPRequest        Request,
                                                                        CancellationToken  CancellationToken)
 
-            => OnDeleteOrganizationNotificationsRequest.WhenAll(Timestamp,
-                                                                 API,
-                                                                 Request);
+            => OnDeleteOrganizationNotificationsRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -1985,10 +2070,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                         HTTPResponse       Response,
                                                                         CancellationToken  CancellationToken)
 
-            => OnDeleteOrganizationNotificationsResponse.WhenAll(Timestamp,
-                                                                  API,
-                                                                  Request,
-                                                                  Response);
+            => OnDeleteOrganizationNotificationsResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -2014,9 +2102,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                HTTPRequest        Request,
                                                CancellationToken  CancellationToken)
 
-            => OnRestartHTTPRequest.WhenAll(Timestamp,
-                                            API,
-                                            Request);
+            => OnRestartHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -2040,10 +2131,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                 HTTPResponse       Response,
                                                 CancellationToken  CancellationToken)
 
-            => OnRestartHTTPResponse.WhenAll(Timestamp,
-                                             API,
-                                             Request,
-                                             Response);
+            => OnRestartHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -2066,9 +2160,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                             HTTPRequest        Request,
                                             CancellationToken  CancellationToken)
 
-            => OnStopHTTPRequest.WhenAll(Timestamp,
-                                         API,
-                                         Request);
+            => OnStopHTTPRequest.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -2092,10 +2189,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                              HTTPResponse       Response,
                                              CancellationToken  CancellationToken)
 
-            => OnStopHTTPResponse.WhenAll(Timestamp,
-                                          API,
-                                          Request,
-                                          Response);
+            => OnStopHTTPResponse.WhenAll(
+                   Timestamp,
+                   API,
+                   Request,
+                   Response,
+                   CancellationToken
+               );
 
         #endregion
 
@@ -2185,6 +2285,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                            String?                                                    ExternalDNSName                  = null,
                            HTTPPath?                                                  BasePath                         = null,
+
+                           String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
+                           String?                                                    APIVersionHash                   = null,
                            JObject?                                                   APIVersionHashes                 = null,
 
                           //HTTPHostname?                                              HTTPHostname                     = null,
@@ -2194,7 +2297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           //String?                                                    HTTPServerName                   = DefaultHTTPServerName,
                           //
                           //HTTPPath?                                                  URLPathPrefix                    = null,
-                          //String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
+                          //
                           String?                                                    HTMLTemplate                     = null,
 
                           //ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
@@ -2249,7 +2352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           IEnumerable<String>?                                       DevelopmentServers               = null,
                           Boolean                                                    SkipURLTemplates                 = false,
                           String?                                                    DatabaseFileName                 = DefaultHTTPExtAPIX_DatabaseFileName,
-                          Boolean                                                    DisableNotifications             = false,
+                          Boolean?                                                   DisableNotifications             = false,
                           //Boolean                                                    DisableLogging                   = false,
                           //String?                                                    LoggingPath                      = null,
                           //String?                                                    LogfileName                      = DefaultHTTPExtAPIX_LogfileName,
@@ -2257,7 +2360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           //DNSClient?                                                 DNSClient                        = null,
                           //Boolean                                                    AutoStart                        = false)
 
-                          Boolean                        DisableLogging     = false,
+                          Boolean?                       DisableLogging     = false,
                           String                         LoggingPath        = null, //DefaultHTTPExtAPIX_LoggingPath,
                           String                         LoggingContext     = null, //DefaultHTTPExtAPIX_LoggingContext,
                           String                         LogfileName        = DefaultHTTPExtAPIX_LogfileName,
@@ -2314,8 +2417,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                   ExternalDNSName,
                   BasePath,
+
+                  HTTPServiceName,
+                  APIVersionHash ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
                   APIVersionHashes,
 
+                  DisableMaintenanceTasks,
+                  MaintenanceInitialDelay,
+                  MaintenanceEvery,
+
+                  DisableWardenTasks,
+                  WardenInitialDelay,
+                  WardenCheckEvery,
+
+                  IsDevelopment,
+                  DevelopmentServers,
                   DisableLogging,
                   LoggingPath,
                   LoggingContext,
@@ -2347,9 +2463,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
             this.SMTPLoggingPath                 = this.LoggingPath + "SMTPClient"     + Path.DirectorySeparatorChar;
 
-            this.DisableNotifications            = DisableNotifications;
+            this.DisableNotifications            = DisableNotifications ?? false;
 
-            if (!DisableLogging) {
+            if (!this.DisableLogging) {
                 Directory.CreateDirectory(this.HTTPAPIPath);
                 Directory.CreateDirectory(this.NotificationsPath);
                 Directory.CreateDirectory(this.SMTPLoggingPath);
@@ -3388,7 +3504,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                              //ClientCert:                  null,
                                                              HTTPUserAgent:               null,
                                                              //RequestTimeout:              null,
-                                                             DNSClient:                   HTTPTestServer.DNSClient
+                                                             DNSClient:                   HTTPServer.DNSClient
                                                          ))
                                 {
 
@@ -3748,7 +3864,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               HTTPStatusCode      = HTTPStatusCode.Unauthorized,
                                               Location            = Location.From(RootPath + "login?redirect=" + Request.Path.ToString()),
                                               Date                = Timestamp.Now,
-                                              Server              = HTTPTestServer?.HTTPServerName,
+                                              Server              = HTTPServer?.HTTPServerName,
                                               CacheControl        = "private, max-age=0, no-cache",
                                               XLocationAfterAuth  = Request.Path,
                                               Connection          = ConnectionType.Close
@@ -3818,7 +3934,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                      HTTPStatusCode  = HTTPStatusCode.Unauthorized,
                                      Location        = Location.From(RootPath + "login"),
                                      Date            = Timestamp.Now,
-                                     Server          = HTTPTestServer?.HTTPServerName,
+                                     Server          = HTTPServer?.HTTPServerName,
                                      CacheControl    = "private, max-age=0, no-cache",
                                      Connection      = ConnectionType.Close
                                  };
@@ -4497,7 +4613,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4519,7 +4635,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4544,7 +4660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                        return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4566,7 +4682,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4622,7 +4738,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4649,7 +4765,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4665,7 +4781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",     SignInOutContext),
@@ -4684,7 +4800,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         return Task.FromResult(
                             new HTTPResponse.Builder(Request) {
                                 HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                Server          = HTTPTestServer?.HTTPServerName,
+                                Server          = HTTPServer?.HTTPServerName,
                                 ContentType     = HTTPContentType.Application.JSON_UTF8,
                                 Content         = new JObject(
                                                       new JProperty("@context",    SignInOutContext),
@@ -4794,7 +4910,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "SET" },
@@ -4838,7 +4954,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.NotFound,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "SET" },
@@ -4859,7 +4975,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                ? new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode             = HTTPStatusCode.OK,
-                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Server                     = HTTPServer?.HTTPServerName,
                                      Date                       = Timestamp.Now,
                                      AccessControlAllowOrigin   = "*",
                                      AccessControlAllowMethods  = new[] { "SET" },
@@ -4873,7 +4989,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                : new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Server                     = HTTPServer?.HTTPServerName,
                                      Date                       = Timestamp.Now,
                                      AccessControlAllowOrigin   = "*",
                                      AccessControlAllowMethods  = new[] { "SET" },
@@ -4935,7 +5051,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     if (!json.ParseMandatory("securityToken1",
                                              "security token #1",
-                                             HTTPTestServer?.HTTPServerName,
+                                             HTTPServer?.HTTPServerName,
                                              SecurityToken_Id.TryParse,
                                              out SecurityToken_Id SecurityTokenId1,
                                              Request,
@@ -4950,7 +5066,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     if (!json.ParseMandatory("newPassword",
                                              "new user password",
-                                             HTTPTestServer?.HTTPServerName,
+                                             HTTPServer?.HTTPServerName,
                                              Password.TryParse,
                                              out Password NewPassword,
                                              Request,
@@ -4962,7 +5078,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                   Server          = HTTPTestServer?.HTTPServerName,
+                                   Server          = HTTPServer?.HTTPServerName,
                                    ContentType     = HTTPContentType.Application.JSON_UTF8,
                                    Content         = JSONObject.Create(
                                                          new JProperty("@context",      SignInOutContext),
@@ -4980,7 +5096,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     if (json.ParseOptional("securityToken2",
                                            "security token #2",
-                                           HTTPTestServer?.HTTPServerName,
+                                           HTTPServer?.HTTPServerName,
                                            SecurityToken_Id.TryParse,
                                            out SecurityToken_Id? SecurityTokenId2,
                                            Request,
@@ -5003,7 +5119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         return new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "SET" },
@@ -5027,7 +5143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                ? new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode             = HTTPStatusCode.OK,
-                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Server                     = HTTPServer?.HTTPServerName,
                                      Date                       = Timestamp.Now,
                                      AccessControlAllowOrigin   = "*",
                                      AccessControlAllowMethods  = new[] { "SET" },
@@ -5050,7 +5166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                : new HTTPResponse.Builder(Request) {
                                      HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                     Server                     = HTTPServer?.HTTPServerName,
                                      Date                       = Timestamp.Now,
                                      AccessControlAllowOrigin   = "*",
                                      AccessControlAllowMethods  = new[] { "SET" },
@@ -5096,7 +5212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                         new HTTPResponse.Builder(request) {
                             HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Server                     = HTTPServer?.HTTPServerName,
                             Date                       = Timestamp.Now,
                             AccessControlAllowOrigin   = "*",
                             AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
@@ -5125,7 +5241,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     if (request.API_Key is null || !remoteAuthAPIKeys.Contains(request.API_Key.Value))
                         return new HTTPResponse.Builder(request) {
                                    HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "CHECK", "OPTIONS" },
@@ -5164,7 +5280,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                         return new HTTPResponse.Builder(request) {
                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "CHECK" },
@@ -5191,7 +5307,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         if (errorDescription != null)
                             return new HTTPResponse.Builder(request) {
                                        HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                       Server                     = HTTPTestServer?.HTTPServerName,
+                                       Server                     = HTTPServer?.HTTPServerName,
                                        Date                       = Timestamp.Now,
                                        AccessControlAllowOrigin   = "*",
                                        AccessControlAllowMethods  = new[] { "CHECK" },
@@ -5215,7 +5331,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     if (securityToken is not null)
                         return new HTTPResponse.Builder(request) {
                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                   Server                      = HTTPServer?.HTTPServerName,
                                    Date                        = Timestamp.Now,
                                    AccessControlAllowOrigin    = "*",
                                    AccessControlAllowMethods   = new[] { "CHECK" },
@@ -5237,7 +5353,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     return new HTTPResponse.Builder(request) {
                                    HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                   Server                      = HTTPServer?.HTTPServerName,
                                    Date                        = Timestamp.Now,
                                    AccessControlAllowOrigin    = "*",
                                    AccessControlAllowMethods   = new[] { "CHECK" },
@@ -5268,7 +5384,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                         new HTTPResponse.Builder(request) {
                             HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Server                     = HTTPServer?.HTTPServerName,
                             Date                       = Timestamp.Now,
                             AccessControlAllowOrigin   = "*",
                             AccessControlAllowMethods  = new[] { "ADD", "SET", "GET" },
@@ -5300,7 +5416,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   var responseBuilder = new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                            Server                      = HTTPTestServer?.HTTPServerName,
+                                                            Server                      = HTTPServer?.HTTPServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
                                                             AccessControlAllowMethods   = new[] { "ADD", "SET", "GET" },
@@ -5390,7 +5506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               if (errorResponse is not null)
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5419,7 +5535,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                               return new HTTPResponse.Builder(Request) {
                                                          HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                         Server                     = HTTPTestServer?.HTTPServerName,
+                                                         Server                     = HTTPServer?.HTTPServerName,
                                                          Date                       = Timestamp.Now,
                                                          AccessControlAllowOrigin   = "*",
                                                          AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5447,7 +5563,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               if (errorResponse is not null)
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5476,7 +5592,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                               if (accessRightJSON is not JObject accessRightObject)
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5501,7 +5617,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5529,7 +5645,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5549,7 +5665,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                                   return new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "GET", "ADD" },
@@ -5689,7 +5805,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   var responseBuilder = new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPTestServer?.HTTPServerName,
+                                                            Server                     = HTTPServer?.HTTPServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
@@ -5819,7 +5935,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPTestServer?.HTTPServerName,
+                                          Server                     = HTTPServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -5852,7 +5968,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   var responseBuilder = new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                            Server                      = HTTPTestServer?.HTTPServerName,
+                                                            Server                      = HTTPServer?.HTTPServerName,
                                                             Date                        = Timestamp.Now,
                                                             AccessControlAllowOrigin    = "*",
                                                             AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6168,7 +6284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6190,7 +6306,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (httpUser.Id != user.Id && !CanImpersonate(httpUser, user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -6208,7 +6324,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -6221,7 +6337,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                                   Server                     = HTTPServer?.HTTPServerName,
                                                    Date                       = Timestamp.Now,
                                                    AccessControlAllowOrigin   = "*",
                                                    AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6285,7 +6401,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   {
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                              Server                     = HTTPTestServer?.HTTPServerName,
+                                              Server                     = HTTPServer?.HTTPServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
                                               AccessControlAllowMethods  = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6311,7 +6427,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6324,7 +6440,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.FailedDependency,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "ADD", "EXISTS", "GET", "SET", "AUTH", "DEAUTH", "IMPERSONATE", "DEPERSONATE", "DELETE" },
@@ -6402,7 +6518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                                     Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -6421,7 +6537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode              = HTTPStatusCode.OK,
-                                          Server                      = HTTPTestServer?.HTTPServerName,
+                                          Server                      = HTTPServer?.HTTPServerName,
                                           Date                        = Timestamp.Now,
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -6452,7 +6568,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!json.HasValues)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6475,7 +6591,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6502,7 +6618,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6523,7 +6639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",     SignInOutContext),
@@ -6568,7 +6684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (possibleUsers.Count == 0)
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPTestServer?.HTTPServerName,
+                                              Server          = HTTPServer?.HTTPServerName,
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
@@ -6594,7 +6710,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (validUsers.Count == 0)
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                              Server          = HTTPTestServer?.HTTPServerName,
+                                              Server          = HTTPServer?.HTTPServerName,
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
@@ -6609,7 +6725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (validUsers.Count > 1)
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode  = HTTPStatusCode.MultipleChoices,
-                                              Server          = HTTPTestServer?.HTTPServerName,
+                                              Server          = HTTPServer?.HTTPServerName,
                                               ContentType     = HTTPContentType.Application.JSON_UTF8,
                                               Content         = new JObject(
                                                                     new JProperty("@context",     SignInOutContext),
@@ -6627,7 +6743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!possibleUsers.First().Organizations(Access_Levels.ReadOnly).Any())
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = new JObject(
                                                                        new JProperty("@context",    SignInOutContext),
@@ -6652,7 +6768,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       {
                                           return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                                                     Server          = HTTPTestServer?.HTTPServerName,
+                                                     Server          = HTTPServer?.HTTPServerName,
                                                      ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                      Content         = new JObject(
                                                                            new JProperty("@context",     SignInOutContext),
@@ -6798,7 +6914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "IMPERSONATE" },
@@ -6815,7 +6931,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!CanImpersonate(superUser, userURL))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "IMPERSONATE" },
@@ -6916,7 +7032,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.NotFound,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "DEPERSONATE" },
@@ -7029,7 +7145,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -7057,7 +7173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7084,7 +7200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7101,7 +7217,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (PasswordQualityCheck(NewPassword.UnsecureString) < 1.0)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                  Content         = JSONObject.Create(
                                                                        new JProperty("@context",      SignInOutContext),
@@ -7127,7 +7243,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "SET" },
@@ -7137,7 +7253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "SET" },
@@ -7218,7 +7334,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPTestServer?.HTTPServerName,
+                                          Server                     = HTTPServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "GET", "COUNT", "OPTIONS" },
@@ -7262,7 +7378,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                             Server                     = HTTPServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7332,7 +7448,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -7435,7 +7551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              return new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPTestServer?.HTTPServerName,
+                                                            Server                     = HTTPServer?.HTTPServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7456,7 +7572,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPTestServer?.HTTPServerName,
+                                             Server                      = HTTPServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -7524,7 +7640,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -7627,7 +7743,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              return new HTTPResponse.Builder(Request) {
                                                             HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                            Server                     = HTTPTestServer?.HTTPServerName,
+                                                            Server                     = HTTPServer?.HTTPServerName,
                                                             Date                       = Timestamp.Now,
                                                             AccessControlAllowOrigin   = "*",
                                                             AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7648,7 +7764,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPTestServer?.HTTPServerName,
+                                             Server                      = HTTPServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -7696,7 +7812,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                     Server          = HTTPTestServer?.HTTPServerName,
+                                                     Server          = HTTPServer?.HTTPServerName,
                                                      Date            = Timestamp.Now,
                                                      Connection      = ConnectionType.Close
                                                  }.AsImmutable);
@@ -7711,7 +7827,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return Task.FromResult(new HTTPResponse.Builder(Request) {
                                                                  HTTPStatusCode             = HTTPStatusCode.OK,
-                                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                                 Server                     = HTTPServer?.HTTPServerName,
                                                                  Date                       = Timestamp.Now,
                                                                  AccessControlAllowOrigin   = "*",
                                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -7731,7 +7847,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable);
@@ -7789,7 +7905,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7808,7 +7924,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                                             Server                     = HTTPServer?.HTTPServerName,
                                                              Date                       = Timestamp.Now,
                                                              AccessControlAllowOrigin   = "*",
                                                              AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7883,7 +7999,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                           return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                                     Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7908,7 +8024,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7935,7 +8051,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                       Server                     = HTTPTestServer?.HTTPServerName,
+                                                       Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -7948,7 +8064,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                       Server                     = HTTPTestServer?.HTTPServerName,
+                                                       Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "ADD", "GET" },
@@ -8010,7 +8126,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -8032,7 +8148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -8052,7 +8168,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -8077,7 +8193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = new[] { "DELETE" },
@@ -8103,7 +8219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                             Server                     = HTTPServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = new[] { "DELETE" },
@@ -8186,7 +8302,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode                = HTTPStatusCode.OK,
-                                          Server                        = HTTPTestServer?.HTTPServerName,
+                                          Server                        = HTTPServer?.HTTPServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
                                           AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
@@ -8256,7 +8372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                       return Task.FromResult(
                                                  new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                                     Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8271,7 +8387,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.OK,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -8360,7 +8476,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode                 = HTTPStatusCode.OK,
-                                          Server                         = HTTPTestServer?.HTTPServerName,
+                                          Server                         = HTTPServer?.HTTPServerName,
                                           Date                           = Timestamp.Now,
                                           AccessControlAllowOrigin       = "*",
                                           AccessControlAllowMethods      = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8416,7 +8532,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPTestServer?.HTTPServerName,
+                                          Server                     = HTTPServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8496,7 +8612,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8523,7 +8639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8542,7 +8658,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                               HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                              Server                     = HTTPTestServer?.HTTPServerName,
+                                              Server                     = HTTPServer?.HTTPServerName,
                                               Date                       = Timestamp.Now,
                                               AccessControlAllowOrigin   = "*",
                                               AccessControlAllowMethods  = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8571,7 +8687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Created,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8583,7 +8699,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "OPTIONS", "GET", "COUNT", "ADD" },
@@ -8657,7 +8773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                                  ? new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                       Server                     = HTTPTestServer?.HTTPServerName,
+                                                       Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
@@ -8667,7 +8783,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                                  : new HTTPResponse.Builder(Request) {
                                                        HTTPStatusCode             = HTTPStatusCode.OK,
-                                                       Server                     = HTTPTestServer?.HTTPServerName,
+                                                       Server                     = HTTPServer?.HTTPServerName,
                                                        Date                       = Timestamp.Now,
                                                        AccessControlAllowOrigin   = "*",
                                                        AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
@@ -8740,7 +8856,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.OK,
-                                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                                     Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "GET", "EXISTS" },
@@ -8830,7 +8946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                             Server                     = HTTPServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8856,7 +8972,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8874,7 +8990,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8899,7 +9015,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8931,7 +9047,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                           return new HTTPResponse.Builder(Request) {
                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                  Server                     = HTTPTestServer?.HTTPServerName,
+                                                  Server                     = HTTPServer?.HTTPServerName,
                                                   Date                       = Timestamp.Now,
                                                   AccessControlAllowOrigin   = "*",
                                                   AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8951,7 +9067,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                           return new HTTPResponse.Builder(Request) {
                                                   HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                  Server                     = HTTPTestServer?.HTTPServerName,
+                                                  Server                     = HTTPServer?.HTTPServerName,
                                                   Date                       = Timestamp.Now,
                                                   AccessControlAllowOrigin   = "*",
                                                   AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -8988,7 +9104,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode              = HTTPStatusCode.Created,
-                                          Server                      = HTTPTestServer?.HTTPServerName,
+                                          Server                      = HTTPServer?.HTTPServerName,
                                           Date                        = Timestamp.Now,
                                           AccessControlAllowOrigin    = "*",
                                           AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9068,7 +9184,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (organization is not null && !httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -9094,7 +9210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -9121,7 +9237,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Created,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9133,7 +9249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.BadRequest,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9201,7 +9317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.Unauthorized,
-                                                     Server                     = HTTPTestServer?.HTTPServerName,
+                                                     Server                     = HTTPServer?.HTTPServerName,
                                                      Date                       = Timestamp.Now,
                                                      AccessControlAllowOrigin   = "*",
                                                      AccessControlAllowMethods  = new[] { "GET", "SET", "DELETE" },
@@ -9226,7 +9342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9236,7 +9352,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.FailedDependency,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -9296,7 +9412,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9306,7 +9422,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9314,7 +9430,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9331,7 +9447,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9342,7 +9458,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9397,7 +9513,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9407,7 +9523,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9415,7 +9531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9432,7 +9548,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9443,7 +9559,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9498,7 +9614,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9508,7 +9624,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9516,7 +9632,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9533,7 +9649,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9544,7 +9660,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9599,7 +9715,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9609,7 +9725,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9617,7 +9733,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9633,7 +9749,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9644,7 +9760,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9699,7 +9815,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9709,7 +9825,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9717,7 +9833,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9734,7 +9850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9745,7 +9861,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9800,7 +9916,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9810,7 +9926,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9818,7 +9934,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9835,7 +9951,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9846,7 +9962,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9901,7 +10017,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.ParsedURLParameters.Length < 2)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9911,7 +10027,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!userId.HasValue)
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9919,7 +10035,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!TryGetUser(userId.Value, out var user))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode  = HTTPStatusCode.NotFound,
-                                                 Server          = HTTPTestServer?.HTTPServerName,
+                                                 Server          = HTTPServer?.HTTPServerName,
                                                  Date            = Timestamp.Now,
                                                  Connection      = ConnectionType.Close
                                              }.AsImmutable;
@@ -9936,7 +10052,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              ? new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.OK,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -9947,7 +10063,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              : new HTTPResponse.Builder(Request) {
                                                    HTTPStatusCode              = HTTPStatusCode.Unauthorized,
-                                                   Server                      = HTTPTestServer?.HTTPServerName,
+                                                   Server                      = HTTPServer?.HTTPServerName,
                                                    Date                        = Timestamp.Now,
                                                    AccessControlAllowOrigin    = "*",
                                                    AccessControlAllowMethods   = new[] { "ADD", "DELETE" },
@@ -10005,7 +10121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return Task.FromResult(new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode             = HTTPStatusCode.OK,
-                                             Server                     = HTTPTestServer?.HTTPServerName,
+                                             Server                     = HTTPServer?.HTTPServerName,
                                              Date                       = Timestamp.Now,
                                              AccessControlAllowOrigin   = "*",
                                              AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10075,7 +10191,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -10176,7 +10292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10197,7 +10313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPTestServer?.HTTPServerName,
+                                             Server                      = HTTPServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -10264,7 +10380,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (!httpOrganizations.Contains(organization))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode              = HTTPStatusCode.Forbidden,
-                                                 Server                      = HTTPTestServer?.HTTPServerName,
+                                                 Server                      = HTTPServer?.HTTPServerName,
                                                  Date                        = Timestamp.Now,
                                                  AccessControlAllowOrigin    = "*",
                                                  AccessControlAllowMethods   = new[] { "GET", "SET", "CHOWN" },
@@ -10365,7 +10481,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.BadRequest,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10386,7 +10502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode              = HTTPStatusCode.OK,
-                                             Server                      = HTTPTestServer?.HTTPServerName,
+                                             Server                      = HTTPServer?.HTTPServerName,
                                              Date                        = Timestamp.Now,
                                              AccessControlAllowOrigin    = "*",
                                              AccessControlAllowMethods   = [ "GET", "SET" ],
@@ -10468,7 +10584,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode                = HTTPStatusCode.OK,
-                                          Server                        = HTTPTestServer?.HTTPServerName,
+                                          Server                        = HTTPServer?.HTTPServerName,
                                           Date                          = Timestamp.Now,
                                           AccessControlAllowOrigin      = "*",
                                           AccessControlAllowMethods     = new[] { "GET", "COUNT", "OPTIONS" },
@@ -10525,7 +10641,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10572,7 +10688,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                              new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.OK,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET", "SET" ],
@@ -10639,7 +10755,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     var jsonResponse  = JSONObject.Create(
                                             new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
                                             new JProperty("instance",   Environment.MachineName),
                                             new JProperty("content",    RandomExtensions.RandomString(20))
                                         );
@@ -10669,7 +10785,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                                new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.OK,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "POST" },
@@ -10728,7 +10844,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     var jsonResponse  = JSONObject.Create(
                                             new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
                                             new JProperty("instance",   Environment.MachineName),
                                             new JProperty("content",    content?.Reverse())
                                         );
@@ -10758,7 +10874,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                         new HTTPResponse.Builder(Request) {
                             HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Server                     = HTTPServer?.HTTPServerName,
                             Date                       = Timestamp.Now,
                             AccessControlAllowOrigin   = "*",
                             AccessControlAllowMethods  = new[] { "POST" },
@@ -10798,7 +10914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     var jsonResponse      = JSONObject.Create(
                                                 new JProperty("timestamp",  Timestamp.Now),
-                                                new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                                new JProperty("service",    HTTPServer.HTTPServerName),
                                                 new JProperty("instance",   Environment.MachineName),
                                                 new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
                                                 new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
@@ -10830,7 +10946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                         new HTTPResponse.Builder(Request) {
                             HTTPStatusCode             = HTTPStatusCode.OK,
-                            Server                     = HTTPTestServer?.HTTPServerName,
+                            Server                     = HTTPServer?.HTTPServerName,
                             Date                       = Timestamp.Now,
                             AccessControlAllowOrigin   = "*",
                             AccessControlAllowMethods  = new[] { "POST" },
@@ -10892,7 +11008,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                     var jsonResponse  = JSONObject.Create(
                                             new JProperty("timestamp",  Timestamp.Now),
-                                            new JProperty("service",    HTTPTestServer.HTTPServerName),
+                                            new JProperty("service",    HTTPServer.HTTPServerName),
                                             new JProperty("instance",   Environment.MachineName),
                                             new JProperty("usedRAM",    process.PrivateMemorySize64 / (1024 * 1024)),
                                             new JProperty("sharedRAM",  process.WorkingSet64        / (1024 * 1024)),
@@ -10924,7 +11040,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                                new HTTPResponse.Builder(Request) {
                                    HTTPStatusCode             = HTTPStatusCode.OK,
-                                   Server                     = HTTPTestServer?.HTTPServerName,
+                                   Server                     = HTTPServer?.HTTPServerName,
                                    Date                       = Timestamp.Now,
                                    AccessControlAllowOrigin   = "*",
                                    AccessControlAllowMethods  = new[] { "POST" },
@@ -10987,7 +11103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                     return Task.FromResult(
                         new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.OK,
-                            Server          = HTTPTestServer?.HTTPServerName,
+                            Server          = HTTPServer?.HTTPServerName,
                             ContentType     = HTTPContentType.Image.PNG,
                             Content         = f,
                             CacheControl    = "public",
@@ -11041,7 +11157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.OK,
-                                          Server          = HTTPTestServer?.HTTPServerName,
+                                          Server          = HTTPServer?.HTTPServerName,
                                           Connection      = ConnectionType.Close
                                       }.AsImmutable);
 
@@ -11087,7 +11203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode  = HTTPStatusCode.OK,
-                                          Server          = HTTPTestServer?.HTTPServerName,
+                                          Server          = HTTPServer?.HTTPServerName,
                                           Connection      = ConnectionType.Close
                                       }.AsImmutable);
 
@@ -11109,7 +11225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   return Task.FromResult(
                                       new HTTPResponse.Builder(Request) {
                                           HTTPStatusCode             = HTTPStatusCode.OK,
-                                          Server                     = HTTPTestServer?.HTTPServerName,
+                                          Server                     = HTTPServer?.HTTPServerName,
                                           Date                       = Timestamp.Now,
                                           AccessControlAllowOrigin   = "*",
                                           AccessControlAllowMethods  = new[] { "GET", "OPTIONS" },
@@ -11137,7 +11253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   if (Request.API_Key is null || !remoteAuthAPIKeys.Contains(Request.API_Key.Value))
                                       return new HTTPResponse.Builder(Request) {
                                                  HTTPStatusCode             = HTTPStatusCode.Forbidden,
-                                                 Server                     = HTTPTestServer?.HTTPServerName,
+                                                 Server                     = HTTPServer?.HTTPServerName,
                                                  Date                       = Timestamp.Now,
                                                  AccessControlAllowOrigin   = "*",
                                                  AccessControlAllowMethods  = [ "GET" ],
@@ -11178,7 +11294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                   return new HTTPResponse.Builder(Request) {
                                              HTTPStatusCode                = HTTPStatusCode.OK,
-                                             Server                        = HTTPTestServer?.HTTPServerName,
+                                             Server                        = HTTPServer?.HTTPServerName,
                                              Date                          = Timestamp.Now,
                                              AccessControlAllowOrigin      = "*",
                                              AccessControlAllowMethods     = new[] { "GET", "OPTIONS" },
@@ -11659,7 +11775,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                        //UseHTTPPipelining,
                                                        //HTTPLogger,
                                                        Accept:      AcceptTypes.FromHTTPContentTypes(HTTPContentType.Application.JSON_UTF8),
-                                                       DNSClient:   HTTPTestServer.DNSClient
+                                                       DNSClient:   HTTPServer.DNSClient
                                                    ).
                                                    //GET(
                                                    //    remoteAuthServer.URL.Path + (LastKnownSHA256HashValue is not null ? "changeSets?skipUntil=" + LastKnownSHA256HashValue : "changeSets"),
@@ -13800,7 +13916,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                                         //MaxNumberOfRetries,
                                                                         //UseHTTPPipelining,
                                                                         //HTTPLogger,
-                                                                        DNSClient: HTTPTestServer.DNSClient).
+                                                                        DNSClient: HTTPServer.DNSClient).
 
                                                    Execute(client => client.CHECKRequest(remoteAuthServer.URL.Path + "securityToken",
                                                                                          RequestBuilder: requestBuilder => {

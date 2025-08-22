@@ -91,10 +91,10 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             #region WardenCheck(RunCheck, SleepTime, ServiceChecker)
 
-            public WardenCheck(RunCheckDelegate                                                   RunCheck,
-                               TimeSpan                                                           SleepTime,
-                               Func<DateTimeOffset, DNSClient, CancellationToken, Task<TResult>>  ServiceChecker,
-                               params Action<TResult>[]                                           ResultConsumers)
+            public WardenCheck(RunCheckDelegate                                                    RunCheck,
+                               TimeSpan                                                            SleepTime,
+                               Func<DateTimeOffset, IDNSClient, CancellationToken, Task<TResult>>  ServiceChecker,
+                               params Action<TResult>[]                                            ResultConsumers)
             {
 
                 this.RunCheck         = RunCheck;
@@ -135,11 +135,11 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             #region WardenCheck(RunCheck, SleepTime, Entity, ServiceChecker)
 
-            public WardenCheck(RunCheckDelegate                                                           RunCheck,
-                               TimeSpan                                                                   SleepTime,
-                               Object                                                                     Entity,
-                               Func<DateTimeOffset, DNSClient, Object, CancellationToken, Task<TResult>>  ServiceChecker,
-                               params Action<Object, TResult>[]                                           ResultConsumers)
+            public WardenCheck(RunCheckDelegate                                                            RunCheck,
+                               TimeSpan                                                                    SleepTime,
+                               Object                                                                      Entity,
+                               Func<DateTimeOffset, IDNSClient, Object, CancellationToken, Task<TResult>>  ServiceChecker,
+                               params Action<Object, TResult>[]                                            ResultConsumers)
             {
 
                 this.RunCheck         = RunCheck;
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
             /// <param name="DNSClient">The DNS client to use.</param>
             /// <param name="CancellationToken">The cancellation token to use.</param>
             public Task Run(DateTimeOffset     CommonTimestamp,
-                            DNSClient          DNSClient,
+                            IDNSClient         DNSClient,
                             CancellationToken  CancellationToken)
 
             {
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                                                catch (Exception e)
                                                {
 
-                                                   while (e.InnerException != null)
+                                                   while (e.InnerException is not null)
                                                        e = e.InnerException;
 
                                                    DebugX.LogException(e, nameof(WardenCheck));
@@ -224,7 +224,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     catch (Exception e)
                     {
 
-                        while (e.InnerException != null)
+                        while (e.InnerException is not null)
                             e = e.InnerException;
 
                         return Task.FromException(e);
@@ -263,9 +263,9 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             #region WardenCheck(RunCheck, SleepTime, ServiceChecker)
 
-            public WardenCheck(RunCheckDelegate                                          RunCheck,
-                               TimeSpan                                                  SleepTime,
-                               Func<DateTimeOffset, DNSClient, CancellationToken, Task>  ServiceChecker)
+            public WardenCheck(RunCheckDelegate                                           RunCheck,
+                               TimeSpan                                                   SleepTime,
+                               Func<DateTimeOffset, IDNSClient, CancellationToken, Task>  ServiceChecker)
 
                 : base(RunCheck,
                        SleepTime,

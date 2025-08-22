@@ -149,7 +149,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!expiryDate.HasValue || token.IsNullOrEmpty() || expiryDate.Value < Timestamp.Now)
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                               Server          = API.HTTPTestServer.HTTPServerName,
+                               Server          = API.HTTPServer.HTTPServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "public, max-age=300",
                                //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
@@ -175,7 +175,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (curr != token && prev != token && next != token)
                     return new HTTPResponse.Builder(Request) {
                                HTTPStatusCode  = HTTPStatusCode.Unauthorized,
-                               Server          = API.HTTPTestServer.HTTPServerName,
+                               Server          = API.HTTPServer.HTTPServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "public, max-age=300",
                                //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
@@ -200,7 +200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            ? new HTTPResponse.Builder(Request) {
                                  HTTPStatusCode   = HTTPStatusCode.NotFound,
-                                 Server           = API.HTTPTestServer.HTTPServerName,
+                                 Server           = API.HTTPServer.HTTPServerName,
                                  Date             = Timestamp.Now,
                                  CacheControl     = "no-cache",
                                  Connection       = ConnectionType.Close,
@@ -208,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            : new HTTPResponse.Builder(Request) {
                                  HTTPStatusCode  = HTTPStatusCode.OK,
-                                 Server          = API.HTTPTestServer.HTTPServerName,
+                                 Server          = API.HTTPServer.HTTPServerName,
                                  Date            = Timestamp.Now,
                                  ContentType     = HTTPContentType.ForFileExtension(
                                                        filePath[(filePath.LastIndexOf('.') + 1)..],
@@ -233,7 +233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                            Server          = API.HTTPTestServer.HTTPServerName,
+                            Server          = API.HTTPServer.HTTPServerName,
                             Date            = Timestamp.Now,
                             ContentType     = HTTPContentType.Application.JSON_UTF8,
                             Content         = JSONObject.Create(

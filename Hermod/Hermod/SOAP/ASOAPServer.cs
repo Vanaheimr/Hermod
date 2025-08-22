@@ -24,6 +24,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 
 #endregion
 
@@ -41,27 +42,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The default HTTP/SOAP/XML server name.
         /// </summary>
-        public const String DefaultHTTPServerName = "GraphDefined HTTP/SOAP/XML Server API";
+        public const String                     DefaultHTTPServerName   = "GraphDefined HTTP/SOAP/XML Server API";
 
         /// <summary>
         /// The default HTTP/SOAP/XML server TCP port.
         /// </summary>
-        public static readonly IPPort DefaultHTTPServerPort = IPPort.HTTPS;
+        public static readonly IPPort           DefaultHTTPServerPort   = IPPort.HTTPS;
 
         /// <summary>
         /// The default HTTP/SOAP/XML server URL prefix.
         /// </summary>
-        public static readonly HTTPPath DefaultURLPrefix = HTTPPath.Parse("/");
+        public static readonly HTTPPath         DefaultURLPrefix        = HTTPPath.Parse("/");
 
         /// <summary>
         /// The default HTTP/SOAP/XML content type.
         /// </summary>
-        public static readonly HTTPContentType DefaultContentType = SOAPServer.DefaultSOAPContentType;
+        public static readonly HTTPContentType  DefaultContentType      = SOAPServer.DefaultSOAPContentType;
 
         /// <summary>
         /// The default request timeout.
         /// </summary>
-        public static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan         DefaultRequestTimeout   = TimeSpan.FromMinutes(1);
 
         #endregion
 
@@ -80,18 +81,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The DNS client used by this server.
         /// </summary>
-        public DNSClient            DNSClient     { get; }
+        public IDNSClient           DNSClient     { get; }
 
         /// <summary>
         /// All TCP ports this SOAP server listens on.
         /// </summary>
-        public IEnumerable<IPPort>  IPPorts
-            => SOAPServer.HTTPServer.IPPorts;
+        public IEnumerable<IPPort>  IPPorts       { get; }
+         //   => SOAPServer.HTTPServer.IPPorts;
 
         /// <summary>
         /// The SOAP server logger.
         /// </summary>
-        public HTTPServerLogger?    HTTPLogger { get; set; }
+        public HTTPServerLoggerX?   HTTPLogger    { get; set; }
+
+
+
+        public HTTPAPIX             API           { get;}
 
         #endregion
 
@@ -130,32 +135,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="DNSClient">An optional DNS client to use.</param>
         /// <param name="RegisterHTTPRootService">Register HTTP root services for sending a notice to clients connecting via HTML or plain text.</param>
         /// <param name="AutoStart">Start the server immediately.</param>
-        protected ASOAPServer(String HTTPServerName = DefaultHTTPServerName,
-                              IPPort? TCPPort = null,
-                              String? ServiceName = null,
+        protected ASOAPServer(String            HTTPServerName            = DefaultHTTPServerName,
+                              IPPort?           TCPPort                   = null,
+                              String?           ServiceName               = null,
 
-                              HTTPPath? URLPrefix = null,
-                              HTTPContentType? SOAPContentType = null,
-                              Boolean RegisterHTTPRootService = true,
-                              DNSClient? DNSClient = null,
-                              Boolean AutoStart = false)
+                              HTTPPath?         URLPrefix                 = null,
+                              HTTPContentType?  SOAPContentType           = null,
+                              Boolean           RegisterHTTPRootService   = true,
+                              IDNSClient?       DNSClient                 = null,
+                              Boolean           AutoStart                 = false)
 
-            : this(new SOAPServer(TCPPort: TCPPort ?? DefaultHTTPServerPort,
-                                  DefaultServerName: HTTPServerName,
-                                  ServiceName: ServiceName,
+            : this(new SOAPServer(TCPPort:            TCPPort ?? DefaultHTTPServerPort,
+                                  DefaultServerName:  HTTPServerName,
+                                  ServiceName:        ServiceName,
 
-                                  SOAPContentType: SOAPContentType ?? DefaultContentType,
-                                  DNSClient: DNSClient,
-                                  AutoStart: false),
+                                  SOAPContentType:    SOAPContentType ?? DefaultContentType,
+                                  DNSClient:          DNSClient,
+                                  AutoStart:          false),
                    URLPrefix)
 
         {
+
+            this.API = new HTTPAPIX(SOAPServer.HTTPServer);
 
             if (RegisterHTTPRootService)
                 RegisterRootService();
 
             if (AutoStart)
-                Start();
+                SOAPServer.HTTPServer.Start().GetAwaiter().GetResult();
 
         }
 
@@ -190,7 +197,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                               HTTPPath?                                                  URLPrefix                    = null,
                               HTTPContentType?                                           SOAPContentType              = null,
                               Boolean                                                    RegisterHTTPRootService      = true,
-                              DNSClient?                                                 DNSClient                    = null,
+                              IDNSClient?                                                DNSClient                    = null,
                               Boolean                                                    AutoStart                    = false)
 
             : this(new SOAPServer(
@@ -201,7 +208,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                        SOAPContentType:             SOAPContentType ?? DefaultContentType,
                        ServerCertificateSelector:   ServerCertificateSelector,
                        ClientCertificateValidator:  null,
-                       LocalCertificateSelector:   LocalCertificateSelector,
+                       LocalCertificateSelector:    LocalCertificateSelector,
                        AllowedTLSProtocols:         AllowedTLSProtocols,
                        DNSClient:                   DNSClient,
                        AutoStart:                   false
@@ -214,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 RegisterRootService();
 
             if (AutoStart)
-                Start();
+                SOAPServer.HTTPServer.Start().GetAwaiter().GetResult();
 
         }
 
@@ -227,25 +234,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="SOAPServer">A SOAP server.</param>
         /// <param name="URLPrefix">An optional URL prefix for the SOAP URI templates.</param>
-        protected ASOAPServer(SOAPServer SOAPServer,
-                              HTTPPath? URLPrefix = null)
+        protected ASOAPServer(SOAPServer  SOAPServer,
+                              HTTPPath?   URLPrefix = null)
         {
 
             #region Initial checks
 
             if (URLPrefix.HasValue)
                 while (URLPrefix.Value.EndsWith("/", StringComparison.Ordinal) && URLPrefix.Value.Length > 1)
-                    URLPrefix = URLPrefix.Value.Substring(0, (Int32)URLPrefix.Value.Length - 1);
+                    URLPrefix = URLPrefix.Value.Substring(0, (Int32) URLPrefix.Value.Length - 1);
 
             #endregion
 
-            this.SOAPServer = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
-            this.URLPrefix = URLPrefix ?? DefaultURLPrefix;
-            this.DNSClient = SOAPServer.HTTPServer.DNSClient;
+            this.SOAPServer  = SOAPServer ?? throw new ArgumentNullException(nameof(SOAPServer), "The given SOAP server must not be null!");
+            this.URLPrefix   = URLPrefix ?? DefaultURLPrefix;
+            this.DNSClient   = SOAPServer.HTTPServer.DNSClient;
 
-            SOAPServer.HTTPServer.RequestLog += (HTTPProcessor, ServerTimestamp, Request) => RequestLog.WhenAll(HTTPProcessor, ServerTimestamp, Request);
-            SOAPServer.HTTPServer.ResponseLog += (HTTPProcessor, ServerTimestamp, Request, Response) => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
-            SOAPServer.HTTPServer.ErrorLog += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException) => ErrorLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
+            //SOAPServer.HTTPServer.RequestLog  += (HTTPProcessor, ServerTimestamp, Request)                                  => RequestLog. WhenAll(HTTPProcessor, ServerTimestamp, Request);
+            //SOAPServer.HTTPServer.ResponseLog += (HTTPProcessor, ServerTimestamp, Request, Response)                        => ResponseLog.WhenAll(HTTPProcessor, ServerTimestamp, Request, Response);
+            //SOAPServer.HTTPServer.ErrorLog    += (HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException)  => ErrorLog.   WhenAll(HTTPProcessor, ServerTimestamp, Request, Response, Error, LastException);
 
         }
 
@@ -259,36 +266,83 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         private void RegisterRootService()
         {
 
-            SOAPServer.HTTPServer.
-                AddMethodCallback(null,
-                                  HTTPHostname.Any,
+            //SOAPServer.HTTPServer.
+            //    AddMethodCallback(null,
+            //                      HTTPHostname.Any,
+            //                      HTTPMethod.GET,
+
+            //                      new HTTPPath[] {
+            //                          HTTPPath.Parse("/"),
+            //                          URLPrefix + "/"
+            //                      },
+
+            //                      new HTTPContentType[] {
+            //                          HTTPContentType.Text.PLAIN,
+            //                          HTTPContentType.Text.HTML_UTF8
+            //                      },
+
+            //                      HTTPDelegate: Request => {
+
+            //                          return Task.FromResult(
+            //                              new HTTPResponse.Builder(Request) {
+
+            //                                  HTTPStatusCode  = HTTPStatusCode.BadGateway,
+            //                                  ContentType     = HTTPContentType.Text.PLAIN,
+            //                                  Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
+            //                                                     "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
+
+            //                                                     ((Request.HTTPBodyStream is SslStream)
+            //                                                          ? ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Subject ?? "-") + Environment.NewLine +
+            //                                                            ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer  ?? "-") + Environment.NewLine +
+            //                                                             Environment.NewLine
+            //                                                          : String.Empty) +
+
+            //                                                     "Defined endpoints: " + Environment.NewLine + Environment.NewLine +
+            //                                                     SOAPServer.
+            //                                                         SOAPDispatchers.
+            //                                                         Select(group => " - " + group.Key + Environment.NewLine +
+            //                                                                         "   " + group.SelectMany(dispatcher => dispatcher.SOAPDispatches).
+            //                                                                                       Select(dispatch => dispatch.Description).
+            //                                                                                       AggregateCSV()
+            //                                                               ).AggregateWith(Environment.NewLine + Environment.NewLine)
+            //                                                    ).ToUTF8Bytes(),
+            //                                  Connection      = ConnectionType.Close
+
+            //                              }.AsImmutable);
+
+            //                      },
+
+            //                      AllowReplacement: URLReplacement.Allow);
+
+
+            //SOAPServer.HTTPServer.
+                API.AddHandler(   //null,
+                                  //HTTPHostname.Any,
                                   HTTPMethod.GET,
+                                  //
+                                  //new HTTPPath[] {
+                                  HTTPPath.Root,
+                                  //    URLPrefix + "/"
+                                  //},
+                                  //
+                                  //new HTTPContentType[] {
+                                  //    HTTPContentType.Text.PLAIN,
+                                  //    HTTPContentType.Text.HTML_UTF8
+                                  //},
 
-                                  new HTTPPath[] {
-                                      HTTPPath.Parse("/"),
-                                      URLPrefix + "/"
-                                  },
-
-                                  new HTTPContentType[] {
-                                      HTTPContentType.Text.PLAIN,
-                                      HTTPContentType.Text.HTML_UTF8
-                                  },
-
-                                  HTTPDelegate: Request =>
-                                  {
+                                  request => {
 
                                       return Task.FromResult(
-                                          new HTTPResponse.Builder(Request)
-                                          {
+                                          new HTTPResponse.Builder(request) {
 
-                                              HTTPStatusCode = HTTPStatusCode.BadGateway,
-                                              ContentType = HTTPContentType.Text.PLAIN,
-                                              Content = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
+                                              HTTPStatusCode  = HTTPStatusCode.BadGateway,
+                                              ContentType     = HTTPContentType.Text.PLAIN,
+                                              Content         = ("Welcome at " + DefaultHTTPServerName + Environment.NewLine +
                                                                  "This is a HTTP/SOAP/XML endpoint!" + Environment.NewLine + Environment.NewLine +
 
-                                                                 ((Request.HTTPBodyStream is SslStream)
-                                                                      ? ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Subject ?? "-") + Environment.NewLine +
-                                                                        ((Request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer ?? "-") + Environment.NewLine +
+                                                                 ((request.HTTPBodyStream is SslStream)
+                                                                      ? ((request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Subject ?? "-") + Environment.NewLine +
+                                                                        ((request.HTTPBodyStream as SslStream)?.RemoteCertificate?.Issuer  ?? "-") + Environment.NewLine +
                                                                          Environment.NewLine
                                                                       : String.Empty) +
 
@@ -301,7 +355,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                                                                                                    AggregateCSV()
                                                                            ).AggregateWith(Environment.NewLine + Environment.NewLine)
                                                                 ).ToUTF8Bytes(),
-                                              Connection = ConnectionType.Close
+                                              Connection      = ConnectionType.Close
 
                                           }.AsImmutable);
 
@@ -316,53 +370,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
         #region Start()
 
-        /// <summary>
-        /// Start the SOAP API.
-        /// </summary>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        public virtual Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
+        ///// <summary>
+        ///// Start the SOAP API.
+        ///// </summary>
+        ///// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        //public virtual Task<Boolean> Start(EventTracking_Id? EventTrackingId = null)
 
-            => SOAPServer.HTTPServer.Start(EventTrackingId);
+        //    => SOAPServer.HTTPServer.Start(EventTrackingId);
 
         #endregion
 
         #region Start()
 
-        /// <summary>
-        /// Start the SOAP API after a little delay.
-        /// </summary>
-        /// <param name="Delay">The delay.</param>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
-        public virtual Task<Boolean> Start(TimeSpan           Delay,
-                                           EventTracking_Id?  EventTrackingId   = null,
-                                           Boolean            InBackground      = true)
+        ///// <summary>
+        ///// Start the SOAP API after a little delay.
+        ///// </summary>
+        ///// <param name="Delay">The delay.</param>
+        ///// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        ///// <param name="InBackground">Whether to wait on the main thread or in a background thread.</param>
+        //public virtual Task<Boolean> Start(TimeSpan           Delay,
+        //                                   EventTracking_Id?  EventTrackingId   = null,
+        //                                   Boolean            InBackground      = true)
 
-            => SOAPServer.HTTPServer.Start(
-                   Delay,
-                   EventTrackingId,
-                   InBackground
-               );
+        //    => SOAPServer.HTTPServer.Start(
+        //           Delay,
+        //           EventTrackingId,
+        //           InBackground
+        //       );
 
         #endregion
 
         #region Shutdown(Message = null, Wait = true)
 
-        /// <summary>
-        /// Stop the SOAP API.
-        /// </summary>
-        /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
-        /// <param name="Message">An optional shutdown message.</param>
-        /// <param name="Wait">Wait for a clean shutdown of the API.</param>
-        public virtual Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
-                                              String?            Message           = null,
-                                              Boolean            Wait              = true)
+        ///// <summary>
+        ///// Stop the SOAP API.
+        ///// </summary>
+        ///// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+        ///// <param name="Message">An optional shutdown message.</param>
+        ///// <param name="Wait">Wait for a clean shutdown of the API.</param>
+        //public virtual Task<Boolean> Shutdown(EventTracking_Id?  EventTrackingId   = null,
+        //                                      String?            Message           = null,
+        //                                      Boolean            Wait              = true)
 
-            => SOAPServer.HTTPServer.Shutdown(
-                   EventTrackingId,
-                   Message,
-                   Wait
-               );
+        //    => SOAPServer.HTTPServer.Shutdown(
+        //           EventTrackingId,
+        //           Message,
+        //           Wait
+        //       );
 
         #endregion
 

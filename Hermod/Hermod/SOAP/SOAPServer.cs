@@ -21,6 +21,7 @@ using System.Security.Authentication;
 
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
@@ -51,7 +52,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <summary>
         /// The underlying HTTP server.
         /// </summary>
-        public HTTPServer       HTTPServer         { get; }
+        public HTTPTestServerX  HTTPServer         { get; }
 
         /// <summary>
         /// The SOAP XML HTTP content type.
@@ -84,16 +85,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
         /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
         /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
-        /// <param name="ServerThreadName">The optional name of the TCP server thread.</param>
-        /// <param name="ServerThreadPriority">The optional priority of the TCP server thread.</param>
-        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
         /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
         /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
         /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="AutoStart">Start the HTTP server thread immediately (default: no).</param>
         public SOAPServer(IPPort                                                    TCPPort,
-                          String                                                    DefaultServerName            = HTTPServer.DefaultHTTPServerName,
+                          String                                                    DefaultServerName            = HTTPTestServer.DefaultHTTPServerName,
                           String?                                                   ServiceName                  = null,
                           HTTPContentType?                                          SOAPContentType              = null,
 
@@ -104,20 +102,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                           Boolean?                                                  ClientCertificateRequired    = null,
                           Boolean?                                                  CheckCertificateRevocation   = null,
 
-                          ServerThreadNameCreatorDelegate?                          ServerThreadNameCreator      = null,
-                          ServerThreadPriorityDelegate?                             ServerThreadPrioritySetter   = null,
-                          Boolean?                                                  ServerThreadIsBackground     = null,
                           ConnectionIdBuilder?                                      ConnectionIdBuilder          = null,
                           TimeSpan?                                                 ConnectionTimeout            = null,
                           UInt32?                                                   MaxClientConnections         = null,
 
-                          DNSClient?                                                DNSClient                    = null,
+                          IDNSClient?                                               DNSClient                    = null,
                           Boolean                                                   AutoStart                    = false)
 
-            : this(new HTTPServer(
+            : this(new HTTPTestServerX(
+                       IPAddress.Any,
                        TCPPort,
                        DefaultServerName,
-                       ServiceName,
+                       //ServiceName,
+
+                       null,
+                       null,
+                       null,
+                       null,
 
                        ServerCertificateSelector,
                        null,
@@ -126,15 +127,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                        ClientCertificateRequired,
                        CheckCertificateRevocation,
 
-                       ServerThreadNameCreator,
-                       ServerThreadPrioritySetter,
-                       ServerThreadIsBackground,
+                       //ConnectionTimeout,
                        ConnectionIdBuilder,
-                       ConnectionTimeout,
                        MaxClientConnections,
-
-                       DNSClient,
-                       false
+                       DNSClient
                    ),
                    SOAPContentType
                   )
@@ -142,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         {
 
             if (AutoStart)
-                HTTPServer.Start();
+                HTTPServer.Start().GetAwaiter().GetResult();
 
         }
 
@@ -155,7 +151,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// </summary>
         /// <param name="HTTPServer">The underlying HTTP server.</param>
         /// <param name="SOAPContentType">The default HTTP content type used for all SOAP requests/responses.</param>
-        public SOAPServer(HTTPServer        HTTPServer,
+        public SOAPServer(HTTPTestServerX   HTTPServer,
                           HTTPContentType?  SOAPContentType   = null)
 
         {
@@ -180,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(HTTPAPI           HTTPAPI,
+        public void RegisterSOAPDelegate(HTTPAPIX          HTTPAPI,
                                          HTTPHostname      Hostname,
                                          HTTPPath          URITemplate,
                                          String            Description,
@@ -191,11 +187,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             SOAPDispatcher? soapDispatcher = null;
 
             // Check if there are other SOAP dispatchers at the given URI template.
-            var requestHandle = HTTPServer.GetRequestHandle(HTTPHostname.Any,
-                                                            URITemplate,
-                                                            out var errorResponse,
-                                                            HTTPMethod.POST,
-                                                            hTTPContentTypes => SOAPContentType);
+            var requestHandle = HTTPServer.GetRequestHandle(
+                                    HTTPHostname.Any,
+                                    URITemplate,
+                                  //  out var errorResponse,
+                                    HTTPMethod.POST,
+                                    hTTPContentTypes => SOAPContentType
+                                );
 
             if (requestHandle is null)
             {
@@ -204,29 +202,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 soapDispatchers.Add(URITemplate, soapDispatcher);
 
                 // Register a new SOAP dispatcher
-                HTTPServer.AddMethodCallback(
+                HTTPServer.AddHandler(
                     HTTPAPI,
+                    soapDispatcher.Invoke,
                     Hostname,
-                    HTTPMethod.POST,
                     URITemplate,
-                    SOAPContentType,
-                    HTTPDelegate: soapDispatcher.Invoke
+                    HTTPMethod.POST,
+                    SOAPContentType
                 );
 
                 // Register some information text for people using HTTP GET
-                HTTPServer.AddMethodCallback(
+                HTTPServer.AddHandler(
                     HTTPAPI,
+                    soapDispatcher.EndpointTextInfo,
                     Hostname,
-                    HTTPMethod.GET,
                     URITemplate,
-                    SOAPContentType,
-                    HTTPDelegate: soapDispatcher.EndpointTextInfo
+                    HTTPMethod.GET,
+                    SOAPContentType
                 );
 
             }
 
             else
-                soapDispatcher = requestHandle.RequestHandler?.Target as SOAPDispatcher;
+                soapDispatcher = requestHandle?.RequestHandlers?.RequestHandler?.Target as SOAPDispatcher;
 
             if (soapDispatcher is null)
                 throw new Exception("'" + URITemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
@@ -251,7 +249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPHeaderAndBodyDelegate">A delegate to process a matching SOAP request.</param>
-        public void RegisterSOAPDelegate(HTTPAPI                    HTTPAPI,
+        public void RegisterSOAPDelegate(HTTPAPIX                   HTTPAPI,
                                          HTTPHostname               Hostname,
                                          HTTPPath                   URITemplate,
                                          String                     Description,
@@ -264,7 +262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             // Check if there are other SOAP dispatchers at the given URI template.
             var requestHandle = HTTPServer.GetRequestHandle(HTTPHostname.Any,
                                                             URITemplate,
-                                                            out var errorResponse,
+                                                     //       out var errorResponse,
                                                             HTTPMethod.POST,
                                                             hTTPContentTypes => SOAPContentType);
 
@@ -275,29 +273,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
                 soapDispatchers.Add(URITemplate, soapDispatcher);
 
                 // Register a new SOAP dispatcher
-                HTTPServer.AddMethodCallback(
+                HTTPServer.AddHandler(
                     HTTPAPI,
+                    soapDispatcher.Invoke,
                     Hostname,
-                    HTTPMethod.POST,
                     URITemplate,
-                    SOAPContentType,
-                    HTTPDelegate: soapDispatcher.Invoke
+                    HTTPMethod.POST,
+                    SOAPContentType
                 );
 
                 // Register some information text for people using HTTP GET
-                HTTPServer.AddMethodCallback(
+                HTTPServer.AddHandler(
                     HTTPAPI,
+                    soapDispatcher.EndpointTextInfo,
                     Hostname,
-                    HTTPMethod.GET,
                     URITemplate,
-                    SOAPContentType,
-                    HTTPDelegate: soapDispatcher.EndpointTextInfo
+                    HTTPMethod.GET,
+                    SOAPContentType
                 );
 
             }
 
             else
-                soapDispatcher = requestHandle.RequestHandler?.Target as SOAPDispatcher;
+                soapDispatcher = requestHandle?.RequestHandlers?.RequestHandler?.Target as SOAPDispatcher;
 
             if (soapDispatcher is null)
                 throw new Exception("'" + URITemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");

@@ -54,7 +54,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// <param name="Entity">An entity to check.</param>
     /// <param name="CancellationToken">A cancellation token.</param>
     public delegate Task ServiceCheckDelegate(DateTimeOffset     Timestamp,
-                                              DNSClient          DNSClient,
+                                              IDNSClient         DNSClient,
                                               Object             Entity,
                                               CancellationToken  CancellationToken);
 
@@ -66,7 +66,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
     /// <param name="Entity">An entity to check.</param>
     /// <param name="CancellationToken">A cancellation token.</param>
     public delegate Task<TResult> ServiceCheckDelegate<TResult>(DateTimeOffset     Timestamp,
-                                                                DNSClient          DNSClient,
+                                                                IDNSClient         DNSClient,
                                                                 Object             Entity,
                                                                 CancellationToken  CancellationToken);
 

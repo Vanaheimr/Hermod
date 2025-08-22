@@ -60,20 +60,20 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #region Check(TimeCheck, SleepTime, ServiceChecker, ...)
 
-        public static Warden Check<TResult>(this Warden                                               Warden,
-                                            TimeCheckDelegate                                         TimeCheck,
-                                            TimeSpan                                                  SleepTime,
-                                            Func<DateTimeOffset, DNSClient, CancellationToken, Task>  ServiceChecker)
+        public static Warden Check<TResult>(this Warden                                                Warden,
+                                            TimeCheckDelegate                                          TimeCheck,
+                                            TimeSpan                                                   SleepTime,
+                                            Func<DateTimeOffset, IDNSClient, CancellationToken, Task>  ServiceChecker)
 
             => Warden.Check((timestamp, serviceproperties) => TimeCheck(timestamp),
                             SleepTime,
                             ServiceChecker);
 
-        public static Warden Check<TResult>(this Warden                                                        Warden,
-                                            TimeCheckDelegate                                                  TimeCheck,
-                                            TimeSpan                                                           SleepTime,
-                                            Func<DateTimeOffset, DNSClient, CancellationToken, Task<TResult>>  ServiceChecker,
-                                            params Action<TResult>[]                                           ResultConsumers)
+        public static Warden Check<TResult>(this Warden                                                         Warden,
+                                            TimeCheckDelegate                                                   TimeCheck,
+                                            TimeSpan                                                            SleepTime,
+                                            Func<DateTimeOffset, IDNSClient, CancellationToken, Task<TResult>>  ServiceChecker,
+                                            params Action<TResult>[]                                            ResultConsumers)
 
             => Warden.Check((timestamp, serviceproperties) => TimeCheck(timestamp),
                             SleepTime,
@@ -117,11 +117,11 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #region Check(TimeCheck, SleepTime, Entity, ServiceChecker)
 
-        public static Warden Check<TEntity>(this Warden                                                        Warden,
-                                            TimeCheckDelegate                                                  TimeCheck,
-                                            TimeSpan                                                           SleepTime,
-                                            TEntity                                                            Entity,
-                                            Func<DateTimeOffset, DNSClient, TEntity, CancellationToken, Task>  ServiceChecker)
+        public static Warden Check<TEntity>(this Warden                                                         Warden,
+                                            TimeCheckDelegate                                                   TimeCheck,
+                                            TimeSpan                                                            SleepTime,
+                                            TEntity                                                             Entity,
+                                            Func<DateTimeOffset, IDNSClient, TEntity, CancellationToken, Task>  ServiceChecker)
 
             where TEntity : class
 
@@ -130,12 +130,12 @@ namespace org.GraphDefined.Vanaheimr.Warden
                             Entity,
                             ServiceChecker);
 
-        public static Warden Check<TEntity, TResult>(this Warden                                                                 Warden,
-                                                     TimeCheckDelegate                                                           TimeCheck,
-                                                     TimeSpan                                                                    SleepTime,
-                                                     TEntity                                                                     Entity,
-                                                     Func<DateTimeOffset, DNSClient, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
-                                                     params Action<TEntity, TResult>[]                                           ResultConsumers)
+        public static Warden Check<TEntity, TResult>(this Warden                                                                  Warden,
+                                                     TimeCheckDelegate                                                            TimeCheck,
+                                                     TimeSpan                                                                     SleepTime,
+                                                     TEntity                                                                      Entity,
+                                                     Func<DateTimeOffset, IDNSClient, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
+                                                     params Action<TEntity, TResult>[]                                            ResultConsumers)
 
             where TEntity : class
 

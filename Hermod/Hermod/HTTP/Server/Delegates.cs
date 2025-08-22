@@ -20,6 +20,16 @@ using org.GraphDefined.Vanaheimr.Hermod.HTTPTest;
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 {
 
+    ///// <summary>
+    ///// The delegate for the HTTP request log.
+    ///// </summary>
+    ///// <param name="Timestamp">The timestamp of the incoming request.</param>
+    ///// <param name="HTTPServer">The sending HTTP server.</param>
+    ///// <param name="Request">The incoming request.</param>
+    //public delegate Task RequestLogHandlerX(DateTimeOffset  Timestamp,
+    //                                        HTTPTestServerX  HTTPServer,
+    //                                        HTTPRequest      Request);
+
     /// <summary>
     /// The delegate for the HTTP request log.
     /// </summary>
@@ -47,10 +57,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="Timestamp">The timestamp of the incoming request.</param>
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
-    public delegate Task HTTPRequestLogHandlerX(DateTimeOffset  Timestamp,
-                                                HTTPAPIX        HTTPAPI,
-                                                HTTPRequest     Request);
+    public delegate Task HTTPRequestLogHandlerX(DateTimeOffset     Timestamp,
+                                                HTTPAPIX           HTTPAPI,
+                                                HTTPRequest        Request,
+                                                CancellationToken  CancellationToken);
 
+
+    ///// <summary>
+    ///// The delegate for the HTTP access log.
+    ///// </summary>
+    ///// <param name="Timestamp">The timestamp of the incoming request.</param>
+    ///// <param name="HTTPServer">The sending HTTP server.</param>
+    ///// <param name="Request">The incoming request.</param>
+    ///// <param name="Response">The outgoing response.</param>
+    //public delegate Task AccessLogHandlerX(DateTimeOffset   Timestamp,
+    //                                       HTTPTestServerX  HTTPServer,
+    //                                       HTTPRequest      Request,
+    //                                       HTTPResponse     Response);
 
     /// <summary>
     /// The delegate for the HTTP access log.
@@ -83,10 +106,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     /// <param name="HTTPAPI">The sending HTTP API.</param>
     /// <param name="Request">The incoming request.</param>
     /// <param name="Response">The outgoing response.</param>
-    public delegate Task HTTPResponseLogHandlerX(DateTimeOffset  Timestamp,
-                                                HTTPAPIX        HTTPAPI,
-                                                HTTPRequest     Request,
-                                                HTTPResponse    Response);
+    public delegate Task HTTPResponseLogHandlerX(DateTimeOffset     Timestamp,
+                                                 HTTPAPIX           HTTPAPI,
+                                                 HTTPRequest        Request,
+                                                 HTTPResponse       Response,
+                                                 CancellationToken  CancellationToken);
 
 
     /// <summary>

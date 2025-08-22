@@ -17,13 +17,6 @@
 
 #region Usings
 
-using System;
-using System.Linq;
-using System.Threading;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
@@ -40,21 +33,21 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #region Data
 
-        private readonly       List<IWardenCheck>   _AllWardenChecks;
+        private readonly        List<IWardenCheck>   allWardenChecks;
 
-        private readonly       Object               ServiceCheckLock;
-        private readonly       Timer                ServiceCheckTimer;
+        private readonly        Object               ServiceCheckLock;
+        private readonly        Timer                ServiceCheckTimer;
 
 
         /// <summary>
         /// The default initial delay before the first Warden checks will be run.
         /// </summary>
-        public static readonly TimeSpan             DefaultInitialDelay  = TimeSpan.FromSeconds(30);
+        public static readonly  TimeSpan             DefaultInitialDelay  = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// The default delay between the runs of the Warden check timer.
         /// </summary>
-        public static readonly TimeSpan             DefaultCheckEvery    = TimeSpan.FromSeconds(10);
+        public static readonly  TimeSpan             DefaultCheckEvery    = TimeSpan.FromSeconds(10);
 
         #endregion
 
@@ -63,29 +56,29 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <summary>
         /// An enumeration of all Warden checks.
         /// </summary>
-        public IEnumerable<IWardenCheck> AllWardenChecks
+        public IEnumerable<IWardenCheck>  AllWardenChecks
             => AllWardenChecks;
 
         /// <summary>
         /// The Warden check properties.
         /// </summary>
-        public WardenProperties  WardenCheckProperties    { get; }
+        public WardenProperties           WardenCheckProperties    { get; }
 
         /// <summary>
         /// Run the warden checks every...
         /// </summary>
-        public TimeSpan          CheckEvery               { get; }
+        public TimeSpan                   CheckEvery               { get; }
 
         /// <summary>
         /// The initial start-up delay.
         /// </summary>
-        public TimeSpan          InitialDelay             { get; }
+        public TimeSpan                   InitialDelay             { get; }
 
 
         /// <summary>
         /// An optional DNS client for warden checks requiring network access.
         /// </summary>
-        public DNSClient         DNSClient                { get; }
+        public IDNSClient                 DNSClient                { get; }
 
         #endregion
 
@@ -97,24 +90,26 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <param name="InitialDelay">The initial start-up delay.</param>
         /// <param name="CheckEvery">Run the warden checks every...</param>
         /// <param name="DNSClient">An optional DNS client for warden checks requiring network access.</param>
-        public Warden(TimeSpan?  InitialDelay  = null,
-                      TimeSpan?  CheckEvery    = null,
-                      DNSClient  DNSClient     = null)
+        public Warden(TimeSpan?    InitialDelay   = null,
+                      TimeSpan?    CheckEvery     = null,
+                      IDNSClient?  DNSClient      = null)
         {
 
             this.InitialDelay           = InitialDelay ?? DefaultInitialDelay;
             this.CheckEvery             = CheckEvery   ?? DefaultCheckEvery;
             this.DNSClient              = DNSClient    ?? new DNSClient();
 
-            this._AllWardenChecks       = new List<IWardenCheck>();
+            this.allWardenChecks        = [];
             this.WardenCheckProperties  = new WardenProperties();
 
             this.ServiceCheckLock       = new Object();
 
-            this.ServiceCheckTimer      = new Timer(RunWardenChecks,
-                                                    null,
-                                                    this.InitialDelay,
-                                                    this.CheckEvery);
+            this.ServiceCheckTimer      = new Timer(
+                                              RunWardenChecks,
+                                              null,
+                                              this.InitialDelay,
+                                              this.CheckEvery
+                                          );
 
         }
 
@@ -139,25 +134,24 @@ namespace org.GraphDefined.Vanaheimr.Warden
                     var Now       = Timestamp.Now;
                     var TS        = new CancellationTokenSource();
 
-                    var allTasks  = _AllWardenChecks.Where (check => check.RunCheck(Now, WardenCheckProperties)).
-                                                     Select(check =>
-                                                     {
-                                                         try
-                                                         {
-                                                             return check.Run(Now, DNSClient, TS.Token);
-                                                         }
-                                                         catch (Exception e)
-                                                         {
+                    var allTasks  = allWardenChecks.Where (check => check.RunCheck(Now, WardenCheckProperties)).
+                                                    Select(check => {
+                                                        try
+                                                        {
+                                                            return check.Run(Now, DNSClient, TS.Token);
+                                                        }
+                                                        catch (Exception e)
+                                                        {
 
-                                                             while (e.InnerException != null)
-                                                                 e = e.InnerException;
+                                                            while (e.InnerException is not null)
+                                                                e = e.InnerException;
 
-                                                             return Task.FromException(e);
+                                                            return Task.FromException(e);
 
-                                                         }
-                                                     }).
-                                                     Where (task  => task != null).
-                                                     ToArray();
+                                                        }
+                                                    }).
+                                                    Where (task  => task is not null).
+                                                    ToArray();
 
                     if (allTasks.Length > 0)
                         Task.WaitAll(allTasks);
@@ -191,9 +185,13 @@ namespace org.GraphDefined.Vanaheimr.Warden
                             Func<DateTimeOffset, CancellationToken, Task>  ServiceChecker)
         {
 
-            _AllWardenChecks.Add(new WardenCheck(RunCheck,
-                                                 SleepTime,
-                                                 ServiceChecker));
+            allWardenChecks.Add(
+                new WardenCheck(
+                    RunCheck,
+                    SleepTime,
+                    ServiceChecker
+                )
+            );
 
             return this;
 
@@ -205,10 +203,14 @@ namespace org.GraphDefined.Vanaheimr.Warden
                                      params Action<TResult>[]                                ResultConsumers)
         {
 
-            _AllWardenChecks.Add(new WardenCheck<TResult>(RunCheck,
-                                                          SleepTime,
-                                                          ServiceChecker,
-                                                          ResultConsumers));
+            allWardenChecks.Add(
+                new WardenCheck<TResult>(
+                    RunCheck,
+                    SleepTime,
+                    ServiceChecker,
+                    ResultConsumers
+                )
+            );
 
             return this;
 
@@ -218,29 +220,37 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #region Check(RunCheck, SleepTime, ServiceChecker, ...)
 
-        public Warden Check(RunCheckDelegate                                          RunCheck,
-                            TimeSpan                                                  SleepTime,
-                            Func<DateTimeOffset, DNSClient, CancellationToken, Task>  ServiceChecker)
+        public Warden Check(RunCheckDelegate                                           RunCheck,
+                            TimeSpan                                                   SleepTime,
+                            Func<DateTimeOffset, IDNSClient, CancellationToken, Task>  ServiceChecker)
         {
 
-            _AllWardenChecks.Add(new WardenCheck(RunCheck,
-                                                 SleepTime,
-                                                 ServiceChecker));
+            allWardenChecks.Add(
+                new WardenCheck(
+                    RunCheck,
+                    SleepTime,
+                    ServiceChecker
+                )
+            );
 
             return this;
 
         }
 
-        public Warden Check<TResult>(RunCheckDelegate                                                   RunCheck,
-                                     TimeSpan                                                           SleepTime,
-                                     Func<DateTimeOffset, DNSClient, CancellationToken, Task<TResult>>  ServiceChecker,
-                                     params Action<TResult>[]                                           ResultConsumers)
+        public Warden Check<TResult>(RunCheckDelegate                                                    RunCheck,
+                                     TimeSpan                                                            SleepTime,
+                                     Func<DateTimeOffset, IDNSClient, CancellationToken, Task<TResult>>  ServiceChecker,
+                                     params Action<TResult>[]                                            ResultConsumers)
         {
 
-            _AllWardenChecks.Add(new WardenCheck<TResult>(RunCheck,
-                                                          SleepTime,
-                                                          ServiceChecker,
-                                                          ResultConsumers));
+            allWardenChecks.Add(
+                new WardenCheck<TResult>(
+                    RunCheck,
+                    SleepTime,
+                    ServiceChecker,
+                    ResultConsumers
+                )
+            );
 
             return this;
 
@@ -259,10 +269,14 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         {
 
-            _AllWardenChecks.Add(new WardenCheck(RunCheck,
-                                                 SleepTime,
-                                                 Entity,
-                                                 (ts, obj, ct) => ServiceChecker(ts, obj as TEntity, ct)));
+            allWardenChecks.Add(
+                new WardenCheck(
+                    RunCheck,
+                    SleepTime,
+                    Entity,
+                    (ts, obj, ct) => ServiceChecker(ts, obj as TEntity, ct)
+                )
+            );
 
             return this;
 
@@ -282,15 +296,20 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             foreach (var consumer in ResultConsumers)
             {
-                thisResultConsumers.Add((entity, _result) => consumer(Entity, _result));
+                thisResultConsumers.Add(
+                    (entity, _result) => consumer(Entity, _result)
+                );
             }
 
-            _AllWardenChecks.Add(new WardenCheck<TResult>(RunCheck,
-                                                          SleepTime,
-                                                          Entity,
-                                                          (ts, obj, ct)    => ServiceChecker(ts, obj as TEntity, ct),
-                                                          thisResultConsumers.ToArray()
-                                                         ));
+            allWardenChecks.Add(
+                new WardenCheck<TResult>(
+                    RunCheck,
+                    SleepTime,
+                    Entity,
+                    (ts, obj, ct)    => ServiceChecker(ts, obj as TEntity, ct),
+                    thisResultConsumers.ToArray()
+                )
+            );
 
             return this;
 
@@ -300,29 +319,33 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
         #region Check(RunCheck, SleepTime, Entity, ServiceChecker)
 
-        public Warden Check<TEntity>(RunCheckDelegate                                                   RunCheck,
-                                     TimeSpan                                                           SleepTime,
-                                     TEntity                                                            Entity,
-                                     Func<DateTimeOffset, DNSClient, TEntity, CancellationToken, Task>  ServiceChecker)
+        public Warden Check<TEntity>(RunCheckDelegate                                                    RunCheck,
+                                     TimeSpan                                                            SleepTime,
+                                     TEntity                                                             Entity,
+                                     Func<DateTimeOffset, IDNSClient, TEntity, CancellationToken, Task>  ServiceChecker)
 
             where TEntity : class
 
         {
 
-            _AllWardenChecks.Add(new WardenCheck(RunCheck,
-                                                 SleepTime,
-                                                 Entity,
-                                                 (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj as TEntity, ct)));
+            allWardenChecks.Add(
+                new WardenCheck(
+                    RunCheck,
+                    SleepTime,
+                    Entity,
+                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj as TEntity, ct)
+                )
+            );
 
             return this;
 
         }
 
-        public Warden Check<TEntity, TResult>(RunCheckDelegate                                                            RunCheck,
-                                              TimeSpan                                                                    SleepTime,
-                                              TEntity                                                                     Entity,
-                                              Func<DateTimeOffset, DNSClient, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
-                                              params Action<TEntity, TResult>[]                                           ResultConsumers)
+        public Warden Check<TEntity, TResult>(RunCheckDelegate                                                             RunCheck,
+                                              TimeSpan                                                                     SleepTime,
+                                              TEntity                                                                      Entity,
+                                              Func<DateTimeOffset, IDNSClient, TEntity, CancellationToken, Task<TResult>>  ServiceChecker,
+                                              params Action<TEntity, TResult>[]                                            ResultConsumers)
 
             where TEntity : class
 
@@ -332,16 +355,21 @@ namespace org.GraphDefined.Vanaheimr.Warden
 
             foreach (var consumer in ResultConsumers)
             {
-                thisResultConsumers.Add((entity, _result) => consumer(Entity, _result));
+                thisResultConsumers.Add(
+                    (entity, _result) => consumer(Entity, _result)
+                );
             }
 
 
-            _AllWardenChecks.Add(new WardenCheck<TResult>(RunCheck,
-                                                          SleepTime,
-                                                          Entity,
-                                                          (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj as TEntity, ct),
-                                                          thisResultConsumers.ToArray()
-                                                         ));
+            allWardenChecks.Add(
+                new WardenCheck<TResult>(
+                    RunCheck,
+                    SleepTime,
+                    Entity,
+                    (ts, dns, obj, ct) => ServiceChecker(ts, dns, obj as TEntity, ct),
+                    thisResultConsumers.ToArray()
+                )
+            );
 
             return this;
 

@@ -61,7 +61,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
         /// <param name="DNSClient">The DNS client to use.</param>
         /// <param name="CancellationToken">The cancellation token to use.</param>
         Task Run(DateTimeOffset     CommonTimestamp,
-                 DNSClient          DNSClient,
+                 IDNSClient         DNSClient,
                  CancellationToken  CancellationToken);
 
     }

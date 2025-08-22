@@ -223,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Data
 
             private readonly ConcurrentDictionary<LogTargets, HTTPRequestLogHandlerX>  subscriptionDelegates = new();
-            private readonly HashSet<LogTargets>                                      _SubscriptionStatus;
+            private readonly HashSet<LogTargets>                                       subscriptionStatus;
 
             #endregion
 
@@ -287,7 +287,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionStatus           = new HashSet<LogTargets>();
+                this.subscriptionStatus           = new HashSet<LogTargets>();
 
             }
 
@@ -309,8 +309,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (subscriptionDelegates.ContainsKey(LogTarget))
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
-                subscriptionDelegates.TryAdd(LogTarget,
-                                             (Timestamp, HTTPAPI, Request) => HTTPRequestDelegate(LoggingPath, Context, LogEventName, Request));
+                subscriptionDelegates.TryAdd(
+                    LogTarget,
+                    (timestamp, httpAPI, request, cancellationToken)
+                        => HTTPRequestDelegate(LoggingPath, Context, LogEventName, request)
+                );
 
                 return this;
 
@@ -335,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var requestLogHandler))
                 {
                     SubscribeToEventDelegate(requestLogHandler);
-                    _SubscriptionStatus.Add(LogTarget);
+                    subscriptionStatus.Add(LogTarget);
                     return true;
                 }
 
@@ -353,7 +356,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             public Boolean IsSubscribed(LogTargets LogTarget)
 
-                => _SubscriptionStatus.Contains(LogTarget);
+                => subscriptionStatus.Contains(LogTarget);
 
             #endregion
 
@@ -374,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var requestLogHandler))
                 {
                     UnsubscribeFromEventDelegate(requestLogHandler);
-                    _SubscriptionStatus.Remove(LogTarget);
+                    subscriptionStatus.Remove(LogTarget);
                     return true;
                 }
 
@@ -577,7 +580,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Data
 
             private readonly ConcurrentDictionary<LogTargets, HTTPResponseLogHandlerX>  subscriptionDelegates = new();
-            private readonly HashSet<LogTargets>                                       _SubscriptionStatus;
+            private readonly HashSet<LogTargets>                                        subscriptionStatus;
 
             #endregion
 
@@ -641,7 +644,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.LogEventName                  = LogEventName;
                 this.SubscribeToEventDelegate      = SubscribeToEventDelegate;
                 this.UnsubscribeFromEventDelegate  = UnsubscribeFromEventDelegate;
-                this._SubscriptionStatus           = new HashSet<LogTargets>();
+                this.subscriptionStatus           = new HashSet<LogTargets>();
 
             }
 
@@ -663,8 +666,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (subscriptionDelegates.ContainsKey(LogTarget))
                     throw new ArgumentException("Duplicate log target!", nameof(LogTarget));
 
-                subscriptionDelegates.TryAdd(LogTarget,
-                                             (Timestamp, HTTPAPI, Request, Response) => HTTPResponseDelegate(LoggingPath, Context, LogEventName, Request, Response));
+                subscriptionDelegates.TryAdd(
+                    LogTarget,
+                    (timestamp, httpAPI, request, response, cancellationToken)
+                        => HTTPResponseDelegate(LoggingPath, Context, LogEventName, request, response)
+                );
 
                 return this;
 
@@ -689,7 +695,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var accessLogHandler))
                 {
                     SubscribeToEventDelegate(accessLogHandler);
-                    _SubscriptionStatus.Add(LogTarget);
+                    subscriptionStatus.Add(LogTarget);
                     return true;
                 }
 
@@ -707,7 +713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             /// <param name="LogTarget">A log target.</param>
             public Boolean IsSubscribed(LogTargets LogTarget)
 
-                => _SubscriptionStatus.Contains(LogTarget);
+                => subscriptionStatus.Contains(LogTarget);
 
             #endregion
 
@@ -728,7 +734,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                       out var accessLogHandler))
                 {
                     UnsubscribeFromEventDelegate(accessLogHandler);
-                    _SubscriptionStatus.Remove(LogTarget);
+                    subscriptionStatus.Remove(LogTarget);
                     return true;
                 }
 

@@ -166,7 +166,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            ? new HTTPResponse.Builder(Request) {
                                  HTTPStatusCode   = HTTPStatusCode.NotFound,
-                                 Server           = API.HTTPTestServer.HTTPServerName,
+                                 Server           = API.HTTPServer.HTTPServerName,
                                  Date             = Timestamp.Now,
                                  CacheControl     = "no-cache",
                                  Connection       = ConnectionType.Close,
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            : new HTTPResponse.Builder(Request) {
                                  HTTPStatusCode  = HTTPStatusCode.OK,
-                                 Server          = API.HTTPTestServer.HTTPServerName,
+                                 Server          = API.HTTPServer.HTTPServerName,
                                  Date            = Timestamp.Now,
                                  ContentType     = HTTPContentType.ForFileExtension(
                                                        filePath[(filePath.LastIndexOf('.') + 1)..],
@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 return new HTTPResponse.Builder(Request) {
                             HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                            Server          = API.HTTPTestServer.HTTPServerName,
+                            Server          = API.HTTPServer.HTTPServerName,
                             Date            = Timestamp.Now,
                             ContentType     = HTTPContentType.Application.JSON_UTF8,
                             Content         = JSONObject.Create(

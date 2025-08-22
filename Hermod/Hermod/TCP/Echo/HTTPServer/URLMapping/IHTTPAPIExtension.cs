@@ -17,26 +17,31 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
-namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
+namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
 
     /// <summary>
-    /// The common interface of all SOAP servers.
+    /// The common interface of all HTTP API extensions.
     /// </summary>
-    public interface ISOAPServer //: IServerStartStop
+    public interface IHTTPAPIXExtension<THTTPAPI>
+
+        where THTTPAPI : HTTPAPIX
+
     {
 
-        IEnumerable<IPPort>  IPPorts       { get; }
-        SOAPServer           SOAPServer    { get; }
-        HTTPPath             URLPrefix     { get; }
+        /// <summary>
+        /// The extended HTTP API.
+        /// </summary>
+        THTTPAPI  HTTPBaseAPI      { get; }
 
-        IDNSClient           DNSClient     { get; }
-        HTTPServerLoggerX?   HTTPLogger    { get; set; }
+
+
+      //  HTTPPath  URLPathPrefix    { get; }
+
 
     }
 
