@@ -18,8 +18,9 @@
 #region Usings
 
 using System.Reflection;
+
 using Newtonsoft.Json.Linq;
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
+
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
 
 #endregion
@@ -43,11 +44,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// </summary>
         public THTTPAPI  HTTPBaseAPI       { get; }
 
-        /// <summary>
-        /// The optional API version hash (git commit hash value).
-        /// </summary>
-        public String?   APIVersionHash    { get; }
-
         #endregion
 
         #region Constructor(s)
@@ -59,11 +55,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="URLPathPrefix">An optional prefix for the HTTP URLs.</param>
         /// <param name="APIVersionHash">An optional API version hash (git commit hash value).</param>
         public AHTTPAPIXExtension(THTTPAPI                 HTTPAPI,
-                                  String?                  HTTPServerName       = null,
                                   //HTTPPath?                URLPathPrefix        = null,
                                   //HTTPPath?                BasePath             = null,
                                   //String?                  HTMLTemplate         = null,
 
+                                  String?                  HTTPServerName       = DefaultHTTPServerName,
+                                  String?                  HTTPServiceName      = DefaultHTTPServiceName,
                                   String?                  APIVersionHash       = null,
                                   JObject?                 APIVersionHashes     = null,
 
@@ -74,10 +71,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                   String?                  LogfileName          = DefaultHTTPAPI_LogfileName,
                                   LogfileCreatorDelegate?  LogfileCreator       = null)
 
-            : base(HTTPServerName,
-                   //URLPathPrefix,
+            : base(//URLPathPrefix,
                    //BasePath,
                    //HTMLTemplate,
+
+                   HTTPServerName,
+                   HTTPServiceName,
                    APIVersionHash,
                    APIVersionHashes,
 
@@ -90,8 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
-            this.HTTPBaseAPI     = HTTPAPI;
-            this.APIVersionHash  = APIVersionHash;
+            this.HTTPBaseAPI = HTTPAPI;
 
         }
 

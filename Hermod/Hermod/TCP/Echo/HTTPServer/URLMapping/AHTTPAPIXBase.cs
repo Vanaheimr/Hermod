@@ -37,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Data
 
-        public const String  DefaultHTTPServerName       = "HTTP Server";
+        public const String  DefaultHTTPServerName       = "HTTP Server 1";
         public const String  DefaultHTTPServiceName      = "HTTP Service";
         public const String  DefaultLoggingContext       = "HTTP API";
 
@@ -48,12 +48,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Properties
 
-        public String                   DefaultServerName        { get; protected set; } = DefaultHTTPServerName;
+        public String                   HTTPServerName           { get; protected set; } = DefaultHTTPServerName;
 
         /// <summary>
         /// The HTTP service name.
         /// </summary>
-        public String?                  HTTPServiceName          { get; protected set; } = DefaultHTTPServiceName;
+        public String                   HTTPServiceName          { get; protected set; } = DefaultHTTPServiceName;
 
         /// <summary>
         /// The default HTTP URL prefix.
@@ -111,7 +111,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// Create a new common HTTP API Base.
         /// </summary>
         /// <param name="HTTPServiceName">An HTTP service name (HTTP Servername).</param>
-        public AHTTPAPIXBase(String?                  HTTPServiceName      = null,
+        public AHTTPAPIXBase(String?                  HTTPServerName       = DefaultHTTPServerName,
+                             String?                  HTTPServiceName      = DefaultHTTPServiceName,
                              String?                  APIVersionHash       = null,
                              JObject?                 APIVersionHashes     = null,
 
@@ -123,7 +124,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                              LogfileCreatorDelegate?  LogfileCreator       = null)
         {
 
-            this.HTTPServiceName     = HTTPServiceName;
+            this.HTTPServerName      = HTTPServerName  ?? DefaultHTTPServerName;
+            this.HTTPServiceName     = HTTPServiceName ?? DefaultHTTPServiceName;
             //this.URLPathPrefix       = URLPathPrefix  ?? HTTPPath.Root;
             //this.BasePath            = BasePath;
             this.HTMLTemplate        = GetResourceString("template.html");

@@ -697,6 +697,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         String?                        ExternalDNSName           = null,
                         HTTPPath?                      BasePath                  = null,
 
+                        String?                        HTTPServerName            = null,
                         String?                        HTTPServiceName           = null,
                         String?                        APIVersionHash            = null,
                         JObject?                       APIVersionHashes          = null,
@@ -726,6 +727,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    ExternalDNSName,
                    BasePath,
 
+                   HTTPServerName,
                    HTTPServiceName,
                    APIVersionHash,
                    APIVersionHashes,
@@ -755,11 +757,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           HTTPPath?                      RootPath                  = null,
                           IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
                           I18NString?                    Description               = null,
-                          HTTPTestServerX?               HTTPTestServer            = null,
+                          HTTPTestServerX?               HTTPServer                = null,
 
                           String?                        ExternalDNSName           = null,
                           HTTPPath?                      BasePath                  = null,
 
+                          String?                        HTTPServerName            = null,
                           String?                        HTTPServiceName           = null,
                           String?                        APIVersionHash            = null,
                           JObject?                       APIVersionHashes          = null,
@@ -780,7 +783,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           String                         LogfileName               = DefaultHTTPAPI_LogfileName,
                           LogfileCreatorDelegate?        LogfileCreator            = null)
 
-            : base(HTTPServiceName,
+            : base(HTTPServerName,
+                   HTTPServiceName,
                    APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPIX)]?.Value<String>()?.Trim(),
                    APIVersionHashes,
 
@@ -797,7 +801,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             this.RootPath            = RootPath                     ?? HTTPPath.Root;
             this.HTTPContentTypes    = HTTPContentTypes?.Distinct() ?? [];
             this.Description         = Description                  ?? I18NString.Empty;
-            this.HTTPServer      = HTTPTestServer;
+            this.HTTPServer          = HTTPServer;
 
             this.ExternalDNSName     = ExternalDNSName;
             this.BasePath            = BasePath;

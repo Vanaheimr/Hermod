@@ -2213,8 +2213,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region Constructor(s)
 
-        #region HTTPExtAPIX(HTTPServerName, ...)
-
         /// <summary>
         /// Create a new HTTP server and attach this Open Data HTTP API to it.
         /// </summary>
@@ -2286,33 +2284,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                            String?                                                    ExternalDNSName                  = null,
                            HTTPPath?                                                  BasePath                         = null,
 
+                           String?                                                    HTTPServerName                   = DefaultHTTPServerName,
                            String?                                                    HTTPServiceName                  = DefaultHTTPServiceName,
                            String?                                                    APIVersionHash                   = null,
                            JObject?                                                   APIVersionHashes                 = null,
 
                           //HTTPHostname?                                              HTTPHostname                     = null,
-                          //String?                                                    ExternalDNSName                  = null,
                           //IPPort?                                                    HTTPServerPort                   = null,
                           //HTTPPath?                                                  BasePath                         = null,
-                          //String?                                                    HTTPServerName                   = DefaultHTTPServerName,
-                          //
                           //HTTPPath?                                                  URLPathPrefix                    = null,
-                          //
+
                           String?                                                    HTMLTemplate                     = null,
-
-                          //ServerCertificateSelectorDelegate?                         ServerCertificateSelector        = null,
-                          //RemoteTLSClientCertificateValidationHandler<IHTTPServer>?  ClientCertificateValidator       = null,
-                          //LocalCertificateSelectionHandler?                          LocalCertificateSelector         = null,
-                          //SslProtocols?                                              AllowedTLSProtocols              = null,
-                          //Boolean?                                                   ClientCertificateRequired        = null,
-                          //Boolean?                                                   CheckCertificateRevocation       = null,
-
-                          //ServerThreadNameCreatorDelegate?                           ServerThreadNameCreator          = null,
-                          //ServerThreadPriorityDelegate?                              ServerThreadPrioritySetter       = null,
-                          //Boolean?                                                   ServerThreadIsBackground         = null,
-                          //ConnectionIdBuilder?                                       ConnectionIdBuilder              = null,
-                          //TimeSpan?                                                  ConnectionTimeout                = null,
-                          //UInt32?                                                    MaxClientConnections             = null,
 
                           Organization_Id?                                           AdminOrganizationId              = null,
                           EMailAddress?                                              APIRobotEMailAddress             = null,
@@ -2378,28 +2360,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    //HTMLTemplate,
                    //APIVersionHashes,
                    //
-                   //ServerCertificateSelector,
-                   //ClientCertificateValidator,
-                   //LocalCertificateSelector,
-                   //AllowedTLSProtocols,
-                   //ClientCertificateRequired,
-                   //CheckCertificateRevocation,
-                   //
-                   //ServerThreadNameCreator,
-                   //ServerThreadPrioritySetter,
-                   //ServerThreadIsBackground,
-                   //ConnectionIdBuilder,
-                   //ConnectionTimeout,
-                   //MaxClientConnections,
-                   //
-                   //DisableMaintenanceTasks,
-                   //MaintenanceInitialDelay,
-                   //MaintenanceEvery,
-                   //
-                   //DisableWardenTasks,
-                   //WardenInitialDelay,
-                   //WardenCheckEvery,
-                   //
                    //IsDevelopment,
                    //DevelopmentServers,
                    //DisableLogging,
@@ -2418,8 +2378,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                   ExternalDNSName,
                   BasePath,
 
-                  HTTPServiceName,
-                  APIVersionHash ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
+                  HTTPServerName  ?? DefaultHTTPServerName,
+                  HTTPServiceName ?? DefaultHTTPServiceName,
+                  APIVersionHash  ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
                   APIVersionHashes,
 
                   DisableMaintenanceTasks,
@@ -2586,296 +2547,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             //    Start();
 
         }
-
-        #endregion
-
-        #region HTTPExtAPIX(HTTPServer, HTTPHostname = null, ...)
-
-        ///// <summary>
-        ///// Create a new HTTP API.
-        ///// </summary>
-        ///// <param name="HTTPServer">An HTTP server.</param>
-        ///// <param name="HTTPHostname">An optional HTTP hostname.</param>
-        ///// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
-        ///// <param name="HTTPServiceName">An optional name of the HTTP API service.</param>
-        ///// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
-        ///// 
-        ///// <param name="URLPathPrefix">An optional URL path prefix, used when defining URL templates.</param>
-        ///// <param name="HTMLTemplate">An optional HTML template.</param>
-        ///// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
-        ///// 
-        ///// <param name="DisableMaintenanceTasks">Disable all maintenance tasks.</param>
-        ///// <param name="MaintenanceInitialDelay">The initial delay of the maintenance tasks.</param>
-        ///// <param name="MaintenanceEvery">The maintenance interval.</param>
-        ///// 
-        ///// <param name="DisableWardenTasks">Disable all warden tasks.</param>
-        ///// <param name="WardenInitialDelay">The initial delay of the warden tasks.</param>
-        ///// <param name="WardenCheckEvery">The warden interval.</param>
-        ///// 
-        ///// <param name="IsDevelopment">This HTTP API runs in development mode.</param>
-        ///// <param name="DevelopmentServers">An enumeration of server names which will imply to run this service in development mode.</param>
-        ///// <param name="DisableLogging">Disable the log file.</param>
-        ///// <param name="LoggingPath">The path for all logfiles.</param>
-        ///// <param name="LogfileName">The name of the logfile.</param>
-        ///// <param name="LogfileCreator">A delegate for creating the name of the logfile for this API.</param>
-        ///// <param name="AutoStart">Whether to start the API automatically.</param>
-        //public HTTPExtAPIX(HTTPServer                     HTTPServer,
-        //                  HTTPHostname?                  HTTPHostname                     = null,
-        //                  String?                        ExternalDNSName                  = "",
-        //                  String?                        HTTPServiceName                  = DefaultHTTPServiceName,
-        //                  HTTPPath?                      BasePath                         = null,
-
-        //                  HTTPPath?                      URLPathPrefix                    = null,
-        //                  String?                        HTMLTemplate                     = null,
-        //                  JObject?                       APIVersionHashes                 = null,
-
-        //                  Organization_Id?               AdminOrganizationId              = null,
-        //                  EMailAddress?                  APIRobotEMailAddress             = null,
-        //                  String?                        APIRobotGPGPassphrase            = null,
-        //                  ISMTPClient?                   SMTPClient                       = null,
-
-        //                  PasswordQualityCheckDelegate?  PasswordQualityCheck             = null,
-        //                  HTTPCookieName?                CookieName                       = null,
-        //                  Boolean                        UseSecureCookies                 = true,
-        //                  TimeSpan?                      MaxSignInSessionLifetime         = null,
-        //                  Languages?                     DefaultLanguage                  = null,
-        //                  Byte?                          MinUserIdLength                  = null,
-        //                  Byte?                          MinRealmLength                   = null,
-        //                  Byte?                          MinUserNameLength                = null,
-        //                  Byte?                          MinUserGroupIdLength             = null,
-        //                  UInt16?                        MinAPIKeyLength                  = null,
-        //                  Byte?                          MinMessageIdLength               = null,
-        //                  Byte?                          MinOrganizationIdLength          = null,
-        //                  Byte?                          MinOrganizationGroupIdLength     = null,
-        //                  Byte?                          MinNotificationMessageIdLength   = null,
-        //                  Byte?                          MinNewsPostingIdLength           = null,
-        //                  Byte?                          MinNewsBannerIdLength            = null,
-        //                  Byte?                          MinFAQIdLength                   = null,
-
-        //                  Boolean?                       DisableMaintenanceTasks          = false,
-        //                  TimeSpan?                      MaintenanceInitialDelay          = null,
-        //                  TimeSpan?                      MaintenanceEvery                 = null,
-
-        //                  Boolean?                       DisableWardenTasks               = false,
-        //                  TimeSpan?                      WardenInitialDelay               = null,
-        //                  TimeSpan?                      WardenCheckEvery                 = null,
-
-        //                  Boolean?                       IsDevelopment                    = false,
-        //                  IEnumerable<String>?           DevelopmentServers               = null,
-        //                  Boolean                        SkipURLTemplates                 = false,
-        //                  Boolean?                       DisableLogging                   = false,
-        //                  String?                        LoggingPath                      = null,
-        //                  String?                        LogfileName                      = null, //DefaultHTTPAPI_LogfileName,
-        //                  LogfileCreatorDelegate?        LogfileCreator                   = null,
-        //                  Boolean                        AutoStart                        = false)
-
-        //{
-
-        //    #region Inital checks
-
-        //    if (APIRobotEMailAddress is null)
-        //        throw new ArgumentNullException(nameof(APIRobotEMailAddress),   "The given API robot e-mail address must not be null!");
-
-        //    if (APIRobotGPGPassphrase is null)
-        //        throw new ArgumentNullException(nameof(APIRobotGPGPassphrase),  "The given API robot PGP/GPG passphrase must not be null!");
-
-        //    #endregion
-
-        //    #region Init data
-
-        //    this.APIVersionHash                  = APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim();
-
-        //    if (this.APIVersionHash.IsNullOrEmpty())
-        //        this.APIVersionHash              = "unknown";
-
-        //    this.DatabaseFileName                = this.LoggingPath + (DatabaseFileName ?? DefaultHTTPExtAPIX_DatabaseFileName);
-
-        //    this.HTTPAPIPath                     = this.LoggingPath + "UsersAPI"       + Path.DirectorySeparatorChar;
-        //    this.NotificationsPath               = this.LoggingPath + "Notifications"  + Path.DirectorySeparatorChar;
-        //    this.SMTPLoggingPath                 = this.LoggingPath + "SMTPClient"     + Path.DirectorySeparatorChar;
-
-        //    this.DisableNotifications            = DisableNotifications;
-
-        //    if (DisableLogging == true) {
-        //        Directory.CreateDirectory(this.HTTPAPIPath);
-        //        Directory.CreateDirectory(this.NotificationsPath);
-        //        Directory.CreateDirectory(this.SMTPLoggingPath);
-        //    }
-
-        //    this.Robot                           = new User(
-        //                                               Id:               User_Id.Parse("robot"),
-        //                                               EMail:            APIRobotEMailAddress.Address,
-        //                                               Name:            (APIRobotEMailAddress.OwnerName ?? "Robot").ToI18NString(),
-        //                                               PublicKeyRing:    APIRobotEMailAddress.PublicKeyRing,
-        //                                               SecretKeyRing:    APIRobotEMailAddress.SecretKeyRing,
-        //                                               Description:      "The HTTP API robot".ToI18NString(),
-        //                                               IsAuthenticated:  true
-        //                                           );
-
-        //    CurrentAsyncLocalUserId.Value        = Robot.Id;
-
-        //    this.AdminOrganizationId             = AdminOrganizationId            ?? DefaultAdminOrganizationId;
-        //    this.APIRobotGPGPassphrase           = APIRobotGPGPassphrase;
-        //    this.SMTPClient                      = SMTPClient                     ?? throw new ArgumentNullException(nameof(SMTPClient), "The given API SMTP client must not be null!");
-
-        //    this.CookieName                      = CookieName                     ?? DefaultCookieName;
-        //    this.SessionCookieName               = this.CookieName + "Session";
-        //    this.UseSecureCookies                = UseSecureCookies;
-        //    this.DefaultLanguage                 = DefaultLanguage                ?? DefaultDefaultLanguage;
-
-        //    this.MinUserIdLength                 = MinUserIdLength                ?? DefaultMinUserIdLength;
-        //    this.MinRealmLength                  = MinRealmLength                 ?? DefaultMinRealmLength;
-        //    this.MinUserNameLength               = MinUserNameLength              ?? DefaultMinUserNameLength;
-        //    this.MinUserGroupIdLength            = MinUserGroupIdLength           ?? DefaultMinUserGroupIdLength;
-        //    this.MinAPIKeyLength                 = MinAPIKeyLength                ?? DefaultMinAPIKeyLength;
-        //    this.MinOrganizationIdLength         = MinOrganizationIdLength        ?? DefaultMinOrganizationIdLength;
-        //    this.MinOrganizationGroupIdLength    = MinOrganizationGroupIdLength   ?? DefaultMinOrganizationGroupIdLength;
-        //    this.MinNotificationMessageIdLength  = MinNotificationMessageIdLength ?? DefaultMinNotificationMessageIdLength;
-
-        //    this.PasswordQualityCheck            = PasswordQualityCheck           ?? DefaultPasswordQualityCheck;
-        //    this.MaxSignInSessionLifetime        = MaxSignInSessionLifetime       ?? DefaultMaxSignInSessionLifetime;
-
-        //    this.CurrentDatabaseHashValue        = "";
-
-        //    this.remoteAuthServers               = RemoteAuthServers is not null   ? new HashSet<URLWithAPIKey>(RemoteAuthServers) : new HashSet<URLWithAPIKey>();
-        //    this.remoteAuthAPIKeys               = RemoteAuthAPIKeys is not null   ? new HashSet<APIKey_Id>    (RemoteAuthAPIKeys) : new HashSet<APIKey_Id>();
-
-        //    #endregion
-
-        //    #region Reflect data licenses
-
-        //    foreach (var dataLicense in typeof(DataLicense).GetFields(System.Reflection.BindingFlags.Public |
-        //                                                              System.Reflection.BindingFlags.Static).
-        //                                                    Where (fieldinfo => fieldinfo.ReflectedType == typeof(DataLicense) &&
-        //                                                                        fieldinfo.FieldType     == typeof(DataLicense)).
-        //                                                    Select(fieldinfo => fieldinfo.GetValue(DataLicense.None)).
-        //                                                    Cast<DataLicense>())
-        //    {
-
-        //        dataLicenses.TryAdd(dataLicense.Id,
-        //                            dataLicense);
-
-        //    }
-
-        //    #endregion
-
-
-        //    #region Create default organizations/user groups
-
-        //    this.NoOwner = new Organization(
-        //                       Organization_Id.Parse("NoOwner"),
-        //                       "No owner".ToI18NString()
-        //                   );
-
-        //    organizations.TryAdd(this.NoOwner.Id,
-        //                         this.NoOwner);
-
-        //    #endregion
-
-
-        //    #region Warden: Observe CPU/RAM => Send admin e-mails...
-
-        //    //Warden.EveryMinutes(15,
-        //    //                    Environment.OSVersion.Platform == PlatformID.Unix
-        //    //                        ? new DriveInfo("/")
-        //    //                        : new DriveInfo(Directory.GetCurrentDirectory()),
-        //    //                    async (timestamp, driveInfo, ct) => {
-
-        //    //                        var MBytesFree       = driveInfo.AvailableFreeSpace / 1024 / 1024;
-        //    //                        var HDPercentageFree = 100 * driveInfo.AvailableFreeSpace / driveInfo.TotalSize;
-
-        //    //                        if (HDPercentageFree < 3 &&
-        //    //                            TryGetOrganization(this.AdminOrganizationId, out var adminOrganization) &&
-        //    //                            adminOrganization is not null)
-        //    //                        {
-
-        //    //                            // lowStorage_MessageType
-        //    //                            await SMTPClient.Send(new HTMLEMailBuilder {
-        //    //                                                         From           = Robot.EMail,
-        //    //                                                         To             = EMailAddressList.Create(adminOrganization.Admins.Select(admin => admin.EMail)),
-        //    //                                                         Passphrase     = APIRobotGPGPassphrase,
-        //    //                                                         Subject        = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)",
-        //    //                                                         HTMLText       = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
-        //    //                                                         PlainText      = ServiceName + " is low on disc (<" + HDPercentageFree + "%, " + MBytesFree + " MB free)" + Environment.NewLine + Environment.NewLine,
-        //    //                                                         SecurityLevel  = EMailSecurity.autosign
-        //    //                                                     }).ConfigureAwait(false);
-
-        //    //                        }
-
-        //    //                    });
-
-        //    #endregion
-
-        //    //RegisterNotifications().Wait();
-
-        //    if (!SkipURLTemplates)
-        //        RegisterURLTemplates();
-
-        //    //DebugX.Log(nameof(HTTPExtAPIX) + " version '" + APIVersionHash + "' initialized...");
-
-        //    //if (AutoStart)
-        //    //    Start();
-
-
-        //}
-
-        #endregion
-
-        //public HTTPExtAPIX(HTTPServer               HTTPServer,
-        //                  HTTPHostname?            HTTPHostname              = null,
-        //                  String?                  ExternalDNSName           = "",
-        //                  String?                  HTTPServiceName           = DefaultHTTPServiceName,
-        //                  HTTPPath?                BasePath                  = null,
-
-        //                  HTTPPath?                URLPathPrefix             = null,
-        //                  String?                  HTMLTemplate              = null,
-        //                  JObject?                 APIVersionHashes          = null,
-
-        //                  Boolean?                 DisableMaintenanceTasks   = false,
-        //                  TimeSpan?                MaintenanceInitialDelay   = null,
-        //                  TimeSpan?                MaintenanceEvery          = null,
-
-        //                  Boolean?                 DisableWardenTasks        = false,
-        //                  TimeSpan?                WardenInitialDelay        = null,
-        //                  TimeSpan?                WardenCheckEvery          = null,
-
-        //                  Boolean?                 IsDevelopment             = false,
-        //                  IEnumerable<String>?     DevelopmentServers        = null,
-        //                  Boolean?                 DisableLogging            = false,
-        //                  String?                  LoggingPath               = null,
-        //                  String?                  LogfileName               = DefaultHTTPAPI_LogfileName,
-        //                  LogfileCreatorDelegate?  LogfileCreator            = null,
-
-        //                  Boolean                  AutoStart                 = false)
-
-        //    : base(HTTPServer,
-        //           HTTPHostname,
-        //           ExternalDNSName,
-        //           HTTPServiceName,
-        //           BasePath,
-
-        //           URLPathPrefix,
-        //           HTMLTemplate,
-        //           APIVersionHashes,
-
-        //           DisableMaintenanceTasks,
-        //           MaintenanceInitialDelay,
-        //           MaintenanceEvery,
-
-        //           DisableWardenTasks,
-        //           WardenInitialDelay,
-        //           WardenCheckEvery,
-
-        //           IsDevelopment,
-        //           DevelopmentServers,
-        //           DisableLogging,
-        //           LoggingPath,
-        //           LogfileName,
-        //           LogfileCreator,
-
-        //           AutoStart)
-
-        //{ }
 
         #endregion
 
