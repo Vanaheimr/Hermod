@@ -41,7 +41,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
     public delegate Task TCPEchoLoggingDelegate(String Message);
 
     /// <summary>
-    /// An abstract TCP server.
+    /// An abstract TCP/TLS server.
     /// </summary>
     public abstract class ATCPTestServer : ITCPServer,
                                            IDisposable,
@@ -171,7 +171,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new abstract TCP server that listens on the specified IP address and TCP port.
+        /// Create a new abstract TCP/TLS server that listens on the specified IP address and TCP port.
         /// </summary>
         /// <param name="IPAddress">The IP address to listen on. If null, the loopback address will be used.</param>
         /// <param name="TCPPort">The TCP port to listen on. If 0, a random TCP port will be assigned.</param>

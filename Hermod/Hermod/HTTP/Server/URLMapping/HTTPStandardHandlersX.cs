@@ -36,6 +36,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPStandardHandlersX
     {
 
+        public const String ResourceName = "ResourceName";
+
         #region RegisterRAWRequestHandler      (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Method = null)
 
         /// <summary>
@@ -320,13 +322,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    try
                    {
 
-                       var numberOfTemplateParameters  = URLTemplate.ToString().Count(c => c == '{');
-
-                       var filePath                    = httpRequest.ParsedURLParameters.Length > numberOfTemplateParameters
-                                                             ? httpRequest.ParsedURLParameters.Last().URLDecode()
-                                                             : DefaultFilename;
-
-                       var fileStream                  = FileStreamProvider(filePath);
+                       var filePath    = httpRequest.TryGetURLParameter(ResourceName) ?? DefaultFilename;
+                       var fileStream  = FileStreamProvider(filePath);
 
                        if (HTMLTemplateHandler is not null &&
                            fileStream          is not null &&
@@ -600,8 +597,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                   ? "{ResourceName}"
-                                   : "/{ResourceName}"),
+                                   ? $"{{{ResourceName}}}"
+                                   : $"/{{{ResourceName}}}"),
 
                 HTTPDelegate:       GetFromResourceAssembly(
                                         URLTemplate,
@@ -692,8 +689,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPMethod.GET,
                 URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                   ? "{ResourceName}"
-                                   : "/{ResourceName}"),
+                                   ? $"{{{ResourceName}}}"
+                                   : $"/{{{ResourceName}}}"),
 
                 HTTPDelegate:       RequireAuthentication
 
@@ -813,8 +810,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                            HTTPMethod.GET,
                            URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                              ? "{ResourceName}"
-                                              : "/{ResourceName}"),
+                                              ? $"{{{ResourceName}}}"
+                                              : $"/{{{ResourceName}}}"),
 
                            HTTPDelegate:       RequireAuthentication
 
@@ -901,7 +898,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPAPI.AddHandler(
 
                 HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}}}" : $"/{{{ResourceName}}}"),
 
                 HTTPDelegate:       GetFromFileSystem(
                                         URLTemplate,
@@ -961,7 +958,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             HTTPExtAPI.AddHandler(
 
                 HTTPMethod.GET,
-                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? "{ResourceName}" : "/{ResourceName}"),
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture) ? $"{{{ResourceName}}}" : $"/{{{ResourceName}}}"),
 
                 HTTPDelegate:       RequireAuthentication
 
@@ -1081,8 +1078,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //        Hostname,
         //        HTTPMethod.GET,
         //        URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-        //            ? "{ResourceName}"
-        //            : "/{ResourceName}"),
+        //            ? $"{{{ResourceName}}}"
+        //            : $"/{{{ResourceName}}}"),
         //        OpenEnd:           true,
         //        HTTPDelegate:      fileMapper.GetFile,
         //        AllowReplacement:  URLReplacement.Fail

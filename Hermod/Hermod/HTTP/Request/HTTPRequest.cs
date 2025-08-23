@@ -1414,14 +1414,77 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
-        #region TryParseURLParameter(ParameterName, TryParser)
+        #region TryGetURLParameter   (ParameterName)
+
+        public String? TryGetURLParameter(String ParameterName)
+        {
+
+            if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
+                value.IsNotNullOrEmpty())
+            {
+                return HTTPTools.URLDecode(value.Trim());
+            }
+
+            return default;
+
+        }
+
+        #endregion
+
+        #region TryGetURLParameter   (ParameterName, out Value)
+
+        public Boolean TryGetURLParameter(String                           ParameterName,
+                                          [NotNullWhen(true)] out String?  Value)
+        {
+
+            if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
+                value.IsNotNullOrEmpty())
+            {
+                Value = HTTPTools.URLDecode(value.Trim());
+                return true;
+            }
+
+            Value = default;
+            return false;
+
+        }
+
+        #endregion
+
+        #region TryGetURLParameter   (ParameterName, out Value, out ErrorResponse)
+
+        public Boolean TryGetURLParameter(String                            ParameterName,
+                                          [NotNullWhen(true)]  out String?  Value,
+                                          [NotNullWhen(false)] out String?  ErrorResponse)
+        {
+
+            ErrorResponse  = null;
+            Value          = default;
+
+            if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
+                value.IsNotNullOrEmpty())
+            {
+                Value = HTTPTools.URLDecode(value.Trim());
+                return true;
+            }
+
+            ErrorResponse  = $"The given URL parameter '{ParameterName}' does not exist!";
+            return false;
+
+        }
+
+        #endregion
+
+
+        #region TryParseURLParameter (ParameterName, TryParser)
 
         public T? TryParseURLParameter<T>(String        ParameterName,
                                           TryParser<T>  TryParser)
         {
 
             if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
-                TryParser(HTTPTools.URLDecode(value), out var valueT))
+                value.IsNotNullOrEmpty() &&
+                TryParser(HTTPTools.URLDecode(value.Trim()), out var valueT))
             {
                 return valueT;
             }
@@ -1432,7 +1495,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParseURLParameter(ParameterName, TryParser, out Value)
+        #region TryParseURLParameter (ParameterName, TryParser, out Value)
 
         public Boolean TryParseURLParameter<T>(String                       ParameterName,
                                                TryParser<T>                 TryParser,
@@ -1440,7 +1503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             if (ParsedURLParametersX.TryGetValue(ParameterName, out var value) &&
-                TryParser(HTTPTools.URLDecode(value), out var valueT))
+                TryParser(HTTPTools.URLDecode(value.Trim()), out var valueT))
             {
                 Value = valueT;
                 return true;
@@ -1453,7 +1516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region TryParseURLParameter(ParameterName, TryParser, out Value, out ErrorResponse)
+        #region TryParseURLParameter (ParameterName, TryParser, out Value, out ErrorResponse)
 
         public Boolean TryParseURLParameter<T>(String                            ParameterName,
                                                TryParser2<T>                     TryParser,
@@ -1467,13 +1530,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (ParsedURLParametersX.TryGetValue(ParameterName, out var value))
             {
 
-                if (TryParser(HTTPTools.URLDecode(value), out var valueT, out var errorResponse))
+                if (TryParser(HTTPTools.URLDecode(value.Trim()), out var valueT, out var errorResponse) &&
+                    value.IsNotNullOrEmpty())
                 {
                     Value = valueT;
                     return true;
                 }
 
-                ErrorResponse = errorResponse;
+                ErrorResponse = errorResponse ?? $"The given URL parameter '{ParameterName}' does not exist!";
                 return false;
 
             }

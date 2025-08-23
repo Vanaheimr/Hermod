@@ -1395,13 +1395,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task AddUsersHTTPRequest(DateTimeOffset     Timestamp,
-                                                    HTTPAPIX           API,
+                                                    HTTPAPIX           HTTPAPI,
                                                     HTTPRequest        Request,
                                                     CancellationToken  CancellationToken)
 
             => OnAddUsersRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1423,14 +1423,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task AddUsersHTTPResponse(DateTimeOffset     Timestamp,
-                                                     HTTPAPIX           API,
+                                                     HTTPAPIX           HTTPAPI,
                                                      HTTPRequest        Request,
                                                      HTTPResponse       Response,
                                                      CancellationToken  CancellationToken)
 
             => OnAddUsersResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1453,13 +1453,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task AddUserHTTPRequest(DateTimeOffset     Timestamp,
-                                                   HTTPAPIX           API,
+                                                   HTTPAPIX           HTTPAPI,
                                                    HTTPRequest        Request,
                                                    CancellationToken  CancellationToken)
 
             => OnAddUserHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1481,14 +1481,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task AddUserHTTPResponse(DateTimeOffset     Timestamp,
-                                                    HTTPAPIX           API,
+                                                    HTTPAPIX           HTTPAPI,
                                                     HTTPRequest        Request,
                                                     HTTPResponse       Response,
                                                     CancellationToken  CancellationToken)
 
             => OnAddUserHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1511,13 +1511,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task SetUserHTTPRequest(DateTimeOffset     Timestamp,
-                                                   HTTPAPIX           API,
+                                                   HTTPAPIX           HTTPAPI,
                                                    HTTPRequest        Request,
                                                    CancellationToken  CancellationToken)
 
             => OnSetUserHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1539,14 +1539,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task SetUserHTTPResponse(DateTimeOffset     Timestamp,
-                                                    HTTPAPIX           API,
+                                                    HTTPAPIX           HTTPAPI,
                                                     HTTPRequest        Request,
                                                     HTTPResponse       Response,
                                                     CancellationToken  CancellationToken)
 
             => OnSetUserHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1569,13 +1569,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task ChangePasswordRequest(DateTimeOffset     Timestamp,
-                                                      HTTPAPIX           API,
+                                                      HTTPAPIX           HTTPAPI,
                                                       HTTPRequest        Request,
                                                       CancellationToken  CancellationToken)
 
             => OnChangePasswordRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1597,14 +1597,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task ChangePasswordResponse(DateTimeOffset     Timestamp,
-                                                       HTTPAPIX           API,
+                                                       HTTPAPIX           HTTPAPI,
                                                        HTTPRequest        Request,
                                                        HTTPResponse       Response,
                                                        CancellationToken  CancellationToken)
 
             => OnChangePasswordResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1627,13 +1627,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task ImpersonateUserRequest(DateTimeOffset     Timestamp,
-                                                       HTTPAPIX           API,
+                                                       HTTPAPIX           HTTPAPI,
                                                        HTTPRequest        Request,
                                                        CancellationToken  CancellationToken)
 
             => OnImpersonateUserRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1655,14 +1655,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task ImpersonateUserResponse(DateTimeOffset     Timestamp,
-                                                        HTTPAPIX           API,
+                                                        HTTPAPIX           HTTPAPI,
                                                         HTTPRequest        Request,
                                                         HTTPResponse       Response,
                                                         CancellationToken  CancellationToken)
 
             => OnImpersonateUserResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1685,13 +1685,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task SetUserNotificationsRequest(DateTimeOffset     Timestamp,
-                                                            HTTPAPIX           API,
+                                                            HTTPAPIX           HTTPAPI,
                                                             HTTPRequest        Request,
                                                             CancellationToken  CancellationToken)
 
             => OnSetUserNotificationsRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1713,14 +1713,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task SetUserNotificationsResponse(DateTimeOffset     Timestamp,
-                                                             HTTPAPIX           API,
+                                                             HTTPAPIX           HTTPAPI,
                                                              HTTPRequest        Request,
                                                              HTTPResponse       Response,
                                                              CancellationToken  CancellationToken)
 
             => OnSetUserNotificationsResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1743,13 +1743,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task DeleteUserNotificationsRequest(DateTimeOffset     Timestamp,
-                                                               HTTPAPIX           API,
+                                                               HTTPAPIX           HTTPAPI,
                                                                HTTPRequest        Request,
                                                                CancellationToken  CancellationToken)
 
             => OnDeleteUserNotificationsRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1771,14 +1771,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task DeleteUserNotificationsResponse(DateTimeOffset     Timestamp,
-                                                                HTTPAPIX           API,
+                                                                HTTPAPIX           HTTPAPI,
                                                                 HTTPRequest        Request,
                                                                 HTTPResponse       Response,
                                                                 CancellationToken  CancellationToken)
 
             => OnDeleteUserNotificationsResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1804,13 +1804,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task AddOrganizationHTTPRequest(DateTimeOffset     Timestamp,
-                                                           HTTPAPIX           API,
+                                                           HTTPAPIX           HTTPAPI,
                                                            HTTPRequest        Request,
                                                            CancellationToken  CancellationToken)
 
             => OnAddOrganizationHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1832,14 +1832,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task AddOrganizationHTTPResponse(DateTimeOffset     Timestamp,
-                                                            HTTPAPIX           API,
+                                                            HTTPAPIX           HTTPAPI,
                                                             HTTPRequest        Request,
                                                             HTTPResponse       Response,
                                                             CancellationToken  CancellationToken)
 
             => OnAddOrganizationHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1862,13 +1862,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task SetOrganizationHTTPRequest(DateTimeOffset     Timestamp,
-                                                           HTTPAPIX           API,
+                                                           HTTPAPIX           HTTPAPI,
                                                            HTTPRequest        Request,
                                                            CancellationToken  CancellationToken)
 
             => OnSetOrganizationHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1890,14 +1890,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task SetOrganizationHTTPResponse(DateTimeOffset     Timestamp,
-                                                            HTTPAPIX           API,
+                                                            HTTPAPIX           HTTPAPI,
                                                             HTTPRequest        Request,
                                                             HTTPResponse       Response,
                                                             CancellationToken  CancellationToken)
 
             => OnSetOrganizationHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1920,13 +1920,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task DeleteOrganizationHTTPRequest(DateTimeOffset     Timestamp,
-                                                              HTTPAPIX           API,
+                                                              HTTPAPIX           HTTPAPI,
                                                               HTTPRequest        Request,
                                                               CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -1948,14 +1948,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task DeleteOrganizationHTTPResponse(DateTimeOffset     Timestamp,
-                                                               HTTPAPIX           API,
+                                                               HTTPAPIX           HTTPAPI,
                                                                HTTPRequest        Request,
                                                                HTTPResponse       Response,
                                                                CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -1979,13 +1979,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task SetOrganizationNotificationsRequest(DateTimeOffset     Timestamp,
-                                                                    HTTPAPIX           API,
+                                                                    HTTPAPIX           HTTPAPI,
                                                                     HTTPRequest        Request,
                                                                     CancellationToken  CancellationToken)
 
             => OnSetOrganizationNotificationsRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -2007,14 +2007,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task SetOrganizationNotificationsResponse(DateTimeOffset     Timestamp,
-                                                                     HTTPAPIX           API,
+                                                                     HTTPAPIX           HTTPAPI,
                                                                      HTTPRequest        Request,
                                                                      HTTPResponse       Response,
                                                                      CancellationToken  CancellationToken)
 
             => OnSetOrganizationNotificationsResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -2037,13 +2037,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task DeleteOrganizationNotificationsRequest(DateTimeOffset     Timestamp,
-                                                                       HTTPAPIX           API,
+                                                                       HTTPAPIX           HTTPAPI,
                                                                        HTTPRequest        Request,
                                                                        CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationNotificationsRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -2065,14 +2065,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task DeleteOrganizationNotificationsResponse(DateTimeOffset     Timestamp,
-                                                                        HTTPAPIX           API,
+                                                                        HTTPAPIX           HTTPAPI,
                                                                         HTTPRequest        Request,
                                                                         HTTPResponse       Response,
                                                                         CancellationToken  CancellationToken)
 
             => OnDeleteOrganizationNotificationsResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -2098,13 +2098,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task RestartRequest(DateTimeOffset     Timestamp,
-                                               HTTPAPIX           API,
+                                               HTTPAPIX           HTTPAPI,
                                                HTTPRequest        Request,
                                                CancellationToken  CancellationToken)
 
             => OnRestartHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -2126,14 +2126,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task RestartResponse(DateTimeOffset     Timestamp,
-                                                HTTPAPIX           API,
+                                                HTTPAPIX           HTTPAPI,
                                                 HTTPRequest        Request,
                                                 HTTPResponse       Response,
                                                 CancellationToken  CancellationToken)
 
             => OnRestartHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -2156,13 +2156,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="HTTPAPI">The HTTP API.</param>
         /// <param name="Request">An HTTP request.</param>
         protected internal Task StopRequest(DateTimeOffset     Timestamp,
-                                            HTTPAPIX           API,
+                                            HTTPAPIX           HTTPAPI,
                                             HTTPRequest        Request,
                                             CancellationToken  CancellationToken)
 
             => OnStopHTTPRequest.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    CancellationToken
                );
@@ -2184,14 +2184,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <param name="Request">An HTTP request.</param>
         /// <param name="Response">An HTTP response.</param>
         protected internal Task StopResponse(DateTimeOffset     Timestamp,
-                                             HTTPAPIX           API,
+                                             HTTPAPIX           HTTPAPI,
                                              HTTPRequest        Request,
                                              HTTPResponse       Response,
                                              CancellationToken  CancellationToken)
 
             => OnStopHTTPResponse.WhenAll(
                    Timestamp,
-                   API,
+                   HTTPAPI,
                    Request,
                    Response,
                    CancellationToken
@@ -2216,26 +2216,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         /// <summary>
         /// Create a new HTTP server and attach this Open Data HTTP API to it.
         /// </summary>
-        /// <param name="HTTPHostname">The HTTP hostname for all URLs within this API.</param>
         /// <param name="ExternalDNSName">The official URL/DNS name of this service, e.g. for sending e-mails.</param>
-        /// <param name="HTTPServerPort">A TCP port to listen on.</param>
         /// <param name="BasePath">When the API is served from an optional subdirectory path.</param>
         /// <param name="HTTPServerName">The default HTTP server name, used whenever no HTTP Host-header has been given.</param>
         /// 
-        /// <param name="URLPathPrefix">A common prefix for all URLs.</param>
         /// <param name="HTTPServiceName">The name of the HTTP service.</param>
         /// <param name="HTMLTemplate">An optional HTML template.</param>
         /// <param name="APIVersionHashes">The API version hashes (git commit hash values).</param>
-        /// 
-        /// <param name="ServerCertificateSelector">An optional delegate to select a TLS server certificate.</param>
-        /// <param name="ClientCertificateValidator">An optional delegate to verify the TLS client certificate used for authentication.</param>
-        /// <param name="LocalCertificateSelector">An optional delegate to select the TLS client certificate used for authentication.</param>
-        /// <param name="AllowedTLSProtocols">The TLS protocol(s) allowed for this connection.</param>
-        /// 
-        /// <param name="ServerThreadIsBackground">Whether the TCP server thread is a background thread or not.</param>
-        /// <param name="ConnectionIdBuilder">An optional delegate to build a connection identification based on IP socket information.</param>
-        /// <param name="ConnectionTimeout">The TCP client timeout for all incoming client connections in seconds (default: 30 sec).</param>
-        /// <param name="MaxClientConnections">The maximum number of concurrent TCP client connections (default: 4096).</param>
         /// 
         /// <param name="AdminOrganizationId">The admins' organization identification.</param>
         /// <param name="APIRobotEMailAddress">An e-mail address for this API.</param>

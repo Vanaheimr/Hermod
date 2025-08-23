@@ -806,6 +806,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             this.ExternalDNSName     = ExternalDNSName;
             this.BasePath            = BasePath;
 
+            // Register HTTP API within the HTTP server!
+            HTTPServer?.AddHTTPAPI(
+                this.RootPath,
+                HTTPHostname.Any,
+                (server, path) => this
+            );
+
             // Setup Maintenance Task
             this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
             this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
@@ -1078,11 +1085,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
-            var segments = Path.ToString().Trim('/').Split('/');
-            var parameters = new Dictionary<String, String>();
-            //   ErrorResponse   = null;
+            var segments    = Path.ToString().Trim('/').Split('/');
+            var parameters  = new Dictionary<String, String>();
 
-            if (!routeNodes.TryGetValue(segments[0], out var routeNode))
+            var pathSegment = segments[0].Trim();
+            if (pathSegment.IsNullOrEmpty())
+                pathSegment = "/";
+
+            if (!routeNodes.TryGetValue(pathSegment, out var routeNode))
             {
 
                 var parameterCatcher = routeNodes.Values.FirstOrDefault(routeNode => routeNode.ParamName is not null);
@@ -1093,7 +1103,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         parameterCatcher.ParamName,
                         parameterCatcher.CatchRestOfPath
                             ? Path.ToString().TrimStart('/')
-                            : segments[0]
+                            : pathSegment
                     );
 
                     if (parameterCatcher.CatchRestOfPath)
