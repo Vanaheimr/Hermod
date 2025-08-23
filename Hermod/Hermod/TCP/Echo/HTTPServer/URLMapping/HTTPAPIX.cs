@@ -1176,6 +1176,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             }
 
+            if (routeNode is not null)
+                return ParsedRequest2.Parsed(
+                    routeNode,
+                    parameters
+                );
+
             return ParsedRequest2.Error(
                        $"Unknown path {Path}!",
                        parameters
