@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
+#region Usings
+
 using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 {
@@ -35,9 +39,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                   String?           Message   = null);
 
 
-    public delegate Task TCPServerStartedDelegate(ITCPServer Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null);
-    public delegate Task TCPServerStoppedDelegate(ITCPServer Sender, DateTimeOffset Timestamp, EventTracking_Id EventTrackingId, String? Message = null);
-
+    /// <summary>
+    /// TCP server started delegate.
+    /// </summary>
+    /// <param name="TCPServer">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the TCP server started event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+    /// <param name="Message">An optional message.</param>
+    public delegate Task TCPServerStartedDelegate(ITCPServer        TCPServer,
+                                                  DateTimeOffset    Timestamp,
+                                                  EventTracking_Id  EventTrackingId,
+                                                  String?           Message   = null);
 
 
     /// <summary>
@@ -49,12 +61,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="Reason">An optional multi-language reason why this connection was rejected.</param>
-    public delegate Task NewConnectionRejectedDelegate(ITCPServer        TCPServer,
-                                                       DateTimeOffset    Timestamp,
-                                                       EventTracking_Id  EventTrackingId,
-                                                       IPSocket          RemoteSocket,
-                                                       String            ConnectionId,
-                                                       I18NString?       Reason = null);
+    public delegate Task NewTCPConnectionRejectedDelegate(ITCPServer        TCPServer,
+                                                          DateTimeOffset    Timestamp,
+                                                          EventTracking_Id  EventTrackingId,
+                                                          IPSocket          RemoteSocket,
+                                                          String            ConnectionId,
+                                                          I18NString?       Reason = null);
 
 
     /// <summary>
@@ -66,12 +78,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
     /// <param name="RemoteSocket">The remote TCP/IP socket.</param>
     /// <param name="ConnectionId">The identification of this connection.</param>
     /// <param name="TCPConnection">The new TCP connection.</param>
-    public delegate Task NewConnectionDelegate(ITCPServer        TCPServer,
-                                               DateTimeOffset    Timestamp,
-                                               EventTracking_Id  EventTrackingId,
-                                               IPSocket          RemoteSocket,
-                                               String            ConnectionId,
-                                               TCPConnection     TCPConnection);
+    public delegate Task NewTCPConnectionDelegate(ITCPServer        TCPServer,
+                                                  DateTimeOffset    Timestamp,
+                                                  EventTracking_Id  EventTrackingId,
+                                                  IPSocket          RemoteSocket,
+                                                  String            ConnectionId,
+                                                  TCPConnection     TCPConnection);
+
 
     /// <summary>
     /// Connection closed delegate.
@@ -89,6 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                   String              ConnectionId,
                                                   ConnectionClosedBy  ClosedBy);
 
+
     /// <summary>
     /// TCP socket detached delegate.
     /// </summary>
@@ -100,6 +114,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                                                   DateTimeOffset    Timestamp,
                                                   EventTracking_Id  EventTrackingId,
                                                   IPSocket          TCPSocket,
+                                                  String?           Message   = null);
+
+
+    /// <summary>
+    /// TCP server stopped delegate.
+    /// </summary>
+    /// <param name="TCPServer">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the TCP server stopped event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+    /// <param name="Message">An optional message.</param>
+    public delegate Task TCPServerStoppedDelegate(ITCPServer        TCPServer,
+                                                  DateTimeOffset    Timestamp,
+                                                  EventTracking_Id  EventTrackingId,
                                                   String?           Message   = null);
 
 }

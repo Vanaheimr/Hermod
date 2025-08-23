@@ -161,7 +161,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public void AddContentType(HTTPContentType       HTTPContentType,
                                    HTTPRequestHandlersX  Handler)
         {
-            contentTypes.Add(HTTPContentType, Handler);
+
+            if (!contentTypes.TryAdd(HTTPContentType, Handler))
+            {
+                if (AllowReplacement == URLReplacement.Allow)
+                    contentTypes[HTTPContentType] = Handler;
+                else
+                    throw new InvalidOperationException("Cannot override existing ContentType handler!");
+            }
+
         }
 
 

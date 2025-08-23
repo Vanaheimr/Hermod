@@ -361,7 +361,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionDelegate?           OnNewConnection;
+        public event NewTCPConnectionDelegate?           OnNewConnection;
 
         /// <summary>
         /// An event fired whenever an exception occured.

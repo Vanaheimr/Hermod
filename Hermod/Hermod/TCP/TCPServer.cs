@@ -203,7 +203,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// If this event closes the TCP connection the OnNotification event will never be fired!
         /// Therefore you can use this event for filtering connection initiation requests.
         /// </summary>
-        public event NewConnectionDelegate?                      OnNewConnection;
+        public event NewTCPConnectionDelegate?                      OnNewConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.

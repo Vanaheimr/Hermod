@@ -26,9 +26,9 @@ using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Styx;
 using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 #endregion
 
@@ -144,27 +144,27 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <summary>
         /// An event fired whenever the TCP EchoTest server started.
         /// </summary>
-        public event TCPServerStartedDelegate?        OnStarted;
+        public event TCPServerStartedDelegate?           OnTCPServerStarted;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was rejected.
         /// </summary>
-        public event NewConnectionRejectedDelegate?   NewConnectionRejected;
+        public event NewTCPConnectionRejectedDelegate?   OnNewTCPConnectionRejected;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was opened.
         /// </summary>
-        public event NewConnectionDelegate?           OnNewConnection;
+        public event NewTCPConnectionDelegate?           OnNewTCPConnection;
 
         /// <summary>
         /// An event fired whenever a new TCP connection was closed.
         /// </summary>
-        public event ConnectionClosedDelegate?        OnConnectionClosed;
+        public event ConnectionClosedDelegate?           OnTCPConnectionClosed;
 
         /// <summary>
         /// An event fired whenever the TCP EchoTest server stopped.
         /// </summary>
-        public event TCPServerStoppedDelegate?        OnStopped;
+        public event TCPServerStoppedDelegate?           OnTCPServerStopped;
 
         #endregion
 
@@ -347,7 +347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     }
 
                     await LogEvent(
-                        OnStarted,
+                        OnTCPServerStarted,
                         loggingDelegate => loggingDelegate.Invoke(
                             this,
                             DateTimeOffset.UtcNow,
@@ -386,7 +386,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                 client.Close();
 
                                 await LogEvent(
-                                          NewConnectionRejected,
+                                          OnNewTCPConnectionRejected,
                                           loggingDelegate => loggingDelegate.Invoke(
                                               this,
                                               DateTimeOffset.UtcNow,
@@ -488,7 +488,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     client.LingerState = new LingerOption(false, 0);
 
                     await LogEvent(
-                              NewConnectionRejected,
+                              OnNewTCPConnectionRejected,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
                                   DateTimeOffset.UtcNow,
@@ -520,7 +520,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     connectionId   = tcpConnection.ConnectionId;
 
                     await LogEvent(
-                              OnNewConnection,
+                              OnNewTCPConnection,
                               loggingDelegate => loggingDelegate.Invoke(
                                   this,
                                   DateTimeOffset.UtcNow,
@@ -574,7 +574,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 activeClients.TryRemove(client, out _);
 
                 await LogEvent(
-                          OnConnectionClosed,
+                          OnTCPConnectionClosed,
                           loggingDelegate => loggingDelegate.Invoke(
                               this,
                               DateTimeOffset.UtcNow,
@@ -655,7 +655,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 await serverTask;
 
             await LogEvent(
-                      OnStopped,
+                      OnTCPServerStopped,
                       loggingDelegate => loggingDelegate.Invoke(
                           this,
                           DateTimeOffset.UtcNow,
@@ -687,7 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             await LogEvent(
-                          OnConnectionClosed,
+                          OnTCPConnectionClosed,
                           loggingDelegate => loggingDelegate.Invoke(
                               this,
                               DateTimeOffset.UtcNow,

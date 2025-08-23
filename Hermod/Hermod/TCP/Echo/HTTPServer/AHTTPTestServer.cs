@@ -21,19 +21,44 @@ using System.Text;
 using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Runtime.CompilerServices;
 
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
-using System.Security.Authentication;
 using org.GraphDefined.Vanaheimr.Hermod.Sockets;
+using org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod
 {
+
+    /// <summary>
+    /// HTTP server started delegate.
+    /// </summary>
+    /// <param name="HTTPServer">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the TCP server started event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+    /// <param name="Message">An optional message.</param>
+    public delegate Task HTTPServerStartedDelegate(AHTTPTestServer   HTTPServer,
+                                                   DateTimeOffset    Timestamp,
+                                                   EventTracking_Id  EventTrackingId,
+                                                   String?           Message   = null);
+
+    /// <summary>
+    /// HTTP server stopped delegate.
+    /// </summary>
+    /// <param name="HTTPServer">The sender of this event.</param>
+    /// <param name="Timestamp">The timestamp of the TCP server stopped event.</param>
+    /// <param name="EventTrackingId">An unique event tracking identification for correlating this request with other events.</param>
+    /// <param name="Message">An optional message.</param>
+    public delegate Task HTTPServerStoppedDelegate(AHTTPTestServer   HTTPServer,
+                                                   DateTimeOffset    Timestamp,
+                                                   EventTracking_Id  EventTrackingId,
+                                                   String?           Message   = null);
+
 
     /// <summary>
     /// A simple HTTP test server that listens for incoming TCP connections and processes HTTP requests, supporting pipelining.
@@ -71,6 +96,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// The HTTP server name.
         /// </summary>
         public String  HTTPServerName    { get; } = DefaultHTTPServerName;
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// An event fired whenever the HTTP server started.
+        /// </summary>
+        public event HTTPServerStartedDelegate?  OnHTTPServerStarted;
+
+        /// <summary>
+        /// An event fired whenever the HTTP server stopped.
+        /// </summary>
+        public event HTTPServerStoppedDelegate?  OnHTTPServerStopped;
 
         #endregion
 
@@ -133,6 +172,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                                              ? throw new ArgumentOutOfRangeException(nameof(BufferSize), "The buffer size must not exceed Int32.MaxValue!")
                                              : (UInt32) BufferSize.Value
                                        : DefaultBufferSize;
+
+            #region Subscribe to TCP server events
+
+            base.OnTCPServerStarted += async (sender, timestamp, eventTrackingId, message) => {
+                if (OnHTTPServerStarted is not null)
+                    await OnHTTPServerStarted(this, timestamp, eventTrackingId, message);
+            };
+
+            base.OnTCPServerStopped += async (sender, timestamp, eventTrackingId, message) => {
+                if (OnHTTPServerStopped is not null)
+                    await OnHTTPServerStopped(this, timestamp, eventTrackingId, message);
+            };
+
+            #endregion
 
         }
 
