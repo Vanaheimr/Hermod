@@ -119,7 +119,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
         #endregion
 
-        public DNSClient?                  DNSClient                { get; }
+        public IDNSClient?                 DNSClient                { get; }
 
         public CancellationToken?          CancellationToken        { get; private set; }
 
@@ -164,12 +164,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// </summary>
         /// <param name="ConnectionTimeout">The timeout connecting to the remote service.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
-        public TCPClient(IIPAddress                         IPAddress,
-                         IPPort                             RemotePort,
-                         TLSUsage                           UseTLS                      = TLSUsage.STARTTLS,
-                         ValidateRemoteCertificateDelegate  ValidateServerCertificate   = null,
-                         TimeSpan?                          ConnectionTimeout           = null,
-                         Boolean                            AutoConnect                 = false)
+        public TCPClient(IIPAddress                          IPAddress,
+                         IPPort                              RemotePort,
+                         TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
+                         ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
+                         TimeSpan?                           ConnectionTimeout           = null,
+                         Boolean                             AutoConnect                 = false)
         {
 
             this.RemotePort                 = RemotePort;
@@ -202,14 +202,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
         /// <param name="DNSClient">An optional DNS client used to resolve DNS names.</param>
         /// <param name="AutoConnect">Connect to the TCP service automatically on startup. Default is false.</param>
         public TCPClient(DomainName                          RemoteHost,
-                         DNSServiceName                          ServiceName,
+                         DNSServiceName                      ServiceName,
                          Boolean                             UseIPv4                     = true,
                          Boolean                             UseIPv6                     = false,
                          Boolean                             PreferIPv6                  = false,
                          TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
                          ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
                          TimeSpan?                           ConnectionTimeout           = null,
-                         DNSClient?                          DNSClient                   = null,
+                         IDNSClient?                         DNSClient                   = null,
                          Boolean                             AutoConnect                 = false)
         {
 
@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                          TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
                          ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
                          TimeSpan?                           ConnectionTimeout           = null,
-                         DNSClient?                          DNSClient                   = null,
+                         IDNSClient?                         DNSClient                   = null,
                          Boolean                             AutoConnect                 = false,
                          CancellationToken?                  CancellationToken           = null)
         {
