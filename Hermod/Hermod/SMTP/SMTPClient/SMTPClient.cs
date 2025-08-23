@@ -120,7 +120,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                           TLSUsage                            UseTLS                      = TLSUsage.STARTTLS,
                           ValidateRemoteCertificateDelegate?  ValidateServerCertificate   = null,
                           TimeSpan?                           ConnectionTimeout           = null,
-                          DNSClient?                          DNSClient                   = null,
+                          IDNSClient?                         DNSClient                   = null,
                           Boolean                             AutoConnect                 = false,
                           CancellationToken?                  CancellationToken           = null)
 
