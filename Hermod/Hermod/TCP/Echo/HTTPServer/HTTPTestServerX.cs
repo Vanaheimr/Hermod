@@ -40,6 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                    CancellationToken  CancellationToken);
 
     public delegate Task OnHTTPResponseLogDelegate(HTTPTestServerX    HTTPServer,
+                                                   HTTPRequest        Request,
                                                    HTTPResponse       Response,
                                                    CancellationToken  CancellationToken);
 
@@ -772,7 +773,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                 #region Status Code 4xx or 5xx => Log HTTP Error Response...
 
-                if (httpResponse.HTTPStatusCode.Code > 400 &&
+                if (httpResponse.HTTPStatusCode.Code >  400 &&
                     httpResponse.HTTPStatusCode.Code <= 599)
                 {
 
@@ -780,6 +781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           OnHTTPError,
                           loggingDelegate => loggingDelegate.Invoke(
                               this,
+                              Request,
                               httpResponse,
                               CancellationToken
                           )
@@ -795,6 +797,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           OnHTTPResponse,
                           loggingDelegate => loggingDelegate.Invoke(
                               this,
+                              Request,
                               httpResponse,
                               CancellationToken
                           )
