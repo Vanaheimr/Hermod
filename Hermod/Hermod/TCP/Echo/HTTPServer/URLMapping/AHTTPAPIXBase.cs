@@ -19,10 +19,11 @@
 
 using System.Reflection;
 
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
 using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 using org.GraphDefined.Vanaheimr.Hermod.Logging;
-using Newtonsoft.Json.Linq;
 
 #endregion
 
@@ -61,20 +62,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         //public HTTPPath                 URLPathPrefix            { get; }
 
 
-        //public HTTPPath?                BasePath                 { get; }
+        public HTTPPath?                BasePath                 { get; }
 
-
-        public String                   HTMLTemplate             { get; set; }
-
-
-        public TimeSpan                 DefaultRequestTimeout    { get; protected set; } = TimeSpan.FromSeconds(30);
-
-
-                /// <summary>
+        /// <summary>
         /// The API version hash (git commit hash value).
         /// </summary>
         public String                   APIVersionHash           { get; }
+
+        /// <summary>
+        /// A JSON object containing all API version hashes.
+        /// </summary>
         public JObject                  APIVersionHashes         { get; }
+
+
+        public String                   HTMLTemplate             { get; protected set; } = String.Empty;
+
+        public TimeSpan                 DefaultRequestTimeout    { get; protected set; } = TimeSpan.FromSeconds(30);
 
 
         /// <summary>
@@ -342,9 +345,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #endregion
 
-
-
-        public String? BasePath { get; set; }
 
         #region (protected virtual) MixWithHTMLTemplate           (ResourceName, ResourceAssemblies)
 

@@ -295,57 +295,66 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
-            if (!routeNodes.TryGetValue(Hostname,         out var host) &&
-                !routeNodes.TryGetValue(HTTPHostname.Any, out     host))
-            {
-                return ParsedRequest.Error($"Unknown hostname '{Hostname}'!");
-            }
-
-            var segments  = Path.ToString().Trim('/').Split('/');
-
-            for (var i=0; i < segments.Length; i++)
+            try
             {
 
-                if (!host.Children.TryGetValue(segments[i], out var xxxx))
+                if (!routeNodes.TryGetValue(Hostname,         out var host) &&
+                    !routeNodes.TryGetValue(HTTPHostname.Any, out     host))
                 {
-                    if (!host.Children.TryGetValue("/", out xxxx))
-                    {
-                        return ParsedRequest.Error($"Unknown path segment!");
-                    }
+                    return ParsedRequest.Error($"Unknown hostname '{Hostname}'!");
                 }
 
-                host = xxxx;
+                var segments  = Path.ToString().Trim('/').Split('/');
 
-                if (host.HTTPAPI is not null)
+                for (var i=0; i < segments.Length; i++)
                 {
 
-                    var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(host.HTTPAPI.RootPath.ToString().Length - 1)..]);
-                    var parsedRouteNode  = host.HTTPAPI.GetRequestHandle(newPath);//(Hostname, newPath, HTTPMethod, HTTPContentTypeSelector, ParsedURLParametersDelegate);
+                    if (!host.Children.TryGetValue(segments[i], out var xxxx))
+                    {
+                        if (!host.Children.TryGetValue("/", out xxxx))
+                        {
+                            return ParsedRequest.Error($"Unknown path segment!");
+                        }
+                    }
 
-                    if (parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodX))
+                    host = xxxx;
+
+                    if (host.HTTPAPI is not null)
                     {
 
-                        if (methodX.ContentTypes.Any() && HTTPContentTypeSelector is not null)
+                        var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(host.HTTPAPI.RootPath.ToString().Length - 1)..]);
+                        var parsedRouteNode  = host.HTTPAPI.GetRequestHandle(newPath);//(Hostname, newPath, HTTPMethod, HTTPContentTypeSelector, ParsedURLParametersDelegate);
+
+                        if (parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodX))
                         {
 
-                            var bestMatchingContentType = HTTPContentTypeSelector([.. methodX.ContentTypes]);
-
-                            if (bestMatchingContentType != HTTPContentType.ALL)
+                            if (methodX.ContentTypes.Any() && HTTPContentTypeSelector is not null)
                             {
-                                if (methodX.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
-                                    return ParsedRequest.Parsed(contentTypeNode, parsedRouteNode.Parameters);
+
+                                var bestMatchingContentType = HTTPContentTypeSelector([.. methodX.ContentTypes]);
+
+                                if (bestMatchingContentType != HTTPContentType.ALL)
+                                {
+                                    if (methodX.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
+                                        return ParsedRequest.Parsed(contentTypeNode, parsedRouteNode.Parameters);
+                                }
+
                             }
+
+                            return ParsedRequest.Parsed(methodX.RequestHandlers, parsedRouteNode.Parameters);
 
                         }
 
-                        return ParsedRequest.Parsed(methodX.RequestHandlers, parsedRouteNode.Parameters);
+                        return ParsedRequest.Parsed(parsedRouteNode.RouteNode.RequestHandlers, parsedRouteNode.Parameters);
 
                     }
 
-                    return ParsedRequest.Parsed(parsedRouteNode.RouteNode.RequestHandlers, parsedRouteNode.Parameters);
-
                 }
 
+            }
+            catch (Exception e)
+            {
+                return ParsedRequest.Error(e.Message + Environment.NewLine + e.StackTrace);
             }
 
             return ParsedRequest.Error($"error!");
@@ -598,201 +607,221 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                CancellationToken  CancellationToken   = default)
 
         {
-
-            Request.HTTPTestServerX = this;
-
-            #region Log HTTP Request
-
-            await LogEvent(
-                      OnHTTPRequest,
-                      loggingDelegate => loggingDelegate.Invoke(
-                          this,
-                          Request,
-                          CancellationToken
-                      )
-                  );
-
-            #endregion
-
-
-            #region Process HTTP pipelines...
-
-            HTTPResponse? httpResponse = null;
-
-            foreach (var httpPipeline in httpPipelines)
+            try
             {
 
-                (Request, httpResponse)  = await httpPipeline.ProcessHTTPRequest(
-                                                     Request,
-                                                     CancellationToken
-                                                 );
+                Request.HTTPTestServerX = this;
 
-                // Stop, when a pipeline returned a response!
-                if (httpResponse is not null)
-                    break;
+                #region Log HTTP Request
 
-            }
+                await LogEvent(
+                          OnHTTPRequest,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              Request,
+                              CancellationToken
+                          )
+                      );
 
-            #endregion
+                #endregion
 
-            if (httpResponse is null)
-            {
 
-                var parsedRequest = GetRequestHandle(Request);
+                #region Process HTTP pipelines...
 
-                if (parsedRequest.RequestHandlers is not null)
+                HTTPResponse? httpResponse = null;
+
+                foreach (var httpPipeline in httpPipelines)
                 {
 
-                    #region Call HTTP request logger
+                    (Request, httpResponse)  = await httpPipeline.ProcessHTTPRequest(
+                                                         Request,
+                                                         CancellationToken
+                                                     );
 
-                    await LogEvent(
-                              parsedRequest.RequestHandlers.HTTPRequestLogger,
-                              loggingDelegate => loggingDelegate.Invoke(
-                                  Timestamp.Now,
-                                  parsedRequest.RequestHandlers.HTTPAPI,
-                                  Request,
-                                  CancellationToken
-                              )
-                          );
+                    // Stop, when a pipeline returned a response!
+                    if (httpResponse is not null)
+                        break;
 
-                    #endregion
+                }
 
-                    #region Process HTTP request
+                #endregion
 
-                    var httpDelegate = parsedRequest.RequestHandlers.RequestHandler;
-                    if (httpDelegate is not null)
+                if (httpResponse is null)
+                {
+
+                    var parsedRequest = GetRequestHandle(Request);
+
+                    if (parsedRequest.RequestHandlers is not null)
                     {
 
-                        try
+                        #region Call HTTP request logger
+
+                        await LogEvent(
+                                  parsedRequest.RequestHandlers.HTTPRequestLogger,
+                                  loggingDelegate => loggingDelegate.Invoke(
+                                      Timestamp.Now,
+                                      parsedRequest.RequestHandlers.HTTPAPI,
+                                      Request,
+                                      CancellationToken
+                                  )
+                              );
+
+                        #endregion
+
+                        #region Process HTTP request
+
+                        var httpDelegate = parsedRequest.RequestHandlers.RequestHandler;
+                        if (httpDelegate is not null)
                         {
 
-                             Request.ParsedURLParametersX  = parsedRequest.Parameters;
-                             Request.NetworkStream         = Stream;
+                            try
+                            {
 
-                             httpResponse                  = await httpDelegate(Request);
+                                 Request.ParsedURLParametersX  = parsedRequest.Parameters;
+                                 Request.NetworkStream         = Stream;
+
+                                 httpResponse                  = await httpDelegate(Request);
+
+                            }
+                            catch (Exception e)
+                            {
+
+                                httpResponse = new HTTPResponse.Builder(Request) {
+                                                   HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                                  // Server          = DefaultServerName,
+                                                   ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                                   Content         = JSONObject.Create(
+                                                                         new JProperty("request",      Request.FirstPDULine),
+                                                                         new JProperty("description",  e.Message),
+                                                                         new JProperty("stackTrace",   e.StackTrace),
+                                                                         new JProperty("source",       e.TargetSite?.Module.Name),
+                                                                         new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
+                                                                     ).ToUTF8Bytes(),
+                                                   Connection      = ConnectionType.Close
+                                               };
+
+                            }
 
                         }
-                        catch (Exception e)
-                        {
-
+                        else
                             httpResponse = new HTTPResponse.Builder(Request) {
                                                HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                              // Server          = DefaultServerName,
+                                            //   Server          = DefaultServerName,
                                                ContentType     = HTTPContentType.Application.JSON_UTF8,
                                                Content         = JSONObject.Create(
-                                                                     new JProperty("request",      Request.FirstPDULine),
-                                                                     new JProperty("description",  e.Message),
-                                                                     new JProperty("stackTrace",   e.StackTrace),
-                                                                     new JProperty("source",       e.TargetSite?.Module.Name),
-                                                                     new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
-                                                                 ).ToUTF8Bytes(),
+                                                                       new JProperty("request",       Request.FirstPDULine),
+                                                                       new JProperty("description",  "HTTP request handler must not be null!")
+                                                                   ).ToUTF8Bytes(),
                                                Connection      = ConnectionType.Close
                                            };
 
-                        }
+                        httpResponse ??= new HTTPResponse.Builder(Request) {
+                                             HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                                          //   Server          = DefaultServerName,
+                                             ContentType     = HTTPContentType.Application.JSON_UTF8,
+                                             Content         = JSONObject.Create(
+                                                                     new JProperty("request",       Request.FirstPDULine),
+                                                                     new JProperty("description",  "HTTP response must not be null!")
+                                                                 ).ToUTF8Bytes(),
+                                             Connection      = ConnectionType.Close
+                                         };
+
+                        #endregion
+
+                        #region Call HTTP response logger
+
+                        await LogEvent(
+                                  parsedRequest.RequestHandlers.HTTPResponseLogger,
+                                  loggingDelegate => loggingDelegate.Invoke(
+                                      Timestamp.Now,
+                                      parsedRequest.RequestHandlers.HTTPAPI,
+                                      Request,
+                                      httpResponse,
+                                      CancellationToken
+                                  )
+                              );
+
+                        #endregion
 
                     }
-                    else
+
+                    if (parsedRequest.ErrorResponse == "This HTTP method is not allowed!")
                         httpResponse = new HTTPResponse.Builder(Request) {
-                                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                        //   Server          = DefaultServerName,
-                                           ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                           Content         = JSONObject.Create(
-                                                                   new JProperty("request",       Request.FirstPDULine),
-                                                                   new JProperty("description",  "HTTP request handler must not be null!")
-                                                               ).ToUTF8Bytes(),
-                                           Connection      = ConnectionType.Close
+                                           HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
+                                           Server          = Request.Host.ToString(),
+                                           Date            = Timestamp.Now,
+                                           ContentType     = HTTPContentType.Text.PLAIN,
+                                           Content         = parsedRequest.ErrorResponse.ToUTF8Bytes()
+                                 //          Connection      = ConnectionType.Close
                                        };
 
                     httpResponse ??= new HTTPResponse.Builder(Request) {
                                          HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                      //   Server          = DefaultServerName,
+                                         Server          = Request.Host.ToString(),
+                                         Date            = Timestamp.Now,
                                          ContentType     = HTTPContentType.Application.JSON_UTF8,
                                          Content         = JSONObject.Create(
-                                                                 new JProperty("request",       Request.FirstPDULine),
-                                                                 new JProperty("description",  "HTTP response must not be null!")
-                                                             ).ToUTF8Bytes(),
-                                         Connection      = ConnectionType.Close
+                                                               new JProperty("request",      Request.FirstPDULine),
+                                                               new JProperty("description",  parsedRequest.ErrorResponse)
+                                                           ).ToUTF8Bytes()
+                                      //   Connection      = ConnectionType.Close
                                      };
-
-                    #endregion
-
-                    #region Call HTTP response logger
-
-                    await LogEvent(
-                              parsedRequest.RequestHandlers.HTTPResponseLogger,
-                              loggingDelegate => loggingDelegate.Invoke(
-                                  Timestamp.Now,
-                                  parsedRequest.RequestHandlers.HTTPAPI,
-                                  Request,
-                                  httpResponse,
-                                  CancellationToken
-                              )
-                          );
-
-                    #endregion
 
                 }
 
-                if (parsedRequest.ErrorResponse == "This HTTP method is not allowed!")
-                    httpResponse = new HTTPResponse.Builder(Request) {
-                                       HTTPStatusCode  = HTTPStatusCode.MethodNotAllowed,
-                                       Server          = Request.Host.ToString(),
-                                       Date            = Timestamp.Now,
-                                       ContentType     = HTTPContentType.Text.PLAIN,
-                                       Content         = parsedRequest.ErrorResponse.ToUTF8Bytes()
-                             //          Connection      = ConnectionType.Close
-                                   };
 
-                httpResponse ??= new HTTPResponse.Builder(Request) {
-                                     HTTPStatusCode  = HTTPStatusCode.InternalServerError,
-                                     Server          = Request.Host.ToString(),
-                                     Date            = Timestamp.Now,
-                                     ContentType     = HTTPContentType.Application.JSON_UTF8,
-                                     Content         = JSONObject.Create(
-                                                           new JProperty("request",      Request.FirstPDULine),
-                                                           new JProperty("description",  parsedRequest.ErrorResponse)
-                                                       ).ToUTF8Bytes()
-                                  //   Connection      = ConnectionType.Close
-                                 };
+                #region Status Code 4xx or 5xx => Log HTTP Error Response...
 
-            }
+                if (httpResponse.HTTPStatusCode.Code > 400 &&
+                    httpResponse.HTTPStatusCode.Code <= 599)
+                {
 
+                    await LogEvent(
+                          OnHTTPError,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              httpResponse,
+                              CancellationToken
+                          )
+                      );
 
-            #region Status Code 4xx or 5xx => Log HTTP Error Response...
+                }
 
-            if (httpResponse.HTTPStatusCode.Code > 400 &&
-                httpResponse.HTTPStatusCode.Code <= 599)
-            {
+                #endregion
+
+                #region ...else log HTTP Response
 
                 await LogEvent(
-                      OnHTTPError,
-                      loggingDelegate => loggingDelegate.Invoke(
-                          this,
-                          httpResponse,
-                          CancellationToken
-                      )
-                  );
+                          OnHTTPResponse,
+                          loggingDelegate => loggingDelegate.Invoke(
+                              this,
+                              httpResponse,
+                              CancellationToken
+                          )
+                      );
+
+                #endregion
+
+
+                return httpResponse;
 
             }
-
-            #endregion
-
-            #region ...else log HTTP Response
-
-            await LogEvent(
-                      OnHTTPResponse,
-                      loggingDelegate => loggingDelegate.Invoke(
-                          this,
-                          httpResponse,
-                          CancellationToken
-                      )
-                  );
-
-            #endregion
-
-
-            return httpResponse;
+            catch (Exception e)
+            {
+                return new HTTPResponse.Builder(Request) {
+                           HTTPStatusCode  = HTTPStatusCode.InternalServerError,
+                        //   Server          = DefaultServerName,
+                           ContentType     = HTTPContentType.Application.JSON_UTF8,
+                           Content         = JSONObject.Create(
+                                                 new JProperty("request",      Request?.FirstPDULine ?? "null"),
+                                                 new JProperty("description",  e.Message),
+                                                 new JProperty("stackTrace",   e.StackTrace),
+                                                 new JProperty("source",       e.TargetSite?.Module.Name),
+                                                 new JProperty("type",         e.TargetSite?.ReflectedType?.Name)
+                                             ).ToUTF8Bytes(),
+                           Connection      = ConnectionType.Close
+                       };
+            }
 
             //await SendResponse(
             //          Stream,

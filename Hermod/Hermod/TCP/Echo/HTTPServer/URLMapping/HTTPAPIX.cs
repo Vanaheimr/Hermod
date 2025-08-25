@@ -713,75 +713,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         Boolean?                       IsDevelopment             = null,
                         IEnumerable<String>?           DevelopmentServers        = null,
                         Boolean?                       DisableLogging            = false,
-                        String                         LoggingPath               = DefaultHTTPAPI_LoggingPath,
-                        String                         LoggingContext            = DefaultLoggingContext,
-                        String                         LogfileName               = DefaultHTTPAPI_LogfileName,
+                        String?                        LoggingPath               = DefaultHTTPAPI_LoggingPath,
+                        String?                        LoggingContext            = DefaultLoggingContext,
+                        String?                        LogfileName               = DefaultHTTPAPI_LogfileName,
                         LogfileCreatorDelegate?        LogfileCreator            = null)
-
-            : this(Hostnames,
-                   RootPath,
-                   HTTPContentTypes,
-                   Description,
-                   HTTPServer,
-
-                   ExternalDNSName,
-                   BasePath,
-
-                   HTTPServerName,
-                   HTTPServiceName,
-                   APIVersionHash,
-                   APIVersionHashes,
-
-                   DisableMaintenanceTasks,
-                   MaintenanceInitialDelay,
-                   MaintenanceEvery,
-
-                   DisableWardenTasks,
-                   WardenInitialDelay,
-                   WardenCheckEvery,
-
-                   IsDevelopment,
-                   DevelopmentServers,
-                   DisableLogging,
-                   LoggingPath,
-                   LoggingContext,
-                   LogfileName,
-                   LogfileCreator)
-
-        {
-
-        }
-
-
-        internal HTTPAPIX(IEnumerable<HTTPHostname>?     Hostnames                 = null,
-                          HTTPPath?                      RootPath                  = null,
-                          IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
-                          I18NString?                    Description               = null,
-                          HTTPTestServerX?               HTTPServer                = null,
-
-                          String?                        ExternalDNSName           = null,
-                          HTTPPath?                      BasePath                  = null,
-
-                          String?                        HTTPServerName            = null,
-                          String?                        HTTPServiceName           = null,
-                          String?                        APIVersionHash            = null,
-                          JObject?                       APIVersionHashes          = null,
-
-                          Boolean?                       DisableMaintenanceTasks   = false,
-                          TimeSpan?                      MaintenanceInitialDelay   = null,
-                          TimeSpan?                      MaintenanceEvery          = null,
-
-                          Boolean?                       DisableWardenTasks        = false,
-                          TimeSpan?                      WardenInitialDelay        = null,
-                          TimeSpan?                      WardenCheckEvery          = null,
-
-                          Boolean?                       IsDevelopment             = null,
-                          IEnumerable<String>?           DevelopmentServers        = null,
-                          Boolean?                       DisableLogging            = false,
-                          String                         LoggingPath               = DefaultHTTPAPI_LoggingPath,
-                          String                         LoggingContext            = DefaultLoggingContext,
-                          String                         LogfileName               = DefaultHTTPAPI_LogfileName,
-                          LogfileCreatorDelegate?        LogfileCreator            = null)
 
             : base(HTTPServerName,
                    HTTPServiceName,
@@ -797,14 +732,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         {
 
-            this.Hostnames           = Hostnames?.       Distinct() ?? [];
-            this.RootPath            = RootPath                     ?? HTTPPath.Root;
-            this.HTTPContentTypes    = HTTPContentTypes?.Distinct() ?? [];
-            this.Description         = Description                  ?? I18NString.Empty;
-            this.HTTPServer          = HTTPServer;
+            this.Hostnames                = Hostnames?.       Distinct() ?? [];
+            this.RootPath                 = RootPath                     ?? HTTPPath.Root;
+            this.HTTPContentTypes         = HTTPContentTypes?.Distinct() ?? [];
+            this.Description              = Description                  ?? I18NString.Empty;
+            this.HTTPServer               = HTTPServer;
 
-            this.ExternalDNSName     = ExternalDNSName;
-            this.BasePath            = BasePath;
+            this.ExternalDNSName          = ExternalDNSName;
+            this.BasePath                 = BasePath;
 
             // Register HTTP API within the HTTP server!
             HTTPServer?.AddHTTPAPI(
@@ -824,13 +759,93 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                             );
 
             // Setup Warden
-            this.Warden = new Warden.Warden(
-                              WardenInitialDelay ?? TimeSpan.FromMinutes(3),
-                              WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
-                              this.HTTPServer.DNSClient
-                          );
+            this.Warden                   = new Warden.Warden(
+                                                WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+                                                WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+                                                this.HTTPServer.DNSClient
+                                            );
 
         }
+
+
+        //internal HTTPAPIX(IEnumerable<HTTPHostname>?     Hostnames                 = null,
+        //                  HTTPPath?                      RootPath                  = null,
+        //                  IEnumerable<HTTPContentType>?  HTTPContentTypes          = null,
+        //                  I18NString?                    Description               = null,
+        //                  HTTPTestServerX?               HTTPServer                = null,
+
+        //                  String?                        ExternalDNSName           = null,
+        //                  HTTPPath?                      BasePath                  = null,
+
+        //                  String?                        HTTPServerName            = null,
+        //                  String?                        HTTPServiceName           = null,
+        //                  String?                        APIVersionHash            = null,
+        //                  JObject?                       APIVersionHashes          = null,
+
+        //                  Boolean?                       DisableMaintenanceTasks   = false,
+        //                  TimeSpan?                      MaintenanceInitialDelay   = null,
+        //                  TimeSpan?                      MaintenanceEvery          = null,
+
+        //                  Boolean?                       DisableWardenTasks        = false,
+        //                  TimeSpan?                      WardenInitialDelay        = null,
+        //                  TimeSpan?                      WardenCheckEvery          = null,
+
+        //                  Boolean?                       IsDevelopment             = null,
+        //                  IEnumerable<String>?           DevelopmentServers        = null,
+        //                  Boolean?                       DisableLogging            = false,
+        //                  String?                        LoggingPath               = DefaultHTTPAPI_LoggingPath,
+        //                  String?                        LoggingContext            = DefaultLoggingContext,
+        //                  String?                        LogfileName               = DefaultHTTPAPI_LogfileName,
+        //                  LogfileCreatorDelegate?        LogfileCreator            = null)
+
+        //    : base(HTTPServerName,
+        //           HTTPServiceName,
+        //           APIVersionHash ?? APIVersionHashes?[nameof(HTTPAPIX)]?.Value<String>()?.Trim(),
+        //           APIVersionHashes,
+
+        //           IsDevelopment,
+        //           DevelopmentServers,
+        //           DisableLogging,
+        //           LoggingPath,
+        //           LogfileName,
+        //           LogfileCreator)
+
+        //{
+
+        //    this.Hostnames           = Hostnames?.       Distinct() ?? [];
+        //    this.RootPath            = RootPath                     ?? HTTPPath.Root;
+        //    this.HTTPContentTypes    = HTTPContentTypes?.Distinct() ?? [];
+        //    this.Description         = Description                  ?? I18NString.Empty;
+        //    this.HTTPServer          = HTTPServer;
+
+        //    this.ExternalDNSName     = ExternalDNSName;
+        //    this.BasePath            = BasePath;
+
+        //    // Register HTTP API within the HTTP server!
+        //    HTTPServer?.AddHTTPAPI(
+        //        this.RootPath,
+        //        HTTPHostname.Any,
+        //        (server, path) => this
+        //    );
+
+        //    // Setup Maintenance Task
+        //    this.DisableMaintenanceTasks  = DisableMaintenanceTasks ?? false;
+        //    this.MaintenanceEvery         = MaintenanceEvery        ?? DefaultMaintenanceEvery;
+        //    this.MaintenanceTimer         = new Timer(
+        //                                        DoMaintenanceSync,
+        //                                        this,
+        //                                        MaintenanceInitialDelay ?? this.MaintenanceEvery,
+        //                                        this.MaintenanceEvery
+        //                                    );
+
+        //    // Setup Warden
+        //    this.Warden = new Warden.Warden(
+        //                      WardenInitialDelay ?? TimeSpan.FromMinutes(3),
+        //                      WardenCheckEvery   ?? TimeSpan.FromMinutes(1),
+        //                      this.HTTPServer.DNSClient
+        //                  );
+
+        //}
 
         #endregion
 
@@ -1192,8 +1207,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-
-
         #region (protected virtual) GetResourceStream             (ResourceName, ResourceAssemblies)
 
         protected virtual Stream? GetResourceStream(String ResourceName)
@@ -1373,7 +1386,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             => GetMergedResourceMemoryStream(ResourceName, ResourceAssemblies)?.ToArray() ?? [];
 
         #endregion
-
 
 
         #region (Timer) DoMaintenance(State)

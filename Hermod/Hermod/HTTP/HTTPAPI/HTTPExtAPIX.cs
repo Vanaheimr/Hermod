@@ -1364,8 +1364,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         public IEnumerable<APIKey_Id>         RemoteAuthAPIKeys
             => remoteAuthAPIKeys;
 
-        public String                  HTMLTemplate          { get; set; }
-
         #endregion
 
         #region Events
@@ -2330,61 +2328,41 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                           //Boolean                                                    AutoStart                        = false)
 
                           Boolean?                       DisableLogging     = false,
-                          String                         LoggingPath        = null, //DefaultHTTPExtAPIX_LoggingPath,
-                          String                         LoggingContext     = null, //DefaultHTTPExtAPIX_LoggingContext,
-                          String                         LogfileName        = DefaultHTTPExtAPIX_LogfileName,
+                          String?                        LoggingPath        = null, //DefaultHTTPExtAPIX_LoggingPath,
+                          String?                        LoggingContext     = null, //DefaultHTTPExtAPIX_LoggingContext,
+                          String?                        LogfileName        = DefaultHTTPExtAPIX_LogfileName,
                           LogfileCreatorDelegate?        LogfileCreator     = null)
 
 
-            : base(//HTTPHostname,
-                   //ExternalDNSName,
-                   //HTTPServerPort,
-                   //BasePath,
-                   //HTTPServerName  ?? DefaultHTTPServerName,
-                   //
-                   //URLPathPrefix,
-                   //HTTPServiceName ?? DefaultHTTPServiceName,
-                   //HTMLTemplate,
-                   //APIVersionHashes,
-                   //
-                   //IsDevelopment,
-                   //DevelopmentServers,
-                   //DisableLogging,
-                   //LoggingPath ?? Path.Combine(AppContext.BaseDirectory, DefaultHTTPAPI_LoggingPath),
-                   //LogfileName ?? DefaultHTTPExtAPIX_LogfileName,
-                   //LogfileCreator,
-                   //DNSClient,
-                   //false) // AutoStart
+            : base(HTTPTestServer,
+                   Hostnames,
+                   RootPath,
+                   HTTPContentTypes,
+                   Description,
 
-                  HTTPTestServer,
-                  Hostnames,
-                  RootPath,
-                  HTTPContentTypes,
-                  Description,
+                   ExternalDNSName,
+                   BasePath,
 
-                  ExternalDNSName,
-                  BasePath,
+                   HTTPServerName  ?? DefaultHTTPServerName,
+                   HTTPServiceName ?? DefaultHTTPServiceName,
+                   APIVersionHash  ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
+                   APIVersionHashes,
 
-                  HTTPServerName  ?? DefaultHTTPServerName,
-                  HTTPServiceName ?? DefaultHTTPServiceName,
-                  APIVersionHash  ?? APIVersionHashes?[nameof(HTTPExtAPIX)]?.Value<String>()?.Trim(),
-                  APIVersionHashes,
+                   DisableMaintenanceTasks,
+                   MaintenanceInitialDelay,
+                   MaintenanceEvery,
 
-                  DisableMaintenanceTasks,
-                  MaintenanceInitialDelay,
-                  MaintenanceEvery,
+                   DisableWardenTasks,
+                   WardenInitialDelay,
+                   WardenCheckEvery,
 
-                  DisableWardenTasks,
-                  WardenInitialDelay,
-                  WardenCheckEvery,
-
-                  IsDevelopment,
-                  DevelopmentServers,
-                  DisableLogging,
-                  LoggingPath,
-                  LoggingContext,
-                  LogfileName,
-                  LogfileCreator)
+                   IsDevelopment,
+                   DevelopmentServers,
+                   DisableLogging,
+                   LoggingPath,
+                   LoggingContext,
+                   LogfileName,
+                   LogfileCreator)
 
         {
 
