@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
         public Byte[] GetBytes()
         {
 
-            //if (IPv4Packet != null)
+            //if (IPv4Packet is not null)
             //    PacketData = IPv4Packet.GetBytes();
 
             //if (IPv4Packet is ICMPEchoReply)              Type =  0; else

@@ -136,7 +136,7 @@
 //        public static Boolean TryParse(String Text, out HTTPURI URI)
 //        {
 
-//            if (Text != null)
+//            if (Text is not null)
 //                Text = Text.Trim();
 
 //            if (!Text.StartsWith("/"))
@@ -275,7 +275,7 @@
 //                return true;
 
 //            // If one is null, but not both, return false.
-//            if (((Object) HTTPURI1 == null) || ((Object) HTTPURI2 == null))
+//            if (((Object) HTTPURI1 is null) || ((Object) HTTPURI2 is null))
 //                return false;
 
 //            return HTTPURI1.Equals(HTTPURI2);
@@ -300,7 +300,7 @@
 //                return true;
 
 //            // If one is null, but not both, return false.
-//            if (((Object) HTTPURI1 == null) || ((Object) Text == null))
+//            if (((Object) HTTPURI1 is null) || ((Object) Text is null))
 //                return false;
 
 //            return HTTPURI1.Equals(Text);
@@ -346,7 +346,7 @@
 //        public static Boolean operator < (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
 //        {
 
-//            if ((Object) HTTPURI1 == null)
+//            if ((Object) HTTPURI1 is null)
 //                throw new ArgumentNullException(nameof(HTTPURI1), "The given HTTPURI1 must not be null!");
 
 //            return HTTPURI1.CompareTo(HTTPURI2) < 0;
@@ -379,7 +379,7 @@
 //        public static Boolean operator > (HTTPURI HTTPURI1, HTTPURI HTTPURI2)
 //        {
 
-//            if ((Object) HTTPURI1 == null)
+//            if ((Object) HTTPURI1 is null)
 //                throw new ArgumentNullException(nameof(HTTPURI1), "The given HTTPURI1 must not be null!");
 
 //            return HTTPURI1.CompareTo(HTTPURI2) > 0;
@@ -445,7 +445,7 @@
 //        public Int32 CompareTo(Object Object)
 //        {
 
-//            if (Object == null)
+//            if (Object is null)
 //                throw new ArgumentNullException("The given object must not be null!");
 
 //            if (Object is HTTPURI)
@@ -469,7 +469,7 @@
 //        public Int32 CompareTo(HTTPURI HTTPURI)
 //        {
 
-//            if ((Object) HTTPURI == null)
+//            if ((Object) HTTPURI is null)
 //                throw new ArgumentNullException("The given HTTP uniform resource identifier must not be null!");
 
 //            return InternalId.CompareTo(HTTPURI.InternalId);
@@ -492,7 +492,7 @@
 //        public override Boolean Equals(Object Object)
 //        {
 
-//            if (Object == null)
+//            if (Object is null)
 //                return false;
 
 //            if (Object is HTTPURI)
@@ -517,7 +517,7 @@
 //        public Boolean Equals(HTTPURI HTTPURI)
 //        {
 
-//            if ((Object) HTTPURI == null || InternalId == null)
+//            if ((Object) HTTPURI is null || InternalId is null)
 //                return false;
 
 //            return InternalId.Equals(HTTPURI.InternalId);

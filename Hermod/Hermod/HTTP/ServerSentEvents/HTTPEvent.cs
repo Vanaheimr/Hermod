@@ -199,7 +199,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPEvent1 == null) || ((Object) HTTPEvent2 == null))
+            if (((Object) HTTPEvent1 is null) || ((Object) HTTPEvent2 is null))
                 return false;
 
             return HTTPEvent1.Equals(HTTPEvent2);
@@ -232,7 +232,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator < (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
         {
 
-            if ((Object) HTTPEvent1 == null)
+            if ((Object) HTTPEvent1 is null)
                 throw new ArgumentNullException(nameof(HTTPEvent1), "The given HTTPEvent1 must not be null!");
 
             return HTTPEvent1.CompareTo(HTTPEvent2) < 0;
@@ -265,7 +265,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator > (HTTPEvent<T> HTTPEvent1, HTTPEvent<T> HTTPEvent2)
         {
 
-            if ((Object) HTTPEvent1 == null)
+            if ((Object) HTTPEvent1 is null)
                 throw new ArgumentNullException(nameof(HTTPEvent1), "The given HTTPEvent1 must not be null!");
 
             return HTTPEvent1.CompareTo(HTTPEvent2) > 0;

@@ -205,7 +205,7 @@
 //                                 Boolean         AutoStart          = false)
 //        {
 
-//            if (Mapper == null)
+//            if (Mapper is null)
 //                throw new ArgumentNullException("The mapper delegate must not be null!");
 
 //            this._MulticastAddress        = MulticastAddress;
@@ -317,13 +317,13 @@
 //                                Interlocked.Exchange(ref WaitForChildTaskCreation, 0);
 
 //                                // Start upper-layer protocol processing
-//                                if (OnNotification_Message_Local != null)
+//                                if (OnNotification_Message_Local is not null)
 //                                    OnNotification_Message_Local(Mapper(TimestampLocal,
 //                                                                        this.LocalSocket,
 //                                                                        RemoteSocketLocal,
 //                                                                        UDPPacketLocal));
 
-//                                if (OnNotification_UDPPacket_Local != null)
+//                                if (OnNotification_UDPPacket_Local is not null)
 //                                    OnNotification_UDPPacket_Local(new UDPPacket<TOut>(
 //                                                                       TimestampLocal,
 //                                                                       this.LocalSocket,
@@ -362,7 +362,7 @@
 //            catch (Exception ex)
 //            {
 //                var OnErrorLocal = OnException;
-//                if (OnErrorLocal != null)
+//                if (OnErrorLocal is not null)
 //                    OnErrorLocal(this, ex);
 //            }
 
@@ -433,7 +433,7 @@
 
 //            //            Array.Resize(ref data, _NumberOfReceivedBytes);
 
-//            //            if (OnNotification_Message != null)
+//            //            if (OnNotification_Message is not null)
 //            //                OnNotification_Message(
 //            //                    //new ArrowIPSource(
 //            //                    //    (LocalEndPoint as IPEndPoint).Address.ToString(),
@@ -465,7 +465,7 @@
 //        public void Shutdown(Boolean Wait = true)
 //        {
 
-//            if (ListenerTask == null)
+//            if (ListenerTask is null)
 //                throw new Exception("You can not stop the listener if it wasn't started before!");
 
 //            this.CancellationTokenSource.Cancel();

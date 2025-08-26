@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 var chunkHeader = TEBlock.ToUTF8String()?.Split(';');
 
-                if (chunkHeader != null)
+                if (chunkHeader is not null)
                 {
 
                     if (chunkHeader[0].IsNotNullOrEmpty())
@@ -87,7 +87,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                             var tuple = chunkHeader[i]?.Split('=');
 
-                            if (tuple != null && tuple.Length > 0 && tuple[0].IsNotNullOrEmpty())
+                            if (tuple is not null && tuple.Length > 0 && tuple[0].IsNotNullOrEmpty())
                             {
 
                                 if (!extensions.ContainsKey(tuple[0]))

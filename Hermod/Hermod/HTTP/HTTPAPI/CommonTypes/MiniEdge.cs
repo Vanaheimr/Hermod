@@ -116,7 +116,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException("The given object must not be null!");
 
             if (!(Object is MiniEdge<TSource, TEdge, TTarget>))
@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(MiniEdge<TSource, TEdge, TTarget> MiniEdge)
         {
 
-            if ((Object)MiniEdge == null)
+            if ((Object)MiniEdge is null)
                 throw new ArgumentNullException("The given miniedge must not be null!");
 
             var source = Source.CompareTo(MiniEdge.Source);
@@ -173,7 +173,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (!(Object is MiniEdge<TSource, TEdge, TTarget>))
@@ -195,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(MiniEdge<TSource, TEdge, TTarget> MiniEdge)
         {
 
-            if ((Object)MiniEdge == null)
+            if ((Object)MiniEdge is null)
                 return false;
 
             if (!Source.Equals(MiniEdge.Source))

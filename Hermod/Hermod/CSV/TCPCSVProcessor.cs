@@ -161,7 +161,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                             else if (EndOfCSVLine == EOLSearch.EoL_Found)
                             {
 
-                                if (MemoryStream.Length > 0 && OnNotification != null)
+                                if (MemoryStream.Length > 0 && OnNotification is not null)
                                 {
 
                                     #region Check UTF8 encoding
@@ -205,7 +205,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                                     TCPResult<String> Result = null;
 
                                     var OnNotificationLocal = OnNotification;
-                                    if (OnNotificationLocal != null)
+                                    if (OnNotificationLocal is not null)
                                     {
 
                                         TCPConnection.WriteLineToResponseStream(OnNotificationLocal(TCPConnection,
@@ -271,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                 else
                 {
 
-                    //if (OnError != null)
+                    //if (OnError is not null)
                     //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
@@ -281,7 +281,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
             catch (Exception e)
             {
 
-                //if (OnError != null)
+                //if (OnError is not null)
                 //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }

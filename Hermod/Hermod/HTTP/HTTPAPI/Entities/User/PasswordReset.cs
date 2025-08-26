@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
                     userIds = UserIdArray.
-                                  Where (jsonvalue => jsonvalue != null).
+                                  Where (jsonvalue => jsonvalue is not null).
                                   Select(jsonvalue => User_Id.Parse(jsonvalue.Value<String>())).
                                   ToHashSet();
 

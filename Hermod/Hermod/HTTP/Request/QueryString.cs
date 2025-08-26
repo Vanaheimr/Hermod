@@ -1256,7 +1256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         Func<T, DateTime, Boolean>  FilterDelegate)
         {
 
-            if (FilterDelegate != null &&
+            if (FilterDelegate is not null &&
                 TryGetString(ParameterName, out var value) &&
                 DateTime.TryParse(value, out var timestamp))
             {

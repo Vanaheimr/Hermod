@@ -338,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                         DebugX.Log("Modbus/TCP Server IO exception: " + Environment.NewLine + ioe);
 
-                        //if (OnError != null)
+                        //if (OnError is not null)
                         //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                     }
@@ -350,7 +350,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                     DebugX.Log("Modbus/TCP Server exception: " + Environment.NewLine + e);
 
-                    //if (OnError != null)
+                    //if (OnError is not null)
                     //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
                 }

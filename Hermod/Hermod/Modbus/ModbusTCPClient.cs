@@ -1097,7 +1097,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
 
                 //if (retries > 0)
                 //{
-                //    if (SerialPort != null)
+                //    if (SerialPort is not null)
                 //    {
                 //        SerialPort.Close();
                 //        SerialPort.Open();
@@ -1106,7 +1106,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
                 //}
 
                 //ByteArray = RequestDelegate(ModbusPacket);
-                //if (SerialPort != null)
+                //if (SerialPort is not null)
                 //    _CRC = CRC16.CheckCRC16(ByteArray);
                 //else
                 //    _CRC = true;
@@ -1132,7 +1132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
         private async Task<Byte[]> WriteAsyncData(MemoryStream write_data)
         {
 
-            //if ((tcpAsyCl != null) && (tcpAsyCl.Connected))
+            //if ((tcpAsyCl is not null) && (tcpAsyCl.Connected))
             //{
             //    try
             //    {

@@ -912,7 +912,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    out TValue?        Value)
         {
 
-            if (TryParser != null &&
+            if (TryParser is not null &&
                 headerFields.TryGetValue(HeaderField, out var value) &&
                 value is String text &&
                 TryParser(text, out Value))
@@ -937,7 +937,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                           out TValue?              Value)
         //{
 
-        //    if (TryParser != null &&
+        //    if (TryParser is not null &&
         //        headerFields.TryGetValue(HeaderField.Name, out var value) &&
         //        value is String text &&
         //        TryParser(text, out Value))

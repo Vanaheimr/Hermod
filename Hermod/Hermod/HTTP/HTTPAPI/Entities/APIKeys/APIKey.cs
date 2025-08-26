@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_API == value)
                     return;
 
-                if (_API != null)
+                if (_API is not null)
                     throw new ArgumentException("Illegal attempt to change the API of this API key!");
 
                 _API = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this API key!");
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (_APIX == value)
                     return;
 
-                if (_APIX != null)
+                if (_APIX is not null)
                     throw new ArgumentException("Illegal attempt to change the API of this API key!");
 
                 _APIX = value ?? throw new ArgumentException("Illegal attempt to delete the API reference of this API key!");
@@ -713,7 +713,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             => String.Concat("'", Id, "' for ",
                              UserId.ToString(), ", [",
                              AccessRights.ToString(),
-                             NotAfter != null ? ", expires at " + NotAfter.Value.ToISO8601() : String.Empty,
+                             NotAfter is not null ? ", expires at " + NotAfter.Value.ToISO8601() : String.Empty,
                              IsDisabled ? ", disabled]" : "]");
 
         #endregion

@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (StatusCode == null)
+            if (StatusCode is null)
                 return HTTPErrorResponse_old(HTTPRequest, HTTPStatusCode.InternalServerError, "Calling the HTTPError lead to an error!");
 
             var Content     = String.Empty;
@@ -67,7 +67,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //     }
             // }
             if (ContentType == HTTPContentType.Application.JSON_UTF8)
-                Content = (Reasons == null) ? "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\" } }" :
+                Content = (Reasons is null) ? "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\" } }" :
                                               "{ \"error\": { \"code\" : " + StatusCode.Code + ", \"message\" : \"" + StatusCode.Name + "\", \"reasons\" : \"" + Reasons + "\" } }";
 
             #endregion
@@ -86,7 +86,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //  </body>
             //</html>
             else if (ContentType == HTTPContentType.Text.HTML_UTF8)
-                Content = (Reasons == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
+                Content = (Reasons is null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
                                               "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reasons + "</body></html>";
 
             #endregion
@@ -96,7 +96,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Error 400 - Bad Request
             // The first paramter is not a valid number!
             else if (ContentType == HTTPContentType.Text.PLAIN || ContentType == HTTPContentType.ALL)
-                Content = (Reasons == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
+                Content = (Reasons is null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
                                               "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reasons;
 
             #endregion
@@ -110,7 +110,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //     <reason>The first paramter is not a valid number!</message>
             // </error>
             else if (ContentType == HTTPContentType.Application.XML_UTF8)
-                Content = (Reasons == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
+                Content = (Reasons is null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
                                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reasons + "</reasons></error></xml>";
 
             #endregion
@@ -142,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // </gexf>
             //     <reason></message>
             else if (ContentType == HTTPContentType.Application.GEXF_UTF8)
-                Content = (Reasons == null) ? 
+                Content = (Reasons is null) ? 
                     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                     "<gexf xmlns=\"http://www.gexf.net/1.2draft\" version=\"1.2\">" +
                     "<meta lastmodifieddate=\"2009-03-20\"><creator>Vanaheimr Walkyr</creator><description>HTTP Error</description></meta>" +

@@ -78,7 +78,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    : new JArray(UserGroups.
                                     OrderBy       (userGroup => userGroup.Id).
                                     SkipTakeFilter(Skip, Take).
-                                    SafeSelect    (userGroup => UserGroupToJSON != null
+                                    SafeSelect    (userGroup => UserGroupToJSON is not null
                                                                             ? UserGroupToJSON (userGroup,
                                                                                                        Embedded,
                                                                                                        ExpandUsers,
@@ -156,7 +156,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         public IEnumerable<User2UserGroupEdge> User2GroupInEdges(Func<User2UserGroupEdgeLabel, Boolean>? User2GroupEdgeFilter = null)
             => _User2UserGroup_Edges.
-                   Where(edge => User2GroupEdgeFilter != null ? User2GroupEdgeFilter(edge.EdgeLabel) : true);
+                   Where(edge => User2GroupEdgeFilter is not null ? User2GroupEdgeFilter(edge.EdgeLabel) : true);
 
 
         /// <summary>
@@ -294,7 +294,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var parents = new HashSet<UserGroup>();
             _GetAllParents(ref parents);
 
-            return Include != null
+            return Include is not null
                        ? parents.Where(Include)
                        : parents;
 
@@ -311,7 +311,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             parentsAndMe.Add(this);
             _GetAllParents(ref parentsAndMe);
 
-            return Include != null
+            return Include is not null
                        ? parentsAndMe.Where(Include)
                        : parentsAndMe;
 
@@ -360,7 +360,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var childs = new HashSet<UserGroup>();
             _GetAllChilds(ref childs);
 
-            return Include != null
+            return Include is not null
                        ? childs.Where(Include)
                        : childs;
 
@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             childAndMe.Add(this);
             _GetAllChilds(ref childAndMe);
 
-            return Include != null
+            return Include is not null
                        ? childAndMe.Where(Include)
                        : childAndMe;
 
@@ -531,9 +531,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         {
 
-            this._User2UserGroup_Edges          = User2GroupInEdges != null ? new List<User2UserGroupEdge>     (User2GroupInEdges)           : new List<User2UserGroupEdge>();
-            this._UserGroup2UserGroup_InEdges   = User2GroupInEdges != null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupInEdges)  : new List<UserGroup2UserGroupEdge>();
-            this._UserGroup2UserGroup_OutEdges  = User2GroupInEdges != null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupOutEdges) : new List<UserGroup2UserGroupEdge>();
+            this._User2UserGroup_Edges          = User2GroupInEdges is not null ? new List<User2UserGroupEdge>     (User2GroupInEdges)           : new List<User2UserGroupEdge>();
+            this._UserGroup2UserGroup_InEdges   = User2GroupInEdges is not null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupInEdges)  : new List<UserGroup2UserGroupEdge>();
+            this._UserGroup2UserGroup_OutEdges  = User2GroupInEdges is not null ? new List<UserGroup2UserGroupEdge>(UserGroup2UserGroupOutEdges) : new List<UserGroup2UserGroupEdge>();
 
         }
 

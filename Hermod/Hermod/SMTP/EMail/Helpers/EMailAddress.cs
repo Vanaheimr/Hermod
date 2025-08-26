@@ -75,8 +75,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             {
 
                 return this +
-                       (PublicKeyRing != null ? " publickey: "  + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().First().KeyId + " (" + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count() + ")" : String.Empty) +
-                       (SecretKeyRing != null ? " privatekey: " + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().First().KeyId + " (" + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Count() + ")" : String.Empty);
+                       (PublicKeyRing is not null ? " publickey: "  + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().First().KeyId + " (" + PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Count() + ")" : String.Empty) +
+                       (SecretKeyRing is not null ? " privatekey: " + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().First().KeyId + " (" + SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Count() + ")" : String.Empty);
 
             }
         }
@@ -358,7 +358,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) EMailAddress1 == null) || ((Object) EMailAddress2 == null))
+            if (((Object) EMailAddress1 is null) || ((Object) EMailAddress2 is null))
                 return false;
 
             return EMailAddress1.Equals(EMailAddress2);
@@ -445,7 +445,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
             if (!(Object is EMailAddress))
@@ -466,7 +466,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Int32 CompareTo(EMailAddress EMailAddress)
         {
 
-            if ((Object) EMailAddress == null)
+            if ((Object) EMailAddress is null)
                 throw new ArgumentNullException();
 
             return String.Compare(ToString(), EMailAddress.ToString(), StringComparison.Ordinal);
@@ -489,7 +489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (!(Object is EMailAddress))
@@ -511,7 +511,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Boolean Equals(EMailAddress EMailAddress)
         {
 
-            if ((Object) EMailAddress == null)
+            if ((Object) EMailAddress is null)
                 return false;
 
             return ToString().Equals(EMailAddress.ToString());

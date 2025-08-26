@@ -15,51 +15,41 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Linq;
-
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections.Generic;
-
-#endregion
-
 namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>
-    /// A mailinglist e-mail builder.
+    /// A mailing list e-mail builder.
     /// </summary>
-    public class MailinglistEMailBuilder : AbstractEMailBuilder
+    public class MailingListEMailBuilder : AbstractEMailBuilder
     {
 
         #region Properties
 
         #region ListId
 
-        private ListId _ListId;
+        private ListId? listId;
 
         /// <summary>
-        /// The unique identification of the mailinglist.
+        /// The unique identification of the mailing list.
         /// </summary>
-        public ListId ListId
+        public ListId? ListId
         {
 
             get
             {
 
-                if (_ListId != null)
-                    return _ListId;
+                if (listId is not null)
+                    return listId;
 
-                var _ListIdString = MailHeaders.
-                                        Where(kvp => kvp.Key.ToLower() == "list-id").
-                                        FirstOrDefault();
+                var listIdString = MailHeaders.
+                                       Where(kvp => kvp.Key.Equals("list-id", StringComparison.CurrentCultureIgnoreCase)).
+                                       FirstOrDefault();
 
-                if (_ListIdString.Key != null)
+                if (listIdString.Key is not null)
                 {
-                    _ListId = ListId.Parse(_ListIdString.Value);
-                    return _ListId;
+                    listId = ListId.Parse(listIdString.Value);
+                    return listId;
                 }
 
                 return null;
@@ -69,10 +59,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             set
             {
 
-                if (value != null)
+                if (value is not null)
                 {
 
-                    _ListId = value;
+                    listId = value;
 
                     this.SetEMailHeader("List-Id", value.ToString());
 
@@ -86,28 +76,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
         #region ListPost
 
-        private SimpleEMailAddress _ListPost;
+        private SimpleEMailAddress? listPost;
 
         /// <summary>
-        /// The e-mail address of the mailinglist for posting new e-mails.
+        /// The e-mail address of the mailing list for posting new e-mails.
         /// </summary>
-        public SimpleEMailAddress ListPost
+        public SimpleEMailAddress? ListPost
         {
 
             get
             {
 
-                if (_ListPost != null)
-                    return _ListPost;
+                if (listPost is not null)
+                    return listPost;
 
-                var _ListPostString = MailHeaders.
-                                      Where(kvp => kvp.Key.ToLower() == "list-post").
-                                      First();
+                var listPostString = MailHeaders.
+                                         Where(kvp => kvp.Key.Equals("list-post", StringComparison.CurrentCultureIgnoreCase)).
+                                         First();
 
-                if (_ListPostString.Key != "")
+                if (listPostString.Key != "")
                 {
-                    _ListPost = SimpleEMailAddress.Parse(_ListPostString.Value.Replace("mailto:", ""));
-                    return _ListPost;
+                    listPost = SimpleEMailAddress.Parse(listPostString.Value.Replace("mailto:", ""));
+                    return listPost;
                 }
 
                 return default(SimpleEMailAddress);
@@ -117,12 +107,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             set
             {
 
-                if (value != null)
+                if (value is not null)
                 {
 
-                    _ListPost = value;
+                    listPost = value;
 
-                    this.SetEMailHeader("List-Post", "<mailto:" + value.ToString() + ">");
+                    this.SetEMailHeader("List-Post", $"<mailto:{value}>");
 
                 }
 
@@ -139,9 +129,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region AbstractEMailBuilder()
 
         /// <summary>
-        /// Create a new mailinglist e-mail builder.
+        /// Create a new mailing list e-mail builder.
         /// </summary>
-        public MailinglistEMailBuilder()
+        public MailingListEMailBuilder()
         { }
 
         #endregion
@@ -152,7 +142,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Parse the e-mail from the given e-mail.
         /// </summary>
         /// <param name="EMail">An e-mail.</param>
-        public MailinglistEMailBuilder(EMail EMail)
+        public MailingListEMailBuilder(EMail EMail)
             : base(EMail)
         { }
 
@@ -164,7 +154,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Parse the e-mail from the given text lines.
         /// </summary>
         /// <param name="MailText">The E-Mail as an enumeration of strings.</param>
-        public MailinglistEMailBuilder(IEnumerable<String> MailText)
+        public MailingListEMailBuilder(IEnumerable<String> MailText)
             : base(MailText)
         { }
 
@@ -189,9 +179,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// Return a text representation of this object.
         /// </summary>
         public override String ToString()
-        {
-            return "E-Mail " + Subject + " from " + Date;
-        }
+
+            => $"E-Mail '{Subject}' from '{Date}'";
 
         #endregion
 

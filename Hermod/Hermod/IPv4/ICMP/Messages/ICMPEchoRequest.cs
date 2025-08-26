@@ -44,7 +44,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             {
                 try
                 {
-                    return Data != null
+                    return Data is not null
                                ? System.Text.Encoding.UTF8.GetString(Data)
                                : String.Empty;
                 }
@@ -102,7 +102,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                                    Data,
                                                    ICMPPacket);
 
-            if (ICMPPacket == null)
+            if (ICMPPacket is null)
                 echoRequest.ICMPPacket = new ICMPPacket<ICMPEchoRequest>(Type:      8,
                                                                          Code:      0,
                                                                          Checksum:  0,

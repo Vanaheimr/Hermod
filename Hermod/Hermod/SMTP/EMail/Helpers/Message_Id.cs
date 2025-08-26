@@ -107,7 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (Text != null)
+            if (Text is not null)
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
@@ -137,14 +137,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (RandomPart != null)
+            if (RandomPart is not null)
                 RandomPart = RandomPart.Trim();
 
             if (RandomPart.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(RandomPart), "The given random part of an e-mail message identification must not be null or empty!");
 
 
-            if (DomainPart != null)
+            if (DomainPart is not null)
                 DomainPart = DomainPart.Trim();
 
             if (DomainPart.IsNullOrEmpty())
@@ -210,7 +210,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (Text != null)
+            if (Text is not null)
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
@@ -260,10 +260,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (RandomPart != null)
+            if (RandomPart is not null)
                 RandomPart = RandomPart.Trim();
 
-            if (DomainPart != null)
+            if (DomainPart is not null)
                 DomainPart = DomainPart.Trim();
 
             if (RandomPart.IsNullOrEmpty() || DomainPart.IsNullOrEmpty())
@@ -333,7 +333,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) MessageId1 == null) || ((Object) MessageId2 == null))
+            if (((Object) MessageId1 is null) || ((Object) MessageId2 is null))
                 return false;
 
             return MessageId1.Equals(MessageId2);
@@ -366,7 +366,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static Boolean operator < (Message_Id MessageId1, Message_Id MessageId2)
         {
 
-            if ((Object) MessageId1 == null)
+            if ((Object) MessageId1 is null)
                 throw new ArgumentNullException(nameof(MessageId1), "The given MessageId1 must not be null!");
 
             return MessageId1.CompareTo(MessageId2) < 0;
@@ -399,7 +399,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public static Boolean operator > (Message_Id MessageId1, Message_Id MessageId2)
         {
 
-            if ((Object) MessageId1 == null)
+            if ((Object) MessageId1 is null)
                 throw new ArgumentNullException(nameof(MessageId1), "The given MessageId1 must not be null!");
 
             return MessageId1.CompareTo(MessageId2) > 0;
@@ -454,14 +454,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// </summary>
         /// <param name="MessageId">An object to compare with.</param>
         public Int32 CompareTo(Message_Id MessageId)
-        {
 
-            if ((Object) MessageId == null)
-                throw new ArgumentNullException(nameof(MessageId),  "The given message identification must not be null!");
-
-            return String.Compare(ToString(), MessageId.ToString(), StringComparison.OrdinalIgnoreCase);
-
-        }
+            => String.Compare(ToString(), MessageId.ToString(), StringComparison.OrdinalIgnoreCase);
 
         #endregion
 
@@ -479,7 +473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (!(Object is Message_Id MessageId))
@@ -499,15 +493,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         /// <param name="MessageId">A message identification to compare with.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public Boolean Equals(Message_Id MessageId)
-        {
 
-            if (MessageId == null)
-                return false;
-
-            return RandomPart.ToLower().Equals(MessageId.RandomPart.ToLower()) &&
-                   DomainPart.ToLower().Equals(MessageId.DomainPart.ToLower());
-
-        }
+            => RandomPart.ToLower().Equals(MessageId.RandomPart.ToLower()) &&
+               DomainPart.ToLower().Equals(MessageId.DomainPart.ToLower());
 
         #endregion
 

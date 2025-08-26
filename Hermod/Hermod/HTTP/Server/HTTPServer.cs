@@ -1284,7 +1284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             #region Call OnError delegates
 
             //var ErrorLogLocal = ErrorLog;
-            //if (ErrorLogLocal != null)
+            //if (ErrorLogLocal is not null)
             //{
             //    ErrorLogLocal(Timestamp, this, Request, Response, Error, LastException);
             //}
@@ -1730,7 +1730,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                     DebugX.Log("HTTPServer IO exception: " + Environment.NewLine + ioe);
 
-                    //if (OnError != null)
+                    //if (OnError is not null)
                     //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
@@ -1742,7 +1742,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 DebugX.Log("HTTPServer exception: " + Environment.NewLine + e);
 
-                //if (OnError != null)
+                //if (OnError is not null)
                 //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }
@@ -1781,7 +1781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             //var OnExceptionOccurredLocal = OnExceptionOccurred;
-            //if (OnExceptionOccurredLocal != null)
+            //if (OnExceptionOccurredLocal is not null)
             //    OnExceptionOccurredLocal(Sender,
             //                            Timestamp,
             //                            ExceptionMessage);
@@ -1799,7 +1799,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         {
 
             //var OnCompletedLocal = OnCompleted;
-            //if (OnCompletedLocal != null)
+            //if (OnCompletedLocal is not null)
             //    OnCompletedLocal(Sender,
             //                     Timestamp,
             //                     Message);
@@ -2527,7 +2527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                     ? "This HTTP method is not allowed!"
                                     : "No matching URL template found!";
 
-                //if (_HostNode.RequestHandler != null)
+                //if (_HostNode.RequestHandler is not null)
                 //    return _HostNode.RequestHandler;
 
                 return null;

@@ -221,7 +221,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.DNS
                                 DNSInfo     DNSInformation)
         {
 
-            if (DomainName.IsNullOrEmpty() || DNSInformation == null)
+            if (DomainName.IsNullOrEmpty() || DNSInformation is null)
                 return;
 
             DNSCache.Add(

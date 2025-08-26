@@ -185,7 +185,7 @@ public class UdpHeader : AProtocolHeader
         // Copy payload to end of packet
         Array.Copy(payLoad, 0, udpPacket, offset, payLoad.Length);
 
-        if (ipv4PacketHeader != null)
+        if (ipv4PacketHeader is not null)
         {
             pseudoHeader = new byte[UdpHeaderLength + 12 + payLoad.Length];
 
@@ -215,7 +215,7 @@ public class UdpHeader : AProtocolHeader
             Array.Copy(udpPacket, 0, pseudoHeader, offset, udpPacket.Length);
         }
 
-        else if (ipv6PacketHeader != null)
+        else if (ipv6PacketHeader is not null)
         {
             uint ipv6PayloadLength;
 
@@ -251,7 +251,7 @@ public class UdpHeader : AProtocolHeader
             Array.Copy(udpPacket, 0, pseudoHeader, offset, udpPacket.Length);
         }
 
-        if (pseudoHeader != null)
+        if (pseudoHeader is not null)
         {
             Checksum = ComputeChecksum(pseudoHeader);
         }

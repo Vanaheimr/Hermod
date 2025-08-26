@@ -24,7 +24,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox
         public static Int16[] NetworkBytesToHostInt16(Byte[] networkBytes)
         {
 
-            if (networkBytes == null)
+            if (networkBytes is null)
                 throw new ArgumentNullException("networkBytes");
 
             var result = new Int16[networkBytes.Length / 2];
@@ -40,7 +40,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox
         public static UInt16[] NetworkBytesToHostUInt16(Byte[] networkBytes)
         {
 
-            if (networkBytes == null)
+            if (networkBytes is null)
                 throw new ArgumentNullException("networkBytes");
 
             var result = new UInt16[networkBytes.Length / 2];
@@ -56,7 +56,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox
         public static Single[] NetworkBytesToHostSingle(Byte[] networkBytes)
         {
 
-            if (networkBytes == null)
+            if (networkBytes is null)
                 throw new ArgumentNullException("networkBytes");
 
             var result = new Single[networkBytes.Length / 4];
@@ -72,7 +72,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox
         public static UInt32[] NetworkBytesToHostUInt32(Byte[] networkBytes)
         {
 
-            if (networkBytes == null)
+            if (networkBytes is null)
                 throw new ArgumentNullException("networkBytes");
 
             var result = new UInt32[networkBytes.Length / 4];
@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus.Toolbox
         public static Int32[] NetworkBytesToHostInt32(Byte[] networkBytes)
         {
 
-            if (networkBytes == null)
+            if (networkBytes is null)
                 throw new ArgumentNullException("networkBytes");
 
             var result = new Int32[networkBytes.Length / 4];

@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region Hostname
 
-        private String _Hostname;
+        private String hostname;
 
         /// <summary>
         /// The hostname to send the UDP data.
@@ -115,13 +115,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             get
             {
-                return _Hostname;
+                return hostname;
             }
 
             set
             {
 
-                if (value == null)
+                if (value is null)
                     throw new ArgumentNullException("The hostname must not be null!");
 
                 try
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
                     var IPAdresses = Dns.GetHostAddresses(value);
 
-                    _IPAddress      = IPv4Address.Parse(IPAdresses[0].ToString());
+                    ipAddress      = IPv4Address.Parse(IPAdresses[0].ToString());
                     DotNetIPAddress = IPAdresses[0];
 
                 }
@@ -138,10 +138,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                     throw new ArgumentException("The DNS lookup of the hostname lead to an error!", e);
                 }
 
-                _Hostname = value;
+                hostname = value;
 
-                if (_Port != null)
-                    SetRemoteIPEndPoint();
+                SetRemoteIPEndPoint();
 
             }
 
@@ -151,7 +150,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region IPAddress
 
-        private IIPAddress _IPAddress;
+        private IIPAddress ipAddress;
 
         /// <summary>
         /// The IP address to send the UDP data.
@@ -161,14 +160,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             get
             {
-                return _IPAddress;
+                return ipAddress;
             }
 
             set
             {
-
-                if (value == null)
-                    throw new ArgumentNullException("The IPAddress must not be null!");
 
                 try
                 {
@@ -179,10 +175,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                     throw new ArgumentException("The IPAddress is invalid!", e);
                 }
 
-                _IPAddress = value;
+                ipAddress = value;
 
-                if (_Port != null)
-                    SetRemoteIPEndPoint();
+                SetRemoteIPEndPoint();
 
             }
 
@@ -192,7 +187,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region Port
 
-        private IPPort _Port;
+        private IPPort port;
 
         /// <summary>
         /// The IP port to send the UDP data.
@@ -202,18 +197,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             get
             {
-                return _Port;
+                return port;
             }
 
             set
             {
 
-                if (value == null)
-                    throw new ArgumentNullException("The port must not be null!");
+                port = value;
 
-                _Port = value;
-
-                if (_Hostname != null && DotNetIPAddress != null)
+                if (hostname is not null && DotNetIPAddress is not null)
                     SetRemoteIPEndPoint();
 
             }
@@ -224,7 +216,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         #region IPSocket
 
-        private IPSocket _IPSocket;
+        private IPSocket ipSocket;
 
         /// <summary>
         /// The IP socket to send the UDP data.
@@ -233,7 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         {
             get
             {
-                return _IPSocket;
+                return ipSocket;
             }
         }
 
@@ -261,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         private UDPSender(Func<T, Byte[]> MessageProcessor)
         {
 
-            if (MessageProcessor == null)
+            if (MessageProcessor is null)
                 throw new ArgumentNullException("The MessageProcessor must not be null!");
 
             this.MessageProcessor  = MessageProcessor;
@@ -346,7 +338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             try
             {
-                RemoteIPEndPoint = new IPEndPoint(DotNetIPAddress, _Port.ToUInt16());
+                RemoteIPEndPoint = new IPEndPoint(DotNetIPAddress, port.ToUInt16());
             }
             catch (Exception e)
             {
@@ -377,7 +369,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
         public void Send(T Message)
         {
 
-            if (RemoteIPEndPoint == null)
+            if (RemoteIPEndPoint is null)
                 throw new ArgumentNullException("The IP address and port must be defined before sending an UDP packet!");
 
 
@@ -524,7 +516,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         public void Dispose()
         {
-            if (DotNetSocket != null)
+            if (DotNetSocket is not null)
                 DotNetSocket.Close();
         }
 

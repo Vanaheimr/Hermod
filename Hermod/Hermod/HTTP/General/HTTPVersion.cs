@@ -160,7 +160,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPVersion1 == null) || ((Object) HTTPVersion2 == null))
+            if (((Object) HTTPVersion1 is null) || ((Object) HTTPVersion2 is null))
                 return false;
 
             return HTTPVersion1.Equals(HTTPVersion2);
@@ -193,7 +193,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator < (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
         {
 
-            if ((Object) HTTPVersion1 == null)
+            if ((Object) HTTPVersion1 is null)
                 throw new ArgumentNullException(nameof(HTTPVersion1), "The given HTTPVersion1 must not be null!");
 
             return HTTPVersion1.CompareTo(HTTPVersion2) < 0;
@@ -226,7 +226,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator > (HTTPVersion HTTPVersion1, HTTPVersion HTTPVersion2)
         {
 
-            if ((Object) HTTPVersion1 == null)
+            if ((Object) HTTPVersion1 is null)
                 throw new ArgumentNullException(nameof(HTTPVersion1), "The given HTTPVersion1 must not be null!");
 
             return HTTPVersion1.CompareTo(HTTPVersion2) > 0;
@@ -261,7 +261,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException("The given object must not be null!");
 
             if (!(Object is HTTPVersion))
@@ -282,7 +282,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(HTTPVersion HTTPVersion)
         {
 
-            if ((Object) HTTPVersion == null)
+            if ((Object) HTTPVersion is null)
                 throw new ArgumentNullException("The given HTTP version must not be null!");
 
             var _MajorCompared = Major.CompareTo(HTTPVersion.Major);
@@ -310,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (!(Object is HTTPVersion))
@@ -332,7 +332,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(HTTPVersion HTTPVersion)
         {
 
-            if ((Object) HTTPVersion == null)
+            if ((Object) HTTPVersion is null)
                 return false;
 
             return Major == HTTPVersion.Major &&

@@ -148,7 +148,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 Tag = null;
 
-                if (JSONObject == null)
+                if (JSONObject is null)
                 {
                     ErrorResponse = "The given JSON object must not be null!";
                     return false;
@@ -249,11 +249,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
             var EVSE_Operator = Object as Tag;
-            if ((Object) EVSE_Operator == null)
+            if ((Object) EVSE_Operator is null)
                 throw new ArgumentException("The given object is not a tag!");
 
             return CompareTo(EVSE_Operator);
@@ -271,7 +271,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Tag Tag)
         {
 
-            if ((Object) Tag == null)
+            if ((Object) Tag is null)
                 throw new ArgumentNullException(nameof(Tag), "The given tag must not be null!");
 
             return Id.CompareTo(Tag.Id);
@@ -294,11 +294,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             var Tag = Object as Tag;
-            if ((Object) Tag == null)
+            if ((Object) Tag is null)
                 return false;
 
             return Equals(Tag);
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(Tag Tag)
         {
 
-            if ((Object) Tag == null)
+            if ((Object) Tag is null)
                 return false;
 
             return Id.Equals(Tag.Id);

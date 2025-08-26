@@ -101,7 +101,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                                             null,
                                                             ICMPPacket);
 
-            if (ICMPPacket == null)
+            if (ICMPPacket is null)
                 echoReply.ICMPPacket = new ICMPPacket<ICMPDestinationUnreachable>(Type:      3,
                                                                                   Code:      (Byte) Code,
                                                                                   Checksum:  0,

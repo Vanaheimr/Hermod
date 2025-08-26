@@ -3200,7 +3200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         //        var smsSend = SMSClient.Send(Text, To);
 
-        //        if (smsSend != null)
+        //        if (smsSend is not null)
         //            return smsSend.SetSender(Sender ?? SMSSenderName).Execute();
 
         //    }
@@ -4983,7 +4983,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          out       errorDescription))
                                   {
 
-                                      if (errorDescription != null)
+                                      if (errorDescription is not null)
                                           return new HTTPResponse.Builder(Request) {
                                                      HTTPStatusCode             = HTTPStatusCode.BadRequest,
                                                      Server                     = HTTPServer.DefaultServerName,
@@ -8712,7 +8712,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                   IUser? Admin    = null;
                                   var Admins      = new List<IUser>();
                                   var AdminNames  = AdminsJSON.Select(admin => admin as JObject).
-                                                               Where(admin => admin != null).
+                                                               Where(admin => admin is not null).
                                                                Select(admin => User_Id.TryParse(admin["@id"].Value<String>())).
                                                                ToArray();
 
@@ -8739,7 +8739,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                                       Admin = GetUser(admin.Value);
 
-                                      if (Admin == null)
+                                      if (Admin is null)
                                       {
 
                                           return new HTTPResponse.Builder(Request) {
@@ -11693,7 +11693,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (Command.IsNullOrEmpty() || Data == null)
+            if (Command.IsNullOrEmpty() || Data is null)
                 return;
 
             User_Id          userId;
@@ -12654,10 +12654,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (TelegramNotification.TryParse(Data, out TelegramNotification telegramNotification))
                             {
 
-                                if (user         != null)
+                                if (user         is not null)
                                     await user.        RemoveNotification(telegramNotification);
 
-                                if (organization != null)
+                                if (organization is not null)
                                     await organization.RemoveNotification(telegramNotification);
 
                             }
@@ -12673,10 +12673,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (TelegramGroupNotification.TryParse(Data, out TelegramGroupNotification telegramGroupNotification))
                             {
 
-                                if (user         != null)
+                                if (user         is not null)
                                     await user.        RemoveNotification(telegramGroupNotification);
 
-                                if (organization != null)
+                                if (organization is not null)
                                     await organization.RemoveNotification(telegramGroupNotification);
 
                             }
@@ -12692,10 +12692,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (SMSNotification.TryParse(Data, out SMSNotification smsNotification))
                             {
 
-                                if (user         != null)
+                                if (user         is not null)
                                     await user.        RemoveNotification(smsNotification);
 
-                                if (organization != null)
+                                if (organization is not null)
                                     await organization.RemoveNotification(smsNotification);
 
                             }
@@ -12711,10 +12711,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (HTTPSNotification.TryParse(Data, out HTTPSNotification httpsNotification))
                             {
 
-                                if (user         != null)
+                                if (user         is not null)
                                     await user.        RemoveNotification(httpsNotification);
 
-                                if (organization != null)
+                                if (organization is not null)
                                     await organization.RemoveNotification(httpsNotification);
 
                             }
@@ -12730,10 +12730,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             if (EMailNotification.TryParse(Data, out EMailNotification emailNotification))
                             {
 
-                                if (user         != null)
+                                if (user         is not null)
                                     await user.        RemoveNotification(emailNotification);
 
-                                if (organization != null)
+                                if (organization is not null)
                                     await organization.RemoveNotification(emailNotification);
 
                             }
@@ -12934,7 +12934,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             var retry       = 0;
                             var maxRetries  = 23;
                             var text1       = (Comment ?? "no comment!") + (CurrentUserId.HasValue ? "by " + CurrentUserId.ToString() + " " : String.Empty);
-                            var text2       = "# --" + (text1 != null ? "< " + text1 + " >" : String.Empty);
+                            var text2       = "# --" + (text1 is not null ? "< " + text1 + " >" : String.Empty);
                             var text3       = text2 + new String('-', Math.Max(10, 200 - text2.Length)) + Environment.NewLine;
 
                             do
@@ -13338,7 +13338,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     //Byte[] pubKey = null;
 
                     //Asn1Object p;
-                    //while ((p = input.ReadObject()) != null)
+                    //while ((p = input.ReadObject()) is not null)
                     //{
                     //    pubKey = ((p.ToAsn1Object() as Asn1Sequence)[1] as DerBitString).GetBytes();
                     //    Console.WriteLine(p.ToString());
@@ -13645,7 +13645,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                            out User_Id _superuserId,
                                                            out         errorDescription))
                             {
-                                if (errorDescription != null)
+                                if (errorDescription is not null)
                                     superuserId = _superuserId;
                             }
 
@@ -13942,7 +13942,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 messageTypesHash.Add(addUser_MessageType);
 
             if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-                messageTypesHash.Add(OldUser == null
+                messageTypesHash.Add(OldUser is null
                                        ? addUser_MessageType
                                        : updateUser_MessageType);
 
@@ -13984,7 +13984,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -14117,7 +14117,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region E-Mail Notifications
 
-                if (SMTPClient != null)
+                if (SMTPClient is not null)
                 {
                     try
                     {
@@ -14244,7 +14244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    messageTypesHash.Add(addUser_MessageType);
 
             //if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-            //    messageTypesHash.Add(OldUser == null
+            //    messageTypesHash.Add(OldUser is null
             //                           ? addUser_MessageType
             //                           : updateUser_MessageType);
 
@@ -14256,7 +14256,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -14347,7 +14347,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region EMailNotifications
 
-                if (SMTPClient != null)
+                if (SMTPClient is not null)
                 {
                     try
                     {
@@ -17465,7 +17465,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                     DefaultLanguage,
                                                                     eventTrackingId));
 
-                    //if (SMSClient != null &&
+                    //if (SMSClient is not null &&
                     //    PasswordReset.SecurityToken2.HasValue &&
                     //    user.MobilePhone.HasValue)
                     //{
@@ -17946,7 +17946,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    messageTypesHash.Add(addUser_MessageType);
 
             //if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-            //    messageTypesHash.Add(OldUser == null
+            //    messageTypesHash.Add(OldUser is null
             //                           ? addUser_MessageType
             //                           : updateUser_MessageType);
 
@@ -19637,7 +19637,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 messageTypesHash.Add(addUser_MessageType);
 
             if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-                messageTypesHash.Add(OldUserGroup == null
+                messageTypesHash.Add(OldUserGroup is null
                                        ? addUser_MessageType
                                        : updateUser_MessageType);
 
@@ -19707,7 +19707,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    messageTypesHash.Add(addUser_MessageType);
 
             //if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-            //    messageTypesHash.Add(OldUserGroup == null
+            //    messageTypesHash.Add(OldUserGroup is null
             //                           ? addUser_MessageType
             //                           : updateUser_MessageType);
 
@@ -19719,7 +19719,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -19810,7 +19810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region EMailNotifications
 
-                if (SMTPClient != null)
+                if (SMTPClient is not null)
                 {
                     try
                     {
@@ -19930,7 +19930,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20095,7 +20095,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20264,7 +20264,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddOrUpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user group is already attached to another API!".ToI18NString(),
@@ -20489,7 +20489,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                            this
                        );
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return UpdateUserGroupResult.ArgumentError(
                            UserGroup,
                            "The given user is not attached to this API!".ToI18NString(),
@@ -22642,7 +22642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 messageTypesHash.Add(addUser_MessageType);
 
             if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-                messageTypesHash.Add(OldNotificationMessage == null
+                messageTypesHash.Add(OldNotificationMessage is null
                                        ? addUser_MessageType
                                        : updateUser_MessageType);
 
@@ -22726,7 +22726,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(NotificationMessage),
                                                 "The given notification message must not be null!");
 
-            if (NotificationMessage.API != null && NotificationMessage.API != this)
+            if (NotificationMessage.API is not null && NotificationMessage.API != this)
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
@@ -22841,7 +22841,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(NotificationMessage),
                                                 "The given notification message must not be null!");
 
-            if (NotificationMessage.API != null && NotificationMessage.API != this)
+            if (NotificationMessage.API is not null && NotificationMessage.API != this)
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
@@ -22953,7 +22953,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(NotificationMessage),
                                                 "The given notification message must not be null!");
 
-            if (NotificationMessage.API != null && NotificationMessage.API != this)
+            if (NotificationMessage.API is not null && NotificationMessage.API != this)
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
@@ -22982,7 +22982,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             notificationMessages.Add(NotificationMessage.Id, NotificationMessage);
 
-            if (OldNotificationMessage != null)
+            if (OldNotificationMessage is not null)
             {
 
                 var OnNotificationMessageUpdatedLocal = OnNotificationMessageUpdated;
@@ -23121,7 +23121,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(NotificationMessage),
                                                 "The given notification message must not be null!");
 
-            if (NotificationMessage.API != null && NotificationMessage.API != this)
+            if (NotificationMessage.API is not null && NotificationMessage.API != this)
                 throw new ArgumentException    ("The given notification message is already attached to another API!",
                                                 nameof(NotificationMessage));
 
@@ -23233,7 +23233,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(NotificationMessageId),
                                                 "The given notification message identification must not be null or empty!");
 
-            if (UpdateDelegate == null)
+            if (UpdateDelegate is null)
                 throw new ArgumentNullException(nameof(UpdateDelegate),
                                                 "The given update delegate must not be null!");
 
@@ -23435,7 +23435,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             var result = CanDeleteNotificationMessage(NotificationMessage);
 
-            if (result == null)
+            if (result is null)
             {
 
                 var eventTrackingId = EventTrackingId ?? EventTracking_Id.New;
@@ -23807,7 +23807,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -23914,7 +23914,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region EMailNotifications
 
-                if (SMTPClient != null)
+                if (SMTPClient is not null)
                 {
                     try
                     {
@@ -24036,7 +24036,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    messageTypesHash.Add(addUser_MessageType);
 
             //if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-            //    messageTypesHash.Add(OldOrganization == null
+            //    messageTypesHash.Add(OldOrganization is null
             //                           ? addUser_MessageType
             //                           : updateUser_MessageType);
 
@@ -24048,7 +24048,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -24139,7 +24139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region EMailNotifications
 
-                if (SMTPClient != null)
+                if (SMTPClient is not null)
                 {
                     try
                     {
@@ -26327,7 +26327,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 messageTypesHash.Add(addUser_MessageType);
 
             if (messageTypesHash.Contains(addOrUpdateUser_MessageType))
-                messageTypesHash.Add(OldOrganizationGroup == null
+                messageTypesHash.Add(OldOrganizationGroup is null
                                        ? addUser_MessageType
                                        : updateUser_MessageType);
 
@@ -26415,7 +26415,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(OrganizationGroup),
                                                 "The given organization group must not be null!");
 
-            if (OrganizationGroup.API != null && OrganizationGroup.API != this)
+            if (OrganizationGroup.API is not null && OrganizationGroup.API != this)
                 throw new ArgumentException    ("The given organization group is already attached to another API!",
                                                 nameof(OrganizationGroup));
 
@@ -26530,7 +26530,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(OrganizationGroup),
                                                 "The given organization group must not be null!");
 
-            if (OrganizationGroup.API != null && OrganizationGroup.API != this)
+            if (OrganizationGroup.API is not null && OrganizationGroup.API != this)
                 throw new ArgumentException    ("The given organization group is already attached to another API!",
                                                 nameof(OrganizationGroup));
 
@@ -26642,7 +26642,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(OrganizationGroup),
                                                 "The given organization group must not be null!");
 
-            if (OrganizationGroup.API != null && OrganizationGroup.API != this)
+            if (OrganizationGroup.API is not null && OrganizationGroup.API != this)
                 throw new ArgumentException    ("The given organization group is already attached to another API!",
                                                 nameof(OrganizationGroup));
 
@@ -26810,7 +26810,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(OrganizationGroup),
                                                 "The given organization group must not be null!");
 
-            if (OrganizationGroup.API != null && OrganizationGroup.API != this)
+            if (OrganizationGroup.API is not null && OrganizationGroup.API != this)
                 throw new ArgumentException    ("The given organization group is already attached to another API!",
                                                 nameof(OrganizationGroup));
 
@@ -26922,7 +26922,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 throw new ArgumentNullException(nameof(OrganizationGroupId),
                                                 "The given organization group identification must not be null or empty!");
 
-            if (UpdateDelegate == null)
+            if (UpdateDelegate is null)
                 throw new ArgumentNullException(nameof(UpdateDelegate),
                                                 "The given update delegate must not be null!");
 
@@ -27551,7 +27551,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -27781,7 +27781,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                               nameof(UserGroup),
                                                               "The given user group must not be null!");
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return AddUserToUserGroupResult.ArgumentError(User,
                                                               EdgeLabel,
                                                               UserGroup,
@@ -27966,7 +27966,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    nameof(UserGroup),
                                                                    "The given user group must not be null!");
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    EdgeLabel,
                                                                    UserGroup,
@@ -28143,7 +28143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                                    nameof(UserGroup),
                                                                    "The given user group must not be null!");
 
-            if (UserGroup.API != null && UserGroup.API != this)
+            if (UserGroup.API is not null && UserGroup.API != this)
                 return RemoveUserFromUserGroupResult.ArgumentError(User,
                                                                    UserGroup,
                                                                    eventTrackingId,
@@ -28485,7 +28485,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -29285,7 +29285,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //    messageTypesHash.Add(addServiceTicket_MessageType);
 
             //if (messageTypesHash.Contains(addOrUpdateServiceTicket_MessageType))
-            //    messageTypesHash.Add(OldServiceTicket == null
+            //    messageTypesHash.Add(OldServiceTicket is null
             //                           ? addServiceTicket_MessageType
             //                           : updateServiceTicket_MessageType);
 
@@ -29297,7 +29297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region Telegram Notifications
 
-                //if (TelegramClient != null)
+                //if (TelegramClient is not null)
                 //{
                 //    try
                 //    {
@@ -29426,7 +29426,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 #region EMailNotifications
 
-                if (SMTPClient != null)
+                if (SMTPClient is not null)
                 {
                     try
                     {

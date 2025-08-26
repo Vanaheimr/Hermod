@@ -862,7 +862,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 if (listenerThread is null)
                 {
-                    DebugX.LogT($"An exception occured in Hermod.{nameof(TCPServer)}.{nameof(Start)}(MaxClientConnections) [_ListenerThread == null]!");
+                    DebugX.LogT($"An exception occured in Hermod.{nameof(TCPServer)}.{nameof(Start)}(MaxClientConnections) [_ListenerThread is null]!");
                     return false;
                 }
 

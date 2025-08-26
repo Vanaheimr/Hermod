@@ -73,7 +73,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    : new JArray(OrganizationGroups.
                                     OrderBy       (organizationGroup => organizationGroup.Id).
                                     SkipTakeFilter(Skip, Take).
-                                    SafeSelect    (organizationGroup => OrganizationGroupToJSON != null
+                                    SafeSelect    (organizationGroup => OrganizationGroupToJSON is not null
                                                                             ? OrganizationGroupToJSON (organizationGroup,
                                                                                                        Embedded,
                                                                                                        ExpandOrganizations,

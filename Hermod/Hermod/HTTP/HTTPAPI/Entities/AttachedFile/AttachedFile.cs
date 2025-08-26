@@ -138,7 +138,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                ? new JProperty("icon",                Icon.              ToString())
                                : null,
 
-                           ContentType != null
+                           ContentType is not null
                                ? new JProperty("contentType",         ContentType.       ToString())
                                : null,
 

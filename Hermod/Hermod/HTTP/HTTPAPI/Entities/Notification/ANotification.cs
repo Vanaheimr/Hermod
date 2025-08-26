@@ -83,7 +83,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
             this._NotificationMessageTypes  = new HashSet<NotificationMessageType>();
 
-            if (NotificationMessageTypes != null)
+            if (NotificationMessageTypes is not null)
                 foreach (var notificationMessageType in NotificationMessageTypes)
                     _NotificationMessageTypes.Add(notificationMessageType);
 
@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
         public Boolean Contains(params NotificationMessageType[] NotificationMessageTypes)
         {
 
-            if (NotificationMessageTypes == null || NotificationMessageTypes.Length == 0)
+            if (NotificationMessageTypes is null || NotificationMessageTypes.Length == 0)
                 return false;
 
             lock (_NotificationMessageTypes)

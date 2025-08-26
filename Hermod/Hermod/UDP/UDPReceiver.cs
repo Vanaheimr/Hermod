@@ -130,7 +130,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
             get
             {
 
-                if (LocalDotNetSocket != null)
+                if (LocalDotNetSocket is not null)
                     return (UInt32) LocalDotNetSocket.ReceiveTimeout;
 
                 return 0;
@@ -143,7 +143,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
                 if (value > Int32.MaxValue)
                     throw new ArgumentException("The value for the ReceiveTimeout must be smaller than " + Int32.MaxValue + "!");
 
-                if (LocalDotNetSocket != null)
+                if (LocalDotNetSocket is not null)
                     LocalDotNetSocket.ReceiveTimeout = (Int32) value;
 
             }
@@ -473,7 +473,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
                                     Array.Resize(ref UDPPayload_Local, NumberOfReceivedBytes_Local);
 
-                                    if (Mapper != null)
+                                    if (Mapper is not null)
                                     {
 
                                         var NewUDPPacket = new UDPPacket<TData>(this,
@@ -691,7 +691,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
             //StopAndWait();
 
-            //if (_TCPListener != null)
+            //if (_TCPListener is not null)
             //    _TCPListener.Stop();
 
         }

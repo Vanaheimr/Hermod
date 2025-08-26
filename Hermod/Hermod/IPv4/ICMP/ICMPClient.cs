@@ -270,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
                                 else if (icmpPacketReply.Type                   ==  3 &&
                                          ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable icmpDestinationUnreachable) &&
-                                         icmpDestinationUnreachable.EmbeddedIPv4Packet != null &&
+                                         icmpDestinationUnreachable.EmbeddedIPv4Packet is not null &&
                                          icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                          ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out ICMPEchoRequest embeddedICMPEchoRequest) &&
                                          embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
@@ -289,7 +289,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                         (icmpPacketReply.Code                  ==  0 ||
                                          icmpPacketReply.Code                  ==  1) &&
                                         ICMPTimeExceeded.TryParse(icmpPacketReply, out ICMPTimeExceeded icmpTimeExceeded) &&
-                                        icmpTimeExceeded.EmbeddedIPv4Packet          != null &&
+                                        icmpTimeExceeded.EmbeddedIPv4Packet          is not null &&
                                         icmpTimeExceeded.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                         ICMPEchoRequest.TryParse(icmpTimeExceeded.EmbeddedIPv4Packet.Payload, out embeddedICMPEchoRequest) &&
                                         embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
@@ -499,7 +499,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
 
                             else if (icmpPacketReply.Type                   ==  3 &&
                                      ICMPDestinationUnreachable.TryParse(icmpPacketReply, out ICMPDestinationUnreachable icmpDestinationUnreachable) &&
-                                     icmpDestinationUnreachable.EmbeddedIPv4Packet != null &&
+                                     icmpDestinationUnreachable.EmbeddedIPv4Packet is not null &&
                                      icmpDestinationUnreachable.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                      ICMPEchoRequest.TryParse(icmpDestinationUnreachable.EmbeddedIPv4Packet.Payload, out ICMPEchoRequest embeddedICMPEchoRequest) &&
                                      embeddedICMPEchoRequest.Identifier     == Identifier.Value &&
@@ -518,7 +518,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                     (icmpPacketReply.Code                  ==  0 ||
                                      icmpPacketReply.Code                  ==  1) &&
                                     ICMPTimeExceeded.TryParse(icmpPacketReply, out ICMPTimeExceeded icmpTimeExceeded) &&
-                                    icmpTimeExceeded.EmbeddedIPv4Packet          != null &&
+                                    icmpTimeExceeded.EmbeddedIPv4Packet          is not null &&
                                     icmpTimeExceeded.EmbeddedIPv4Packet.Protocol == IPv4Protocols.ICMP &&
                                     ICMPEchoRequest.TryParse(icmpTimeExceeded.EmbeddedIPv4Packet.Payload, out embeddedICMPEchoRequest) &&
                                     embeddedICMPEchoRequest.Identifier     == Identifier.Value &&

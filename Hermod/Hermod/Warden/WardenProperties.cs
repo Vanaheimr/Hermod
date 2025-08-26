@@ -57,7 +57,7 @@ namespace org.GraphDefined.Vanaheimr.Warden
             lock (_Properties)
             {
 
-                if (Value == null)
+                if (Value is null)
                 {
                     if (_Properties.ContainsKey(Key))
                         _Properties.Remove(Key);

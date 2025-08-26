@@ -242,7 +242,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             this._DefaultServerName         = DefaultServerName;
-            this.AllowStartTLS              = AllowStartTLS ?? (ServerCertificateSelector != null);
+            this.AllowStartTLS              = AllowStartTLS ?? (ServerCertificateSelector is not null);
 
             _SMTPConnection                 = new SMTPConnection(
                                                   DefaultServerName,
@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             var MAIL_FROMFilterLocal = MAIL_FROMFilter;
-            if (MAIL_FROMFilterLocal != null)
+            if (MAIL_FROMFilterLocal is not null)
                 return MAIL_FROMFilterLocal(this, MAIL_FROM);
 
             return null;
@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         {
 
             var RCPT_TOFilterLocal = RCPT_TOFilter;
-            if (RCPT_TOFilterLocal != null)
+            if (RCPT_TOFilterLocal is not null)
                 return RCPT_TOFilterLocal(this, RCPT_TO);
 
             return null;

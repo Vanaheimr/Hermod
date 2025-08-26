@@ -88,7 +88,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
                                                  Data,
                                                  ICMPPacket);
 
-            if (ICMPPacket == null)
+            if (ICMPPacket is null)
                 echoRedirect.ICMPPacket = new ICMPPacket<ICMPRedirect>(Type:      5,
                                                                        Code:      (Byte) Code,
                                                                        Checksum:  0,

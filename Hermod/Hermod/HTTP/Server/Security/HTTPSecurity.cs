@@ -48,7 +48,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (Verify == null)
+            if (Verify is null)
                 throw new ArgumentNullException("Verify", "Verify must not be null!");
 
             #endregion

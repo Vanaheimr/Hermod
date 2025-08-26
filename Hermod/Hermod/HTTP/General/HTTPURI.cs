@@ -134,7 +134,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean TryParse(String Text, out HTTPURI2 URI)
         {
 
-            if (Text != null)
+            if (Text is not null)
                 Text = Text.Trim();
 
             if (!Text.StartsWith("/"))
@@ -273,7 +273,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPURI21 == null) || ((Object) HTTPURI22 == null))
+            if (((Object) HTTPURI21 is null) || ((Object) HTTPURI22 is null))
                 return false;
 
             return HTTPURI21.Equals(HTTPURI22);
@@ -298,7 +298,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) HTTPURI21 == null) || ((Object) Text == null))
+            if (((Object) HTTPURI21 is null) || ((Object) Text is null))
                 return false;
 
             return HTTPURI21.Equals(Text);
@@ -344,7 +344,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator < (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
         {
 
-            if ((Object) HTTPURI21 == null)
+            if ((Object) HTTPURI21 is null)
                 throw new ArgumentNullException(nameof(HTTPURI21), "The given HTTPURI21 must not be null!");
 
             return HTTPURI21.CompareTo(HTTPURI22) < 0;
@@ -377,7 +377,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator > (HTTPURI2 HTTPURI21, HTTPURI2 HTTPURI22)
         {
 
-            if ((Object) HTTPURI21 == null)
+            if ((Object) HTTPURI21 is null)
                 throw new ArgumentNullException(nameof(HTTPURI21), "The given HTTPURI21 must not be null!");
 
             return HTTPURI21.CompareTo(HTTPURI22) > 0;
@@ -443,7 +443,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException("The given object must not be null!");
 
             if (Object is HTTPURI2)
@@ -467,7 +467,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(HTTPURI2 HTTPURI2)
         {
 
-            if ((Object) HTTPURI2 == null)
+            if ((Object) HTTPURI2 is null)
                 throw new ArgumentNullException("The given HTTP uniform resource identifier must not be null!");
 
             return InternalId.CompareTo(HTTPURI2.InternalId);
@@ -490,7 +490,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (Object is HTTPURI2)
@@ -515,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(HTTPURI2 HTTPURI2)
         {
 
-            if ((Object) HTTPURI2 == null || InternalId == null)
+            if ((Object) HTTPURI2 is null || InternalId is null)
                 return false;
 
             return InternalId.Equals(HTTPURI2.InternalId);

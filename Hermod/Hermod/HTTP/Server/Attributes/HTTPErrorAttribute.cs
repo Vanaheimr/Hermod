@@ -81,7 +81,7 @@
             
 //            this.HTTPMethod     = org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPMethod.Parse(HTTPMethod);
 
-//            if (this.HTTPMethod == null)
+//            if (this.HTTPMethod is null)
 //                throw new ArgumentNullException("Invalid HTTPMethod!");
 
 //            this.UriTemplate    = UriTemplate;

@@ -1055,7 +1055,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out Value,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
@@ -1167,7 +1167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out I18NText,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
@@ -1206,7 +1206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out EnumValue,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
@@ -1278,7 +1278,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out TimeSpan,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
@@ -1313,7 +1313,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Values         = _Values;
             ErrorResponse  = null;
 
-            if (JSON == null)
+            if (JSON is null)
             {
                 ErrorResponse = "The given JSON object must not be null!";
                 return false;
@@ -1329,7 +1329,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             {
 
                 // "properyKey": null -> will be ignored!
-                if (JSONToken == null)
+                if (JSONToken is null)
                     return false;
 
                 if (!(JSONToken is JArray JSONArray))
@@ -1388,7 +1388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out JSONObject,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
@@ -1424,7 +1424,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             out JSONArray,
                                             out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else
@@ -1462,7 +1462,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                    out HashSet,
                                                    out String ErrorResponse);
 
-            if (ErrorResponse == null)
+            if (ErrorResponse is null)
                 HTTPResponse = null;
 
             else

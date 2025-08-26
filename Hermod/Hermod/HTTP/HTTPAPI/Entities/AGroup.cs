@@ -98,7 +98,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             set
             {
 
-                if (_API != null)
+                if (_API is not null)
                     throw new ArgumentException("Illegal attempt to change the API!");
 
                 _API = value ?? throw new ArgumentException("Illegal attempt to delete the API!");
@@ -127,7 +127,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             set
             {
 
-                if (_APIX != null)
+                if (_APIX is not null)
                     throw new ArgumentException("Illegal attempt to change the API!");
 
                 _APIX = value ?? throw new ArgumentException("Illegal attempt to delete the API!");

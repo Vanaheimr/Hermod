@@ -85,7 +85,7 @@
 
 //            #region Initial checks
 
-//            if (Text != null)
+//            if (Text is not null)
 //                Text = Text.Trim();
 
 //            if (Text.IsNullOrEmpty())
@@ -110,7 +110,7 @@
 
 //            #region Initial checks
 
-//            if (Text != null)
+//            if (Text is not null)
 //                Text = Text.Trim();
 
 //            if (Text.IsNullOrEmpty())
@@ -139,7 +139,7 @@
 
 //            #region Initial checks
 
-//            if (Text != null)
+//            if (Text is not null)
 //                Text = Text.Trim();
 
 //            if (Text.IsNullOrEmpty())
@@ -194,7 +194,7 @@
 //                return true;
 
 //            // If one is null, but not both, return false.
-//            if (((Object) NotificationId1 == null) || ((Object) NotificationId2 == null))
+//            if (((Object) NotificationId1 is null) || ((Object) NotificationId2 is null))
 //                return false;
 
 //            return NotificationId1.Equals(NotificationId2);
@@ -227,7 +227,7 @@
 //        public static Boolean operator < (NotificationMessageGroupId NotificationId1, NotificationMessageGroupId NotificationId2)
 //        {
 
-//            if ((Object) NotificationId1 == null)
+//            if ((Object) NotificationId1 is null)
 //                throw new ArgumentNullException(nameof(NotificationId1), "The given NotificationId1 must not be null!");
 
 //            return NotificationId1.CompareTo(NotificationId2) < 0;
@@ -260,7 +260,7 @@
 //        public static Boolean operator > (NotificationMessageGroupId NotificationId1, NotificationMessageGroupId NotificationId2)
 //        {
 
-//            if ((Object) NotificationId1 == null)
+//            if ((Object) NotificationId1 is null)
 //                throw new ArgumentNullException(nameof(NotificationId1), "The given NotificationId1 must not be null!");
 
 //            return NotificationId1.CompareTo(NotificationId2) > 0;
@@ -295,7 +295,7 @@
 //        public override Int32 CompareTo(Object Object)
 //        {
 
-//            if (Object == null)
+//            if (Object is null)
 //                throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
 //            if (!(Object is NotificationMessageGroupId NotificationId))
@@ -316,7 +316,7 @@
 //        public Int32 CompareTo(NotificationMessageGroupId NotificationId)
 //        {
 
-//            if ((Object) NotificationId == null)
+//            if ((Object) NotificationId is null)
 //                throw new ArgumentNullException(nameof(NotificationId),  "The given notification identification must not be null!");
 
 //            return String.Compare(InternalId, NotificationId.InternalId, StringComparison.Ordinal);
@@ -339,7 +339,7 @@
 //        public override Boolean Equals(Object Object)
 //        {
 
-//            if (Object == null)
+//            if (Object is null)
 //                return false;
 
 //            if (!(Object is NotificationMessageGroupId NotificationId))
@@ -361,7 +361,7 @@
 //        public Boolean Equals(NotificationMessageGroupId NotificationId)
 //        {
 
-//            if ((Object) NotificationId == null)
+//            if ((Object) NotificationId is null)
 //                return false;
 
 //            return InternalId.Equals(NotificationId.InternalId, StringComparison.OrdinalIgnoreCase);

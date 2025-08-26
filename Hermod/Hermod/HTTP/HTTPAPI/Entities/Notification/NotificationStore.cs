@@ -76,7 +76,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
                 var notification = notifications.OfType<T>().FirstOrDefault(typeT => typeT.Equals(NotificationType));
 
                 // Create a new notification...
-                if (notification == null)
+                if (notification is null)
                 {
                     notifications.Add(NotificationType);
                     notification = NotificationType;
@@ -144,7 +144,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 var notification = notifications.OfType<T>().FirstOrDefault(typeT => typeT.Equals(NotificationType));
 
-                if (notification == null)
+                if (notification is null)
                 {
                     notifications.Add(NotificationType);
                     notification = NotificationType;
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
                 var notification = notifications.OfType<T>().FirstOrDefault(typeT => typeT.Equals(NotificationType));
 
-                if (notification == null)
+                if (notification is null)
                 {
                     notifications.Add(NotificationType);
                     notification = NotificationType;
@@ -245,7 +245,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             lock (notifications)
             {
 
-                var results = NotificationMessageTypes != null && NotificationMessageTypes.Length > 0
+                var results = NotificationMessageTypes is not null && NotificationMessageTypes.Length > 0
                                   ? notifications.OfType<T>().Where(typeT => typeT.Contains(NotificationMessageTypes)).ToArray()
                                   : notifications.OfType<T>().ToArray();
 
@@ -270,7 +270,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             lock (notifications)
             {
 
-                if (NotificationMessageTypeFilter == null)
+                if (NotificationMessageTypeFilter is null)
                     NotificationMessageTypeFilter = (_ => true);
 
                 var results = notifications.Where(typeT => typeT.Any(NotificationMessageTypeFilter)).ToArray();
@@ -299,7 +299,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             lock (notifications)
             {
 
-                if (NotificationMessageTypeFilter == null)
+                if (NotificationMessageTypeFilter is null)
                     NotificationMessageTypeFilter = (_ => true);
 
                 var results = notifications.OfType<T>().Where(typeT => typeT.Any(NotificationMessageTypeFilter)).ToArray();

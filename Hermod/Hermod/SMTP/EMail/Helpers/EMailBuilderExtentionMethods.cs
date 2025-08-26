@@ -56,10 +56,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (MailBuilder == null)
+            if (MailBuilder is null)
                 throw new ArgumentNullException("The given e-mail builder must not be null!");
 
-            if (ByteArray == null || ByteArray.Length == 0)
+            if (ByteArray is null || ByteArray.Length == 0)
                 throw new ArgumentNullException("The given byte array name must not be null or empty!");
 
             if (Filename.IsNullOrEmpty())
@@ -100,10 +100,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (MailBuilder == null)
+            if (MailBuilder is null)
                 throw new ArgumentNullException("The given e-mail builder must not be null!");
 
-            if (FileStream == null)
+            if (FileStream is null)
                 throw new ArgumentNullException("The given FileStream must not be null!");
 
             if (Filename.IsNullOrEmpty())
@@ -145,10 +145,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Initial checks
 
-            if (MailBuilder == null)
+            if (MailBuilder is null)
                 throw new ArgumentNullException("The given e-mail builder must not be null!");
 
-            if (FileInfo == null)
+            if (FileInfo is null)
                 throw new ArgumentNullException("The given file name must not be null or empty!");
 
             if (!FileInfo.Exists)

@@ -583,7 +583,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Modbus
             }
 
             this.LogfileCreator  = LogfileCreator ?? ((loggingPath, context, logfileName) => String.Concat(loggingPath,
-                                                                                                           context != null ? context + "_" : String.Empty,
+                                                                                                           context is not null ? context + "_" : String.Empty,
                                                                                                            logfileName, "_",
                                                                                                            Timestamp.Now.Year, "-",
                                                                                                            Timestamp.Now.Month.ToString("D2"),

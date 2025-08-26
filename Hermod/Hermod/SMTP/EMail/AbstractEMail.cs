@@ -179,7 +179,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             get
             {
 
-                if (_ContentType == null)
+                if (_ContentType is null)
                     _ContentType = new MailContentType(this, this.GetEMailHeader("Content-Type"));
 
                 return _ContentType;
@@ -188,7 +188,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             set
             {
-                if (value != null)
+                if (value is not null)
                 {
                     _ContentType = value;
                     this.SetEMailHeader("Content-Type", _ContentType.ToString());
@@ -397,7 +397,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 case "to":
                 case "cc":
-                    if (EMailAddressList.Parse(Value) != null)
+                    if (EMailAddressList.Parse(Value) is not null)
                         this._MailHeaders.Add(new KeyValuePair<String, String>(Key, Value));
                     break;
 

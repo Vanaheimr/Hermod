@@ -277,13 +277,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     {
 
                         var OnSuccessLocal = OnSuccess;
-                        if (OnSuccessLocal != null)
+                        if (OnSuccessLocal is not null)
                             return OnSuccessLocal(new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
                     }
 
                     var OnSOAPFaultLocal = OnSOAPFault;
-                    if (OnSOAPFaultLocal != null)
+                    if (OnSOAPFaultLocal is not null)
                         return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
                     return HTTPResponse<XElement>.IsFault(httpResponse,
@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
                     OnException?.Invoke(Timestamp.Now, this, e);
 
                     //var OnFaultLocal = OnSOAPFault;
-                    //if (OnFaultLocal != null)
+                    //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
                     return HTTPResponse<XElement>.IsFault(httpResponse,
@@ -310,7 +310,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_1
             {
 
                 var OnHTTPErrorLocal = OnHTTPError;
-                if (OnHTTPErrorLocal != null)
+                if (OnHTTPErrorLocal is not null)
                     return OnHTTPErrorLocal(Timestamp.Now, this, httpResponse);
 
                 return HTTPResponse<XElement>.IsFault(httpResponse,
@@ -588,7 +588,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     }
 
                     var OnSOAPFaultLocal = OnSOAPFault;
-                    if (OnSOAPFaultLocal != null)
+                    if (OnSOAPFaultLocal is not null)
                         return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(httpResponse, SOAPXML));
 
                     return HTTPResponse<XElement>.IsFault(httpResponse,
@@ -601,7 +601,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP.v1_2
                     OnException?.Invoke(Timestamp.Now, this, e);
 
                     //var OnFaultLocal = OnSOAPFault;
-                    //if (OnFaultLocal != null)
+                    //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
                     return HTTPResponse<XElement>.IsFault(httpResponse,

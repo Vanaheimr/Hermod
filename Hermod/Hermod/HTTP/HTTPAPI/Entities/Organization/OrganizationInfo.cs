@@ -146,7 +146,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             Boolean CheckYouMembership(OrganizationInfo OrgInfo)
             {
 
-                if (OrgInfo.internalChilds == null || OrgInfo.internalChilds.Count == 0)
+                if (OrgInfo.internalChilds is null || OrgInfo.internalChilds.Count == 0)
                     return OrgInfo.YouAreMember;
 
                 var res = OrgInfo.YouAreMember;

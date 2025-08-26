@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
             if (!CancellationToken.CanBeCanceled)
                 return;
 
-            if (Socket != null)
+            if (Socket is not null)
             {
                 do
                 {
@@ -272,7 +272,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             this.RemoteHost                 = RemoteHost;
             this.RemotePort                 = RemotePort;
-            this.CancellationToken          = CancellationToken != null ? CancellationToken : new CancellationToken();
+            this.CancellationToken          = CancellationToken is not null ? CancellationToken : new CancellationToken();
             this.UseIPv4                    = UseIPv4;
             this.UseIPv6                    = UseIPv6;
             this.PreferIPv6                 = PreferIPv6;

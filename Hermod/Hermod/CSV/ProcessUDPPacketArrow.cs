@@ -58,7 +58,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.UDP
 
         {
 
-            if (In != null)
+            if (In is not null)
                 In.SendTo(this);
 
         }

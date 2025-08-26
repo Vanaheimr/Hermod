@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Reflection;
+
 using NUnit.Framework;
 
 using Newtonsoft.Json.Linq;
@@ -40,6 +42,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
 
         //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
         //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
+
+        #region EmbeddedAssemblyFiles_01()
+
+        [Test]
+        public async Task EmbeddedAssemblyFiles_01()
+        {
+
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
+
+            httpAPI.MapResourceAssembliesFolder(
+                HTTPHostname.Any,
+                HTTPPath.Root,
+                [
+                    new Tuple<String, Assembly>("org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.HTTPRoot.", typeof(HTTPTestServerTests).Assembly)
+                    //new Tuple<String, Assembly>(UsersAPI.              HTTPRoot, typeof(UsersAPI).              Assembly)
+                ],
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                DefaultFilename:     "index.html"
+            );
+
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
+
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/helloWorld.txt")));
+            Assert.That(response, Is.Not.Null);
+
+            var httpBody   = response.HTTPBodyAsUTF8String?.Trim() ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World!"));
+
+        }
+
+        #endregion
+
 
         #region Paths_01()
 

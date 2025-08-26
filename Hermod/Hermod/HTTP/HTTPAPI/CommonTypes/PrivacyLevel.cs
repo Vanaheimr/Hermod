@@ -38,7 +38,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        String PropertyKey = "privacyLevel")
         {
 
-            if (PropertyKey != null)
+            if (PropertyKey is not null)
                 PropertyKey = PropertyKey.Trim();
 
             if (PropertyKey.IsNullOrEmpty())

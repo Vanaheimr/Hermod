@@ -177,7 +177,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //     }
             // }
             if (ContentType == HTTPContentType.Application.JSON_UTF8)
-                Content = (Reason == null) ? "{\r\n  \"error\":\r\n  {\r\n    \"code\": " + StatusCode.Code + ",\r\n    \"message\": \"" + StatusCode.Name + "\"\r\n  }\r\n}" :
+                Content = (Reason is null) ? "{\r\n  \"error\":\r\n  {\r\n    \"code\": " + StatusCode.Code + ",\r\n    \"message\": \"" + StatusCode.Name + "\"\r\n  }\r\n}" :
                                              "{\r\n  \"error\":\r\n  {\r\n    \"code\": " + StatusCode.Code + ",\r\n    \"message\": \"" + StatusCode.Name + "\",\r\n    \"reason\": \"" + Reason + "\"\r\n  }\r\n}";
 
             #endregion
@@ -196,7 +196,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //  </body>
             //</html>
             else if (ContentType == HTTPContentType.Text.HTML_UTF8)
-                Content = (Reason == null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
+                Content = (Reason is null) ? "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1></body></html>" :
                                              "<!doctype html><html><head><meta charset=\"UTF-8\"><title>Error " + StatusCode.Code + " - " + StatusCode.Name + "</title></head><body><h1>Error " + StatusCode.Code + " - " + StatusCode.Name + "</h1>" + Reason + "</body></html>";
 
             #endregion
@@ -206,7 +206,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             // Error 400 - Bad Request
             // The first paramter is not a valid number!
             else if (ContentType == HTTPContentType.Text.PLAIN || ContentType == HTTPContentType.ALL)
-                Content = (Reason == null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
+                Content = (Reason is null) ? "Error " + StatusCode.Code + " - " + StatusCode.Name :
                                              "Error " + StatusCode.Code + " - " + StatusCode.Name + Environment.NewLine + Reason;
 
             #endregion
@@ -220,7 +220,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             //     <reason>The first paramter is not a valid number!</message>
             // </error>
             else if (ContentType == HTTPContentType.Application.XML_UTF8)
-                Content = (Reason == null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
+                Content = (Reason is null) ? "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message></error></xml>" :
                                              "<?xml version=\"1.0\" encoding=\"UTF-8\"?><error><code>" + StatusCode.Code + "</code><message>" + StatusCode.Name + "</message><reasons>" + Reason + "</reasons></error></xml>";
 
             #endregion

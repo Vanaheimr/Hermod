@@ -388,7 +388,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (NetworkStream.DataAvailable)
             {
-                Value = SSLStream != null
+                Value = SSLStream is not null
                             ? SSLStream.    ReadByte()
                             : NetworkStream.ReadByte();
             }
@@ -502,7 +502,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
             if (NetworkStream.DataAvailable)
             {
-                return SSLStream != null
+                return SSLStream is not null
                            ? SSLStream.    Read(Buffer, 0, Buffer.Length)
                            : NetworkStream.Read(Buffer, 0, Buffer.Length);
             }
@@ -546,7 +546,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 while (NetworkStream.DataAvailable)
                 {
 
-                    ByteValue = SSLStream != null
+                    ByteValue = SSLStream is not null
                                     ? (Byte) SSLStream.    ReadByte()
                                     : (Byte) NetworkStream.ReadByte();
 
@@ -561,7 +561,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
                 if (Position > 0)
                 {
 
-                    if (Encoding == null)
+                    if (Encoding is null)
                         Encoding = Encoding.UTF8;
 
                     Array.Resize(ref ByteArray, (Int32) Position - 1);
@@ -606,7 +606,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.TCP
 
                 NetworkStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
 
-                if (SSLStream != null)
+                if (SSLStream is not null)
                     SSLStream.ReadTimeout  = (Int32) __ReadTimeout.Value.TotalMilliseconds;
 
             }

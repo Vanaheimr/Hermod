@@ -68,7 +68,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                Server          = HTTPServer.HTTPServerName,
                                Date            = Timestamp.Now,
                                CacheControl    = "no-cache",
-                               Connection      = ConnectionType.Close,
+                               Connection      = ConnectionType.KeepAlive,
                                ContentType     = HTTPContentType.Text.PLAIN,
                                Content         = ("Incoming http connection from '" + Request.HTTPSource + "'" +
                                                    Environment.NewLine + Environment.NewLine +
@@ -257,7 +257,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                    Server           = DefaultServerName,
         //                                    Date             = Timestamp.Now,
         //                                    CacheControl     = "no-cache",
-        //                                    Connection       = ConnectionType.Close,
+        //                                    Connection       = ConnectionType.KeepAlive
         //                                }.AsImmutable
 
         //                              : new HTTPResponse.Builder(httpRequest) {
@@ -297,7 +297,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //                                                    new JProperty("message", e.Message)
         //                                                ).ToUTF8Bytes(),
         //                              CacheControl    = "no-cache",
-        //                              Connection      = ConnectionType.Close,
+        //                              Connection      = ConnectionType.KeepAlive
         //                          }.AsImmutable
         //                      );
 
@@ -341,25 +341,25 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                             Server           = DefaultServerName,
                                             Date             = Timestamp.Now,
                                             CacheControl     = "no-cache",
-                                            Connection       = ConnectionType.Close,
+                                            Connection       = ConnectionType.KeepAlive
                                         }.AsImmutable
 
                                       : new HTTPResponse.Builder(httpRequest) {
-                                            HTTPStatusCode  = HTTPStatusCode.OK,
-                                            Server          = DefaultServerName,
-                                            Date            = Timestamp.Now,
-                                            ContentType     = HTTPContentType.ForFileExtension(
-                                                                  filePath.Remove(0, filePath.LastIndexOf('.') + 1),
-                                                                  () => HTTPContentType.Application.OCTETSTREAM
-                                                              ).FirstOrDefault(),
-                                            ContentStream   = fileStream,
-                                            CacheControl    = "public, max-age=300",
-                                            //Expires         = "Mon, 25 Jun 2015 21:31:12 GMT",
-                                            KeepAlive       = new KeepAliveType(
-                                                                  TimeSpan.FromMinutes(15),
-                                                                  500
-                                                              ),
-                                            Connection      = ConnectionType.KeepAlive,
+                                            HTTPStatusCode   = HTTPStatusCode.OK,
+                                            Server           = DefaultServerName,
+                                            Date             = Timestamp.Now,
+                                            ContentType      = HTTPContentType.ForFileExtension(
+                                                                   filePath[(filePath.LastIndexOf('.') + 1)..],
+                                                                   () => HTTPContentType.Application.OCTETSTREAM
+                                                               ).FirstOrDefault(),
+                                            ContentStream    = fileStream,
+                                            CacheControl     = "public, max-age=300",
+                                            //Expires          = "Mon, 25 Jun 2015 21:31:12 GMT",
+                                            KeepAlive        = new KeepAliveType(
+                                                                   TimeSpan.FromMinutes(15),
+                                                                   500
+                                                               ),
+                                            Connection       = ConnectionType.KeepAlive
                                         }.AsImmutable
 
                               );
@@ -381,7 +381,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                             new JProperty("message", e.Message)
                                                         ).ToUTF8Bytes(),
                                       CacheControl    = "no-cache",
-                                      Connection      = ConnectionType.Close,
+                                      Connection      = ConnectionType.KeepAlive
                                   }.AsImmutable
                               );
 
@@ -741,6 +741,65 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         #endregion
 
 
+        #region MapResourceAssembliesFolder (this HTTPAPI,    Hostname, URLTemplate, ResourceAssemblies, ...)
+
+        /// <summary>
+        /// Returns internal resources embedded within the given assemblies.
+        /// </summary>
+        /// <param name="Hostname">The HTTP hostname.</param>
+        /// <param name="URLTemplate">An URL template.</param>
+        /// <param name="ResourceAssemblies">The assemblies where the resources are located.</param>
+        /// <param name="DefaultFilename">The default file to load.</param>
+        public static void MapResourceAssembliesFolder(this HTTPAPIX                  HTTPAPI,
+                                                       HTTPHostname                   Hostname,
+                                                       HTTPPath                       URLTemplate,
+                                                       Tuple<String, Assembly>[]      ResourceAssemblies,
+                                                       String                         DefaultFilename       = "index.html",
+                                                       OnHTTPRequestLogDelegate2?     HTTPRequestLogger     = null,
+                                                       OnHTTPResponseLogDelegate2?    HTTPResponseLogger    = null,
+                                                       Func<String, String, String>?  HTMLTemplateHandler   = null)
+        {
+
+            HTTPAPI.AddHandler(
+
+                HTTPMethod.GET,
+                URLTemplate,
+                GetFromResourceAssemblies(
+                    URLTemplate,
+                    HTTPAPI.HTTPServer.HTTPServerName,
+                    ResourceAssemblies,
+                    DefaultFilename,
+                    HTMLTemplateHandler
+                ),
+                HTTPRequestLogger:   HTTPRequestLogger,
+                HTTPResponseLogger:  HTTPResponseLogger,
+                AllowReplacement:    URLReplacement.Fail
+
+            );
+
+            HTTPAPI.AddHandler(
+
+                HTTPMethod.GET,
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                                   ? $"{{{ResourceName}}}"
+                                   : $"/{{{ResourceName}}}"),
+                GetFromResourceAssemblies(
+                    URLTemplate,
+                    HTTPAPI.HTTPServer.HTTPServerName,
+                    ResourceAssemblies,
+                    DefaultFilename,
+                    HTMLTemplateHandler
+                ),
+                HTTPRequestLogger:   HTTPRequestLogger,
+                HTTPResponseLogger:  HTTPResponseLogger,
+                AllowReplacement:    URLReplacement.Fail
+
+            );
+
+        }
+
+        #endregion
+
         #region MapResourceAssembliesFolder (this HTTPExtAPI, Hostname, URLTemplate, ResourceAssemblies, ...)
 
         /// <summary>
@@ -756,104 +815,110 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                        Tuple<String, Assembly>[]      ResourceAssemblies,
                                                        String                         DefaultFilename         = "index.html",
                                                        Boolean                        RequireAuthentication   = true,
+                                                       OnHTTPRequestLogDelegate2?     HTTPRequestLogger     = null,
+                                                       OnHTTPResponseLogDelegate2?    HTTPResponseLogger    = null,
                                                        Func<String, String, String>?  HTMLTemplateHandler     = null)
         {
 
             HTTPExtAPI.AddHandler(
 
-                           HTTPMethod.GET,
-                           URLTemplate,
+                HTTPMethod.GET,
+                URLTemplate,
 
-                           HTTPDelegate:       RequireAuthentication
+                HTTPDelegate:      RequireAuthentication
 
-                                                   ? httpRequest => {
+                                       ? httpRequest => {
 
-                                                         #region Get HTTP user and its organizations
+                                             #region Get HTTP user and its organizations
 
-                                                         // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                                         if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                             httpRequest,
-                                                                             out var httpUser,
-                                                                             out var httpOrganizations,
-                                                                             out var response,
-                                                                             Recursive: true
-                                                                         ))
-                                                         {
-                                                             return Task.FromResult(response!.AsImmutable);
-                                                         }
+                                             // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                             if (!HTTPExtAPI.TryGetHTTPUser(
+                                                                 httpRequest,
+                                                                 out var httpUser,
+                                                                 out var httpOrganizations,
+                                                                 out var response,
+                                                                 Recursive: true
+                                                             ))
+                                             {
+                                                 return Task.FromResult(response!.AsImmutable);
+                                             }
 
-                                                         #endregion
+                                             #endregion
 
-                                                         return GetFromResourceAssemblies(
-                                                                    URLTemplate,
-                                                                    HTTPExtAPI.HTTPServer.HTTPServerName,
-                                                                    ResourceAssemblies,
-                                                                    DefaultFilename,
-                                                                    HTMLTemplateHandler
-                                                                )(httpRequest);
+                                             return GetFromResourceAssemblies(
+                                                        URLTemplate,
+                                                        HTTPExtAPI.HTTPServer.HTTPServerName,
+                                                        ResourceAssemblies,
+                                                        DefaultFilename,
+                                                        HTMLTemplateHandler
+                                                    )(httpRequest);
 
-                                                     }
+                                         }
 
-                                                   : GetFromResourceAssemblies(
-                                                         URLTemplate,
-                                                         HTTPExtAPI.HTTPServer.HTTPServerName,
-                                                         ResourceAssemblies,
-                                                         DefaultFilename,
-                                                         HTMLTemplateHandler
-                                                     ),
+                                       : GetFromResourceAssemblies(
+                                             URLTemplate,
+                                             HTTPExtAPI.HTTPServer.HTTPServerName,
+                                             ResourceAssemblies,
+                                             DefaultFilename,
+                                             HTMLTemplateHandler
+                                         ),
 
-                           AllowReplacement:   URLReplacement.Fail
+                HTTPRequestLogger:   HTTPRequestLogger,
+                HTTPResponseLogger:  HTTPResponseLogger,
+                AllowReplacement:    URLReplacement.Fail
 
-                       );
+            );
 
             HTTPExtAPI.AddHandler(
 
-                           HTTPMethod.GET,
-                           URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
-                                              ? $"{{{ResourceName}}}"
-                                              : $"/{{{ResourceName}}}"),
+                HTTPMethod.GET,
+                URLTemplate + (URLTemplate.EndsWith("/", StringComparison.InvariantCulture)
+                                   ? $"{{{ResourceName}}}"
+                                   : $"/{{{ResourceName}}}"),
 
-                           HTTPDelegate:       RequireAuthentication
+                HTTPDelegate:      RequireAuthentication
 
-                                                   ? httpRequest => {
+                                       ? httpRequest => {
 
-                                                         #region Get HTTP user and its organizations
+                                             #region Get HTTP user and its organizations
 
-                                                         // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
-                                                         if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                             httpRequest,
-                                                                             out var httpUser,
-                                                                             out var httpOrganizations,
-                                                                             out var response,
-                                                                             Recursive: true
-                                                                         ))
-                                                         {
-                                                             return Task.FromResult(response!.AsImmutable);
-                                                         }
+                                             // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
+                                             if (!HTTPExtAPI.TryGetHTTPUser(
+                                                                 httpRequest,
+                                                                 out var httpUser,
+                                                                 out var httpOrganizations,
+                                                                 out var response,
+                                                                 Recursive: true
+                                                             ))
+                                             {
+                                                 return Task.FromResult(response!.AsImmutable);
+                                             }
 
-                                                         #endregion
+                                             #endregion
 
-                                                         return GetFromResourceAssemblies(
-                                                                    URLTemplate,
-                                                                    HTTPExtAPI.HTTPServer.HTTPServerName,
-                                                                    ResourceAssemblies,
-                                                                    DefaultFilename,
-                                                                    HTMLTemplateHandler
-                                                                )(httpRequest);
+                                             return GetFromResourceAssemblies(
+                                                        URLTemplate,
+                                                        HTTPExtAPI.HTTPServer.HTTPServerName,
+                                                        ResourceAssemblies,
+                                                        DefaultFilename,
+                                                        HTMLTemplateHandler
+                                                    )(httpRequest);
 
-                                                     }
+                                         }
 
-                                                   : GetFromResourceAssemblies(
-                                                         URLTemplate,
-                                                         HTTPExtAPI.HTTPServer.HTTPServerName,
-                                                         ResourceAssemblies,
-                                                         DefaultFilename,
-                                                         HTMLTemplateHandler
-                                                     ),
+                                       : GetFromResourceAssemblies(
+                                             URLTemplate,
+                                             HTTPExtAPI.HTTPServer.HTTPServerName,
+                                             ResourceAssemblies,
+                                             DefaultFilename,
+                                             HTMLTemplateHandler
+                                         ),
 
-                           AllowReplacement:   URLReplacement.Fail
+                HTTPRequestLogger:   HTTPRequestLogger,
+                HTTPResponseLogger:  HTTPResponseLogger,
+                AllowReplacement:    URLReplacement.Fail
 
-                       );
+            );
 
         }
 
@@ -1135,7 +1200,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                             ContentType     = ResponseContentType,
                             ContentStream   = fileStream,
                             CacheControl    = CacheControl,
-                            Connection      = ConnectionType.Close,
+                            Connection      = ConnectionType.KeepAlive
                         };
 
                     else
@@ -1184,7 +1249,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 ContentType     = ResponseContentType,
                                 ContentStream   = errorStream,
                                 CacheControl    = "no-cache",
-                                Connection      = ConnectionType.Close,
+                                Connection      = ConnectionType.KeepAlive
                             };
 
                         #endregion
@@ -1197,7 +1262,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 Server          = HTTPAPI.HTTPServer.HTTPServerName,
                                 Date            = Timestamp.Now,
                                 CacheControl    = "no-cache",
-                                Connection      = ConnectionType.Close,
+                                Connection      = ConnectionType.KeepAlive
                             };
 
                         #endregion
@@ -1271,7 +1336,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              ContentType     = ResponseContentType,
                                              ContentStream   = fileStream,
                                              CacheControl    = CacheControl,
-                                             Connection      = ConnectionType.Close,
+                                             Connection      = ConnectionType.KeepAlive
                                          }.AsImmutable
                                      )
 
@@ -1281,7 +1346,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                              Server          = HTTPAPI.HTTPServer.HTTPServerName,
                                              Date            = Timestamp.Now,
                                              CacheControl    = "no-cache",
-                                             Connection      = ConnectionType.Close,
+                                             Connection      = ConnectionType.KeepAlive
                                          }.AsImmutable
                                      );
 
@@ -1294,7 +1359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        Server          = HTTPAPI.HTTPServer.HTTPServerName,
                                        Date            = Timestamp.Now,
                                        CacheControl    = "no-cache",
-                                       Connection      = ConnectionType.Close,
+                                       Connection      = ConnectionType.KeepAlive
                                    }.AsImmutable
                                );
 
@@ -1311,7 +1376,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                        ContentType     = HTTPContentType.Text.PLAIN,
                                        Content         = e.Message.ToUTF8Bytes(),
                                        CacheControl    = "no-cache",
-                                       Connection      = ConnectionType.Close,
+                                       Connection      = ConnectionType.KeepAlive
                                    }.AsImmutable
                                );
 

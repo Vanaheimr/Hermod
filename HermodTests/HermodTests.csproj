@@ -4,7 +4,13 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>org.GraphDefined.Vanaheimr.Hermod.Tests</RootNamespace>
+    <AssemblyName>org.GraphDefined.Vanaheimr.Hermod.Tests</AssemblyName>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="HTTP\HTTPRoot\helloWorld.txt" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="9.0.8" />

@@ -65,7 +65,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             var echoReply =  new ICMPTimeExceeded(Data,
                                                   IPv4Packet);
 
-            //if (ICMPPacket == null)
+            //if (ICMPPacket is null)
             //    echoReply.ICMPPacket = new ICMPPacket<ICMPTimeExceeded>(Type:      8,
             //                                                         Code:      0,
             //                                                         Checksum:  0,

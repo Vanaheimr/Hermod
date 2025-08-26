@@ -107,11 +107,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //public override Int32 CompareTo(Object Object)
         //{
 
-        //    if (Object == null)
+        //    if (Object is null)
         //        throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
         //    var EVSE_Operator = Object as TagTriple;
-        //    if ((Object) EVSE_Operator == null)
+        //    if ((Object) EVSE_Operator is null)
         //        throw new ArgumentException("The given object is not a data source!");
 
         //    return CompareTo(EVSE_Operator);
@@ -129,7 +129,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         //public Int32 CompareTo(TagTriple TagTriple)
         //{
 
-        //    if ((Object) TagTriple == null)
+        //    if ((Object) TagTriple is null)
         //        throw new ArgumentNullException(nameof(TagTriple), "The given data source must not be null!");
 
         //    return Id.CompareTo(TagTriple.Id);
@@ -152,7 +152,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (!(Object is TagTriple _TagTriple))
@@ -174,7 +174,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(TagTriple TagTriple)
         {
 
-            if ((Object) TagTriple == null)
+            if ((Object) TagTriple is null)
                 return false;
 
             return Tag1. Equals(TagTriple.Tag1)  &&
@@ -284,7 +284,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static JArray ToJSON(this IEnumerable<TagInfo> TagInfos,
                                     InfoStatus                ExpandTags = InfoStatus.ShowIdOnly)
 
-            => TagInfos == null
+            => TagInfos is null
                    ? new JArray()
                    : new JArray(TagInfos.Select(taginfo => taginfo.ToJSON(ExpandTags)));
 
@@ -321,7 +321,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             _Tags = new Dictionary<Tag, TagEdge>();
 
-            if (Tags != null)
+            if (Tags is not null)
                 foreach (var tag in Tags)
                     _Tags.Add(tag.Key, tag.Value);
 
@@ -368,7 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 ErrorResponse = null;
 
-                if (JSONArray == null)
+                if (JSONArray is null)
                 {
                     ErrorResponse  = "The given JSON object must not be null!";
                     Tags           = null;
@@ -392,7 +392,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                 var TagId     = item[0].Value<String>();
                                 var TagObject = item[0] as JObject;
 
-                                if (TagObject != null && Tag.TryParseJSON(item[0] as JObject,
+                                if (TagObject is not null && Tag.TryParseJSON(item[0] as JObject,
                                                                           out Tag Tag2,
                                                                           out ErrorResponse))
                                 {
@@ -486,7 +486,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 _Tags = new Dictionary<Tag, TagEdge>();
 
-                if (Tags != null)
+                if (Tags is not null)
                     foreach (var tag in Tags)
                         _Tags.Add(tag.Key, tag.Value);
 

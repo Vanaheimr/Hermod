@@ -153,7 +153,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
                                      Split(LineEndings,
                                            StringSplitOptions.RemoveEmptyEntries).
                                      Select(CSVLine => CSVLine.Trim().
-                                                               Split ((Splitter != null) ? Splitter.ToArray() : DefaultSplitter,
+                                                               Split ((Splitter is not null) ? Splitter.ToArray() : DefaultSplitter,
                                                                       StringSplitOptions.None).
                                                                Select(CSVElement => CSVElement.Trim())),
 
@@ -167,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.CSV
 
         {
 
-            this._Splitter  = (Splitter != null) ? Splitter.ToArray() : DefaultSplitter;
+            this._Splitter  = (Splitter is not null) ? Splitter.ToArray() : DefaultSplitter;
 
         }
 

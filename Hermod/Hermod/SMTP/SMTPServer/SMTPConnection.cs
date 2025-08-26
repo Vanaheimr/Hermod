@@ -362,10 +362,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             MAIL_FROM_FilterResponse _SMTPFilterResponse = null;
 
                                             var MAIL_FROMFilterLocal = MAIL_FROMFilter;
-                                            if (MAIL_FROMFilterLocal != null)
+                                            if (MAIL_FROMFilterLocal is not null)
                                                 _SMTPFilterResponse = MAIL_FROMFilterLocal(MailFrom);
 
-                                            if (_SMTPFilterResponse == null)
+                                            if (_SMTPFilterResponse is null)
                                             {
                                                 TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + MailFrom + " Sender ok");
                                                 MailFroms.Add(EMailAddress.Parse(MailFrom));
@@ -442,10 +442,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             RCPT_TO_FilterResponse _SMTPFilterResponse = null;
 
                                             var RCPT_TOFilterLocal = RCPT_TOFilter;
-                                            if (RCPT_TOFilterLocal != null)
+                                            if (RCPT_TOFilterLocal is not null)
                                                 _SMTPFilterResponse = RCPT_TOFilterLocal(RcptTo);
 
-                                            if (_SMTPFilterResponse == null)
+                                            if (_SMTPFilterResponse is null)
                                             {
                                                 TCPConnection.WriteLineSMTP(SMTPStatusCode.Ok, "2.1.0 " + RcptTo + " Recipient ok");
                                                 RcptTos.Add(EMailAddress.Parse(RcptTo));
@@ -494,7 +494,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                 MailLine = TCPConnection.ReadLine();
 
                                                 // "." == End-of-EMail...
-                                                if (MailLine != null && MailLine != ".")
+                                                if (MailLine is not null && MailLine != ".")
                                                 {
                                                     MailText.Add(MailLine);
                                                     Debug.WriteLine("<<< " + MailLine);
@@ -515,7 +515,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                             catch
                                             { }
 
-                                            if (IncomingMail == null)
+                                            if (IncomingMail is null)
                                             {
 
                                                 TCPConnection.WriteLineSMTP(SMTPStatusCode.TransactionFailed, "The e-mail could not be parsed!");
@@ -531,7 +531,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                                             var _MessageId = IncomingMail.MessageId;
 
-                                            if (_MessageId == null)
+                                            if (_MessageId is null)
                                             {
                                                 _MessageId = Message_Id.Parse(Guid.NewGuid().ToString() + "@" + DefaultServerName);
                                                 IncomingMail = EMail.Parse(new String[] { "Message-Id: " + _MessageId + Environment.NewLine }.Concat(MailText));
@@ -674,7 +674,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 else
                 {
 
-                    //if (OnError != null)
+                    //if (OnError is not null)
                     //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), ioe, MemoryStream);
 
                 }
@@ -684,7 +684,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             catch (Exception e)
             {
 
-                //if (OnError != null)
+                //if (OnError is not null)
                 //    OnError(this, Timestamp.Now, ConnectionIdBuilder(newTCPConnection.RemoteIPAddress, newTCPConnection.RemotePort), e, MemoryStream);
 
             }

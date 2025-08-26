@@ -77,7 +77,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             if (Title.IsNullOrEmpty())
                 throw new ArgumentNullException(nameof(Title),          "The given multi-language headline string must not be null or empty!");
 
-            if (Description == null)
+            if (Description is null)
                 throw new ArgumentNullException(nameof(Description),    "The given multi-language description string must not be null or empty!");
 
             if (Notifications.IsNullOrEmpty())
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             this.Title          = Title;
             this.Description    = Description;
             this.Visibility     = Visibility;
-            this.notifications  = Notifications != null ? new List<NotificationMessageDescription>(Notifications) : new List<NotificationMessageDescription>();
+            this.notifications  = Notifications is not null ? new List<NotificationMessageDescription>(Notifications) : new List<NotificationMessageDescription>();
 
         }
 
@@ -105,7 +105,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
 
         public void Remove(NotificationMessageDescription NotificationMessageDescription)
         {
-            if (NotificationMessageDescription != null)
+            if (NotificationMessageDescription is not null)
                 this.notifications.Remove(NotificationMessageDescription);
         }
 

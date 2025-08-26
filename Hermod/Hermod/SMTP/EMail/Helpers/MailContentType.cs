@@ -259,7 +259,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 }
 
             // Update text-version within the e-mail header
-            if (_EMailHeader != null)
+            if (_EMailHeader is not null)
                 _EMailHeader.SetEMailHeader("Content-Type", this.ToString());
 
         }
@@ -283,7 +283,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 _MIMEBoundary = "-8<--" + _ContentType.ToString().Replace("_", "/") + "--8<--" + RandomExtensions.RandomBytes(12).ToHexString() + "--8<-";
 
                 // Update text-version within the e-mail header
-                if (_EMailHeader != null)
+                if (_EMailHeader is not null)
                     _EMailHeader.SetEMailHeader("Content-Type", this.ToString());
 
             }

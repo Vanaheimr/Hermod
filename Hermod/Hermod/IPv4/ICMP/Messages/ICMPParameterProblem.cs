@@ -69,7 +69,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Sockets.RawIP.ICMP
             var echoReply =  new ICMPParameterProblem(Data,
                                                   IPv4Packet);
 
-            //if (ICMPPacket == null)
+            //if (ICMPPacket is null)
             //    echoReply.ICMPPacket = new ICMPPacket<ICMPParameterProblem>(Type:      8,
             //                                                         Code:      0,
             //                                                         Checksum:  0,

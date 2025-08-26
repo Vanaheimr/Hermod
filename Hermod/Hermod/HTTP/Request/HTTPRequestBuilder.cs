@@ -602,7 +602,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 set
                 {
-                    if (value != null && value.HasValue)
+                    if (value is not null && value.HasValue)
                         SetHeaderField(HTTPRequestHeaderField.LastEventId, value.Value);
                     else
                         throw new Exception("Could not set the HTTP request header 'Last-Event-Id' field!");

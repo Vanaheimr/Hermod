@@ -53,7 +53,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 if (!Response.TryReadHTTPBodyStream())
                     return "";
 
-                if (Response.HTTPBody == null || Response.HTTPBody.Length == 0)
+                if (Response.HTTPBody is null || Response.HTTPBody.Length == 0)
                     return "";
 
             }

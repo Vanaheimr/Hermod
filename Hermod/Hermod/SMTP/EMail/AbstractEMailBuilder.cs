@@ -69,14 +69,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             get
             {
 
-                if (_From != null)
+                if (_From is not null)
                     return _From;
 
                 var _FromString = MailHeaders.
                                       Where(kvp => kvp.Key.ToLower() == "from").
                                       FirstOrDefault();
 
-                if (_FromString.Key != null)
+                if (_FromString.Key is not null)
                 {
                     _From = EMailAddress.Parse(_FromString.Value);
                     return _From;
@@ -89,7 +89,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             set
             {
 
-                if (value != null)
+                if (value is not null)
                 {
 
                     _From = value;
@@ -117,14 +117,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             get
             {
 
-                if (_To != null)
+                if (_To is not null)
                     return _To;
 
                 var _ToString = MailHeaders.
                                       Where(kvp => kvp.Key.ToLower() == "to").
                                       FirstOrDefault();
 
-                if (_ToString.Key != null)
+                if (_ToString.Key is not null)
                 {
                     _To = EMailAddressListBuilder.Parse(_ToString.Value);
                     return _To;
@@ -137,7 +137,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             set
             {
 
-                if (value != null)
+                if (value is not null)
                 {
 
                     _To = value;
@@ -169,7 +169,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             set
             {
-                if (value != null)
+                if (value is not null)
                     _ReplyTo.Add(value);
             }
 
@@ -194,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             set
             {
-                if (value != null)
+                if (value is not null)
                     _Cc.Add(value);
             }
 
@@ -219,7 +219,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             set
             {
-                if (value != null)
+                if (value is not null)
                     _Bcc.Add(value);
             }
 
@@ -240,14 +240,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             get
             {
 
-                if (_Subject != null)
+                if (_Subject is not null)
                     return _Subject;
 
                 var _String = MailHeaders.
                                       Where(kvp => kvp.Key.ToLower() == "subject").
                                       FirstOrDefault();
 
-                if (_String.Key != null)
+                if (_String.Key is not null)
                 {
                     _Subject = _String.Value;
                     return _Subject;
@@ -260,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
             set
             {
 
-                if (value != null && value != String.Empty && value.Trim() != "")
+                if (value is not null && value != String.Empty && value.Trim() != "")
                 {
                     _Subject = value.Trim();
                     this.SetEMailHeader("Subject", value.ToString());
@@ -292,7 +292,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                                       Where(kvp => kvp.Key.ToLower() == "date").
                                       FirstOrDefault();
 
-                if (_String.Key != null)
+                if (_String.Key is not null)
                 {
                     _Date = DateTimeOffset.Parse(_String.Value);
                     return _Date.Value;
@@ -359,7 +359,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             set
             {
-                if (value != null)
+                if (value is not null)
                     _Body = value;
             }
 
@@ -503,7 +503,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
             #region Add attachments, if available...
 
-            if (_Attachments       == null ||
+            if (_Attachments       is null ||
                 _Attachments.Count == 0)
                 bodypartToBeSecured  = _EncodeBodyparts();
 
@@ -527,7 +527,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 case EMailSecurity.autosign:
 
-                    if (From.SecretKeyRing != null &&
+                    if (From.SecretKeyRing is not null &&
                         From.SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Any()   &&
                         Passphrase.IsNotNullOrEmpty())
                         SignTheMail = true;
@@ -537,7 +537,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 case EMailSecurity.sign:
 
-                    if (From.SecretKeyRing == null ||
+                    if (From.SecretKeyRing is null ||
                        !From.SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Any()   ||
                         Passphrase.IsNullOrEmpty())
                         throw new ApplicationException("Can not sign the e-mail!");
@@ -549,14 +549,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 case EMailSecurity.auto:
 
-                    if (From.SecretKeyRing != null &&
+                    if (From.SecretKeyRing is not null &&
                         From.SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Any()   &&
                         Passphrase.IsNotNullOrEmpty())
                         SignTheMail = true;
 
                     if (SignTheMail &&
-                        (!To.Any() | To.Any(v => v.PublicKeyRing != null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() )) &&
-                        (!Cc.Any() | Cc.Any(v => v.PublicKeyRing != null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() )))
+                        (!To.Any() | To.Any(v => v.PublicKeyRing is not null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() )) &&
+                        (!Cc.Any() | Cc.Any(v => v.PublicKeyRing is not null && v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() )))
                         EncryptTheMail = true;
 
                     break;
@@ -564,11 +564,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 
                 case EMailSecurity.encrypt:
 
-                    if (From.SecretKeyRing == null  ||
+                    if (From.SecretKeyRing is null  ||
                        !From.SecretKeyRing.GetSecretKeys().Cast<PgpSecretKey>().ToList().Any()    ||
                         Passphrase.IsNullOrEmpty()  ||
-                        To.Any(v => v.PublicKeyRing == null || !v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() ) ||
-                        Cc.Any(v => v.PublicKeyRing == null || !v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() ))
+                        To.Any(v => v.PublicKeyRing is null || !v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() ) ||
+                        Cc.Any(v => v.PublicKeyRing is null || !v.PublicKeyRing.GetPublicKeys().Cast<PgpPublicKey>().ToList().Any() ))
                         throw new ApplicationException("Can not sign and encrypt the e-mail!");
 
                     EncryptTheMail = true;

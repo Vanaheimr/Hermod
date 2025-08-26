@@ -93,7 +93,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (Text != null)
+            if (Text is not null)
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
@@ -139,7 +139,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             #region Initial checks
 
-            if (Text != null)
+            if (Text is not null)
                 Text = Text.Trim();
 
             if (Text.IsNullOrEmpty())
@@ -194,7 +194,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) TagId1 == null) || ((Object) TagId2 == null))
+            if (((Object) TagId1 is null) || ((Object) TagId2 is null))
                 return false;
 
             return TagId1.Equals(TagId2);
@@ -227,7 +227,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator < (Tag_Id TagId1, Tag_Id TagId2)
         {
 
-            if ((Object) TagId1 == null)
+            if ((Object) TagId1 is null)
                 throw new ArgumentNullException(nameof(TagId1), "The given TagId1 must not be null!");
 
             return TagId1.CompareTo(TagId2) < 0;
@@ -260,7 +260,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public static Boolean operator > (Tag_Id TagId1, Tag_Id TagId2)
         {
 
-            if ((Object) TagId1 == null)
+            if ((Object) TagId1 is null)
                 throw new ArgumentNullException(nameof(TagId1), "The given TagId1 must not be null!");
 
             return TagId1.CompareTo(TagId2) > 0;
@@ -295,7 +295,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException(nameof(Object), "The given object must not be null!");
 
             if (!(Object is Tag_Id))
@@ -317,7 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Int32 CompareTo(Tag_Id TagId)
         {
 
-            if ((Object) TagId == null)
+            if ((Object) TagId is null)
                 throw new ArgumentNullException(nameof(TagId),  "The given tag identification must not be null!");
 
             return String.Compare(InternalId, TagId.InternalId, StringComparison.Ordinal);
@@ -340,7 +340,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             if (!(Object is Tag_Id))
@@ -362,7 +362,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
         public Boolean Equals(Tag_Id TagId)
         {
 
-            if ((Object) TagId == null)
+            if ((Object) TagId is null)
                 return false;
 
             return InternalId.Equals(TagId.InternalId);

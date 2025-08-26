@@ -619,7 +619,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             if (Request.ContentType     != HTTPContentType.Multipart.FORMDATA ||
                 Request.ContentLength   == 0                                  ||
                !Request.TryReadHTTPBodyStream()                               ||
-                Request.HTTPBody        == null                               ||
+                Request.HTTPBody        is null                               ||
                 Request.HTTPBody.Length == 0)
             {
 

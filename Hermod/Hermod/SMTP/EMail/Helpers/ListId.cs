@@ -28,7 +28,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
 {
 
     /// <summary>
-    /// A unique mailinglist identification.
+    /// A unique mailing list identification.
     /// </summary>
     public class ListId : IComparable, IComparable<ListId>, IEquatable<ListId>
     {
@@ -99,7 +99,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new unique mailinglist identification.
+        /// Create a new unique mailing list identification.
         /// </summary>
         /// <param name="ListId"></param>
         private ListId(String ListId)
@@ -176,7 +176,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
                 return true;
 
             // If one is null, but not both, return false.
-            if (((Object) ListId1 == null) || ((Object) ListId2 == null))
+            if (((Object) ListId1 is null) || ((Object) ListId2 is null))
                 return false;
 
             return ListId1.Equals(ListId2);
@@ -273,12 +273,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Int32 CompareTo(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 throw new ArgumentNullException("The given object must not be null!");
 
             // Check if the given object is a ListId.
             var _ListId = Object as ListId;
-            if ((Object) _ListId == null)
+            if ((Object) _ListId is null)
                 throw new ArgumentException("The given object is not a ListId!");
 
             return (this.Value).CompareTo(_ListId.Value);
@@ -296,7 +296,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Int32 CompareTo(ListId ListId)
         {
 
-            if ((Object) ListId == null)
+            if ((Object) ListId is null)
                 throw new ArgumentNullException();
 
             return (this.Value).CompareTo(ListId.Value);
@@ -319,12 +319,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public override Boolean Equals(Object Object)
         {
 
-            if (Object == null)
+            if (Object is null)
                 return false;
 
             // Check if the given object is a ListId.
             var _ListId = Object as ListId;
-            if ((Object) _ListId == null)
+            if ((Object) _ListId is null)
                 return false;
 
             return Equals(_ListId);
@@ -343,7 +343,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Mail
         public Boolean Equals(ListId ListId)
         {
 
-            if ((Object) ListId == null)
+            if ((Object) ListId is null)
                 return false;
 
             return this.Value.Equals(ListId.Value);

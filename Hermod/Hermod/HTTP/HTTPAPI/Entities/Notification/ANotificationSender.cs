@@ -157,7 +157,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP.Notifications
             catch (Exception e)
             {
 
-                while (e.InnerException != null)
+                while (e.InnerException is not null)
                     e = e.InnerException;
 
                 //DebugX.LogT(GetType().Name + ".SendNotifications '" + Id + "' led to an exception: " + e.Message + Environment.NewLine + e.StackTrace);

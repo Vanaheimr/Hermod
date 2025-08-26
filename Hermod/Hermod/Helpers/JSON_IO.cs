@@ -45,7 +45,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// <param name="JPropertyKey">The name of the JSON property key to use.</param>
         public static JProperty ToJSON(this IIPAddress IIPAddress, String JPropertyKey)
 
-            => IIPAddress != null
+            => IIPAddress is not null
                    ? new JProperty(JPropertyKey, IIPAddress.ToString())
                    : null;
 

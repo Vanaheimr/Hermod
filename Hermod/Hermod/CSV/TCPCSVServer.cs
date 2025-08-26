@@ -368,7 +368,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Services.CSV
                               CSVArray);
 
             var OnNotificationLocal = OnNotification;
-            if (OnNotificationLocal != null)
+            if (OnNotificationLocal is not null)
                 return OnNotificationLocal(ConnectionId,
                                            Timestamp,
                                            CSVArray);

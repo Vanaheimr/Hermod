@@ -73,19 +73,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         {
 
             var InputStream = PgpUtilities.GetDecoderStream(Text.ToMemoryStream());
-            if (InputStream == null)
+            if (InputStream is null)
                 throw new ArgumentException("The given text input is not valid PGP/GPG data!");
 
             PgpPublicKeyRing PublicKeyRing = null;
 
             var PublicKeyRingBundle  = new PgpPublicKeyRingBundle(InputStream);
-            if (PublicKeyRingBundle != null)
+            if (PublicKeyRingBundle is not null)
                 PublicKeyRing = PublicKeyRingBundle.GetKeyRings().Cast<PgpPublicKeyRing>().First();
 
             else
                 PublicKeyRing = new PgpPublicKeyRing(InputStream);
 
-            if (PublicKeyRing == null)
+            if (PublicKeyRing is null)
                 throw new ArgumentException("The given text input does not contain a valid PGP/GPG public key ring!");
 
             return PublicKeyRing;
@@ -115,7 +115,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 else
                     PublicKeyRing = new PgpPublicKeyRing(InputStream);
 
-                return PublicKeyRing != null;
+                return PublicKeyRing is not null;
 
             }
             catch
@@ -435,19 +435,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
             #region Initial checks
 
-            if (InputStream == null)
+            if (InputStream is null)
                 throw new ArgumentNullException("The Input stream must not be null!");
 
-            if (SecretKey == null)
+            if (SecretKey is null)
                 throw new ArgumentNullException("The secret key must not be null!");
 
-            if (Passphrase == null)
+            if (Passphrase is null)
                 throw new ArgumentNullException("The pass phrase must not be null!");
 
-            if (PublicKey == null)
+            if (PublicKey is null)
                 throw new ArgumentNullException("The public key must not be null!");
 
-            if (OutputStream == null)
+            if (OutputStream is null)
                 throw new ArgumentNullException("The output stream must not be null!");
 
             #endregion

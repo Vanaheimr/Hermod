@@ -708,14 +708,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                      Select (header => header.Key + ": " + header.Value).
                                                      ForEach(line   => SendCommand(line));
 
-                                        //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId != null
+                                        //SendCommand("Message-Id: <" + (EMailEnvelop.Mail.MessageId is not null
                                         //                                    ? EMailEnvelop.Mail.MessageId.ToString()
                                         //                                    : GenerateMessageId(EMailEnvelop.Mail, RemoteHost).ToString()) + ">");
 
                                         SendCommand("");
 
                                         // Send e-mail body(parts)...
-                                        //if (EMailEnvelop.Mail.MailBody != null)
+                                        //if (EMailEnvelop.Mail.MailBody is not null)
                                         //{
                                         EMailEnvelop.Mail.Body.ToText(false).ForEach(line => SendCommand(line));
                                         SendCommand("");

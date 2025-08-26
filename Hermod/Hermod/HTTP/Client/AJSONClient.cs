@@ -231,7 +231,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 {
 
             //        var OnHTTPErrorLocal = OnHTTPError;
-            //    if (OnHTTPErrorLocal != null)
+            //    if (OnHTTPErrorLocal is not null)
             //        return OnHTTPErrorLocal(Timestamp.Now, this, HttpResponseTask?.Result);
 
             //    return new HTTPResponse<JObject>(HttpResponseTask?.Result,
@@ -250,7 +250,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                         return OnSuccessLocal(new HTTPResponse<JObject>(httpResponse, JSON));
 
                     //var OnSOAPFaultLocal = OnSOAPFault;
-                    //if (OnSOAPFaultLocal != null)
+                    //if (OnSOAPFaultLocal is not null)
                     //    return OnSOAPFaultLocal(Timestamp.Now, this, new HTTPResponse<XElement>(HttpResponseTask.Result, SOAPXML));
 
                     return HTTPResponse<JObject>.IsFault(httpResponse,
@@ -263,7 +263,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                     OnException?.Invoke(Timestamp.Now, this, e);
 
                     //var OnFaultLocal = OnSOAPFault;
-                    //if (OnFaultLocal != null)
+                    //if (OnFaultLocal is not null)
                     //    return OnFaultLocal(new HTTPResponse<XElement>(HttpResponseTask.Result, e));
 
                     return HTTPResponse<JObject>.IsFault(httpResponse,

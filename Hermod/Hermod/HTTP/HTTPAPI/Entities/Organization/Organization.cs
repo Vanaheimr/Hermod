@@ -543,7 +543,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
             GetAllChilds(ref childAndMe);
 
-            return Include != null
+            return Include is not null
                        ? childAndMe.Where(Include)
                        : childAndMe;
 
@@ -1863,7 +1863,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 this.Address = Address;
                 this.GeoLocation = GeoLocation;
                 var _TagsBuilder = new Tags.Builder();
-                this.Tags = Tags != null ? Tags(_TagsBuilder) : _TagsBuilder;
+                this.Tags = Tags is not null ? Tags(_TagsBuilder) : _TagsBuilder;
                 this.IsDisabled = IsDisabled;
                 this.AttachedFiles = AttachedFiles.SafeAny() ? new HashSet<AttachedFile>(AttachedFiles) : new HashSet<AttachedFile>();
 
