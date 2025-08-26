@@ -189,9 +189,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             // Check if there are other SOAP dispatchers at the given URI template.
             var requestHandle = HTTPServer.GetRequestHandle(
                                     HTTPHostname.Any,
-                                    URITemplate,
                                   //  out var errorResponse,
                                     HTTPMethod.POST,
+                                    URITemplate,
                                     hTTPContentTypes => SOAPContentType
                                 );
 
@@ -260,11 +260,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
             SOAPDispatcher? soapDispatcher = null;
 
             // Check if there are other SOAP dispatchers at the given URI template.
-            var requestHandle = HTTPServer.GetRequestHandle(HTTPHostname.Any,
-                                                            URITemplate,
-                                                     //       out var errorResponse,
-                                                            HTTPMethod.POST,
-                                                            hTTPContentTypes => SOAPContentType);
+            var requestHandle = HTTPServer.GetRequestHandle(
+                                    HTTPHostname.Any,
+                                    //out var errorResponse,
+                                    HTTPMethod.POST,
+                                    URITemplate,
+                                    hTTPContentTypes => SOAPContentType
+                                );
 
             if (requestHandle is null)
             {

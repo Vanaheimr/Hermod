@@ -38,54 +38,53 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
     public class HTTPTestServerTests
     {
 
-        #region Setup/Teardown
+        //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
+        //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
-        //private HTTPTestServerX httpServer;
+        #region Paths_01()
 
-        [OneTimeSetUp]
-        public async Task Init_TEChunkedAPI()
+        [Test]
+        public async Task Paths_01()
         {
 
-            
+            var httpServer      = await HTTPTestServerX.StartNew();
+            var httpAPI         = httpServer.AddHTTPAPI();
+            var requestLogger   = new List<HTTPRequest>();
+            var responseLogger  = new List<HTTPResponse>();
 
+            httpAPI.AddHandler(
 
-            //var api2 = httpServer.AddHTTPAPI(HTTPPath.Parse("/api2/test/"));
+                HTTPPath.Root + "check",
+                HTTPMethod:          HTTPMethod.GET,
+                HTTPRequestLogger:   (ts, server, request,           ct) => { requestLogger. Add(request);  return Task.CompletedTask; },
+                HTTPResponseLogger:  (ts, server, request, response, ct) => { responseLogger.Add(response); return Task.CompletedTask; },
+                HTTPDelegate:        request => {
 
-            //api2.AddHandler(HTTPPath.Root + "{filename1}",
-            //                HTTPMethod:   HTTPMethod.GET,
-            //                HTTPDelegate: async request => {
-            //                    return new HTTPResponse.Builder(request) {
-            //                               HTTPStatusCode  = HTTPStatusCode.OK,
-            //                               ContentType     = HTTPContentType.Text.PLAIN,
-            //                               Content         = "Hello World (/api2/test/)!".ToUTF8Bytes()
-            //                           }.AsImmutable;
-            //                });
+                    return Task.FromResult(
+                               new HTTPResponse.Builder(request) {
+                                   HTTPStatusCode  = HTTPStatusCode.OK,
+                                   ContentType     = HTTPContentType.Text.PLAIN,
+                                   Content         = $"Hello World!".ToUTF8Bytes()
+                               }.AsImmutable
+                           );
 
-            //api2.AddHandler(HTTPPath.Root + "/test2/{filename2}",
-            //                HTTPMethod:   HTTPMethod.GET,
-            //                HTTPDelegate: async request => {
-            //                    return new HTTPResponse.Builder(request) {
-            //                               HTTPStatusCode  = HTTPStatusCode.OK,
-            //                               ContentType     = HTTPContentType.Text.PLAIN,
-            //                               Content         = "Hello World (/api2/test/test2/)!".ToUTF8Bytes()
-            //                           }.AsImmutable;
-            //                });
+                }
+            );
 
-        }
+            var httpClient = await HTTPTestClient.ConnectNew(IPv4Address.Localhost, httpServer.TCPPort);
 
-        [OneTimeTearDown]
-        public async Task Shutdown_TEChunkedAPI()
-        {
+            var response   = await httpClient.SendRequest(httpClient.CreateRequest(HTTPMethod.GET, HTTPPath.Parse("/check")));
+            Assert.That(response, Is.Not.Null);
 
-            //if (httpServer is not null)
-            //    await httpServer.DisposeAsync();
+            var httpBody   = response.HTTPBodyAsUTF8String ?? "";
+
+            Assert.That(requestLogger,   Has.Count.EqualTo(1));
+            Assert.That(responseLogger,  Has.Count.EqualTo(1));
+            Assert.That(httpBody,        Is.EqualTo("Hello World!"));
 
         }
 
         #endregion
-
-        //var response1  = await httpClient.SendText("GET /test1.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
-        //var response2  = await httpClient.SendText("GET /test2.txt HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n");
 
 
         #region PathsAndVariables_01()
@@ -640,7 +639,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
                                     )
                                 );
 
-            Assert.That(getResponse.HTTPBodyAsUTF8String,  Is.EqualTo("GET: 'test3.txt'!"));
+            Assert.That(getResponse.HTTPBodyAsUTF8String,   Is.EqualTo("GET: 'test3.txt'!"));
 
 
             var postResponse  = await httpClient.SendRequest(
@@ -853,7 +852,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
 
         #region MultipleRequests_ExplicitKeepAlives_01()
@@ -1217,7 +1215,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP
         }
 
         #endregion
-
 
 
         #region DNSSRV_Tests_01()

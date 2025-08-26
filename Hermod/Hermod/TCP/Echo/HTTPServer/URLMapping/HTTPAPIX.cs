@@ -850,7 +850,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        private readonly ConcurrentDictionary<String, RouteNode2> routeNodes = [];
+        private readonly ConcurrentDictionary<String, PathNode> routeNodes = [];
 
         #region AddHandler(HTTPMethod, URLTemplate, HTTPDelegate, ...
 
@@ -997,20 +997,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              if (("/" + segment) == URLTemplate.ToString())
                                              {
-                                                 return RouteNode2.ForCatchRestOfPath(
+                                                 return PathNode.ForCatchRestOfPath(
                                                             "/" + segment,
                                                             paramName,
                                                             AllowReplacement: AllowReplacement
                                                         );
                                              }
 
-                                             return RouteNode2.ForParameter(
+                                             return PathNode.ForParameter(
                                                         "/" + segment,
                                                         paramName
                                                     );
                                         }
                                         else
-                                            return RouteNode2.FromPath(
+                                            return PathNode.FromPath(
                                                        "/" + segments[0],
                                                        HTTPPath.Root.ToString()
                                                    );
@@ -1031,20 +1031,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              if ((routeNode1.FullPath + "/" + segment) == URLTemplate.ToString())
                                              {
-                                                 return RouteNode2.ForCatchRestOfPath(
+                                                 return PathNode.ForCatchRestOfPath(
                                                             routeNode1.FullPath + "/" + segment,
                                                             paramName
                                                         );
                                              }
 
-                                             return RouteNode2.ForParameter(
+                                             return PathNode.ForParameter(
                                                         routeNode1.FullPath + "/" + segment,
                                                         paramName
                                                     );
 
                                          }
 
-                                         return RouteNode2.FromPath(
+                                         return PathNode.FromPath(
                                                     routeNode1.FullPath + "/" + segment,
                                                     "/" + segment
                                                 );
@@ -1089,15 +1089,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         #region (internal) GetRequestHandle(Path)
 
-        internal ParsedRequest2
-
-            GetRequestHandle(//HTTPHostname                               Host,
-                             HTTPPath Path)
-        //    out String?                                ErrorResponse,
-        //    HTTPMethod?                                HTTPMethod                    = null,
-        //    Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null,
-        //    Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
-
+        internal ParsedRequest2 GetRequestHandle(//HTTPHostname    Host,
+                                                 HTTPPath        Path)
         {
 
             var segments    = Path.ToString().Trim('/').Split('/');
@@ -1110,12 +1103,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             if (!routeNodes.TryGetValue(pathSegment, out var routeNode))
             {
 
-                var parameterCatcher = routeNodes.Values.FirstOrDefault(routeNode => routeNode.ParamName is not null);
-                if (parameterCatcher is not null && parameterCatcher.ParamName is not null)
+                var parameterCatcher = routeNodes.Values.FirstOrDefault(routeNode => routeNode.ParameterName is not null);
+                if (parameterCatcher is not null && parameterCatcher.ParameterName is not null)
                 {
 
                     parameters.Add(
-                        parameterCatcher.ParamName,
+                        parameterCatcher.ParameterName,
                         parameterCatcher.CatchRestOfPath
                             ? Path.ToString().TrimStart('/')
                             : pathSegment
@@ -1134,10 +1127,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             }
             else
             {
-                if (routeNode.ParamName is not null)
+                if (routeNode.ParameterName is not null)
                 {
                     parameters.Add(
-                        routeNode.ParamName,
+                        routeNode.ParameterName,
                         routeNode.CatchRestOfPath
                             ? segments.Skip(1).AggregateWith('/')
                             : segments[0]
@@ -1147,18 +1140,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             if (segments.Length > 1)
             {
+
                 for (var i = 1; i < segments.Length; i++)
                 {
 
                     if (!routeNode.Children.TryGetValue(segments[i], out var routeNode2))
                     {
 
-                        var parameterCatcher = routeNode.Children.Values.FirstOrDefault(routeNode => routeNode.ParamName is not null);
-                        if (parameterCatcher is not null && parameterCatcher.ParamName is not null)
+                        var parameterCatcher = routeNode.Children.Values.FirstOrDefault(routeNode => routeNode.ParameterName is not null);
+                        if (parameterCatcher is not null && parameterCatcher.ParameterName is not null)
                         {
 
                             parameters.Add(
-                                parameterCatcher.ParamName,
+                                parameterCatcher.ParameterName,
                                 parameterCatcher.CatchRestOfPath
                                     ? segments.Skip(i).AggregateWith('/')
                                     : segments[i]

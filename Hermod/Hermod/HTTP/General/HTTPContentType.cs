@@ -553,7 +553,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
             var c = MediaMainType.CompareTo(HTTPContentType.MediaMainType);
 
             if (c == 0)
-                return MediaSubType.CompareTo(HTTPContentType.MediaSubType);
+                c = MediaSubType.CompareTo(HTTPContentType.MediaSubType);
 
             return c;
 

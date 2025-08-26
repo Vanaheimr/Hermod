@@ -17,96 +17,15 @@
 
 #region Usings
 
-using org.GraphDefined.Vanaheimr.Hermod.HTTP;
-using org.GraphDefined.Vanaheimr.Illias;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using static org.GraphDefined.Vanaheimr.Hermod.HTTP.HTTPServer;
+
+using org.GraphDefined.Vanaheimr.Illias;
+using org.GraphDefined.Vanaheimr.Hermod.HTTP;
 
 #endregion
 
 namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 {
-
-    public class ParsedRequest
-    {
-
-        public HTTPRequestHandlersX?       RequestHandlers    { get; }
-        public Dictionary<String, String>  Parameters         { get; }
-        public String?                     ErrorResponse      { get; }
-
-        private ParsedRequest(HTTPRequestHandlersX?       RequestHandlers,
-                              Dictionary<String, String>  Parameters,
-                              String?                     ErrorResponse   = null)
-        {
-
-            this.RequestHandlers  = RequestHandlers;
-            this.Parameters       = Parameters;
-            this.ErrorResponse    = ErrorResponse;
-
-        }
-
-        public static ParsedRequest Parsed(HTTPRequestHandlersX?       RequestHandler,
-                                           Dictionary<String, String>  Parameters)
-
-            => new (
-                   RequestHandler,
-                   Parameters
-               );
-
-
-        public static ParsedRequest Error(String ErrorResponse)
-
-            => new (
-                   null,
-                   [],
-                   ErrorResponse
-               );
-
-
-    }
-
-
-    public class ParsedRequest2
-    {
-
-        public RouteNode2?                 RouteNode         { get; }
-        public Dictionary<String, String>  Parameters        { get; }
-        public String?                     ErrorResponse     { get; }
-
-        private ParsedRequest2(RouteNode2?                 RouteNode,
-                               Dictionary<String, String>  Parameters,
-                               String?                     ErrorResponse   = null)
-        {
-
-            this.RouteNode       = RouteNode;
-            this.Parameters      = Parameters;
-            this.ErrorResponse   = ErrorResponse;
-
-        }
-
-        public static ParsedRequest2 Parsed(RouteNode2?                 RouteNode,
-                                            Dictionary<String, String>  Parameters)
-
-            => new (
-                   RouteNode,
-                   Parameters
-               );
-
-
-        public static ParsedRequest2 Error(String                       ErrorResponse,
-                                           Dictionary<String, String>?  Parameters   = null)
-
-            => new (
-                   null,
-                   Parameters ?? [],
-                   ErrorResponse
-               );
-
-    }
-
-
 
     public class MethodNode(HTTPMethod             Method,
                             HTTPRequestHandlersX?  RequestHandlers    = null,
@@ -127,8 +46,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
         #region Properties
-        public HTTPMethod                    Method                { get; }      = Method;
-        public HTTPRequestHandlersX? RequestHandlers
+        public HTTPMethod             Method             { get; } = Method;
+        public HTTPRequestHandlersX?  RequestHandlers
         {
 
             get
@@ -310,7 +229,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             var c = Method.CompareTo(MethodNode.Method);
 
             //if (c == 0)
-            //    return MediaSubType.CompareTo(MethodNode.MediaSubType);
+            //    c = MediaSubType.CompareTo(MethodNode.MediaSubType);
 
             return c;
 
@@ -360,9 +279,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         {
             unchecked
             {
-
                 return Method.GetHashCode();
-                       //RequestHandlers
             }
         }
 
@@ -378,112 +295,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
             => $"{Method}: {contentTypes.Select(ct => ct.Key.MediaType).AggregateWith(", ")}";
 
         #endregion
-
-    }
-
-    //public class ContentTypeNode
-    //{
-
-    //    public ContentTypeNode(HTTPContentType     ContentType,
-    //                           HTTPRequestHandleX  RequestHandle)
-    //    {
-    //        this.ContentType    = ContentType;
-    //        this.RequestHandle  = RequestHandle;
-    //    }
-
-    //    public HTTPContentType     ContentType      { get; }
-    //    public HTTPRequestHandleX  RequestHandle    { get; set; }
-    //    public Dictionary<HTTPContentType, HTTPRequestHandleX> ContentTypes { get; } = []; // ContentType -> ContentType -> Handler
-
-
-    //    public override String ToString()
-    //        => $"{ContentType} {ContentTypes.Count} content types";
-
-    //}
-
-
-
-    /// <summary>
-    /// A node which stores information for maintaining multiple http hostnames.
-    /// </summary>
-    public class RouteNode2
-    {
-
-        #region Data
-
-        private HTTPRequestHandlersX? requestHandlers;
-
-        #endregion
-
-        #region Properties
-
-        public String                                        FullPath           { get; }
-
-        public String                                        Path               { get; }
-
-        public String?                                       ParamName          { get; }
-
-        public Boolean                                       CatchRestOfPath    { get; } = false;
-
-        public ConcurrentDictionary<String, RouteNode2>      Children           { get; } = [];
-
-        public ConcurrentDictionary<HTTPMethod, MethodNode>  Methods            { get; } = []; // Method -> ContentType -> Handler
-
-
-        public URLReplacement                                AllowReplacement   { get; set; }
-
-        public HTTPRequestHandlersX?                         RequestHandlers
-        {
-
-            get
-            {
-                return requestHandlers;
-            }
-
-            set
-            {
-
-                if (requestHandlers is null || AllowReplacement == URLReplacement.Allow)
-                    requestHandlers = value;
-
-                else
-                    throw new InvalidOperationException("Cannot override existing RequestHandlers!");
-
-            }
-
-        }
-
-        #endregion
-
-        private RouteNode2(String           FullPath,
-                           String           Path,
-                           String?          ParamName,
-                           Boolean          CatchRestOfPath,
-                           URLReplacement?  AllowReplacement   = null)
-        {
-
-            this.FullPath          = FullPath;
-            this.Path              = Path;
-            this.ParamName         = ParamName;
-            this.CatchRestOfPath   = CatchRestOfPath;
-            this.AllowReplacement  = AllowReplacement ?? URLReplacement.Fail;
-
-        }
-
-
-        public static RouteNode2 FromPath(String FullPath, String Path)
-            => new (FullPath, Path, null, false);
-
-        public static RouteNode2 ForParameter(String FullPath, String ParamName)
-            => new (FullPath, "", ParamName, false);
-
-        public static RouteNode2 ForCatchRestOfPath(String FullPath, String ParamName, URLReplacement? AllowReplacement = null)
-            => new (FullPath, "", ParamName, true);
-
-
-        public override String ToString()
-
-            => $"{FullPath}{(CatchRestOfPath ? " [catch rest of path]" : "")}: {Children.Count} childs, {Methods.Count} methods";
 
     }
 

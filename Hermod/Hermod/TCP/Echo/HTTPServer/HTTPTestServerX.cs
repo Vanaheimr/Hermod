@@ -182,7 +182,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
-        private readonly ConcurrentDictionary<HTTPHostname, RouteNode> routeNodes = [];
+        private readonly ConcurrentDictionary<HTTPHostname, HTTPAPINode> routeNodes = [];
 
         public HTTPAPIX AddHTTPAPI(HTTPPath?                                   Path             = null,
                                    HTTPHostname?                               Hostname         = null,
@@ -198,7 +198,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var routeNode1  = routeNodes.GetOrAdd(
                                   hostname,
-                                  hh => new RouteNode(
+                                  hh => new HTTPAPINode(
                                             hostname.ToString(),
                                             HTTPPath.Root.ToString()
                                         )
@@ -212,7 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                         if (routeNode1.HTTPAPI is not null)
                             throw new ArgumentException($"An HTTP API at '{path}' is already registered!", nameof(Path));
 
-                        return new RouteNode(
+                        return new HTTPAPINode(
                             routeNode1.FullPath + "/" + pathSegment,
                             pathSegment,
                             httpAPI
@@ -236,7 +236,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                                                  if (routeNode1.HTTPAPI is not null)
                                                      throw new ArgumentException($"An HTTP API at '{path}' is already registered!", nameof(Path));
 
-                                                 return new RouteNode(
+                                                 return new HTTPAPINode(
                                                      routeNode1.FullPath + "/" + pathSegment,
                                                      "/" + pathSegment,
                                                      httpAPI
@@ -244,7 +244,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
                                              }
 
-                                             else return new RouteNode(
+                                             else return new HTTPAPINode(
                                                              routeNode1.FullPath + "/" + pathSegment,
                                                              "/" + pathSegment
                                                          );
@@ -273,15 +273,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             => GetRequestHandle(
                    Request.Host,
-                   Request.Path.IsNullOrEmpty ? HTTPPath.Parse("/") : Request.Path,
                    Request.HTTPMethod,
+                   Request.Path,
                    Request.Accept.BestMatchingContentType
-                 //  ParsedURLParameters => Request.ParsedURLParameters = [.. ParsedURLParameters]
                );
 
         #endregion
 
-        #region (internal) GetRequestHandle(Host = "*", Path = "/", ErrorResponse, HTTPMethod = HTTPMethod.GET, HTTPContentTypeSelector = null)
+        #region (internal) GetRequestHandle(Host = "*", HTTPMethod, Path, HTTPContentTypeSelector = null)
 
         /// <summary>
         /// Return the best matching method handler for the given parameters.
@@ -289,10 +288,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         internal ParsedRequest
 
             GetRequestHandle(HTTPHostname                               Hostname,
+                             HTTPMethod                                 HTTPMethod,
                              HTTPPath                                   Path,
-                             HTTPMethod?                                HTTPMethod                    = null,
-                             Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector       = null)
-                           //  Action<IEnumerable<String>>?               ParsedURLParametersDelegate   = null)
+                             Func<HTTPContentType[], HTTPContentType>?  HTTPContentTypeSelector   = null)
 
         {
 
@@ -310,43 +308,57 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 for (var i=0; i < segments.Length; i++)
                 {
 
-                    if (!host.Children.TryGetValue(segments[i], out var xxxx))
+                    if (!host.Children.TryGetValue(segments[i], out var __routeNode))
                     {
-                        if (!host.Children.TryGetValue("/", out xxxx))
+                        if (!host.Children.TryGetValue("/", out __routeNode))
                         {
                             return ParsedRequest.Error($"Unknown path segment!");
                         }
                     }
 
-                    host = xxxx;
+                    host = __routeNode;
 
                     if (host.HTTPAPI is not null)
                     {
 
                         var newPath          = HTTPPath.Parse(segments.AggregateWith('/')[(host.HTTPAPI.RootPath.ToString().Length - 1)..]);
-                        var parsedRouteNode  = host.HTTPAPI.GetRequestHandle(newPath);//(Hostname, newPath, HTTPMethod, HTTPContentTypeSelector, ParsedURLParametersDelegate);
+                        var parsedRouteNode  = host.HTTPAPI.GetRequestHandle(newPath);
 
-                        if (parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodX))
+                        if (parsedRouteNode.RouteNode is not null)
                         {
 
-                            if (methodX.ContentTypes.Any() && HTTPContentTypeSelector is not null)
+                            if (parsedRouteNode.RouteNode.Methods.TryGetValue(HTTPMethod, out var methodNode))
                             {
 
-                                var bestMatchingContentType = HTTPContentTypeSelector([.. methodX.ContentTypes]);
-
-                                if (bestMatchingContentType != HTTPContentType.ALL)
+                                if (methodNode.ContentTypes.Any() && HTTPContentTypeSelector is not null)
                                 {
-                                    if (methodX.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
-                                        return ParsedRequest.Parsed(contentTypeNode, parsedRouteNode.Parameters);
+
+                                    var bestMatchingContentType = HTTPContentTypeSelector([.. methodNode.ContentTypes]);
+
+                                    if (bestMatchingContentType != HTTPContentType.ALL)
+                                    {
+                                        if (methodNode.TryGetContentType(bestMatchingContentType, out var contentTypeNode))
+                                            return ParsedRequest.Parsed(
+                                                       contentTypeNode,
+                                                       parsedRouteNode.Parameters
+                                                   );
+                                    }
+
                                 }
+
+                                return ParsedRequest.Parsed(
+                                           methodNode.RequestHandlers,
+                                           parsedRouteNode.Parameters
+                                       );
 
                             }
 
-                            return ParsedRequest.Parsed(methodX.RequestHandlers, parsedRouteNode.Parameters);
+                            return ParsedRequest.Parsed(
+                                       parsedRouteNode.RouteNode.RequestHandlers,
+                                       parsedRouteNode.Parameters
+                                   );
 
                         }
-
-                        return ParsedRequest.Parsed(parsedRouteNode.RouteNode.RequestHandlers, parsedRouteNode.Parameters);
 
                     }
 
