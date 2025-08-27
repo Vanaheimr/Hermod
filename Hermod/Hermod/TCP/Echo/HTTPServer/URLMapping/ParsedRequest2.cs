@@ -31,11 +31,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
     public class ParsedRequest2
     {
 
-        public PathNode?                 RouteNode         { get; }
+        public PathNode?                   RouteNode         { get; }
         public Dictionary<String, String>  Parameters        { get; }
         public String?                     ErrorResponse     { get; }
 
-        private ParsedRequest2(PathNode?                 RouteNode,
+        private ParsedRequest2(PathNode?                   RouteNode,
                                Dictionary<String, String>  Parameters,
                                String?                     ErrorResponse   = null)
         {
@@ -46,7 +46,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
         }
 
-        public static ParsedRequest2 Parsed(PathNode?                 RouteNode,
+        public static ParsedRequest2 Parsed(PathNode?                   RouteNode,
                                             Dictionary<String, String>  Parameters)
 
             => new (
@@ -63,6 +63,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                    Parameters ?? [],
                    ErrorResponse
                );
+
+
+        public override String ToString()
+        {
+
+            if (ErrorResponse is not null)
+                return ErrorResponse;
+
+            if (RouteNode is not null)
+                return $"{RouteNode.FullPath}";
+
+            return "<null>";
+
+        }
 
     }
 

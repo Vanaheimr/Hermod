@@ -166,19 +166,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
         #endregion
 
 
-        #region RegisterSOAPDelegate(Hostname, URITemplate, Description, SOAPMatch, SOAPBodyDelegate)
+        #region RegisterSOAPDelegate(Hostname, URLTemplate, Description, SOAPMatch, SOAPBodyDelegate)
 
         /// <summary>
         /// Register a SOAP delegate.
         /// </summary>
         /// <param name="Hostname">The HTTP Hostname.</param>
-        /// <param name="URITemplate">The URI template.</param>
+        /// <param name="URLTemplate">The URL template.</param>
         /// <param name="Description">A description of this SOAP delegate.</param>
         /// <param name="SOAPMatch">A delegate to check whether this dispatcher matches the given XML.</param>
         /// <param name="SOAPBodyDelegate">A delegate to process a matching SOAP request.</param>
         public void RegisterSOAPDelegate(HTTPAPIX          HTTPAPI,
                                          HTTPHostname      Hostname,
-                                         HTTPPath          URITemplate,
+                                         HTTPPath          URLTemplate,
                                          String            Description,
                                          SOAPMatch         SOAPMatch,
                                          SOAPBodyDelegate  SOAPBodyDelegate)
@@ -186,54 +186,42 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SOAP
 
             SOAPDispatcher? soapDispatcher = null;
 
-            // Check if there are other SOAP dispatchers at the given URI template.
-            var requestHandle = HTTPServer.GetRequestHandle(
-                                    HTTPHostname.Any,
-                                  //  out var errorResponse,
+            var requestHandle = HTTPAPI.GetRequestHandle(
+                                    URLTemplate,
                                     HTTPMethod.POST,
-                                    URITemplate,
-                                    hTTPContentTypes => SOAPContentType
+                                    SOAPContentType
                                 );
 
-            if (requestHandle is null)
+            if (requestHandle.RouteNode is null)
             {
 
-                soapDispatcher = new SOAPDispatcher(URITemplate, SOAPContentType);
-                soapDispatchers.Add(URITemplate, soapDispatcher);
+                soapDispatcher = new SOAPDispatcher(URLTemplate, SOAPContentType);
+                soapDispatchers.Add(URLTemplate, soapDispatcher);
 
                 // Register a new SOAP dispatcher
-                HTTPServer.AddHandler(
-                    HTTPAPI,
-                    soapDispatcher.Invoke,
-                    Hostname,
-                    URITemplate,
+                HTTPAPI.AddHandler(
                     HTTPMethod.POST,
+                    URLTemplate,
+                    soapDispatcher.Invoke,
                     SOAPContentType
                 );
 
                 // Register some information text for people using HTTP GET
-                HTTPServer.AddHandler(
-                    HTTPAPI,
-                    soapDispatcher.EndpointTextInfo,
-                    Hostname,
-                    URITemplate,
+                HTTPAPI.AddHandler(
                     HTTPMethod.GET,
+                    URLTemplate,
+                    soapDispatcher.EndpointTextInfo,
                     SOAPContentType
                 );
 
             }
 
-            else
-                soapDispatcher = requestHandle?.RequestHandlers?.RequestHandler?.Target as SOAPDispatcher;
-
-            if (soapDispatcher is null)
-                throw new Exception("'" + URITemplate.ToString() + "' does not seem to be a valid SOAP endpoint!");
-
-            soapDispatcher.RegisterSOAPDelegate(
-                Description,
-                SOAPMatch,
-                SOAPBodyDelegate
-            );
+            if (soapDispatchers.TryGetValue(URLTemplate, out var existingSOAPDispatcher))
+                existingSOAPDispatcher.RegisterSOAPDelegate(
+                    Description,
+                    SOAPMatch,
+                    SOAPBodyDelegate
+                );
 
         }
 

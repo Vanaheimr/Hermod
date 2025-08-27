@@ -36,9 +36,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
     public static class HTTPStandardHandlersX
     {
 
-        public const String ResourceName = "ResourceName";
-
-        #region RegisterRAWRequestHandler      (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Method = null)
+        #region RegisterRAWRequestHandler       (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Method = null)
 
         /// <summary>
         /// Return the RAW request header.
@@ -59,10 +57,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                    Hostname,
                    HTTPMethod:    Method ?? HTTPMethod.GET,
                    URLTemplate:   URLTemplate,
-                   HTTPDelegate:  Request => {
+                   HTTPDelegate:  request => {
 
                        return Task.FromResult(
-                           new HTTPResponse.Builder(Request) {
+                           new HTTPResponse.Builder(request) {
 
                                HTTPStatusCode  = HTTPStatusCode.OK,
                                Server          = HTTPServer.HTTPServerName,
@@ -70,15 +68,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                CacheControl    = "no-cache",
                                Connection      = ConnectionType.KeepAlive,
                                ContentType     = HTTPContentType.Text.PLAIN,
-                               Content         = ("Incoming http connection from '" + Request.HTTPSource + "'" +
+                               Content         = ("Incoming http connection from '" + request.HTTPSource + "'" +
                                                    Environment.NewLine + Environment.NewLine +
-                                                   Request.RawHTTPHeader +
+                                                   request.RawHTTPHeader +
                                                    Environment.NewLine + Environment.NewLine +
-                                                   "Method => "         + Request.HTTPMethod      + Environment.NewLine +
-                                                   "URL => "            + Request.Path.ToString()  + Environment.NewLine +
-                                                   "QueryString => "    + Request.QueryString     + Environment.NewLine +
-                                                   "Protocol => "       + Request.ProtocolName    + Environment.NewLine +
-                                                   "Version => "        + Request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
+                                                   "Method => "         + request.HTTPMethod      + Environment.NewLine +
+                                                   "URL => "            + request.Path.ToString()  + Environment.NewLine +
+                                                   "QueryString => "    + request.QueryString     + Environment.NewLine +
+                                                   "Protocol => "       + request.ProtocolName    + Environment.NewLine +
+                                                   "Version => "        + request.ProtocolVersion + Environment.NewLine).ToUTF8Bytes()
 
                            }.AsImmutable
                        );
@@ -87,7 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
         #endregion
 
-        #region RegisterMovedTemporarilyHandler(this HTTPServer, HTTPAPI, Hostname, URLTemplate, Location)
+        #region RegisterMovedTemporarilyHandler (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Location)
 
         /// <summary>
         /// Register a MovedTemporarily handler.
@@ -109,9 +107,43 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 Hostname,
                 HTTPMethod.GET,
                 URLTemplate,
-                HTTPDelegate: Request => Task.FromResult(
+                HTTPDelegate: request => Task.FromResult(
                                              HTTPTools.MovedTemporarily(
-                                                 Request,
+                                                 request,
+                                                 Location
+                                             )
+                                         )
+            );
+
+        }
+
+        #endregion
+
+        #region RegisterMovedPermanentlyHandler (this HTTPServer, HTTPAPI, Hostname, URLTemplate, Location)
+
+        /// <summary>
+        /// Register a MovedPermanently handler.
+        /// </summary>
+        /// <param name="HTTPServer">The HTTP server.</param>
+        /// <param name="HTTPAPI">The HTTP API.</param>
+        /// <param name="Hostname">An HTTP hostname.</param>
+        /// <param name="URLTemplate">An HTTP URL template.</param>
+        /// <param name="Location">The HTTP URL to redirect to.</param>
+        public static void RegisterMovedPermanentlyHandler(this HTTPTestServerX  HTTPServer,
+                                                           HTTPAPIX              HTTPAPI,
+                                                           HTTPHostname          Hostname,
+                                                           HTTPPath              URLTemplate,
+                                                           Location              Location)
+        {
+
+            HTTPServer.AddMethodCallback(
+                HTTPAPI,
+                Hostname,
+                HTTPMethod.GET,
+                URLTemplate,
+                HTTPDelegate: request => Task.FromResult(
+                                             HTTPTools.MovedPermanently(
+                                                 request,
                                                  Location
                                              )
                                          )
@@ -123,6 +155,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
 
         // Map folders
+
+        public const String ResourceName = "ResourceName";
 
         #region (private static) GetFromResourceAssembly   (URLTemplate, DefaultServerName, ResourceAssembly, ResourcePath, ...)
 
@@ -643,13 +677,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPDelegate:       RequireAuthentication
 
-                                        ? httpRequest => {
+                                        ? request => {
 
                                               #region Get HTTP user and its organizations
 
                                               // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                               if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                  httpRequest,
+                                                                  request,
                                                                   out var httpUser,
                                                                   out var httpOrganizations,
                                                                   out var response,
@@ -668,7 +702,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          ResourcePath,
                                                          DefaultFilename,
                                                          HTMLTemplateHandler
-                                                     )(httpRequest);
+                                                     )(request);
 
                                           }
 
@@ -694,13 +728,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPDelegate:       RequireAuthentication
 
-                                        ? httpRequest => {
+                                        ? request => {
 
                                               #region Get HTTP user and its organizations
 
                                               // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                               if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                  httpRequest,
+                                                                  request,
                                                                   out var httpUser,
                                                                   out var httpOrganizations,
                                                                   out var response,
@@ -719,7 +753,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          ResourcePath,
                                                          DefaultFilename,
                                                          HTMLTemplateHandler
-                                                     )(httpRequest);
+                                                     )(request);
 
                                           }
 
@@ -827,13 +861,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPDelegate:      RequireAuthentication
 
-                                       ? httpRequest => {
+                                       ? request => {
 
                                              #region Get HTTP user and its organizations
 
                                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                              if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                 httpRequest,
+                                                                 request,
                                                                  out var httpUser,
                                                                  out var httpOrganizations,
                                                                  out var response,
@@ -851,7 +885,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         ResourceAssemblies,
                                                         DefaultFilename,
                                                         HTMLTemplateHandler
-                                                    )(httpRequest);
+                                                    )(request);
 
                                          }
 
@@ -878,13 +912,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPDelegate:      RequireAuthentication
 
-                                       ? httpRequest => {
+                                       ? request => {
 
                                              #region Get HTTP user and its organizations
 
                                              // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                              if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                 httpRequest,
+                                                                 request,
                                                                  out var httpUser,
                                                                  out var httpOrganizations,
                                                                  out var response,
@@ -902,7 +936,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                         ResourceAssemblies,
                                                         DefaultFilename,
                                                         HTMLTemplateHandler
-                                                    )(httpRequest);
+                                                    )(request);
 
                                          }
 
@@ -1027,13 +1061,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
 
                 HTTPDelegate:       RequireAuthentication
 
-                                        ? httpRequest => {
+                                        ? request => {
 
                                               #region Get HTTP user and its organizations
 
                                               // Will return HTTP 401 Unauthorized, when the HTTP user is unknown!
                                               if (!HTTPExtAPI.TryGetHTTPUser(
-                                                                  httpRequest,
+                                                                  request,
                                                                   out var httpUser,
                                                                   out var httpOrganizations,
                                                                   out var response,
@@ -1052,7 +1086,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                                                          //fileName => GetFromFileSystem(ResourcePath, fileName),
                                                          DefaultFilename,
                                                          HTMLTemplateHandler
-                                                     )(httpRequest);
+                                                     )(request);
 
                                           }
 

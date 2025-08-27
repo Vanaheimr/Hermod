@@ -987,6 +987,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
 
             var segments      = URLTemplate.ToString().Trim('/').Split('/');
 
+            if (segments[0] == "")
+                segments[0] = "/";
+
             var routeNode1    = routeNodes.GetOrAdd(
                                     segments[0],
                                     segment => {
@@ -1087,6 +1090,45 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
         #endregion
 
 
+
+        internal ParsedRequest2 GetRequestHandle(HTTPPath    Path,
+                                                 HTTPMethod  Method)
+        {
+
+            var parsedRequest = GetRequestHandle(Path);
+
+            if (parsedRequest.RouteNode?.Methods.ContainsKey(Method) == true)
+                return ParsedRequest2.Parsed(parsedRequest.RouteNode, parsedRequest.Parameters);
+
+            return ParsedRequest2.Error($"Unknown method {Method}!", parsedRequest.Parameters);
+
+        }
+
+        internal ParsedRequest2 GetRequestHandle(HTTPPath         Path,
+                                                 HTTPMethod       Method,
+                                                 HTTPContentType  ContentType)
+        {
+
+            var parsedRequest = GetRequestHandle(Path);
+
+            if (parsedRequest.ErrorResponse is not null)
+                return parsedRequest;
+
+            if (parsedRequest.RouteNode?.Methods.TryGetValue(Method, out var methodNode) == true)
+            {
+
+                if (methodNode.ContentTypes.Any(a => a == ContentType))
+                    return ParsedRequest2.Parsed(parsedRequest.RouteNode, parsedRequest.Parameters);
+
+                return ParsedRequest2.Error($"Unknown content type {ContentType}!", parsedRequest.Parameters);
+
+            }
+
+            return ParsedRequest2.Error($"Unknown method {Method}!", parsedRequest.Parameters);
+
+        }
+
+
         #region (internal) GetRequestHandle(Path)
 
         internal ParsedRequest2 GetRequestHandle(//HTTPHostname    Host,
@@ -1120,7 +1162,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTPTest
                 }
                 else
                     return ParsedRequest2.Error(
-                               $"Unknown path {Path}!",
+                               $"Unknown path '{Path}'!",
                                parameters
                            );
 
